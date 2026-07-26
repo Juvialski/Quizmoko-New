@@ -206,7 +206,7 @@
                 <form action="/delete/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" method="POST" onsubmit="return confirm('Discard this quiz? This will delete it permanently.');" style="display: inline;">
                     <button type="submit" class="btn btn-danger" style="font-size: 11px; padding: 6px 12px;">🗑️ DISCARD QUIZ</button>
                 </form>
-                <% if (quiz.golden_reference or quiz.worksheet_source) { %>
+                <% if (quiz.golden_reference || quiz.worksheet_source) { %>
                 <button class="btn" onclick="toggleGoldenSidebar()" style="background: var(--warning); color: black; border: none; font-size: 11px; padding: 6px 12px;">🛡️ VIEW REFERENCE</button>
                 <% } %>
             </div>
@@ -1322,7 +1322,26 @@
                     header.style.marginTop = "0";
                     content.appendChild(header);
 
-                    const sortedNums = Object.keys(quizData.golden_reference).sort((a,b) => parseInt(a) - parseInt(b));
+                    const parseIndex = (idxStr) => {
+                        const str = String(idxStr || '').trim();
+                        const match = str.match(/^(\d+)(.*)$/);
+                        if (match) {
+                            return {
+                                num: parseInt(match[1], 10),
+                                suffix: match[2].toLowerCase()
+                            };
+                        }
+                        return { num: Infinity, suffix: str.toLowerCase() };
+                    };
+
+                    const sortedNums = Object.keys(quizData.golden_reference).sort((a,b) => {
+                        const parseA = parseIndex(a);
+                        const parseB = parseIndex(b);
+                        if (parseA.num !== parseB.num) {
+                            return parseA.num - parseB.num;
+                        }
+                        return parseA.suffix.localeCompare(parseB.suffix);
+                    });
                     sortedNums.forEach(num => {
                         const item = document.createElement('div');
                         item.className = 'golden-sidebar-item';

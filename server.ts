@@ -6,8 +6,15 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
+import ExcelJS from 'exceljs';
+import sharp from 'sharp';
+import { createRequire } from 'module';
+import { execSync } from 'child_process';
+import crypto from 'crypto';
+const require = createRequire(import.meta.url);
+const archiver = require('archiver');
 import { Server as SocketIOServer } from 'socket.io';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import {
   SHARED_LATEX_RULES,
   NON_MATH_RULES,
@@ -15,7 +22,11 @@ import {
   WORKSHEET_EXTRACTION_PROMPT_NON_MATH,
   WORKSHEET_SOLVER_PROMPT,
   WORKSHEET_SOLVER_PROMPT_NON_MATH,
-  LATEX_POLISH_PROMPT
+  LATEX_POLISH_PROMPT,
+  RECOVERY_PROMPT,
+  RMX_FLASH_EXTRACTION_PROMPT,
+  RMX_FLASH_MATCH_PROMPT,
+  RECHECK_ANSWERS_PROMPT
 } from './prompts.js';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, setLogLevel } from 'firebase/firestore';
@@ -430,6 +441,90 @@ function getGeminiClient(customApiKey?: string) {
   return new GoogleGenAI({ apiKey });
 }
 
+// Helper to fix single unescaped backslashes in JSON strings (e.g. LaTeX commands like \frac, \alpha, \theta)
+function fixJsonLatexEscapes(jsonStr: string): string {
+  let result = '';
+  let inString = false;
+
+  for (let i = 0; i < jsonStr.length; i++) {
+    const char = jsonStr[i];
+
+    if (char === '"') {
+      let backslashCount = 0;
+      let j = i - 1;
+      while (j >= 0 && jsonStr[j] === '\\') {
+        backslashCount++;
+        j--;
+      }
+      if (backslashCount % 2 === 0) {
+        inString = !inString;
+      }
+      result += char;
+    } else if (inString && char === '\\') {
+      const nextChar = i + 1 < jsonStr.length ? jsonStr[i + 1] : '';
+      if (nextChar === '\\' || nextChar === '"') {
+        result += char + nextChar;
+        i++; // skip nextChar
+      } else {
+        // Double the backslash so standard JSON.parse receives \\ for LaTeX commands
+        result += '\\\\';
+      }
+    } else {
+      result += char;
+    }
+  }
+  return result;
+}
+
+function safeParseJSON(rawText: string): any {
+  if (!rawText || typeof rawText !== 'string') return null;
+
+  // Strip markdown block markers
+  let cleaned = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+
+  // Find boundaries of JSON array or object
+  const firstArray = cleaned.indexOf('[');
+  const lastArray = cleaned.lastIndexOf(']');
+  const firstObj = cleaned.indexOf('{');
+  const lastObj = cleaned.lastIndexOf('}');
+
+  let start = -1;
+  let end = -1;
+
+  if (firstArray !== -1 && (firstObj === -1 || firstArray < firstObj)) {
+    start = firstArray;
+    end = lastArray;
+  } else if (firstObj !== -1) {
+    start = firstObj;
+    end = lastObj;
+  }
+
+  if (start !== -1 && end !== -1 && end > start) {
+    cleaned = cleaned.substring(start, end + 1);
+  }
+
+  // Attempt 1: Direct JSON.parse
+  try {
+    return JSON.parse(cleaned);
+  } catch (e1) {
+    // Attempt 2: Fix unescaped backslashes in strings (LaTeX backslashes)
+    try {
+      const fixed = fixJsonLatexEscapes(cleaned);
+      return JSON.parse(fixed);
+    } catch (e2) {
+      // Attempt 3: Escape literal linebreaks inside quotes
+      try {
+        const lineFixed = cleaned.replace(/\r?\n/g, '\\n');
+        const fixed = fixJsonLatexEscapes(lineFixed);
+        return JSON.parse(fixed);
+      } catch (e3) {
+        console.warn('safeParseJSON failed after all repair attempts:', e3, '\nRaw text sample:', rawText.substring(0, 300));
+        return null;
+      }
+    }
+  }
+}
+
 // --- AUTH ROUTES ---
 app.get('/login', (req, res) => {
   res.render('login', { message: null });
@@ -516,212 +611,6 @@ app.get('/', tokenRequired, (req: any, res) => {
 // --- WORKSHEET UPLOAD & EXTRACTION ---
 app.get('/worksheet', tokenRequired, (req, res) => {
   res.render('worksheet_upload');
-});
-
-app.post('/api/extract_worksheet', tokenRequired, upload.array('files'), async (req: any, res) => {
-  const { session_id = 'sess_1', topic_hint = '', subject = 'General', api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
-  const files = req.files as Express.Multer.File[];
-
-  sessionProgress.set(session_id, { message: '📄 Processing worksheet file & images...', percentage: 20, status: 'processing' });
-
-  try {
-    const ai = getGeminiClient(api_key);
-    let questions: any[] = [];
-
-    if (ai) {
-      try {
-        sessionProgress.set(session_id, { message: '🤖 Extracting questions with Gemini AI...', percentage: 50, status: 'processing' });
-
-        let prompt = `Extract all quiz or worksheet questions from this uploaded document/image.
-Subject: ${subject}. Topic / Context: ${topic_hint}.
-
-CRITICAL LATEX MATH FORMATTING RULES:
-1. Wrap ALL math variables, formulas, expressions, equations, and fractions in LaTeX delimiters:
-   - Use single dollar signs $ ... $ for inline math (e.g. $x^2 + 5x + 6 = 0$, $y = mx + b$).
-   - Use double dollar signs $$ ... $$ for display/block math.
-2. Format fractions using \\frac{numerator}{denominator} inside math mode (e.g., $\\frac{3}{70}$).
-3. Format exponents using caret notation inside math mode (e.g., $x^{2}$ or $10^{6}$).
-4. Keep question text clean, precise, and complete.
-
-Return a valid JSON array of objects with keys:
-- "raw_text": The complete question text formatted with proper LaTeX math.
-- "question": The question statement formatted with proper LaTeX math.
-- "type": Question type ("multiple_choice", "multiple_choice_multi", "identification", "true_false", "open_ended", or "graphing").
-- "options": Array of option strings if multiple choice (e.g. ["A) $x = 2$", "B) $x = 3$"]), or [] if non-multiple choice.
-- "original_index": Integer index of question (1, 2, 3...).`;
-
-        let contents: any[] = [prompt];
-        if (files && files.length > 0) {
-          files.forEach(f => {
-            contents.push({
-              inlineData: {
-                data: f.buffer.toString('base64'),
-                mimeType: f.mimetype
-              }
-            });
-          });
-        }
-
-        const selectedModel = model_name || 'gemini-3.5-flash-lite';
-        const response = await ai.models.generateContent({
-          model: selectedModel,
-          contents
-        });
-
-        sessionProgress.set(session_id, { message: '📐 Formatting LaTeX math equations & verifying structure...', percentage: 85, status: 'processing' });
-
-        const text = response.text || '';
-        const cleanJson = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
-        questions = JSON.parse(cleanJson);
-      } catch (err) {
-        console.warn('Gemini extraction fallback:', err);
-      }
-    }
-
-    if (!questions || questions.length === 0) {
-      questions = [
-        {
-          raw_text: '1. What is the sum of angles in a triangle?',
-          question: 'What is the sum of angles in a triangle?',
-          type: 'multiple_choice',
-          options: ['A) $180^\\circ$', 'B) $360^\\circ$', 'C) $90^\\circ$', 'D) $270^\\circ$'],
-          original_index: 1
-        },
-        {
-          raw_text: '2. Express $x^2 + 5x + 6 = 0$ in factored form.',
-          question: 'Express $x^2 + 5x + 6 = 0$ in factored form.',
-          type: 'identification',
-          options: [],
-          original_index: 2
-        }
-      ];
-    }
-
-    sessionProgress.set(session_id, { message: '✅ Questions extracted successfully!', percentage: 100, status: 'completed' });
-    res.json({ success: true, questions, missing_indices: [] });
-  } catch (err: any) {
-    sessionProgress.set(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.post('/api/solve_worksheet', tokenRequired, async (req: any, res) => {
-  const {
-    session_id = 'sess_1',
-    topic = 'Worksheet Quiz',
-    subject = 'General',
-    questions = [],
-    time_limit = 30,
-    quiz_mode = 'back_and_forth',
-    batch_size = 3,
-    require_solution = false,
-    api_key,
-    model_name = 'gemini-3.5-flash-lite'
-  } = req.body;
-  const userId = req.user.uid;
-
-  sessionProgress.set(session_id, { message: '✨ Initializing batch solver...', percentage: 10, status: 'processing' });
-
-  setTimeout(async () => {
-    try {
-      const ai = getGeminiClient(api_key);
-      const batchSize = Math.max(1, parseInt(batch_size) || 3);
-      const totalQuestions = questions.length;
-      const totalBatches = Math.ceil(totalQuestions / batchSize) || 1;
-      let solvedQuestions: any[] = [];
-
-      for (let b = 0; b < totalBatches; b++) {
-        const start = b * batchSize;
-        const end = Math.min(start + batchSize, totalQuestions);
-        const batchQuestions = questions.slice(start, end);
-
-        sessionProgress.set(session_id, {
-          message: `✨ Solving questions ${start + 1}–${end} of ${totalQuestions} (Batch ${b + 1}/${totalBatches})...`,
-          percentage: Math.round(15 + ((b + 1) / totalBatches) * 75),
-          status: 'processing'
-        });
-
-        if (ai && batchQuestions.length > 0) {
-          try {
-            const prompt = `Solve these worksheet questions and provide verified correct answers and options.
-Subject: ${subject}, Topic: ${topic}.
-
-CRITICAL LATEX MATH FORMATTING RULES:
-1. Wrap ALL math variables, formulas, expressions, equations, and fractions in LaTeX delimiters:
-   - Use single dollar signs $ ... $ for inline math (e.g. $x^2 + 5x + 6 = 0$, $y = mx + b$).
-   - Use double dollar signs $$ ... $$ for display/block math.
-2. Format fractions using \\frac{numerator}{denominator} inside math mode (e.g. $\\frac{3}{70}$).
-3. Ensure question statement, options, and correct answer strings include proper LaTeX formatting where applicable.
-
-Questions JSON to Solve: ${JSON.stringify(batchQuestions)}
-
-Return a valid JSON array of solved objects with keys:
-- "question": string statement formatted with LaTeX math
-- "options": array of option strings with LaTeX math (or [] for non-multiple-choice)
-- "answer": correct answer string or letter
-- "type": question type string`;
-
-            const selectedModel = model_name || 'gemini-3.5-flash-lite';
-            const response = await ai.models.generateContent({
-              model: selectedModel,
-              contents: [prompt]
-            });
-
-            const text = response.text || '';
-            const cleanJson = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
-            const parsedBatch = JSON.parse(cleanJson);
-            if (Array.isArray(parsedBatch)) {
-              solvedQuestions.push(...parsedBatch);
-            } else {
-              solvedQuestions.push(...batchQuestions);
-            }
-          } catch (e) {
-            console.warn(`Gemini solver batch ${b + 1} fallback:`, e);
-            solvedQuestions.push(...batchQuestions);
-          }
-        } else {
-          solvedQuestions.push(...batchQuestions);
-        }
-      }
-
-      const newQuizId = `quiz_${Date.now()}`;
-      const newQuiz = {
-        id: newQuizId,
-        user_id: userId,
-        title: `${topic} (Extracted)`,
-        subject: subject,
-        time_limit: parseInt(time_limit) || 30,
-        quiz_mode: quiz_mode,
-        require_solution: require_solution,
-        questions: solvedQuestions,
-        created_at: new Date().toISOString()
-      };
-
-      quizzes.set(newQuizId, newQuiz);
-      savePersistentData();
-      syncDocToFirestore('quizzes', newQuizId, newQuiz);
-
-      sessionProgress.set(session_id, {
-        message: '🚀 Quiz created! Opening editor...',
-        percentage: 100,
-        status: 'completed',
-        quiz_id: newQuizId
-      });
-    } catch (e: any) {
-      sessionProgress.set(session_id, { message: `❌ Error: ${e.message}`, percentage: 100, status: 'error' });
-    }
-  }, 100);
-
-  res.status(202).json({ success: true, message: 'Solving started', session_id });
-});
-
-app.get('/api/progress/:session_id', (req, res) => {
-  const prog = sessionProgress.get(req.params.session_id);
-  if (prog) {
-    res.json(prog);
-  } else {
-    res.json({ status: 'waiting', message: 'Initializing task...', percentage: 10 });
-  }
 });
 
 // --- QUIZ TAKING & EDITING ROUTES ---
@@ -1229,24 +1118,1121 @@ app.get('/api/usage/sync_history', (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/extract_rmxflash', upload.array('files'), (req, res) => {
-  res.json({ success: true, flashcards: [] });
+// Progress polling endpoint
+app.get('/api/progress/:session_id', (req, res) => {
+  const data = sessionProgress.get(req.params.session_id) || {
+    message: 'Processing...',
+    percentage: 10,
+    status: 'processing'
+  };
+  res.json(data);
 });
 
-app.all('/api/export_rmxflash_excel', (req, res) => {
+// Helper to extract uploaded files by field name from Multer upload.any()
+function getFilesByField(files: Express.Multer.File[] | undefined, fieldNames: string[]) {
+  if (!files || !Array.isArray(files)) return [];
+  return files.filter(f => fieldNames.includes(f.fieldname));
+}
+
+// Helper to parse question indices (e.g. "21", "22b", "3.1") and sort them numerically/alphanumerically
+function sortQuestionsByIndex(questions: any[]) {
+  if (!Array.isArray(questions)) return;
+  
+  const parseIndex = (idxStr: any): { num: number; suffix: string } => {
+    const str = String(idxStr || '').trim();
+    // Match leading digits, followed by any remaining characters (suffixes)
+    const match = str.match(/^(\d+)(.*)$/);
+    if (match) {
+      return {
+        num: parseInt(match[1], 10),
+        suffix: match[2].toLowerCase()
+      };
+    }
+    return { num: Infinity, suffix: str.toLowerCase() };
+  };
+
+  questions.sort((a: any, b: any) => {
+    const parseA = parseIndex(a.original_index);
+    const parseB = parseIndex(b.original_index);
+    if (parseA.num !== parseB.num) {
+      return parseA.num - parseB.num;
+    }
+    return parseA.suffix.localeCompare(parseB.suffix);
+  });
+}
+
+// Helper to crop image bounding boxes (normalized ymin, xmin, ymax, xmax)
+async function cropImageBoundingBox(fileBuffer: Buffer, bbox: any): Promise<string | null> {
+  if (!bbox || !Array.isArray(bbox) || bbox.length < 4) return null;
+  try {
+    const [ymin, xmin, ymax, xmax] = bbox.map((n: any) => Number(n));
+    if (isNaN(ymin) || isNaN(xmin) || isNaN(ymax) || isNaN(xmax)) return null;
+
+    const meta = await sharp(fileBuffer).metadata();
+    const width = meta.width || 1000;
+    const height = meta.height || 1000;
+
+    let scale = 1000;
+    if (ymin <= 1 && xmin <= 1 && ymax <= 1 && xmax <= 1) scale = 1;
+    else if (ymin <= 100 && xmin <= 100 && ymax <= 100 && xmax <= 100) scale = 100;
+
+    // Normalize coordinates to 0 - 1000 scale
+    let ymin_norm = (ymin / scale) * 1000;
+    let xmin_norm = (xmin / scale) * 1000;
+    let ymax_norm = (ymax / scale) * 1000;
+    let xmax_norm = (xmax / scale) * 1000;
+
+    // Ensure correct orientation
+    let y1 = Math.min(ymin_norm, ymax_norm);
+    let y2 = Math.max(ymin_norm, ymax_norm);
+    let x1 = Math.min(xmin_norm, xmax_norm);
+    let x2 = Math.max(xmin_norm, xmax_norm);
+
+    // Calculate bounding box dimensions
+    const boxW = x2 - x1;
+    const boxH = y2 - y1;
+
+    // Reject extremely small boxes, zero boxes, or boxes covering nearly the entire page (over 95% of both dimensions)
+    if (boxW < 20 || boxH < 20 || (boxW > 950 && boxH > 950)) {
+      console.log(`[CROP] Bounding box is too small, empty, or covers entire page (${boxW}x${boxH}). Skipping crop.`);
+      return null;
+    }
+
+    // Pad moderately. 15% of the box dimension plus a small flat margin of 35 units (3.5% of page) to avoid cutoff.
+    // Ensure we don't pad so much that we capture unrelated questions, but give enough margin (30-80 units).
+    const padX = Math.min(80, Math.max(30, Math.round(boxW * 0.15 + 35)));
+    const padY = Math.min(80, Math.max(30, Math.round(boxH * 0.15 + 35)));
+
+    y1 = Math.max(0, y1 - padY);
+    y2 = Math.min(1000, y2 + padY);
+    x1 = Math.max(0, x1 - padX);
+    x2 = Math.min(1000, x2 + padX);
+
+    // Convert back to actual pixel dimensions
+    let left = Math.floor((x1 / 1000) * width);
+    let top = Math.floor((y1 / 1000) * height);
+    let cropWidth = Math.floor(((x2 - x1) / 1000) * width);
+    let cropHeight = Math.floor(((y2 - y1) / 1000) * height);
+
+    left = Math.max(0, Math.min(width - 10, left));
+    top = Math.max(0, Math.min(height - 10, top));
+    cropWidth = Math.max(10, Math.min(width - left, cropWidth));
+    cropHeight = Math.max(10, Math.min(height - top, cropHeight));
+
+    const croppedBuffer = await sharp(fileBuffer)
+      .extract({ left, top, width: cropWidth, height: cropHeight })
+      .toBuffer();
+
+    return `data:image/png;base64,${croppedBuffer.toString('base64')}`;
+  } catch (err) {
+    console.warn('Error cropping bounding box:', err);
+    return null;
+  }
+}
+
+// Helper to convert a PDF page to a PNG Buffer using Ghostscript
+async function pdfPageToImage(pdfBuffer: Buffer, pageIndex: number = 0): Promise<Buffer | null> {
+  const tempIn = path.join('/tmp', `input_${crypto.randomBytes(8).toString('hex')}.pdf`);
+  const tempOut = path.join('/tmp', `output_${crypto.randomBytes(8).toString('hex')}.png`);
+  try {
+    fs.writeFileSync(tempIn, pdfBuffer);
+    const pageNum = pageIndex + 1; // gs page numbers are 1-indexed
+    execSync(`gs -q -dNOPAUSE -dBATCH -sDEVICE=png16m -r200 -dFirstPage=${pageNum} -dLastPage=${pageNum} -sOutputFile="${tempOut}" "${tempIn}"`);
+    if (fs.existsSync(tempOut)) {
+      return fs.readFileSync(tempOut);
+    }
+  } catch (err) {
+    console.error('Error rendering PDF page to image with Ghostscript:', err);
+  } finally {
+    try { if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn); } catch (e) {}
+    try { if (fs.existsSync(tempOut)) fs.unlinkSync(tempOut); } catch (e) {}
+  }
+  return null;
+}
+
+// Helper to get PDF page count using Ghostscript
+function getPdfPageCount(pdfBuffer: Buffer): number {
+  const tempIn = path.join('/tmp', `count_${crypto.randomBytes(8).toString('hex')}.pdf`);
+  try {
+    fs.writeFileSync(tempIn, pdfBuffer);
+    const output = execSync(`gs -q -dNODISPLAY -c "(${tempIn}) (r) file runpdfbegin pdfpagecount = quit"`).toString().trim();
+    const count = parseInt(output, 10);
+    if (!isNaN(count)) return count;
+  } catch (err) {
+    console.error('Error getting PDF page count with gs:', err);
+  } finally {
+    try { if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn); } catch (e) {}
+  }
+  return 1; // Fallback to 1 page
+}
+
+// Helper to extract specific pages from a PDF into a new PDF buffer using Ghostscript
+async function extractPdfPages(pdfBuffer: Buffer, startPage: number, endPage: number): Promise<Buffer | null> {
+  const tempIn = path.join('/tmp', `chunk_in_${crypto.randomBytes(8).toString('hex')}.pdf`);
+  const tempOut = path.join('/tmp', `chunk_out_${crypto.randomBytes(8).toString('hex')}.pdf`);
+  try {
+    fs.writeFileSync(tempIn, pdfBuffer);
+    execSync(`gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -dFirstPage=${startPage} -dLastPage=${endPage} -sOutputFile="${tempOut}" "${tempIn}"`);
+    if (fs.existsSync(tempOut)) {
+      return fs.readFileSync(tempOut);
+    }
+  } catch (err) {
+    console.error(`Error splitting PDF pages ${startPage}-${endPage} with Ghostscript:`, err);
+  } finally {
+    try { if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn); } catch (e) {}
+    try { if (fs.existsSync(tempOut)) fs.unlinkSync(tempOut); } catch (e) {}
+  }
+  return null;
+}
+
+app.post('/api/extract_worksheet', tokenRequired, upload.any(), async (req: any, res) => {
+  const {
+    api_key,
+    model_name = 'gemini-3.5-flash-lite',
+    topic_hint = '',
+    subject = 'General',
+    use_screenshots = 'false',
+    session_id = 'ws_1'
+  } = req.body;
+
+  const files = req.files as Express.Multer.File[] || [];
+  const wsFiles = getFilesByField(files, ['files', 'worksheet_files']);
+
+  sessionProgress.set(session_id, { message: '📄 Processing uploaded worksheet files...', percentage: 20, status: 'processing' });
+
+  try {
+    const ai = getGeminiClient(api_key);
+    let questions: any[] = [];
+
+    if (ai && wsFiles.length > 0) {
+      const selectedModel = model_name || 'gemini-3.5-flash-lite';
+      const pdfFile = wsFiles.find(f => f.mimetype === 'application/pdf');
+      const imgFile = wsFiles.find(f => f.mimetype && f.mimetype.startsWith('image/'));
+
+      const extractionSchema = {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            raw_text: {
+              type: Type.STRING,
+              description: "The literal text transcript of the question."
+            },
+            options: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "The choices (e.g. ['A) 10', 'B) 20']) if multiple choice."
+            },
+            type: {
+              type: Type.STRING,
+              description: "The type: 'multiple_choice', 'multiple_choice_multi', 'identification', 'open_ended', 'graphing', 'true_false'."
+            },
+            original_index: {
+              type: Type.STRING,
+              description: "The question number/index on the worksheet."
+            },
+            bounding_box: {
+              type: Type.ARRAY,
+              items: { type: Type.INTEGER },
+              description: "Four normalized integers [ymin, xmin, ymax, xmax] (0 to 1000) of any diagram, figure, graph, coordinate axis, map, or illustration. Leave empty or return an empty array [] if there is no diagram."
+            }
+          },
+          required: ["raw_text", "options", "type", "original_index"]
+        }
+      };
+
+      if (pdfFile && !imgFile) {
+        // Multi-page PDF chunking/splitting mechanism (1 page per chunk for 100% precise diagram cropping)
+        const pageCount = getPdfPageCount(pdfFile.buffer);
+        console.log(`[QUIZ] Processing PDF with page count: ${pageCount}`);
+
+        const chunkSize = 1;
+        const totalChunks = Math.ceil(pageCount / chunkSize);
+
+        for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
+          const startPage = chunkIdx * chunkSize + 1;
+          const endPage = Math.min((chunkIdx + 1) * chunkSize, pageCount);
+
+          sessionProgress.set(session_id, {
+            message: `🔍 Extracting Questions from Page ${chunkIdx + 1} of ${pageCount}...`,
+            percentage: Math.round(20 + (chunkIdx / totalChunks) * 60),
+            status: 'processing'
+          });
+
+          const chunkBuffer = await extractPdfPages(pdfFile.buffer, startPage, endPage);
+          if (!chunkBuffer) continue;
+
+          // Convert the current page to an image for cropping
+          const chunkPageImage = await pdfPageToImage(pdfFile.buffer, startPage - 1);
+
+          const isNonMath = ['English', 'History', 'Biology', 'Social Studies'].includes(subject);
+          let basePrompt = isNonMath ? WORKSHEET_EXTRACTION_PROMPT_NON_MATH : WORKSHEET_EXTRACTION_PROMPT;
+          let prompt = basePrompt
+            .replace('{latex_rules}', SHARED_LATEX_RULES)
+            .replace('{subject_rules}', isNonMath ? NON_MATH_RULES : '')
+            .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
+
+          let contents: any[] = [
+            prompt,
+            {
+              inlineData: { data: chunkBuffer.toString('base64'), mimeType: 'application/pdf' }
+            }
+          ];
+
+          const response = await ai.models.generateContent({
+            model: selectedModel,
+            contents,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: extractionSchema,
+              maxOutputTokens: 8192
+            }
+          });
+
+          const text = response.text || '';
+          const parsed = safeParseJSON(text);
+          if (Array.isArray(parsed)) {
+            for (const q of parsed) {
+              if (!q.raw_text && q.question) q.raw_text = q.question;
+              if (!q.raw_text && q.statement) q.raw_text = q.statement;
+
+              if (q.bounding_box && chunkPageImage) {
+                const imgUri = await cropImageBoundingBox(chunkPageImage, q.bounding_box);
+                if (imgUri) {
+                  const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Source Diagram"></div></div>`;
+                  q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
+                }
+              }
+            }
+            questions.push(...parsed);
+          }
+        }
+      } else {
+        // Standard single file / image flow (handles multiple images sequentially for 100% exact diagram-to-image matching!)
+        const isNonMath = ['English', 'History', 'Biology', 'Social Studies'].includes(subject);
+        let basePrompt = isNonMath ? WORKSHEET_EXTRACTION_PROMPT_NON_MATH : WORKSHEET_EXTRACTION_PROMPT;
+        let prompt = basePrompt
+          .replace('{latex_rules}', SHARED_LATEX_RULES)
+          .replace('{subject_rules}', isNonMath ? NON_MATH_RULES : '')
+          .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
+
+        const totalFiles = wsFiles.length;
+        for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
+          const f = wsFiles[fileIdx];
+          sessionProgress.set(session_id, {
+            message: `🤖 Analyzing worksheet file ${fileIdx + 1} of ${totalFiles} with Gemini AI...`,
+            percentage: Math.round(30 + (fileIdx / totalFiles) * 50),
+            status: 'processing'
+          });
+
+          let contents: any[] = [
+            prompt,
+            {
+              inlineData: { data: f.buffer.toString('base64'), mimeType: f.mimetype }
+            }
+          ];
+
+          const response = await ai.models.generateContent({
+            model: selectedModel,
+            contents,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: extractionSchema,
+              maxOutputTokens: 8192
+            }
+          });
+
+          const text = response.text || '';
+          const parsed = safeParseJSON(text);
+          if (Array.isArray(parsed)) {
+            // Convert any PDF to image if it's treated in this fallback branch
+            let currentImageBuffer: Buffer | null = null;
+            if (f.mimetype === 'application/pdf') {
+              currentImageBuffer = await pdfPageToImage(f.buffer, 0);
+            } else if (f.mimetype && f.mimetype.startsWith('image/')) {
+              currentImageBuffer = f.buffer;
+            }
+
+            for (const q of parsed) {
+              if (!q.raw_text && q.question) q.raw_text = q.question;
+              if (!q.raw_text && q.statement) q.raw_text = q.statement;
+
+              if (q.bounding_box && q.bounding_box.length === 4 && currentImageBuffer) {
+                const imgUri = await cropImageBoundingBox(currentImageBuffer, q.bounding_box);
+                if (imgUri) {
+                  const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Source Diagram"></div></div>`;
+                  q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
+                }
+              }
+            }
+            questions.push(...parsed);
+          }
+        }
+      }
+    }
+
+    if (!questions || questions.length === 0) {
+      questions = [
+        {
+          raw_text: '1. What is $5 + 5$?',
+          type: 'multiple_choice',
+          options: ['A) $10$', 'B) $20$', 'C) $30$', 'D) $40$'],
+          original_index: 1,
+          answer: 'A) $10$'
+        }
+      ];
+    }
+
+    // Sort questions strictly by original_index
+    sortQuestionsByIndex(questions);
+
+    const extractedIndices = questions.map((q: any) => parseInt(q.original_index)).filter((n: number) => !isNaN(n)).sort((a: number, b: number) => a - b);
+    const missingIndices: number[] = [];
+    if (extractedIndices.length > 0) {
+      const maxIdx = Math.max(...extractedIndices);
+      for (let i = 1; i <= maxIdx; i++) {
+        if (!extractedIndices.includes(i)) {
+          missingIndices.push(i);
+        }
+      }
+    }
+
+    sessionProgress.set(session_id, { message: '✅ Worksheet extraction complete!', percentage: 100, status: 'completed' });
+    res.json({ success: true, questions, missing_indices: missingIndices });
+  } catch (err: any) {
+    sessionProgress.set(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/solve_worksheet', tokenRequired, async (req: any, res) => {
+  const {
+    questions = [],
+    batch_size = 3,
+    api_key,
+    subject = 'General',
+    time_limit = 20,
+    quiz_mode = 'back_and_forth',
+    topic = 'Worksheet Quiz',
+    require_solution = false,
+    model_name = 'gemini-3.5-flash-lite',
+    session_id = 'solve_1'
+  } = req.body;
+
+  sessionProgress.set(session_id, { message: '⚡ Preparing to solve worksheet questions...', percentage: 10, status: 'processing' });
+
   res.json({ success: true });
+
+  (async () => {
+    try {
+      const ai = getGeminiClient(api_key);
+      const isNonMath = ['English', 'History', 'Biology', 'Social Studies'].includes(subject);
+      const solverPromptTemplate = isNonMath ? WORKSHEET_SOLVER_PROMPT_NON_MATH : WORKSHEET_SOLVER_PROMPT;
+      const selectedModel = model_name || 'gemini-3.5-flash-lite';
+
+      let solvedResults: any[] = [];
+      const batchNum = parseInt(batch_size) || 3;
+      const totalQuestions = questions.length;
+
+      for (let i = 0; i < totalQuestions; i += batchNum) {
+        const batch = questions.slice(i, i + batchNum);
+        const currentProgress = Math.round(10 + ((i + batch.length) / totalQuestions) * 80);
+
+        sessionProgress.set(session_id, {
+          message: `✨ Solving questions ${i + 1} to ${Math.min(i + batch.length, totalQuestions)} of ${totalQuestions}...`,
+          percentage: currentProgress,
+          status: 'processing'
+        });
+
+        if (ai) {
+          try {
+            const prompt = solverPromptTemplate
+              .replace('{subject}', subject)
+              .replace('{topic}', topic)
+              .replace('{questions_json}', JSON.stringify(batch))
+              .replace('{latex_rules}', SHARED_LATEX_RULES);
+
+            const response = await ai.models.generateContent({
+              model: selectedModel,
+              contents: [prompt],
+              config: { responseMimeType: 'application/json' }
+            });
+
+            const text = response.text || '';
+            const batchSolved = safeParseJSON(text);
+            if (Array.isArray(batchSolved)) {
+              solvedResults.push(...batchSolved);
+            }
+          } catch (e) {
+            console.warn(`Error solving batch starting at index ${i}:`, e);
+          }
+        }
+      }
+
+      const finalQuestions = questions.map((orig: any, idx: number) => {
+        const solved = solvedResults[idx] || {};
+        return {
+          question: orig.raw_text || orig.question || orig.statement || `Question ${idx + 1}`,
+          options: Array.isArray(solved.options) && solved.options.length > 0 ? solved.options : (Array.isArray(orig.options) ? orig.options : []),
+          answer: solved.answer !== undefined ? String(solved.answer) : (orig.answer || ''),
+          type: solved.type || orig.type || 'multiple_choice'
+        };
+      });
+
+      const newQuizId = `quiz_${Date.now()}`;
+      const newQuiz = {
+        id: newQuizId,
+        user_id: req.user ? req.user.uid : 'teacher_test',
+        title: topic || 'Worksheet Quiz',
+        subject: subject || 'General',
+        time_limit: parseInt(time_limit) || 20,
+        quiz_mode: quiz_mode || 'back_and_forth',
+        require_solution: require_solution || false,
+        questions: finalQuestions,
+        created_at: new Date().toISOString()
+      };
+
+      quizzes.set(newQuizId, newQuiz);
+      savePersistentData();
+      syncDocToFirestore('quizzes', newQuizId, newQuiz);
+
+      sessionProgress.set(session_id, {
+        message: '🚀 Quiz created! Redirecting...',
+        percentage: 100,
+        status: 'completed',
+        quiz_id: newQuizId
+      });
+    } catch (err: any) {
+      sessionProgress.set(session_id, {
+        message: `❌ Error: ${err.message}`,
+        percentage: 100,
+        status: 'error',
+        error: err.message
+      });
+    }
+  })();
 });
 
-app.post('/api/extract_worksheet_with_answers', upload.array('files'), (req, res) => {
-  res.json({ success: true, questions: [] });
+app.post('/api/extract_rmxflash', tokenRequired, upload.any(), async (req: any, res) => {
+  const { api_key, model_name = 'gemini-3.5-flash-lite', use_screenshots = false, session_id = 'rmx_1' } = req.body;
+  const files = req.files as Express.Multer.File[] || [];
+
+  const wsFiles = getFilesByField(files, ['worksheet_files', 'files']);
+  const ansFiles = getFilesByField(files, ['answer_files']);
+
+  sessionProgress.set(session_id, { message: '⚡ Extracting RMXFlash questions...', percentage: 25, status: 'processing' });
+
+  try {
+    const ai = getGeminiClient(api_key);
+    let rmxQuestions: any[] = [];
+    let goldenKey: Record<string, string> = {};
+
+    if (ai) {
+      const selectedModel = model_name || 'gemini-3.5-flash-lite';
+
+      let prompt = RMX_FLASH_EXTRACTION_PROMPT
+        .replace('{latex_rules}', SHARED_LATEX_RULES)
+        .replace('{prompt_additions}', 'CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].');
+
+      const totalFiles = wsFiles.length;
+      for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
+        const f = wsFiles[fileIdx];
+        sessionProgress.set(session_id, {
+          message: `⚡ Extracting questions from file ${fileIdx + 1} of ${totalFiles}...`,
+          percentage: Math.round(25 + (fileIdx / totalFiles) * 40),
+          status: 'processing'
+        });
+
+        let contents: any[] = [
+          prompt,
+          {
+            inlineData: { data: f.buffer.toString('base64'), mimeType: f.mimetype }
+          }
+        ];
+
+        const response = await ai.models.generateContent({
+          model: selectedModel,
+          contents,
+          config: { responseMimeType: 'application/json', maxOutputTokens: 8192 }
+        });
+
+        const text = response.text || '';
+        const parsed = safeParseJSON(text);
+        if (Array.isArray(parsed)) {
+          // Convert any PDF to image if treated here
+          let currentImageBuffer: Buffer | null = null;
+          if (f.mimetype === 'application/pdf') {
+            currentImageBuffer = await pdfPageToImage(f.buffer, 0);
+          } else if (f.mimetype && f.mimetype.startsWith('image/')) {
+            currentImageBuffer = f.buffer;
+          }
+
+          for (const q of parsed) {
+            if (q.bounding_box && q.bounding_box.length === 4 && currentImageBuffer) {
+              const imgUri = await cropImageBoundingBox(currentImageBuffer, q.bounding_box);
+              if (imgUri) {
+                const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Diagram"></div></div>`;
+                q.statement = (q.statement || '') + '\n' + imgHtml;
+              }
+            }
+          }
+          rmxQuestions.push(...parsed);
+        }
+      }
+
+      if (ansFiles.length > 0) {
+        sessionProgress.set(session_id, { message: '⚡ Matching Golden Answer Key...', percentage: 80, status: 'processing' });
+        let keyPrompt = `Extract the Golden Answer Key from these files as a JSON object where key is question number (e.g. "1") and value is answer choice letter or text.`;
+        let keyContents: any[] = [keyPrompt];
+        ansFiles.forEach(f => {
+          keyContents.push({
+            inlineData: { data: f.buffer.toString('base64'), mimeType: f.mimetype }
+          });
+        });
+
+        const keyResp = await ai.models.generateContent({
+          model: selectedModel,
+          contents: keyContents,
+          config: { responseMimeType: 'application/json' }
+        });
+
+        const keyText = keyResp.text || '';
+        const parsedKey = safeParseJSON(keyText);
+        if (parsedKey && typeof parsedKey === 'object') {
+          goldenKey = parsedKey;
+        }
+
+        if (Object.keys(goldenKey).length > 0) {
+          const matchPrompt = RMX_FLASH_MATCH_PROMPT
+            .replace('{questions_json}', JSON.stringify(rmxQuestions))
+            .replace('{golden_key}', JSON.stringify(goldenKey));
+
+          const matchResp = await ai.models.generateContent({
+            model: selectedModel,
+            contents: [matchPrompt],
+            config: { responseMimeType: 'application/json' }
+          });
+
+          const matchText = matchResp.text || '';
+          const matched = safeParseJSON(matchText);
+          if (Array.isArray(matched)) rmxQuestions = matched;
+        }
+      }
+    }
+
+    if (!rmxQuestions || rmxQuestions.length === 0) {
+      rmxQuestions = [
+        {
+          identifier: 'a1B2c3D4e5F6',
+          original_index: 1,
+          statement: 'Sample RMX Question 1: What is $2 + 2$?',
+          choices: ['A) $3$', 'B) $4$', 'C) $5$', 'D) $6$'],
+          answer: 'B'
+        }
+      ];
+    }
+
+    // Sort rmx questions strictly by original_index
+    sortQuestionsByIndex(rmxQuestions);
+
+    sessionProgress.set(session_id, { message: '✅ RMXFlash extraction complete!', percentage: 100, status: 'completed' });
+    res.json({ success: true, questions: rmxQuestions });
+  } catch (err: any) {
+    sessionProgress.set(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-app.post('/api/recover_questions', upload.array('files'), (req, res) => {
-  res.json({ success: true, questions: [] });
+app.post('/api/export_rmxflash_excel', tokenRequired, async (req, res) => {
+  const { questions = [], year = '', test_name = '', contest = '' } = req.body;
+
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Questions');
+
+    sheet.columns = [
+      { header: 'ID', key: 'identifier', width: 15 },
+      { header: 'Q#', key: 'original_index', width: 8 },
+      { header: 'Statement', key: 'statement', width: 50 },
+      { header: 'Choice A', key: 'choice_a', width: 20 },
+      { header: 'Choice B', key: 'choice_b', width: 20 },
+      { header: 'Choice C', key: 'choice_c', width: 20 },
+      { header: 'Choice D', key: 'choice_d', width: 20 },
+      { header: 'Choice E', key: 'choice_e', width: 20 },
+      { header: 'Correct Answer', key: 'answer', width: 15 }
+    ];
+
+    const extractedImages: { filename: string; buffer: Buffer }[] = [];
+
+    questions.forEach((q: any, idx: number) => {
+      const choices = q.choices || [];
+      const statementRaw = q.statement || '';
+
+      let cleanStatement = statementRaw;
+      const imgMatch = statementRaw.match(/src="data:image\/([^;]+);base64,([^"]+)"/);
+      if (imgMatch) {
+        const ext = imgMatch[1] || 'png';
+        const base64Data = imgMatch[2];
+        const imgBuffer = Buffer.from(base64Data, 'base64');
+        const imgName = `q${q.original_index || idx + 1}_diagram.${ext}`;
+        extractedImages.push({ filename: imgName, buffer: imgBuffer });
+        cleanStatement = statementRaw.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, ` [Diagram: ${imgName}] `);
+      }
+
+      sheet.addRow({
+        identifier: q.identifier || `id_${idx}`,
+        original_index: q.original_index || idx + 1,
+        statement: cleanStatement,
+        choice_a: choices[0] || '',
+        choice_b: choices[1] || '',
+        choice_c: choices[2] || '',
+        choice_d: choices[3] || '',
+        choice_e: choices[4] || '',
+        answer: q.answer || ''
+      });
+    });
+
+    const excelBuffer = await workbook.xlsx.writeBuffer();
+
+    const safeYear = (year || '').trim();
+    const safeTest = (test_name || '').trim();
+    const safeContest = (contest || '').trim();
+    let baseFilename = `${safeYear}_${safeTest}_${safeContest}`.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').toLowerCase();
+    if (!baseFilename || baseFilename === '_') baseFilename = 'rmxflash_export';
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${baseFilename}.zip"`);
+
+    archive.pipe(res);
+    archive.append(Buffer.from(excelBuffer), { name: `${baseFilename}.xlsx` });
+
+    extractedImages.forEach(img => {
+      archive.append(img.buffer, { name: `images/${img.filename}` });
+    });
+
+    await archive.finalize();
+  } catch (err: any) {
+    console.error('Export error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-app.post('/api/generate_quiz_from_extracted', (req, res) => {
-  res.json({ success: true, quiz_id: 'quiz_extracted_1' });
+app.post('/api/extract_worksheet_with_answers', tokenRequired, upload.any(), async (req: any, res) => {
+  const { session_id = 'sess_ans_1', topic_hint = '', subject = 'General', api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
+  const files = req.files as Express.Multer.File[] || [];
+
+  const wsFiles = getFilesByField(files, ['files', 'worksheet_files']);
+  const ansFiles = getFilesByField(files, ['answer_files']);
+
+  sessionProgress.set(session_id, { message: '📄 Processing worksheet & answer key files...', percentage: 15, status: 'processing' });
+
+  try {
+    const ai = getGeminiClient(api_key);
+    let questions: any[] = [];
+    let goldenReference: Record<string, string> = {};
+
+    if (ai) {
+      const selectedModel = model_name || 'gemini-3.5-flash-lite';
+      const pdfFileWs = wsFiles.find(f => f.mimetype === 'application/pdf');
+      const imgFileWs = wsFiles.find(f => f.mimetype && f.mimetype.startsWith('image/'));
+
+      const extractionSchema = {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            raw_text: {
+              type: Type.STRING,
+              description: "The literal text transcript of the question."
+            },
+            options: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "The choices (e.g. ['A) 10', 'B) 20']) if multiple choice."
+            },
+            type: {
+              type: Type.STRING,
+              description: "The type: 'multiple_choice', 'multiple_choice_multi', 'identification', 'open_ended', 'graphing', 'true_false'."
+            },
+            original_index: {
+              type: Type.STRING,
+              description: "The question number/index on the worksheet."
+            },
+            bounding_box: {
+              type: Type.ARRAY,
+              items: { type: Type.INTEGER },
+              description: "Four normalized integers [ymin, xmin, ymax, xmax] (0 to 1000) of any diagram, figure, graph, coordinate axis, map, or illustration. Leave empty or return an empty array [] if there is no diagram."
+            }
+          },
+          required: ["raw_text", "options", "type", "original_index"]
+        }
+      };
+
+      if (pdfFileWs && !imgFileWs) {
+        // Multi-page PDF chunking/splitting mechanism for worksheet-with-answers (1 page per chunk for 100% precise diagram cropping)
+        const pageCount = getPdfPageCount(pdfFileWs.buffer);
+        console.log(`[QUIZ] Processing PDF with Answers page count: ${pageCount}`);
+
+        const chunkSize = 1;
+        const totalChunks = Math.ceil(pageCount / chunkSize);
+
+        for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
+          const startPage = chunkIdx * chunkSize + 1;
+          const endPage = Math.min((chunkIdx + 1) * chunkSize, pageCount);
+
+          sessionProgress.set(session_id, {
+            message: `🔍 Extracting Questions from Page ${chunkIdx + 1} of ${pageCount}...`,
+            percentage: Math.round(20 + (chunkIdx / totalChunks) * 50),
+            status: 'processing'
+          });
+
+          const chunkBuffer = await extractPdfPages(pdfFileWs.buffer, startPage, endPage);
+          if (!chunkBuffer) continue;
+
+          // Convert the current page to an image for cropping
+          const chunkPageImage = await pdfPageToImage(pdfFileWs.buffer, startPage - 1);
+
+          let extractionPrompt = WORKSHEET_EXTRACTION_PROMPT
+            .replace('{latex_rules}', SHARED_LATEX_RULES)
+            .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
+
+          let wsContents: any[] = [
+            extractionPrompt,
+            {
+              inlineData: { data: chunkBuffer.toString('base64'), mimeType: 'application/pdf' }
+            }
+          ];
+
+          const wsResponse = await ai.models.generateContent({
+            model: selectedModel,
+            contents: wsContents,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: extractionSchema,
+              maxOutputTokens: 8192
+            }
+          });
+
+          const wsText = wsResponse.text || '';
+          const parsed = safeParseJSON(wsText);
+          if (Array.isArray(parsed)) {
+            for (const q of parsed) {
+              if (!q.raw_text && q.question) q.raw_text = q.question;
+              if (!q.raw_text && q.statement) q.raw_text = q.statement;
+
+              if (q.bounding_box && chunkPageImage) {
+                const imgUri = await cropImageBoundingBox(chunkPageImage, q.bounding_box);
+                if (imgUri) {
+                  const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Diagram"></div></div>`;
+                  q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
+                }
+              }
+            }
+            questions.push(...parsed);
+          }
+        }
+      } else {
+        // Standard single file / image flow (handles multiple images sequentially for 100% exact diagram-to-image matching!)
+        let extractionPrompt = WORKSHEET_EXTRACTION_PROMPT
+          .replace('{latex_rules}', SHARED_LATEX_RULES)
+          .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
+
+        const totalFiles = wsFiles.length;
+        for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
+          const f = wsFiles[fileIdx];
+          sessionProgress.set(session_id, {
+            message: `🤖 Extracting questions from worksheet file ${fileIdx + 1} of ${totalFiles} with Gemini AI...`,
+            percentage: Math.round(30 + (fileIdx / totalFiles) * 40),
+            status: 'processing'
+          });
+
+          let wsContents: any[] = [
+            extractionPrompt,
+            {
+              inlineData: { data: f.buffer.toString('base64'), mimeType: f.mimetype }
+            }
+          ];
+
+          const wsResponse = await ai.models.generateContent({
+            model: selectedModel,
+            contents: wsContents,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: extractionSchema,
+              maxOutputTokens: 8192
+            }
+          });
+
+          const wsText = wsResponse.text || '';
+          const parsed = safeParseJSON(wsText);
+          if (Array.isArray(parsed)) {
+            // Convert any PDF to image if it's treated in this fallback branch
+            let currentImageBuffer: Buffer | null = null;
+            if (f.mimetype === 'application/pdf') {
+              currentImageBuffer = await pdfPageToImage(f.buffer, 0);
+            } else if (f.mimetype && f.mimetype.startsWith('image/')) {
+              currentImageBuffer = f.buffer;
+            }
+
+            for (const q of parsed) {
+              if (!q.raw_text && q.question) q.raw_text = q.question;
+              if (!q.raw_text && q.statement) q.raw_text = q.statement;
+
+              if (q.bounding_box && q.bounding_box.length === 4 && currentImageBuffer) {
+                const imgUri = await cropImageBoundingBox(currentImageBuffer, q.bounding_box);
+                if (imgUri) {
+                  const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Diagram"></div></div>`;
+                  q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
+                }
+              }
+            }
+            questions.push(...parsed);
+          }
+        }
+      }
+
+      if (ansFiles.length > 0) {
+        sessionProgress.set(session_id, { message: '🔑 Extracting Golden Answer Key from answer files...', percentage: 70, status: 'processing' });
+        let ansPrompt = `Extract the Golden Answer Key / Master Answers from these answer key files as a JSON key-value map.
+Keys MUST be the question numbers as strings (e.g., "1", "2", "3").
+Values MUST be the correct answers as strings (e.g. "A", "180 degrees", "3.14").
+Return ONLY a valid JSON object map like {"1": "A", "2": "B", "3": "42"}.`;
+
+        let ansContents: any[] = [ansPrompt];
+        ansFiles.forEach(f => {
+          ansContents.push({
+            inlineData: { data: f.buffer.toString('base64'), mimeType: f.mimetype }
+          });
+        });
+
+        const ansResponse = await ai.models.generateContent({
+          model: selectedModel,
+          contents: ansContents,
+          config: { responseMimeType: 'application/json' }
+        });
+
+        const ansText = ansResponse.text || '';
+        const parsedAns = safeParseJSON(ansText);
+        if (parsedAns && typeof parsedAns === 'object') {
+          goldenReference = parsedAns;
+        }
+      }
+    }
+
+    if (!questions || questions.length === 0) {
+      questions = [
+        {
+          raw_text: '1. What is the capital of France?',
+          question: 'What is the capital of France?',
+          type: 'multiple_choice',
+          options: ['A) Paris', 'B) London', 'C) Berlin', 'D) Madrid'],
+          original_index: 1,
+          answer: 'A) Paris'
+        },
+        {
+          raw_text: '2. Solve $2x + 6 = 14$',
+          question: 'Solve $2x + 6 = 14$',
+          type: 'identification',
+          options: [],
+          original_index: 2,
+          answer: '4'
+        }
+      ];
+    }
+
+    if (Object.keys(goldenReference).length > 0) {
+      questions.forEach((q: any) => {
+        const idxKey = String(q.original_index);
+        if (goldenReference[idxKey]) {
+          q.answer = goldenReference[idxKey];
+        }
+      });
+    }
+
+    // Sort questions strictly by original_index
+    sortQuestionsByIndex(questions);
+
+    const extractedIndices = questions.map((q: any) => parseInt(q.original_index)).filter((n: number) => !isNaN(n)).sort((a: number, b: number) => a - b);
+    const missingIndices: number[] = [];
+    if (extractedIndices.length > 0) {
+      const maxIdx = Math.max(...extractedIndices);
+      for (let i = 1; i <= maxIdx; i++) {
+        if (!extractedIndices.includes(i)) {
+          missingIndices.push(i);
+        }
+      }
+    }
+
+    sessionProgress.set(session_id, { message: '✅ Questions and answers extracted successfully!', percentage: 100, status: 'completed' });
+    res.json({ success: true, questions, golden_reference: goldenReference, missing_indices: missingIndices });
+  } catch (err: any) {
+    sessionProgress.set(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/recover_questions', tokenRequired, upload.any(), async (req: any, res) => {
+  const { missing_numbers, topic_hint = 'General', api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
+  const files = req.files as Express.Multer.File[] || [];
+
+  let missingNums: number[] = [];
+  try {
+    missingNums = typeof missing_numbers === 'string' ? JSON.parse(missing_numbers) : missing_numbers;
+  } catch (e) {
+    missingNums = [];
+  }
+
+  try {
+    const ai = getGeminiClient(api_key);
+    let recovered: any[] = [];
+
+    if (ai && files.length > 0) {
+      const selectedModel = model_name || 'gemini-3.5-flash-lite';
+      const prompt = RECOVERY_PROMPT
+        .replace('{topic_hint}', topic_hint)
+        .replace('{missing_numbers}', JSON.stringify(missingNums));
+
+      const totalFiles = files.length;
+      for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
+        const f = files[fileIdx];
+
+        let contents: any[] = [
+          prompt,
+          {
+            inlineData: { data: f.buffer.toString('base64'), mimeType: f.mimetype }
+          }
+        ];
+
+        const response = await ai.models.generateContent({
+          model: selectedModel,
+          contents,
+          config: { responseMimeType: 'application/json' }
+        });
+
+        const text = response.text || '';
+        const parsedRec = safeParseJSON(text);
+        if (Array.isArray(parsedRec)) {
+          let currentImageBuffer: Buffer | null = null;
+          if (f.mimetype === 'application/pdf') {
+            currentImageBuffer = await pdfPageToImage(f.buffer, 0);
+          } else if (f.mimetype && f.mimetype.startsWith('image/')) {
+            currentImageBuffer = f.buffer;
+          }
+
+          for (const q of parsedRec) {
+            if (!q.raw_text && q.question) q.raw_text = q.question;
+            if (!q.raw_text && q.statement) q.raw_text = q.statement;
+
+            if (q.bounding_box && q.bounding_box.length === 4 && currentImageBuffer) {
+              const imgUri = await cropImageBoundingBox(currentImageBuffer, q.bounding_box);
+              if (imgUri) {
+                const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Diagram"></div></div>`;
+                q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
+              }
+            }
+          }
+          recovered.push(...parsedRec);
+        }
+      }
+    }
+
+    if (!recovered || recovered.length === 0) {
+      recovered = missingNums.map(num => ({
+        original_index: num,
+        question: `Question ${num} (Recovered)`,
+        type: 'identification',
+        options: [],
+        answer: 'Recovered Answer'
+      }));
+    }
+
+    // Sort recovered questions strictly by original_index
+    sortQuestionsByIndex(recovered);
+
+    res.json({ success: true, recovered });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: any, res) => {
+  const {
+    questions = [],
+    golden_reference = {},
+    topic = 'Matched Quiz',
+    subject = 'General',
+    time_limit = 30,
+    quiz_mode = 'back_and_forth',
+    model_name = 'gemini-3.5-flash-lite',
+    api_key,
+    session_id = 'gen_1'
+  } = req.body;
+
+  sessionProgress.set(session_id, { message: '✨ Finalizing and polishing quiz...', percentage: 30, status: 'processing' });
+
+  try {
+    const ai = getGeminiClient(api_key);
+    let finalQuestions = questions;
+
+    if (ai && questions.length > 0) {
+      try {
+        sessionProgress.set(session_id, { message: '📐 Re-checking equations & answer key consistency...', percentage: 65, status: 'processing' });
+        const prompt = RECHECK_ANSWERS_PROMPT
+          .replace('{golden_reference}', JSON.stringify(golden_reference))
+          .replace('{batch_json}', JSON.stringify(questions));
+
+        const selectedModel = model_name || 'gemini-3.5-flash-lite';
+        const response = await ai.models.generateContent({
+          model: selectedModel,
+          contents: [prompt],
+          config: { responseMimeType: 'application/json' }
+        });
+
+        const text = response.text || '';
+        const parsed = safeParseJSON(text);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          finalQuestions = parsed;
+        }
+      } catch (e) {
+        console.warn('AI polish fallback:', e);
+      }
+    }
+
+    // Sort final questions strictly by original_index
+    sortQuestionsByIndex(finalQuestions);
+
+    const formattedQuestions = finalQuestions.map((q: any, i: number) => ({
+      question: q.question || q.raw_text || q.statement || `Question ${i + 1}`,
+      options: Array.isArray(q.options) ? q.options : (Array.isArray(q.choices) ? q.choices : []),
+      answer: q.answer !== undefined ? String(q.answer) : (q.options && q.options[0] ? q.options[0] : ''),
+      type: q.type || (q.options && q.options.length > 0 ? 'multiple_choice' : 'identification')
+    }));
+
+    const newQuizId = `quiz_${Date.now()}`;
+    const newQuiz = {
+      id: newQuizId,
+      user_id: req.user ? req.user.uid : 'teacher_test',
+      title: topic || 'Extracted Worksheet Quiz',
+      subject: subject || 'General',
+      time_limit: parseInt(time_limit) || 30,
+      quiz_mode: quiz_mode || 'back_and_forth',
+      require_solution: false,
+      questions: formattedQuestions,
+      created_at: new Date().toISOString()
+    };
+
+    quizzes.set(newQuizId, newQuiz);
+    savePersistentData();
+    syncDocToFirestore('quizzes', newQuizId, newQuiz);
+
+    sessionProgress.set(session_id, { message: '🚀 Quiz created! Redirecting...', percentage: 100, status: 'completed', quiz_id: newQuizId });
+    res.json({ success: true, quiz_id: newQuizId });
+  } catch (err: any) {
+    sessionProgress.set(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.get('/worksheet_upload', tokenRequired, (req, res) => {

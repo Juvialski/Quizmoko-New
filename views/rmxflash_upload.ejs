@@ -193,10 +193,16 @@
             document.getElementById('progress-overlay').style.display = 'flex';
 
             const poll = setInterval(async () => {
-                const res = await fetch(`/api/progress/${sessionId}`);
-                const data = await res.json();
-                if (data.message) document.getElementById('progress-text').innerText = data.message;
-                if (data.percentage) document.getElementById('progress-bar').style.width = data.percentage + '%';
+                try {
+                    const res = await fetch(`/api/progress/${sessionId}`);
+                    if (!res.ok) return;
+                    const contentType = res.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) return;
+
+                    const data = await res.json();
+                    if (data.message) document.getElementById('progress-text').innerText = data.message;
+                    if (data.percentage) document.getElementById('progress-bar').style.width = data.percentage + '%';
+                } catch (e) {}
             }, 2000);
 
             const formData = new FormData();

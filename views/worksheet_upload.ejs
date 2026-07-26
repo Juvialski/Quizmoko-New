@@ -509,6 +509,10 @@
                     }
 
                     const res = await fetch(`/api/progress/${sessionId}`);
+                    if (!res.ok) return;
+                    const contentType = res.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) return;
+                    
                     const data = await res.json();
                     if (data.message) progressText.innerText = data.message;
                     if (data.percentage) progressBar.style.width = data.percentage + '%';
@@ -595,12 +599,35 @@
                         if (idx !== -1) extractedQuestions[idx] = rq;
                         else extractedQuestions.push(rq);
                     });
-                    extractedQuestions.sort((a,b) => parseInt(a.original_index || 999) - parseInt(b.original_index || 999));
+                    
+                    const parseIndex = (idxStr) => {
+                        const str = String(idxStr || '').trim();
+                        const match = str.match(/^(\d+)(.*)$/);
+                        if (match) {
+                            return {
+                                num: parseInt(match[1], 10),
+                                suffix: match[2].toLowerCase()
+                            };
+                        }
+                        return { num: Infinity, suffix: str.toLowerCase() };
+                    };
+
+                    extractedQuestions.sort((a,b) => {
+                        const parseA = parseIndex(a.original_index);
+                        const parseB = parseIndex(b.original_index);
+                        if (parseA.num !== parseB.num) {
+                            return parseA.num - parseB.num;
+                        }
+                        return parseA.suffix.localeCompare(parseB.suffix);
+                    });
 
                     const extractedNums = extractedQuestions.filter(q => {
                         const ans = String(q.answer || "").toLowerCase();
                         return ans && ans !== "null" && !ans.includes("missing");
-                    }).map(q => parseInt(q.original_index));
+                    }).map(q => {
+                        const parsed = parseIndex(q.original_index);
+                        return parsed.num;
+                    });
 
                     missingIndices = missingIndices.filter(n => !extractedNums.includes(n));
 
@@ -803,6 +830,10 @@
                     }
 
                     const res = await fetch(`/api/progress/${sessionId}`);
+                    if (!res.ok) return;
+                    const contentType = res.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) return;
+
                     const data = await res.json();
 
                     if (data.message) progressText.innerText = data.message;
@@ -820,7 +851,7 @@
                         overlay.style.display = 'none';
                     }
                 } catch(e) {
-                    console.error("Polling error:", e);
+                    // Suppress polling error logging to console when server restarts or network has transient issues
                 }
             }, 2000);
 

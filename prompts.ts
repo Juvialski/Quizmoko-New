@@ -179,6 +179,17 @@ CRITICAL RULES:
    - 'multiple_choice_multi': If the question has options and explicitly asks to 'Select all that apply', 'Which of these...', 'Choose multiple', or context implies more than one correct answer.
    - 'identification': If it has NO options and requires exactly ONE integer, ONE word, or ONE symbol as the answer. This is the DEFAULT for single-value answers.
    - 'open_ended': If it has NO options and requires a descriptive response, a multi-part list (e.g., '70, 105, 140'), a fraction, or a sentence.
+10. DIAGRAM / IMAGE BOUNDING BOX DETECTION (CRITICAL): ONLY set "bounding_box" if the question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. If the question consists purely of text or mathematical equations with NO associated diagram/illustration, "bounding_box" MUST be set to an empty array []. When a diagram IS present, provide a bounding box [ymin, xmin, ymax, xmax] (0 to 1000) that wraps the diagram with a slight 5-10% extra margin to ensure the visual is fully enclosed. Do not output boxes for plain text.
+11. COMPLETE EXTRACTION: You MUST extract 100% of all questions found on the page from the first to the very last. Do not omit or summarize any questions.
+
+OUTPUT STRUCTURE SPECIFICATION (MANDATORY):
+You MUST output a valid JSON array of objects. Each object represents one question and MUST strictly contain these exact keys:
+- "raw_text": (string) The full text of the question (excluding numbering labels like '1.').
+- "options": (array of strings) The choices (e.g. ["A) Option 1", "B) Option 2"]) or empty array [] if not multiple choice.
+- "type": (string) One of ["multiple_choice", "multiple_choice_multi", "identification", "open_ended", "graphing", "true_false"].
+- "original_index": (string) The question identifier/number from the sheet (e.g. "1", "2").
+- "bounding_box": (array of 4 integers) [ymin, xmin, ymax, xmax] coordinates from 0 to 1000 of the diagram/illustration/graph associated with this question. Set to an empty array [] if the question has NO diagram/figure/chart.
+
 {latex_rules}
 {prompt_additions}`;
 
@@ -205,6 +216,17 @@ CRITICAL RULES:
    - 'multiple_choice_multi': If the question has options and explicitly asks to 'Select all that apply', 'Which of these...', 'Choose multiple', or context implies more than one correct answer.
    - 'identification': If it has NO options and requires exactly ONE word or a short phrase as the answer.
    - 'open_ended': If it has NO options and requires a descriptive response, a sentence, or an essay-style answer.
+11. DIAGRAM / IMAGE BOUNDING BOX DETECTION (CRITICAL): ONLY set "bounding_box" if the question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. If the question consists purely of text or mathematical equations with NO associated diagram/illustration, "bounding_box" MUST be set to an empty array []. When a diagram IS present, provide a bounding box [ymin, xmin, ymax, xmax] (0 to 1000) that wraps the diagram with a slight 5-10% extra margin to ensure the visual is fully enclosed. Do not output boxes for plain text.
+12. COMPLETE EXTRACTION: You MUST extract 100% of all questions found on the page from the first to the very last. Do not omit or summarize any questions.
+
+OUTPUT STRUCTURE SPECIFICATION (MANDATORY):
+You MUST output a valid JSON array of objects. Each object represents one question and MUST strictly contain these exact keys:
+- "raw_text": (string) The full text of the question (excluding numbering labels like '1.').
+- "options": (array of strings) The choices (e.g. ["A) Option 1", "B) Option 2"]) or empty array [] if not multiple choice.
+- "type": (string) One of ["multiple_choice", "multiple_choice_multi", "identification", "open_ended", "graphing", "true_false"].
+- "original_index": (string) The question identifier/number from the sheet (e.g. "1", "2").
+- "bounding_box": (array of 4 integers) [ymin, xmin, ymax, xmax] coordinates from 0 to 1000 of the diagram/illustration/graph associated with this question. Set to an empty array [] if the question has NO diagram/figure/chart.
+
 {subject_rules}
 {prompt_additions}`;
 
@@ -273,6 +295,7 @@ THE FOLLOWING QUESTION NUMBERS ARE MISSING: {missing_numbers}
 Scan the document EXHAUSTIVELY and extract ONLY these specific items.
 CRITICAL: Focus on 'raw_text', 'options', 'type', 'original_index', and 'bounding_box'.
 CRITICAL: Never extract a standalone number as a 'raw_text'. Ensure the full statement is included.
+CRITICAL: If there's any diagram, drawing, map, or visual illustration associated with the question, include a very generous bounding_box coordinate [ymin, xmin, ymax, xmax] (0 to 1000) so that it is never cut off.
 Return a JSON array of objects with keys: 'raw_text', 'options', 'type', 'original_index', and 'bounding_box'.`;
 
 export const LATEX_POLISH_PROMPT = `You are a meticulous LaTeX math-enclosure assistant.

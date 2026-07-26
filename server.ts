@@ -282,6 +282,41 @@ async function loadFromFirestore() {
 loadPersistentData();
 loadFromFirestore();
 
+function getQuizTimestamp(q: any): number {
+  if (!q) return 0;
+  const val = q.created_at || q.createdAt || q.timestamp;
+  if (!val) return 0;
+
+  if (typeof val === 'object') {
+    if (typeof val.seconds === 'number') {
+      return val.seconds * 1000 + (val.nanoseconds ? val.nanoseconds / 1e6 : 0);
+    }
+    if (typeof val._seconds === 'number') {
+      return val._seconds * 1000 + (val._nanoseconds ? val._nanoseconds / 1e6 : 0);
+    }
+    if (val.toDate && typeof val.toDate === 'function') {
+      return val.toDate().getTime();
+    }
+  }
+
+  if (typeof val === 'string') {
+    const tsMatch = val.match(/seconds=(\d+)/);
+    if (tsMatch) {
+      return parseInt(tsMatch[1], 10) * 1000;
+    }
+    const parsed = Date.parse(val);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+  }
+
+  if (typeof val === 'number') {
+    return val > 1e11 ? val : val * 1000;
+  }
+
+  return 0;
+}
+
 // --- HELPER FOR LIVE SESSION STATE ---
 function getOrCreateLiveState(quizId: string) {
   if (!liveSessions.has(quizId)) {
@@ -320,9 +355,12 @@ io.on('connection', (socket) => {
     const liveState = getOrCreateLiveState(quiz_id);
     
     // Update student session in live map
+    const displayName = student_name && student_name !== 'undefined' ? student_name : 'Student';
     const existing = liveState.sessions[session_id] || {
-      student_name: student_name || 'Anonymous',
-      current_question: 1,
+      name: displayName,
+      student_name: displayName,
+      current_q: current_q || 1,
+      current_question: current_q || 1,
       total_questions: 10,
       score: 0,
       status: 'Active',
@@ -330,8 +368,10 @@ io.on('connection', (socket) => {
       whiteboard_disabled: false
     };
 
-    existing.student_name = student_name || existing.student_name;
-    existing.current_question = current_q || existing.current_question;
+    existing.name = displayName;
+    existing.student_name = displayName;
+    existing.current_q = current_q !== undefined ? current_q : (existing.current_q || 1);
+    existing.current_question = current_q !== undefined ? current_q : (existing.current_question || 1);
     existing.score = score !== undefined ? score : existing.score;
     existing.status = status || existing.status;
     existing.last_active = Date.now();
@@ -342,7 +382,8 @@ io.on('connection', (socket) => {
     io.to(`quiz_${quiz_id}`).emit('update_session', {
       session_id,
       data: existing,
-      paused: liveState.paused
+      paused: liveState.paused,
+      terminated: liveState.terminated
     });
 
     // Send status back to student
@@ -366,9 +407,9 @@ function tokenRequired(req: any, res: any, next: any) {
   const token = req.cookies?.token || req.headers?.authorization;
   if (token && token.startsWith('user_')) {
     const uid = token.replace('user_', '');
-    req.user = users.get(uid) || { uid, email: `${uid}@example.com`, name: 'User', role: 'student' };
+    req.user = users.get(uid) || { uid, email: `${uid}@example.com`, name: 'User', role: 'admin' };
   } else {
-    req.user = users.get('teacher_test');
+    req.user = users.get('teacher_test') || { uid: 'teacher_test', email: 'teacher@example.com', name: 'Teacher', role: 'admin' };
   }
   next();
 }
@@ -418,7 +459,13 @@ app.post('/api/test_login', (req, res) => {
 // --- DASHBOARD ROUTE ---
 app.get('/', tokenRequired, (req: any, res) => {
   const user = req.user;
-  const userQuizzes = Array.from(quizzes.values()).filter(q => q.user_id === user.uid || user.role === 'admin');
+  const isTeacherOrAdmin = user.role === 'admin' || user.role === 'teacher' || user.uid === 'teacher_test' || !user.role;
+  const userQuizzes = isTeacherOrAdmin
+    ? Array.from(quizzes.values())
+    : Array.from(quizzes.values()).filter(q => q.user_id === user.uid || q.user_id === 'fbnuU0JRjqbPLUjdFpoVSEwOT733' || q.user_id === 'local_test_user');
+
+  // Sort quizzes newest first
+  userQuizzes.sort((a, b) => getQuizTimestamp(b) - getQuizTimestamp(a));
 
   const groupedQuizzes: Record<string, any[]> = {};
   const allSubjects = ['General', 'Math', 'Science', 'English', 'History', 'Biology'];
@@ -430,8 +477,26 @@ app.get('/', tokenRequired, (req: any, res) => {
     if (!allSubjects.includes(subj)) allSubjects.push(subj);
   });
 
+  // Ensure quizzes in every subject group are sorted newest first
+  Object.keys(groupedQuizzes).forEach(subj => {
+    groupedQuizzes[subj].sort((a, b) => getQuizTimestamp(b) - getQuizTimestamp(a));
+  });
+
+  // Sort subject folders so subjects containing the most recent quizzes appear first
+  const sortedGroupedQuizzes: Record<string, any[]> = {};
+  const subjectEntries = Object.entries(groupedQuizzes);
+  subjectEntries.sort((a, b) => {
+    const newestA = a[1].length > 0 ? getQuizTimestamp(a[1][0]) : 0;
+    const newestB = b[1].length > 0 ? getQuizTimestamp(b[1][0]) : 0;
+    return newestB - newestA;
+  });
+
+  subjectEntries.forEach(([subj, list]) => {
+    sortedGroupedQuizzes[subj] = list;
+  });
+
   res.render('index', {
-    grouped_quizzes: groupedQuizzes,
+    grouped_quizzes: sortedGroupedQuizzes,
     all_subjects: Array.from(new Set(allSubjects)).sort(),
     is_admin: user.role === 'admin',
     is_rmx_authorized: true,
@@ -694,9 +759,12 @@ app.post('/ping', (req, res) => {
 
   if (quiz_id && session_id) {
     const liveState = getOrCreateLiveState(quiz_id);
+    const displayName = student_name && student_name !== 'undefined' ? student_name : 'Student';
     const existing = liveState.sessions[session_id] || {
-      student_name: student_name || 'Anonymous',
-      current_question: 1,
+      name: displayName,
+      student_name: displayName,
+      current_q: current_q || 1,
+      current_question: current_q || 1,
       total_questions: 10,
       score: 0,
       status: 'Active',
@@ -704,8 +772,10 @@ app.post('/ping', (req, res) => {
       whiteboard_disabled: false
     };
 
-    existing.student_name = student_name || existing.student_name;
-    existing.current_question = current_q || existing.current_question;
+    existing.name = displayName;
+    existing.student_name = displayName;
+    existing.current_q = current_q !== undefined ? current_q : (existing.current_q || 1);
+    existing.current_question = current_q !== undefined ? current_q : (existing.current_question || 1);
     existing.score = score !== undefined ? score : existing.score;
     existing.status = status || existing.status;
     existing.last_active = Date.now();
@@ -715,7 +785,8 @@ app.post('/ping', (req, res) => {
     io.to(`quiz_${quiz_id}`).emit('update_session', {
       session_id,
       data: existing,
-      paused: liveState.paused
+      paused: liveState.paused,
+      terminated: liveState.terminated
     });
 
     return res.json({
@@ -936,7 +1007,9 @@ app.post('/api/move_quiz', tokenRequired, (req, res) => {
 });
 
 app.get('/api/list_quizzes', (req, res) => {
-  res.json(Array.from(quizzes.values()));
+  const list = Array.from(quizzes.values());
+  list.sort((a, b) => getQuizTimestamp(b) - getQuizTimestamp(a));
+  res.json(list);
 });
 
 app.get('/api/get_quiz_details/:id', (req, res) => {

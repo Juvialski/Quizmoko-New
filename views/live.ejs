@@ -258,23 +258,23 @@
             sessions.forEach(([sid, info]) => {
                 if (sid === '_meta') return;
 
-                // DATA INTEGRITY: Only show students with a valid name
-                const studentDisplayName = info.name;
-                if (!studentDisplayName || studentDisplayName === "Anonymous" || studentDisplayName === "undefined") {
-                    return; // Skip this ghost session
+                // DATA INTEGRITY: Fallback across name and student_name properties
+                const studentDisplayName = (info.name || info.student_name || "").trim();
+                if (!studentDisplayName || studentDisplayName === "undefined") {
+                    return; // Skip invalid ghost session
                 }
 
                 const tr = document.createElement('tr');
                 const statusText = info.status || 'Active';
 
                 const now = Math.floor(Date.now() / 1000);
-                const lastActive = Math.floor(info.last_active);
+                const lastActive = Math.floor((info.last_active || Date.now()) / 1000);
                 const diff = now - lastActive;
 
                 let signalColor = 'var(--success)';
                 let signalLabel = 'Online';
 
-                if (statusText.includes('Completed')) {
+                if (statusText.includes('Completed') || statusText.includes('Finished')) {
                     signalLabel = 'Finished';
                     signalColor = 'var(--body)';
                 } else if (diff > 30) {
@@ -293,16 +293,15 @@
                 `;
 
                 let statusColor = 'var(--warning)';
-                if (statusText.includes('Completed')) statusColor = 'var(--success)';
+                if (statusText.includes('Completed') || statusText.includes('Finished')) statusColor = 'var(--success)';
                 if (statusText.includes('Abandoned') || statusText.includes('Switched')) statusColor = 'var(--m-red)';
                 let statusHtml = `<span style="color: ${statusColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 12px;">${statusText}</span>`;
 
-                const studentDisplayName = (info.name && info.name !== "undefined") ? info.name : "Anonymous";
-                const qNum = parseInt(info.current_q) || 1;
-                const displayedQ = Math.max(1, Math.min(qNum, totalQ));
+                const qNum = parseInt(info.current_q || info.current_question) || 1;
+                const displayedQ = Math.max(1, Math.min(qNum, totalQ || 1));
                 let qIndex = displayedQ - 1;
 
-                if (statusText.includes('Completed')) qIndex = totalQ - 1;
+                if (statusText.includes('Completed')) qIndex = Math.max(0, totalQ - 1);
 
                 const currentQData = quizQuestions[qIndex] || {};
                 let rawQuestionHTML = currentQData.question || (statusText.includes('Completed') ? "Finished" : "Active");
@@ -336,7 +335,7 @@
                 }
 
                 const wbDisabled = info.whiteboard_disabled || false;
-                const wbBtnText = wbDisabled ? "✅ Enable" : "🚫 Disable";
+                const wbBtnText = wbDisabled ? "✅ Enable WB" : "🚫 Disable WB";
                 const wbBtnColor = wbDisabled ? "var(--success)" : "var(--m-red)";
                 const wbStatusHtml = `
                     <button onclick="toggleWhiteboard('${sid}')" class="score-badge" style="background: ${wbBtnColor}; color: white; border: none; cursor: pointer; padding: 4px 8px; font-size: 11px;">
@@ -347,7 +346,7 @@
                 tr.innerHTML = `
                     <td style="font-weight: 700; font-size: 16px; color: var(--on-dark);">${studentDisplayName}</td>
                     <td>${signalHtml}</td>
-                    <td style="color: var(--body); font-weight: 400;">Q ${displayedQ} of ${totalQ}</td>
+                    <td style="color: var(--body); font-weight: 600;">Q ${displayedQ} of ${totalQ}</td>
                     <td style="max-width: 350px;">${detailsHtml}</td>
                     <td>${wbStatusHtml}</td>
                     <td><span class="score-badge">${parseFloat(info.score || 0).toFixed(2)} CORRECT</span></td>

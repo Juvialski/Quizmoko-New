@@ -244,12 +244,35 @@
             });
 
             socket.on('pause_state', (data) => {
-                isPaused = data.paused;
+                isPaused = !!data.paused;
                 if (isPaused && !pauseStartTime) {
                     pauseStartTime = Date.now();
                 } else if (!isPaused && pauseStartTime) {
                     totalPausedTime += Math.round((Date.now() - pauseStartTime) / 1000);
                     pauseStartTime = null;
+                }
+                updatePauseUI();
+            });
+
+            socket.on('ping_ack', (data) => {
+                if (data.paused !== undefined) {
+                    const prevPaused = isPaused;
+                    isPaused = !!data.paused;
+                    if (isPaused && !pauseStartTime) {
+                        pauseStartTime = Date.now();
+                    } else if (!isPaused && pauseStartTime) {
+                        totalPausedTime += Math.round((Date.now() - pauseStartTime) / 1000);
+                        pauseStartTime = null;
+                    }
+                    if (prevPaused !== isPaused) updatePauseUI();
+                }
+                if (data.terminated && !isSubmitting) {
+                    console.log("[WS Ping Ack] Teacher terminated the session.");
+                    submitQuiz("terminated");
+                }
+                if (data.whiteboard_disabled !== undefined) {
+                    whiteboardDisabledByTeacher = !!data.whiteboard_disabled;
+                    updateWhiteboardLayout();
                 }
             });
 
@@ -808,14 +831,35 @@
             }
         }
 
+        function updatePauseUI() {
+            const timerElem = document.getElementById("timer");
+            if (!timerElem) return;
+            if (isPaused) {
+                timerElem.innerHTML = `⏸️ PAUSED BY TEACHER (${formatTime(Math.max(0, timeRemaining))})`;
+                timerElem.style.backgroundColor = "rgba(251, 191, 36, 0.25)";
+                timerElem.style.color = "var(--warning)";
+                timerElem.style.borderColor = "var(--warning)";
+                timerElem.style.padding = "8px 16px";
+                timerElem.style.borderRadius = "var(--radius-sm)";
+                timerElem.style.fontWeight = "800";
+            } else {
+                timerElem.innerText = formatTime(Math.max(0, timeRemaining));
+                timerElem.style.backgroundColor = "";
+                timerElem.style.color = "";
+                timerElem.style.borderColor = "";
+                timerElem.style.padding = "";
+                timerElem.style.borderRadius = "";
+            }
+        }
+
         function startTimer() {
             if (timerInterval) return;
 
-            document.getElementById("timer").innerText = formatTime(timeRemaining);
+            updatePauseUI();
             timerInterval = setInterval(() => {
                 if (!isPaused) {
                     timeRemaining--;
-                    document.getElementById("timer").innerText = formatTime(timeRemaining);
+                    updatePauseUI();
                     if (timeRemaining <= 0) {
                         clearInterval(timerInterval);
                         timerInterval = null;
@@ -826,6 +870,8 @@
                             handleAnswer(currentSelectedOption || "No Answer (Timeout)");
                         }
                     }
+                } else {
+                    updatePauseUI();
                 }
             }, 1000);
         }

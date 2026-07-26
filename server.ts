@@ -855,6 +855,7 @@ Return your response STRICTLY as a JSON object in the format: {"is_correct": boo
              }
           }
 
+          console.log(`[AI Grading] QType: ${qType}, Q: "${q.question}", Expected: "${expected}", Actual: "${actual}"`);
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: [{ role: 'user', parts }],
@@ -862,6 +863,7 @@ Return your response STRICTLY as a JSON object in the format: {"is_correct": boo
           });
           
           const textResult = response.text ? response.text.trim() : '{}';
+          console.log(`[AI Grading] Response: ${textResult}`);
           const parsed = JSON.parse(textResult);
           isCorrect = !!parsed.is_correct;
           aiFeedback = parsed.feedback || '';
@@ -2314,8 +2316,8 @@ app.get('/worksheet/:quiz_id', tokenRequired, (req, res) => {
   res.status(404).send('Worksheet not found');
 });
 
-app.get('/results/:result_id', tokenRequired, (req, res) => {
-  const id = req.params.result_id;
+app.get('/results/:id', tokenRequired, (req, res) => {
+  const id = req.params.id;
   const rawResult = results.get(id);
 
   const formatResult = (r: any) => ({
@@ -2336,25 +2338,16 @@ app.get('/results/:result_id', tokenRequired, (req, res) => {
     return res.render('results', { results: [formatted], result: formatted, title: formatted.quiz_title });
   }
 
-  // Fallback: if quiz id is passed, render mock result for teacher review
+  // If quiz id is passed, render all results for that quiz
   const quiz = quizzes.get(id);
   if (quiz) {
-    const mockResult = formatResult({
-      id: `res_mock_${id}`,
-      quiz_id: id,
-      quiz_title: quiz.title,
-      student_name: 'Sample Student',
-      total_score: quiz.questions.length,
-      max_score: quiz.questions.length,
-      graded_details: quiz.questions.map((q: any) => ({
-        question: q.question,
-        user_answer: q.answer,
-        correct_answer: q.answer,
-        is_correct: true,
-        score_fraction: 1.0
-      }))
-    });
-    return res.render('results', { results: [mockResult], result: mockResult, title: quiz.title });
+    const allResults = Array.from(results.values()).filter(r => r.quiz_id === id);
+    if (allResults.length > 0) {
+      const formattedResults = allResults.map(formatResult).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return res.render('results', { results: formattedResults, result: formattedResults[0], title: quiz.title });
+    } else {
+      return res.render('results', { results: [], result: null, title: quiz.title });
+    }
   }
 
   res.status(404).send('Result not found');

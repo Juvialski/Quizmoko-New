@@ -36,13 +36,13 @@
     "uid": "MJlYRRnC8eQehLcWL6VEftFukVf1"
   },
   "PPndDrP4BlgvBtzO4UkKX9kue0o1": {
-    "uid": "PPndDrP4BlgvBtzO4UkKX9kue0o1",
     "created_at": {
       "type": "firestore/timestamp/1.0",
       "seconds": 1779519021,
       "nanoseconds": 725000000
     },
-    "email": "alpogimatubis14344@gmail.com"
+    "email": "alpogimatubis14344@gmail.com",
+    "uid": "PPndDrP4BlgvBtzO4UkKX9kue0o1"
   },
   "UoWzZ2ScQQXObQ4o5Xoekzqmht12": {
     "role": "teacher",

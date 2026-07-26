@@ -732,7 +732,7 @@
                     inp.value = answers[currentIndex] || ""; // RESTORE ANSWER ON RELOAD
                     inp.oninput = e => {
                         if (q.type === "identification" && quizData.subject === 'Math') {
-                            e.target.value = e.target.value.replace(/[^0-9.\-]/g, '');
+                            e.target.value = e.target.value.replace(/[^0-9.\-\/]/g, '');
                         }
                         currentSelectedOption = e.target.value;
                         if (quizData.quiz_mode !== 'back_and_forth') {
@@ -1036,8 +1036,7 @@
                     }
 
                     let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(result.correct_answer)}</div>`;
-                    const currentQType = (q && q.type) ? q.type : '';
-                    if ((currentQType === 'open_ended' || currentQType === 'graphing') && result.ai_feedback && result.ai_feedback.trim()) {
+                    if (result.ai_feedback && result.ai_feedback.trim()) {
                         feedbackHtml += `<br><br>🤖 <em>${formatText(result.ai_feedback)}</em>`;
                     }
                     textElem.innerHTML = feedbackHtml;

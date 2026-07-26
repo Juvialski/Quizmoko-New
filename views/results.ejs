@@ -101,6 +101,13 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <% if (!results || results.length === 0) { %>
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px; color: var(--body);">
+                                <i>No results found for this quiz yet. Share the link with students!</i>
+                            </td>
+                        </tr>
+                    <% } else { %>
                     <% for (let r of (results || [])) { %>
                     <tr id="row-<%= typeof r.id !== 'undefined' ? r.id : '' %>">
                         <td class="checkbox-cell">

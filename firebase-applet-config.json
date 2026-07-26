@@ -3,7 +3,7 @@
   "appId": "1:399313723605:web:2a51261ed8306af413025c",
   "apiKey": "AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc",
   "authDomain": "quizmoko-51920.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-quizmoko-1ae4bc32-efd3-48b2-9b75-9eb52f4149ab",
+  "firestoreDatabaseId": "(default)",
   "storageBucket": "quizmoko-51920.firebasestorage.app",
   "messagingSenderId": "399313723605",
   "measurementId": "",

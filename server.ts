@@ -168,11 +168,11 @@ try {
     }) : getApp();
 
     setLogLevel('error');
+    firestoreDbs.push(getFirestore(fbApp, '(default)'));
     const namedDbId = firebaseConfig.firestoreDatabaseId;
     if (namedDbId && namedDbId !== '(default)') {
       firestoreDbs.push(getFirestore(fbApp, namedDbId));
     }
-    firestoreDbs.push(getFirestore(fbApp, '(default)'));
     console.log(`[Firebase] Configured Firestore for project '${firebaseConfig.projectId}'`);
   }
 } catch (e) {

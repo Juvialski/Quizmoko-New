@@ -789,7 +789,7 @@ app.post('/ping', (req, res) => {
 
 // --- QUIZ SUBMISSION & GRADING ---
 app.post('/api/grade_individual', tokenRequired, async (req: any, res) => {
-  const { quiz_id, q_index, student_answer, api_key } = req.body;
+  const { quiz_id, q_index, student_answer, api_key, solution_snapshots } = req.body;
   const quiz = quizzes.get(quiz_id);
 
   if (!quiz || !quiz.questions[q_index]) {
@@ -798,39 +798,80 @@ app.post('/api/grade_individual', tokenRequired, async (req: any, res) => {
 
   const q = quiz.questions[q_index];
   const qType = q.type || 'multiple_choice';
-  const expected = (q.answer || '').toString().trim().toLowerCase();
-  const actual = (student_answer || '').toString().trim().toLowerCase();
+  const expected = (q.answer || '').toString().trim();
+  const actual = (student_answer || '').toString().trim();
 
   let isCorrect = false;
-  if (qType === 'multiple_choice') {
-    const expectedLetter = expected.replace(/[^a-d]/gi, '')[0];
-    const actualLetter = actual.replace(/[^a-d]/gi, '')[0];
-    isCorrect = expectedLetter && actualLetter ? expectedLetter === actualLetter : expected === actual;
-  } else {
-    isCorrect = expected === actual || actual.includes(expected);
-  }
-
-  // AI feedback is only for open_ended or graphing questions
   let aiFeedback = '';
-  if (qType === 'open_ended' || qType === 'graphing') {
-    if (isCorrect) {
-      aiFeedback = 'Great explanation/work!';
+
+  if (qType === 'multiple_choice' || qType === 'true_false') {
+    const expectedLower = expected.toLowerCase();
+    const actualLower = actual.toLowerCase();
+    if (qType === 'multiple_choice') {
+      const expectedLetter = expectedLower.replace(/[^a-d]/gi, '')[0];
+      const actualLetter = actualLower.replace(/[^a-d]/gi, '')[0];
+      isCorrect = expectedLetter && actualLetter ? expectedLetter === actualLetter : expectedLower === actualLower;
+    } else {
+      isCorrect = expectedLower === actualLower || actualLower.includes(expectedLower);
+    }
+  } else {
+    // For identification, open_ended, and graphing questions, attempt AI grading
+    const expectedLower = expected.toLowerCase();
+    const actualLower = actual.toLowerCase();
+
+    // Fast-path exact match
+    if (expectedLower === actualLower || actualLower === expectedLower) {
+      isCorrect = true;
+      aiFeedback = 'Great work!';
     } else {
       const ai = getGeminiClient(api_key);
       if (ai) {
         try {
-          const prompt = `Provide a brief 1-2 sentence constructive explanation for why this student's response is incorrect or how to improve it for a ${qType} question.
+          const prompt = `You are an expert teacher grading a quiz.
+Question Type: ${qType}
 Question: "${q.question}"
-Student Response: "${student_answer}"
-Correct Reference Solution: "${q.answer}"`;
+Correct Answer Key: "${expected}"
+Student's Response: "${actual}"
+
+Evaluate if the student's response is correct or mathematically/semantically equivalent based on the answer key.
+If it is correct, set "is_correct" to true, and optionally provide brief encouraging feedback.
+If it is incorrect, set "is_correct" to false, and provide a brief 1-2 sentence explanation of why.
+Return your response STRICTLY as a JSON object in the format: {"is_correct": boolean, "feedback": "string"}`;
+
+          let parts: any[] = [{ text: prompt }];
+
+          if (solution_snapshots && Array.isArray(solution_snapshots) && solution_snapshots.length > 0) {
+             for (const snap of solution_snapshots) {
+                 if (snap && typeof snap === 'string' && snap.startsWith('data:image/')) {
+                    const base64Data = snap.split(',')[1];
+                    const mimeType = snap.substring(snap.indexOf(':')+1, snap.indexOf(';'));
+                    parts.push({
+                       inlineData: {
+                           data: base64Data,
+                           mimeType: mimeType
+                       }
+                    });
+                 }
+             }
+          }
+
           const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: [prompt]
+            contents: [{ role: 'user', parts }],
+            config: { responseMimeType: 'application/json' }
           });
-          aiFeedback = response.text ? response.text.trim() : '';
+          
+          const textResult = response.text ? response.text.trim() : '{}';
+          const parsed = JSON.parse(textResult);
+          isCorrect = !!parsed.is_correct;
+          aiFeedback = parsed.feedback || '';
         } catch (err) {
-          aiFeedback = '';
+          console.error("AI individual grading error:", err);
+          isCorrect = actualLower.includes(expectedLower) || expectedLower.includes(actualLower);
+          aiFeedback = isCorrect ? '' : 'Incorrect based on simple match (AI grading failed).';
         }
+      } else {
+        isCorrect = actualLower.includes(expectedLower) || expectedLower.includes(actualLower);
       }
     }
   }

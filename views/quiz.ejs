@@ -379,6 +379,7 @@
                     if (progressiveResults[i] === null) {
                         pendingGradings++;
                         // RE-TRIGGER GRADING FOR STUCK QUESTIONS
+                        const apiKey = localStorage.getItem('gemini_api_key') || "";
                         fetch('/api/grade_individual', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -388,7 +389,8 @@
                                 student_name: studentName,
                                 q_index: i,
                                 student_answer: answers[i] || "",
-                                solution_snapshots: solutionSnapshots[i] || []
+                                solution_snapshots: solutionSnapshots[i] || [],
+                                api_key: apiKey
                             })
                         }).then(res => res.json()).then(data => {
                             if (data.success) {
@@ -938,6 +940,7 @@
 
                 // 3. BACKGROUND GRADING (Trigger immediately, but we'll await it later if it's the last question)
                 const metrics = getCurrentTimeMetrics();
+                const apiKey = localStorage.getItem('gemini_api_key') || "";
                 const gradingPromise = fetch('/api/grade_individual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -951,7 +954,8 @@
                         time_active_seconds: metrics.timeActive,
                         time_paused_seconds: metrics.finalPausedTime,
                         total_duration_seconds: metrics.totalDuration,
-                        accuracy_pct: metrics.accuracyPct
+                        accuracy_pct: metrics.accuracyPct,
+                        api_key: apiKey
                     })
                 }).then(async res => {
                     const data = await res.json();
@@ -1111,6 +1115,7 @@
             const metrics = getCurrentTimeMetrics();
 
             try {
+                const apiKey = localStorage.getItem('gemini_api_key') || "";
                 const res = await fetch('/api/grade_individual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1124,7 +1129,8 @@
                         time_active_seconds: metrics.timeActive,
                         time_paused_seconds: metrics.finalPausedTime,
                         total_duration_seconds: metrics.totalDuration,
-                        accuracy_pct: metrics.accuracyPct
+                        accuracy_pct: metrics.accuracyPct,
+                        api_key: apiKey
                     })
                 });
 

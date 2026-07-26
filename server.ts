@@ -866,7 +866,7 @@ Return your response STRICTLY as a JSON object in the format: {"is_correct": boo
 
           console.log(`[AI Grading] QType: ${qType}, Q: "${q.question}", Expected: "${expected}", Actual: "${actual}"`);
           const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash-lite',
             contents: [{ role: 'user', parts }],
             config: { responseMimeType: 'application/json' }
           });

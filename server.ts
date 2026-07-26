@@ -27,7 +27,7 @@ import {
   RMX_FLASH_EXTRACTION_PROMPT,
   RMX_FLASH_MATCH_PROMPT,
   RECHECK_ANSWERS_PROMPT
-} from './prompts.js';
+} from './prompts.ts';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, setLogLevel } from 'firebase/firestore';
 

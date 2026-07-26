@@ -10,6 +10,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 
+    <!-- MathJax for Math & LaTeX Equations -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+            startup: { typeset: false }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
     <style>
         * { box-sizing: border-box; }
         :root {
@@ -663,6 +672,10 @@
                 `;
                 list.appendChild(item);
             });
+
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([list]).catch(err => console.error("MathJax error:", err));
+            }
         }
 
         // --- CROP REFINER LOGIC ---

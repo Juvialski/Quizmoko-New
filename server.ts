@@ -8,6 +8,15 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import { Server as SocketIOServer } from 'socket.io';
 import { GoogleGenAI } from '@google/genai';
+import {
+  SHARED_LATEX_RULES,
+  NON_MATH_RULES,
+  WORKSHEET_EXTRACTION_PROMPT,
+  WORKSHEET_EXTRACTION_PROMPT_NON_MATH,
+  WORKSHEET_SOLVER_PROMPT,
+  WORKSHEET_SOLVER_PROMPT_NON_MATH,
+  LATEX_POLISH_PROMPT
+} from './prompts';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, setLogLevel } from 'firebase/firestore';
 
@@ -510,10 +519,10 @@ app.get('/worksheet', tokenRequired, (req, res) => {
 });
 
 app.post('/api/extract_worksheet', tokenRequired, upload.array('files'), async (req: any, res) => {
-  const { session_id = 'sess_1', topic_hint = '', subject = 'General', api_key } = req.body;
+  const { session_id = 'sess_1', topic_hint = '', subject = 'General', api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
   const files = req.files as Express.Multer.File[];
 
-  sessionProgress.set(session_id, { message: '🔍 Analyzing worksheet content...', percentage: 30, status: 'processing' });
+  sessionProgress.set(session_id, { message: '📄 Processing worksheet file & images...', percentage: 20, status: 'processing' });
 
   try {
     const ai = getGeminiClient(api_key);
@@ -521,8 +530,25 @@ app.post('/api/extract_worksheet', tokenRequired, upload.array('files'), async (
 
     if (ai) {
       try {
-        let prompt = `Extract all quiz or worksheet questions from this file/text. Subject: ${subject}. Topic: ${topic_hint}.
-Return a JSON array of objects with keys: "raw_text", "question", "type" ("multiple_choice" or "identification"), "options" (array if multiple choice), "original_index".`;
+        sessionProgress.set(session_id, { message: '🤖 Extracting questions with Gemini AI...', percentage: 50, status: 'processing' });
+
+        let prompt = `Extract all quiz or worksheet questions from this uploaded document/image.
+Subject: ${subject}. Topic / Context: ${topic_hint}.
+
+CRITICAL LATEX MATH FORMATTING RULES:
+1. Wrap ALL math variables, formulas, expressions, equations, and fractions in LaTeX delimiters:
+   - Use single dollar signs $ ... $ for inline math (e.g. $x^2 + 5x + 6 = 0$, $y = mx + b$).
+   - Use double dollar signs $$ ... $$ for display/block math.
+2. Format fractions using \\frac{numerator}{denominator} inside math mode (e.g., $\\frac{3}{70}$).
+3. Format exponents using caret notation inside math mode (e.g., $x^{2}$ or $10^{6}$).
+4. Keep question text clean, precise, and complete.
+
+Return a valid JSON array of objects with keys:
+- "raw_text": The complete question text formatted with proper LaTeX math.
+- "question": The question statement formatted with proper LaTeX math.
+- "type": Question type ("multiple_choice", "multiple_choice_multi", "identification", "true_false", "open_ended", or "graphing").
+- "options": Array of option strings if multiple choice (e.g. ["A) $x = 2$", "B) $x = 3$"]), or [] if non-multiple choice.
+- "original_index": Integer index of question (1, 2, 3...).`;
 
         let contents: any[] = [prompt];
         if (files && files.length > 0) {
@@ -536,10 +562,13 @@ Return a JSON array of objects with keys: "raw_text", "question", "type" ("multi
           });
         }
 
+        const selectedModel = model_name || 'gemini-3.5-flash-lite';
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: selectedModel,
           contents
         });
+
+        sessionProgress.set(session_id, { message: '📐 Formatting LaTeX math equations & verifying structure...', percentage: 85, status: 'processing' });
 
         const text = response.text || '';
         const cleanJson = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
@@ -555,7 +584,7 @@ Return a JSON array of objects with keys: "raw_text", "question", "type" ("multi
           raw_text: '1. What is the sum of angles in a triangle?',
           question: 'What is the sum of angles in a triangle?',
           type: 'multiple_choice',
-          options: ['A) 180°', 'B) 360°', 'C) 90°', 'D) 270°'],
+          options: ['A) $180^\\circ$', 'B) $360^\\circ$', 'C) $90^\\circ$', 'D) $270^\\circ$'],
           original_index: 1
         },
         {
@@ -568,41 +597,90 @@ Return a JSON array of objects with keys: "raw_text", "question", "type" ("multi
       ];
     }
 
-    sessionProgress.set(session_id, { message: '✅ Questions extracted!', percentage: 100, status: 'completed' });
+    sessionProgress.set(session_id, { message: '✅ Questions extracted successfully!', percentage: 100, status: 'completed' });
     res.json({ success: true, questions, missing_indices: [] });
   } catch (err: any) {
+    sessionProgress.set(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 app.post('/api/solve_worksheet', tokenRequired, async (req: any, res) => {
-  const { session_id = 'sess_1', topic = 'Worksheet Quiz', subject = 'General', questions = [], time_limit = 30, quiz_mode = 'back_and_forth', api_key } = req.body;
+  const {
+    session_id = 'sess_1',
+    topic = 'Worksheet Quiz',
+    subject = 'General',
+    questions = [],
+    time_limit = 30,
+    quiz_mode = 'back_and_forth',
+    batch_size = 3,
+    require_solution = false,
+    api_key,
+    model_name = 'gemini-3.5-flash-lite'
+  } = req.body;
   const userId = req.user.uid;
 
-  sessionProgress.set(session_id, { message: '✨ Solving and generating answers...', percentage: 50, status: 'processing' });
+  sessionProgress.set(session_id, { message: '✨ Initializing batch solver...', percentage: 10, status: 'processing' });
 
   setTimeout(async () => {
     try {
       const ai = getGeminiClient(api_key);
-      let solvedQuestions = questions;
+      const batchSize = Math.max(1, parseInt(batch_size) || 3);
+      const totalQuestions = questions.length;
+      const totalBatches = Math.ceil(totalQuestions / batchSize) || 1;
+      let solvedQuestions: any[] = [];
 
-      if (ai) {
-        try {
-          const prompt = `Solve these worksheet questions and provide verified correct answers and options.
+      for (let b = 0; b < totalBatches; b++) {
+        const start = b * batchSize;
+        const end = Math.min(start + batchSize, totalQuestions);
+        const batchQuestions = questions.slice(start, end);
+
+        sessionProgress.set(session_id, {
+          message: `✨ Solving questions ${start + 1}–${end} of ${totalQuestions} (Batch ${b + 1}/${totalBatches})...`,
+          percentage: Math.round(15 + ((b + 1) / totalBatches) * 75),
+          status: 'processing'
+        });
+
+        if (ai && batchQuestions.length > 0) {
+          try {
+            const prompt = `Solve these worksheet questions and provide verified correct answers and options.
 Subject: ${subject}, Topic: ${topic}.
-Questions JSON: ${JSON.stringify(questions)}
-Return a JSON array of solved objects with keys: "question", "options", "answer", "type".`;
 
-          const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [prompt]
-          });
+CRITICAL LATEX MATH FORMATTING RULES:
+1. Wrap ALL math variables, formulas, expressions, equations, and fractions in LaTeX delimiters:
+   - Use single dollar signs $ ... $ for inline math (e.g. $x^2 + 5x + 6 = 0$, $y = mx + b$).
+   - Use double dollar signs $$ ... $$ for display/block math.
+2. Format fractions using \\frac{numerator}{denominator} inside math mode (e.g. $\\frac{3}{70}$).
+3. Ensure question statement, options, and correct answer strings include proper LaTeX formatting where applicable.
 
-          const text = response.text || '';
-          const cleanJson = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
-          solvedQuestions = JSON.parse(cleanJson);
-        } catch (e) {
-          console.warn('Gemini solver fallback:', e);
+Questions JSON to Solve: ${JSON.stringify(batchQuestions)}
+
+Return a valid JSON array of solved objects with keys:
+- "question": string statement formatted with LaTeX math
+- "options": array of option strings with LaTeX math (or [] for non-multiple-choice)
+- "answer": correct answer string or letter
+- "type": question type string`;
+
+            const selectedModel = model_name || 'gemini-3.5-flash-lite';
+            const response = await ai.models.generateContent({
+              model: selectedModel,
+              contents: [prompt]
+            });
+
+            const text = response.text || '';
+            const cleanJson = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+            const parsedBatch = JSON.parse(cleanJson);
+            if (Array.isArray(parsedBatch)) {
+              solvedQuestions.push(...parsedBatch);
+            } else {
+              solvedQuestions.push(...batchQuestions);
+            }
+          } catch (e) {
+            console.warn(`Gemini solver batch ${b + 1} fallback:`, e);
+            solvedQuestions.push(...batchQuestions);
+          }
+        } else {
+          solvedQuestions.push(...batchQuestions);
         }
       }
 
@@ -614,7 +692,7 @@ Return a JSON array of solved objects with keys: "question", "options", "answer"
         subject: subject,
         time_limit: parseInt(time_limit) || 30,
         quiz_mode: quiz_mode,
-        require_solution: false,
+        require_solution: require_solution,
         questions: solvedQuestions,
         created_at: new Date().toISOString()
       };
@@ -624,7 +702,7 @@ Return a JSON array of solved objects with keys: "question", "options", "answer"
       syncDocToFirestore('quizzes', newQuizId, newQuiz);
 
       sessionProgress.set(session_id, {
-        message: '🚀 Launching Edit Screen...',
+        message: '🚀 Quiz created! Opening editor...',
         percentage: 100,
         status: 'completed',
         quiz_id: newQuizId
@@ -632,7 +710,7 @@ Return a JSON array of solved objects with keys: "question", "options", "answer"
     } catch (e: any) {
       sessionProgress.set(session_id, { message: `❌ Error: ${e.message}`, percentage: 100, status: 'error' });
     }
-  }, 1000);
+  }, 100);
 
   res.status(202).json({ success: true, message: 'Solving started', session_id });
 });

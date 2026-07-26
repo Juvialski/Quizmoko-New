@@ -804,7 +804,7 @@ app.post('/api/grade_individual', tokenRequired, async (req: any, res) => {
   let isCorrect = false;
   let aiFeedback = '';
 
-  if (qType === 'multiple_choice' || qType === 'true_false') {
+  if (qType === 'multiple_choice' || qType === 'true_false' || qType === 'identification') {
     const expectedLower = expected.toLowerCase();
     const actualLower = actual.toLowerCase();
     if (qType === 'multiple_choice') {
@@ -812,10 +812,10 @@ app.post('/api/grade_individual', tokenRequired, async (req: any, res) => {
       const actualLetter = actualLower.replace(/[^a-d]/gi, '')[0];
       isCorrect = expectedLetter && actualLetter ? expectedLetter === actualLetter : expectedLower === actualLower;
     } else {
-      isCorrect = expectedLower === actualLower || actualLower.includes(expectedLower);
+      isCorrect = expectedLower === actualLower || actualLower.includes(expectedLower) || expectedLower.includes(actualLower);
     }
   } else {
-    // For identification, open_ended, and graphing questions, attempt AI grading
+    // For open_ended and graphing questions, attempt AI grading
     const expectedLower = expected.toLowerCase();
     const actualLower = actual.toLowerCase();
 
@@ -874,6 +874,7 @@ Return your response STRICTLY as a JSON object in the format: {"is_correct": boo
         }
       } else {
         isCorrect = actualLower.includes(expectedLower) || expectedLower.includes(actualLower);
+        aiFeedback = isCorrect ? '' : 'Incorrect. (Note: AI grading is currently unavailable due to missing API key).';
       }
     }
   }

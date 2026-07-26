@@ -1229,16 +1229,21 @@
                 // Case 2: Not graded or stuck in 'Finalizing...' - APPLY FALLBACK
                 let isCorrect = false, scoreFrac = 0;
 
-                if (q.type === 'multiple_choice' || q.type === 'true_false') {
+                if (q.type === 'multiple_choice' || q.type === 'true_false' || q.type === 'identification') {
                     let normUser = String(userAns).trim().toUpperCase();
-                    if (normUser.length > 1 && (normUser[1] === ')' || normUser[1] === '.')) normUser = normUser[0];
+                    if (q.type === 'multiple_choice' && normUser.length > 1 && (normUser[1] === ')' || normUser[1] === '.')) normUser = normUser[0];
                     let normCorrect = String(q.answer).trim().toUpperCase();
-                    if (normCorrect.length > 1 && (normCorrect[1] === ')' || normCorrect[1] === '.')) normCorrect = normCorrect[0];
+                    if (q.type === 'multiple_choice' && normCorrect.length > 1 && (normCorrect[1] === ')' || normCorrect[1] === '.')) normCorrect = normCorrect[0];
+                    
                     if (q.type === 'true_false') {
                         if (normUser.includes("TRUE")) normUser = "A";
                         else if (normUser.includes("FALSE")) normUser = "B";
                     }
-                    isCorrect = normUser === normCorrect;
+                    if (q.type === 'identification') {
+                        isCorrect = normUser === normCorrect || normUser.includes(normCorrect) || normCorrect.includes(normUser);
+                    } else {
+                        isCorrect = normUser === normCorrect;
+                    }
                     scoreFrac = isCorrect ? 1 : 0;
                 } else if (q.type === 'multiple_choice_multi') {
                     const getSet = (s) => new Set(String(s || "").replace(',', ' ').split(/\s+/).filter(x => x && x.length === 1).map(x => x.toUpperCase()));

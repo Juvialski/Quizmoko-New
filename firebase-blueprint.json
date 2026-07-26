@@ -1,0 +1,26 @@
+{
+  "entities": {
+    "quizzes": {
+      "title": "Quizzes",
+      "fields": {
+        "title": { "type": "string" },
+        "subject": { "type": "string" },
+        "questions": { "type": "array" }
+      }
+    },
+    "results": {
+      "title": "Results",
+      "fields": {
+        "quiz_id": { "type": "string" },
+        "total_score": { "type": "number" }
+      }
+    },
+    "users": {
+      "title": "Users",
+      "fields": {
+        "email": { "type": "string" },
+        "role": { "type": "string" }
+      }
+    }
+  }
+}

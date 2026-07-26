@@ -8,6 +8,8 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import { Server as SocketIOServer } from 'socket.io';
 import { GoogleGenAI } from '@google/genai';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 
 dotenv.config();
 
@@ -141,7 +143,7 @@ const sampleQuizzes = [
 
 sampleQuizzes.forEach(q => quizzes.set(q.id, q));
 
-// --- FILE-BASED PERSISTENCE FOR LOCAL STORAGE ---
+// --- FILE-BASED & FIREBASE PERSISTENCE ---
 const DATA_DIR = path.join(process.cwd(), 'data');
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -150,6 +152,32 @@ const QUIZZES_FILE = path.join(DATA_DIR, 'quizzes.json');
 const RESULTS_FILE = path.join(DATA_DIR, 'results.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
+let firestoreDbs: any[] = [];
+
+try {
+  const cfgPath = path.join(process.cwd(), 'firebase-applet-config.json');
+  if (fs.existsSync(cfgPath)) {
+    const firebaseConfig = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+    const fbApp = getApps().length === 0 ? initializeApp({
+      apiKey: firebaseConfig.apiKey,
+      authDomain: firebaseConfig.authDomain,
+      projectId: firebaseConfig.projectId,
+      storageBucket: firebaseConfig.storageBucket,
+      messagingSenderId: firebaseConfig.messagingSenderId,
+      appId: firebaseConfig.appId
+    }) : getApp();
+
+    const namedDbId = firebaseConfig.firestoreDatabaseId;
+    if (namedDbId && namedDbId !== '(default)') {
+      firestoreDbs.push(getFirestore(fbApp, namedDbId));
+    }
+    firestoreDbs.push(getFirestore(fbApp, '(default)'));
+    console.log(`[Firebase] Configured Firestore for project '${firebaseConfig.projectId}'`);
+  }
+} catch (e) {
+  console.warn('[Firebase] Config initialization warning:', e);
+}
+
 function savePersistentData() {
   try {
     fs.writeFileSync(QUIZZES_FILE, JSON.stringify(Object.fromEntries(quizzes), null, 2));
@@ -157,6 +185,28 @@ function savePersistentData() {
     fs.writeFileSync(USERS_FILE, JSON.stringify(Object.fromEntries(users), null, 2));
   } catch (err) {
     console.warn('Failed to save data to disk:', err);
+  }
+}
+
+async function syncDocToFirestore(collName: string, docId: string, data: any) {
+  if (firestoreDbs.length === 0) return;
+  for (const dbInstance of firestoreDbs) {
+    try {
+      await setDoc(doc(dbInstance, collName, docId), data, { merge: true });
+    } catch (err) {
+      console.warn(`[Firebase] Error syncing ${collName}/${docId}:`, err);
+    }
+  }
+}
+
+async function deleteDocFromFirestore(collName: string, docId: string) {
+  if (firestoreDbs.length === 0) return;
+  for (const dbInstance of firestoreDbs) {
+    try {
+      await deleteDoc(doc(dbInstance, collName, docId));
+    } catch (err) {
+      console.warn(`[Firebase] Error deleting ${collName}/${docId}:`, err);
+    }
   }
 }
 
@@ -179,8 +229,57 @@ function loadPersistentData() {
   }
 }
 
-// Load existing disk data on startup over defaults
+async function loadFromFirestore() {
+  if (firestoreDbs.length === 0) return;
+  console.log('[Firebase] Loading data from Firestore collections...');
+
+  for (const dbInstance of firestoreDbs) {
+    try {
+      // 1. Quizzes
+      const quizSnap = await getDocs(collection(dbInstance, 'quizzes'));
+      quizSnap.forEach((d) => {
+        const val = d.data();
+        const quizId = val.id || d.id;
+        quizzes.set(quizId, { ...val, id: quizId });
+      });
+
+      // Also check alternative collection names if any
+      const altQuizSnap = await getDocs(collection(dbInstance, 'quiz')).catch(() => null);
+      if (altQuizSnap) {
+        altQuizSnap.forEach((d) => {
+          const val = d.data();
+          const quizId = val.id || d.id;
+          quizzes.set(quizId, { ...val, id: quizId });
+        });
+      }
+
+      // 2. Results
+      const resSnap = await getDocs(collection(dbInstance, 'results'));
+      resSnap.forEach((d) => {
+        const val = d.data();
+        const resId = val.id || d.id;
+        results.set(resId, { ...val, id: resId });
+      });
+
+      // 3. Users
+      const userSnap = await getDocs(collection(dbInstance, 'users'));
+      userSnap.forEach((d) => {
+        const val = d.data();
+        const uId = val.uid || val.id || d.id;
+        users.set(uId, { ...val, uid: uId });
+      });
+    } catch (err) {
+      console.warn('[Firebase] Firestore load notice:', err);
+    }
+  }
+
+  savePersistentData();
+  console.log(`[Firebase] Loaded ${quizzes.size} quizzes, ${results.size} results, ${users.size} users.`);
+}
+
+// Load disk data first, then load Firestore remote data
 loadPersistentData();
+loadFromFirestore();
 
 // --- HELPER FOR LIVE SESSION STATE ---
 function getOrCreateLiveState(quizId: string) {
@@ -704,6 +803,7 @@ app.post(['/submit', '/api/submit_quiz'], tokenRequired, async (req: any, res) =
 
   results.set(resultId, resultObj);
   savePersistentData();
+  syncDocToFirestore('results', resultId, resultObj);
 
   res.json({
     success: true,
@@ -747,6 +847,7 @@ app.post(['/update/:quiz_id', '/api/quiz/:quiz_id/update'], tokenRequired, (req,
   const updated = { ...existing, ...req.body, id: quizId };
   quizzes.set(quizId, updated);
   savePersistentData();
+  syncDocToFirestore('quizzes', quizId, updated);
   res.json({ success: true, quiz_id: quizId, quiz: updated, redirect: `/edit/${quizId}` });
 });
 
@@ -774,6 +875,7 @@ app.get('/create_blank', tokenRequired, (req: any, res) => {
   };
   quizzes.set(newId, newQuiz);
   savePersistentData();
+  syncDocToFirestore('quizzes', newId, newQuiz);
   res.redirect(`/edit/${newId}`);
 });
 
@@ -807,6 +909,7 @@ app.post('/merge', tokenRequired, (req: any, res) => {
 
   quizzes.set(newId, newQuiz);
   savePersistentData();
+  syncDocToFirestore('quizzes', newId, newQuiz);
   res.json({ success: true, new_quiz_id: newId });
 });
 
@@ -817,6 +920,7 @@ app.post('/api/move_quiz', tokenRequired, (req, res) => {
     quiz.subject = subject || 'General';
     quizzes.set(quiz_id, quiz);
     savePersistentData();
+    syncDocToFirestore('quizzes', quiz_id, quiz);
     return res.json({ success: true });
   }
   res.status(404).json({ success: false, error: 'Quiz not found' });

@@ -186,13 +186,15 @@
                     </div>
                 </div>
 
-                <div class="ai-feedback" id="feedback-<%= itemIdx %>" style="display:none;">
+                <% const qType = item.type || (typeof quiz !== 'undefined' && quiz && quiz.questions && quiz.questions[itemIdx] ? quiz.questions[itemIdx].type : ''); %>
+                <div class="ai-feedback" id="feedback-<%= itemIdx %>" style="display:<% if ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback && item.ai_feedback.trim()) { %>block<% } else { %>none<% } %>;">
                     <strong>🤖 AI Tutor Feedback:</strong><br>
-                    <span class="feedback-text"></span>
+                    <span class="feedback-text"><%= ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback) ? item.ai_feedback : '' %></span>
                 </div>
 
                 <% if (typeof session === 'undefined' || !session.user) { %>
-                <div id="student-help-<%= itemIdx %>" style="<% if (item.is_correct) { %>display:none;<% } %>">
+                <% if (!item.is_correct) { %>
+                <div id="student-help-<%= itemIdx %>">
                     <button class="wb-btn" style="margin-top: 15px; width: 100%; border-color: var(--primary); color: var(--primary);"
                         onclick="explainMistakeResults(this)"
                         data-q-idx="<%= itemIdx %>">
@@ -200,6 +202,7 @@
                     </button>
                     <div class="explanation-box" style="display:none;" id="explanation-<%= itemIdx %>"></div>
                 </div>
+                <% } %>
                 <% } %>
             </div>
             <% }); %>
@@ -215,6 +218,38 @@
         let isComplete = false;
         let isEditing = false;
         let currentAnswersData = {}; // Store raw values for editing
+
+        function explainMistakeResults(btn) {
+            const qIdx = btn.getAttribute('data-q-idx');
+            const item = initialDetails[qIdx];
+            if (!item) return;
+
+            btn.innerText = "GENERATING EXPLANATION..."; btn.disabled = true;
+            fetch('/api/explain', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    quiz_id: "<%= typeof result.quiz_id !== 'undefined' ? result.quiz_id : '' %>",
+                    question: item.question,
+                    user_answer: item.user_answer,
+                    correct_answer: item.correct_answer,
+                    q_type: item.type || ''
+                })
+            })
+            .then(res => res.json()).then(data => {
+                btn.style.display = 'none';
+                const box = document.getElementById(`explanation-${qIdx}`);
+                if (box) {
+                    box.style.display = 'block';
+                    box.innerHTML = `<strong>🤖 AI TUTOR:</strong><br><br>` + formatDisplay(data.explanation || "No explanation returned.");
+                    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([box]);
+                }
+            }).catch(err => {
+                btn.innerText = "🤖 AI Tutor: Explain My Mistake";
+                btn.disabled = false;
+                alert("Failed to generate explanation. Please try again.");
+            });
+        }
 
         function startEditAnswer(index) {
             isEditing = true;

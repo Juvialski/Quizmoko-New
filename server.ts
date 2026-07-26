@@ -811,11 +811,12 @@ app.post('/api/grade_individual', tokenRequired, async (req: any, res) => {
   }
 
   const q = quiz.questions[q_index];
+  const qType = q.type || 'multiple_choice';
   const expected = (q.answer || '').toString().trim().toLowerCase();
   const actual = (student_answer || '').toString().trim().toLowerCase();
 
   let isCorrect = false;
-  if (q.type === 'multiple_choice') {
+  if (qType === 'multiple_choice') {
     const expectedLetter = expected.replace(/[^a-d]/gi, '')[0];
     const actualLetter = actual.replace(/[^a-d]/gi, '')[0];
     isCorrect = expectedLetter && actualLetter ? expectedLetter === actualLetter : expected === actual;
@@ -823,12 +824,37 @@ app.post('/api/grade_individual', tokenRequired, async (req: any, res) => {
     isCorrect = expected === actual || actual.includes(expected);
   }
 
+  // AI feedback is only for open_ended or graphing questions
+  let aiFeedback = '';
+  if (qType === 'open_ended' || qType === 'graphing') {
+    if (isCorrect) {
+      aiFeedback = 'Great explanation/work!';
+    } else {
+      const ai = getGeminiClient(api_key);
+      if (ai) {
+        try {
+          const prompt = `Provide a brief 1-2 sentence constructive explanation for why this student's response is incorrect or how to improve it for a ${qType} question.
+Question: "${q.question}"
+Student Response: "${student_answer}"
+Correct Reference Solution: "${q.answer}"`;
+          const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [prompt]
+          });
+          aiFeedback = response.text ? response.text.trim() : '';
+        } catch (err) {
+          aiFeedback = '';
+        }
+      }
+    }
+  }
+
   res.json({
     success: true,
     is_correct: isCorrect,
     correct_answer: q.answer,
     score_fraction: isCorrect ? 1.0 : 0.0,
-    ai_feedback: isCorrect ? 'Great job!' : `Correct answer: ${q.answer}`
+    ai_feedback: aiFeedback
   });
 });
 
@@ -861,6 +887,7 @@ app.post(['/submit', '/api/submit_quiz'], tokenRequired, async (req: any, res) =
 
       finalDetails.push({
         question: q.question,
+        type: q.type || 'multiple_choice',
         user_answer: userAns,
         correct_answer: q.answer,
         is_correct: isCorrect,
@@ -894,12 +921,13 @@ app.post(['/submit', '/api/submit_quiz'], tokenRequired, async (req: any, res) =
 });
 
 app.post('/api/explain', async (req, res) => {
-  const { question, user_answer, correct_answer, api_key } = req.body;
+  const { question, user_answer, correct_answer, q_type, api_key } = req.body;
+
   const ai = getGeminiClient(api_key);
 
   if (ai) {
     try {
-      const prompt = `Explain clearly and concisely why the student's answer was incorrect for this quiz question.
+      const prompt = `Explain clearly and concisely in 2-3 sentences why the student's answer was incorrect for this quiz question and how to solve or get the correct answer.
 Question: "${question}"
 Student's Answer: "${user_answer}"
 Correct Answer: "${correct_answer}"`;
@@ -915,9 +943,9 @@ Correct Answer: "${correct_answer}"`;
     }
   }
 
-  res.json({
+  return res.json({
     success: true,
-    explanation: `The correct answer is "${correct_answer}". Your submitted answer was "${user_answer}". Compare the key concepts to see where the solution differs.`
+    explanation: `The correct answer is "${correct_answer}". Your answer was "${user_answer}". Review the solution steps to verify your answer.`
   });
 });
 

@@ -604,11 +604,20 @@
             // SHOW BUTTON IF TEACHER HAS NOT DISABLED
             btn.style.display = 'inline-block';
 
-            if (studentWhiteboardPreference) {
+            const q = (quizData && quizData.questions) ? quizData.questions[currentIndex] : null;
+            const isGraphing = q && q.type === 'graphing';
+            const shouldShow = studentWhiteboardPreference || isGraphing;
+
+            if (shouldShow) {
                 rightPanel.style.display = 'flex';
                 quizContainer.classList.add('split-mode');
                 btn.innerText = "HIDE WHITEBOARD";
-                if (!whiteboardInitialized) initWhiteboard();
+                if (!whiteboardInitialized) {
+                    initWhiteboard();
+                } else {
+                    redrawCanvas();
+                    setTimeout(resizeCanvas, 10);
+                }
             } else {
                 rightPanel.style.display = 'none';
                 quizContainer.classList.remove('split-mode');
@@ -689,21 +698,13 @@
 
                 document.getElementById("q-num").innerText = currentIndex + 1;
                 const q = quizData.questions[currentIndex];
-                const rp = document.getElementById('right-panel');
-                const qCont = document.querySelector('.quiz-container');
 
-                if (!whiteboardDisabledByTeacher && (q.type === 'graphing' || quizData.require_solution)) {
-                    rp.style.display = 'flex';
-                    qCont.classList.add('split-mode');
-                    if (!canvas) initWhiteboard();
-                    currentPageIndex = 0;
+                currentPageIndex = 0;
+                if (canvas) {
                     redrawCanvas();
                     updatePageUI();
-                    setTimeout(resizeCanvas, 10);
-                } else {
-                    rp.style.display = 'none';
-                    qCont.classList.remove('split-mode');
                 }
+                updateWhiteboardLayout();
 
                 document.getElementById("question-text").innerHTML = formatText(q.question);
                 const opts = document.getElementById("options-container");
@@ -1034,9 +1035,10 @@
                         }
                     }
 
-                    let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(result.correct_answer)}</div><br>`;
-                    if (result.ai_feedback) {
-                        feedbackHtml += `🤖 <em>${result.ai_feedback}</em>`;
+                    let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(result.correct_answer)}</div>`;
+                    const currentQType = (q && q.type) ? q.type : '';
+                    if ((currentQType === 'open_ended' || currentQType === 'graphing') && result.ai_feedback && result.ai_feedback.trim()) {
+                        feedbackHtml += `<br><br>🤖 <em>${formatText(result.ai_feedback)}</em>`;
                     }
                     textElem.innerHTML = feedbackHtml;
                     renderMath("instant-feedback");

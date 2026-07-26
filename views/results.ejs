@@ -184,7 +184,8 @@
                                         <% } else { %>
                                             <%= typeof item.correct_answer !== 'undefined' && item.correct_answer ? item.correct_answer : '' %>
                                         <% } %>
-                                        <% if (item.ai_feedback) { %>
+                                        <% const qType = item.type || (typeof quiz !== 'undefined' && quiz && quiz.questions && quiz.questions[itemIdx] ? quiz.questions[itemIdx].type : ''); %>
+                                        <% if ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback && item.ai_feedback.trim()) { %>
                                             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--hairline);">🤖 <%= typeof item.ai_feedback !== 'undefined' ? item.ai_feedback : '' %></div>
                                         <% } %>
                                     </div>
@@ -247,7 +248,8 @@
                     quiz_id: result.quiz_id,
                     question: item.question,
                     user_answer: item.user_answer,
-                    correct_answer: item.correct_answer
+                    correct_answer: item.correct_answer,
+                    q_type: item.type || ''
                 })
             })
             .then(res => res.json()).then(data => {

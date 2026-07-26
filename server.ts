@@ -812,7 +812,15 @@ app.post('/api/grade_individual', tokenRequired, async (req: any, res) => {
       const actualLetter = actualLower.replace(/[^a-d]/gi, '')[0];
       isCorrect = expectedLetter && actualLetter ? expectedLetter === actualLetter : expectedLower === actualLower;
     } else {
-      isCorrect = expectedLower === actualLower || actualLower.includes(expectedLower) || expectedLower.includes(actualLower);
+      const cleanExpected = expectedLower.replace(/[^a-z0-9]/gi, '');
+      const cleanActual = actualLower.replace(/[^a-z0-9]/gi, '');
+      if (cleanExpected === cleanActual) {
+        isCorrect = true;
+      } else {
+        const numExpected = expectedLower.replace(/[^0-9.]/g, '');
+        const numActual = actualLower.replace(/[^0-9.]/g, '');
+        isCorrect = !!(numExpected && numActual && numExpected === numActual);
+      }
     }
   } else {
     // For open_ended and graphing questions, attempt AI grading
@@ -869,11 +877,15 @@ Return your response STRICTLY as a JSON object in the format: {"is_correct": boo
           aiFeedback = parsed.feedback || '';
         } catch (err) {
           console.error("AI individual grading error:", err);
-          isCorrect = actualLower.includes(expectedLower) || expectedLower.includes(actualLower);
+          const numExpected = expectedLower.replace(/[^0-9.]/g, '');
+          const numActual = actualLower.replace(/[^0-9.]/g, '');
+          isCorrect = !!(numExpected && numActual && numExpected === numActual) || expectedLower === actualLower;
           aiFeedback = isCorrect ? '' : 'Incorrect based on simple match (AI grading failed).';
         }
       } else {
-        isCorrect = actualLower.includes(expectedLower) || expectedLower.includes(actualLower);
+        const numExpected = expectedLower.replace(/[^0-9.]/g, '');
+        const numActual = actualLower.replace(/[^0-9.]/g, '');
+        isCorrect = !!(numExpected && numActual && numExpected === numActual) || expectedLower === actualLower;
         aiFeedback = isCorrect ? '' : 'Incorrect. (Note: AI grading is currently unavailable due to missing API key).';
       }
     }

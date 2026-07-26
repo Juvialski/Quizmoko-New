@@ -1240,7 +1240,15 @@
                         else if (normUser.includes("FALSE")) normUser = "B";
                     }
                     if (q.type === 'identification') {
-                        isCorrect = normUser === normCorrect || normUser.includes(normCorrect) || normCorrect.includes(normUser);
+                        const cleanExpected = normCorrect.replace(/[^A-Z0-9]/g, '');
+                        const cleanUser = normUser.replace(/[^A-Z0-9]/g, '');
+                        if (cleanExpected === cleanUser) {
+                            isCorrect = true;
+                        } else {
+                            const numExpected = normCorrect.replace(/[^0-9.]/g, '');
+                            const numUser = normUser.replace(/[^0-9.]/g, '');
+                            isCorrect = !!(numExpected && numUser && numExpected === numUser);
+                        }
                     } else {
                         isCorrect = normUser === normCorrect;
                     }

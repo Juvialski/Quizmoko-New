@@ -906,23 +906,49 @@ app.post('/api/generate_quiz_from_extracted', (req, res) => {
   res.json({ success: true, quiz_id: 'quiz_extracted_1' });
 });
 
+app.get('/worksheet_upload', tokenRequired, (req, res) => {
+  res.render('worksheet_upload');
+});
+
+app.get('/worksheet/:quiz_id', tokenRequired, (req, res) => {
+  const quiz = quizzes.get(req.params.quiz_id);
+  if (quiz) {
+    return res.render('worksheet', { quiz });
+  }
+  res.status(404).send('Worksheet not found');
+});
+
 app.get('/results/:result_id', tokenRequired, (req, res) => {
   const id = req.params.result_id;
-  const result = results.get(id);
+  const rawResult = results.get(id);
 
-  if (result) {
-    return res.render('results', { result });
+  const formatResult = (r: any) => ({
+    id: r.id || id,
+    quiz_id: r.quiz_id,
+    quiz_title: r.quiz_title || 'Quiz Results',
+    student_name: r.student_name || 'Student',
+    score: r.total_score !== undefined ? r.total_score : (r.score || 0),
+    total: r.max_score !== undefined ? r.max_score : (r.total || 1),
+    accuracy_pct: r.max_score ? Math.round(((r.total_score || 0) / r.max_score) * 100) : 100,
+    details: r.graded_details || r.details || [],
+    created_at: r.created_at || new Date().toISOString(),
+    completion_note: r.completion_note || ''
+  });
+
+  if (rawResult) {
+    const formatted = formatResult(rawResult);
+    return res.render('results', { results: [formatted], result: formatted, title: formatted.quiz_title });
   }
 
   // Fallback: if quiz id is passed, render mock result for teacher review
   const quiz = quizzes.get(id);
   if (quiz) {
-    const mockResult = {
+    const mockResult = formatResult({
       id: `res_mock_${id}`,
       quiz_id: id,
       quiz_title: quiz.title,
       student_name: 'Sample Student',
-      total_score: Math.ceil(quiz.questions.length * 0.8),
+      total_score: quiz.questions.length,
       max_score: quiz.questions.length,
       graded_details: quiz.questions.map((q: any) => ({
         question: q.question,
@@ -931,8 +957,8 @@ app.get('/results/:result_id', tokenRequired, (req, res) => {
         is_correct: true,
         score_fraction: 1.0
       }))
-    };
-    return res.render('results', { result: mockResult });
+    });
+    return res.render('results', { results: [mockResult], result: mockResult, title: quiz.title });
   }
 
   res.status(404).send('Result not found');
@@ -940,13 +966,33 @@ app.get('/results/:result_id', tokenRequired, (req, res) => {
 
 app.get(['/solutions/:result_id', '/view_solutions/:quiz_id'], tokenRequired, (req, res) => {
   const id = req.params.result_id || req.params.quiz_id;
-  const result = results.get(id);
-  const quiz = quizzes.get(id) || (result ? quizzes.get(result.quiz_id) : null);
+  const rawResult = results.get(id);
+  const quiz = quizzes.get(id) || (rawResult ? quizzes.get(rawResult.quiz_id) : null);
+
+  const formatSolutionResult = (r: any) => ({
+    id: r ? r.id : `res_sol_${id}`,
+    quiz_id: r ? r.quiz_id : (quiz ? quiz.id : id),
+    quiz_title: r ? r.quiz_title : (quiz ? quiz.title : 'Quiz Solutions'),
+    student_name: r ? r.student_name : 'Student',
+    score: r ? (r.total_score !== undefined ? r.total_score : r.score) : (quiz ? quiz.questions.length : 0),
+    total: r ? (r.max_score !== undefined ? r.max_score : r.total) : (quiz ? quiz.questions.length : 0),
+    timestamp: r ? (r.created_at || new Date().toISOString()) : new Date().toISOString(),
+    details: r ? (r.graded_details || r.details || []) : (quiz ? quiz.questions.map((q: any) => ({
+      question: q.question,
+      user_answer: q.answer,
+      correct_answer: q.answer,
+      is_correct: true,
+      score_fraction: 1.0
+    })) : [])
+  });
+
+  const formatted = formatSolutionResult(rawResult);
 
   res.render('view_solutions', {
-    result: result || null,
-    quiz: quiz || { title: 'Quiz Solutions', questions: [] },
-    title: quiz ? quiz.title : 'Solutions'
+    result: formatted,
+    quiz: quiz || { title: formatted.quiz_title, questions: [] },
+    title: formatted.quiz_title,
+    session: { user: req.user }
   });
 });
 

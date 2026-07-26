@@ -789,8 +789,9 @@ app.post('/ping', (req, res) => {
 
 // --- QUIZ SUBMISSION & GRADING ---
 app.post('/api/grade_individual', tokenRequired, async (req: any, res) => {
-  const { quiz_id, q_index, student_answer, api_key, solution_snapshots } = req.body;
+  const { quiz_id, q_index, student_answer, solution_snapshots } = req.body;
   const quiz = quizzes.get(quiz_id);
+  const api_key = req.body.api_key || (quiz && quiz.api_key) || '';
 
   if (!quiz || !quiz.questions[q_index]) {
     return res.json({ success: false, is_correct: false, correct_answer: '' });

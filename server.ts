@@ -9,7 +9,7 @@ import multer from 'multer';
 import { Server as SocketIOServer } from 'socket.io';
 import { GoogleGenAI } from '@google/genai';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, setLogLevel } from 'firebase/firestore';
 
 dotenv.config();
 
@@ -167,6 +167,7 @@ try {
       appId: firebaseConfig.appId
     }) : getApp();
 
+    setLogLevel('error');
     const namedDbId = firebaseConfig.firestoreDatabaseId;
     if (namedDbId && namedDbId !== '(default)') {
       firestoreDbs.push(getFirestore(fbApp, namedDbId));
@@ -554,6 +555,8 @@ Return a JSON array of solved objects with keys: "question", "options", "answer"
       };
 
       quizzes.set(newQuizId, newQuiz);
+      savePersistentData();
+      syncDocToFirestore('quizzes', newQuizId, newQuiz);
 
       sessionProgress.set(session_id, {
         message: '🚀 Launching Edit Screen...',
@@ -610,16 +613,22 @@ app.post('/api/quiz/:quiz_id/update', tokenRequired, (req, res) => {
   }
   const updated = { ...quiz, ...req.body };
   quizzes.set(req.params.quiz_id, updated);
+  savePersistentData();
+  syncDocToFirestore('quizzes', req.params.quiz_id, updated);
   res.json({ success: true, quiz: updated });
 });
 
 app.post('/delete/:quiz_id', tokenRequired, (req, res) => {
   quizzes.delete(req.params.quiz_id);
+  savePersistentData();
+  deleteDocFromFirestore('quizzes', req.params.quiz_id);
   res.redirect('/');
 });
 
 app.delete('/api/quiz/:quiz_id', tokenRequired, (req, res) => {
   quizzes.delete(req.params.quiz_id);
+  savePersistentData();
+  deleteDocFromFirestore('quizzes', req.params.quiz_id);
   res.json({ success: true });
 });
 
@@ -953,6 +962,8 @@ app.post('/api/transfer_question', (req, res) => {
   if (src && tgt && src.questions[question_index]) {
     tgt.questions.push(src.questions[question_index]);
     quizzes.set(target_quiz_id, tgt);
+    savePersistentData();
+    syncDocToFirestore('quizzes', target_quiz_id, tgt);
     return res.json({ success: true });
   }
   res.json({ success: false, error: 'Failed to transfer question' });
@@ -964,6 +975,8 @@ app.post('/api/bulk_import_questions', (req, res) => {
   if (quiz && Array.isArray(questions)) {
     quiz.questions.push(...questions);
     quizzes.set(quiz_id, quiz);
+    savePersistentData();
+    syncDocToFirestore('quizzes', quiz_id, quiz);
     return res.json({ success: true });
   }
   res.json({ success: false, error: 'Failed to import questions' });

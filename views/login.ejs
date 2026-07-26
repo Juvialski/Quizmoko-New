@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - QuizMoKo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --canvas: #0f172a; 
+            --surface-card: #1e293b; 
+            --surface-elevated: #334155;
+            --surface-soft: #0f172a;
+            --on-dark: #f8fafc;
+            --body: #94a3b8;
+            --body-strong: #e2e8f0;
+            --hairline: #334155;
+            --primary: #6366f1; 
+            --m-blue-light: #818cf8; 
+            --m-blue-dark: #4f46e5;
+            --m-red: #fb7185; 
+            --success: #34d399; 
+            --warning: #fbbf24;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        [data-theme="light"] {
+            --canvas: #f8fafc;
+            --surface-card: #ffffff;
+            --surface-elevated: #f1f5f9;
+            --surface-soft: #e2e8f0;
+            --on-dark: #0f172a;
+            --body: #64748b;
+            --body-strong: #334155;
+            --hairline: #cbd5e1;
+            --primary: #4f46e5;
+            --m-blue-light: #6366f1;
+            --m-blue-dark: #4338ca;
+            --m-red: #f43f5e;
+            --success: #10b981;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        body { font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--canvas); color: var(--body-strong); margin: 0; padding: 20px; transition: background-color 0.3s ease, color 0.3s ease;}
+        .auth-container { background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--hairline); width: 100%; max-width: 400px; text-align: left; box-sizing: border-box; box-shadow: var(--shadow);}
+        
+        .auth-container h2 { margin-top: 0; margin-bottom: 8px; color: var(--on-dark); letter-spacing: -0.5px; font-weight: 700; font-size: 28px;}
+        .m-stripe-divider { height: 4px; width: 60px; background: var(--primary); border-radius: 2px; margin-bottom: 24px; }
+        
+        .auth-container input[type="email"], .auth-container input[type="password"] { width: 100%; padding: 16px; margin: 10px 0 20px 0; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); font-family: inherit;}
+        .auth-container input:focus { outline: none; border-color: var(--primary); background: var(--canvas); box-shadow: 0 0 0 2px rgba(99,102,241,0.2);}
+        
+        .auth-container button { width: 100%; padding: 16px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 15px; font-weight: 600; transition: 0.2s; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+        .auth-container button:hover { opacity: 0.9; transform: translateY(-1px); }
+        
+        .error-msg { color: var(--m-red); margin-bottom: 15px; font-size: 14px; font-weight: 600; }
+        .info-msg { color: var(--success); margin-bottom: 15px; font-size: 14px; font-weight: 600; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 12px; border-radius: var(--radius-sm);}
+        
+        .role-selector { display: flex; justify-content: space-around; margin: 20px 0; background: var(--surface-soft); padding: 15px 10px; border-radius: var(--radius-sm); border: 1px solid var(--hairline);}
+        .role-selector label { cursor: pointer; font-weight: 600; color: var(--body-strong); display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .role-selector input[type="radio"] { cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);}
+        
+        .disclaimer-box { text-align: left; margin: 15px 0 20px 0; background: rgba(245, 158, 11, 0.1); padding: 16px; border: 1px solid var(--warning); border-radius: var(--radius-sm); }
+        .disclaimer-box label { font-size: 12px; color: var(--warning); display: flex; align-items: start; gap: 12px; cursor: pointer; text-transform: none; font-weight: 400; margin: 0;}
+        .disclaimer-box input[type="checkbox"] { margin-top: 2px; width: 16px; height: 16px; cursor: pointer; accent-color: var(--warning);}
+        
+        p { color: var(--body); font-size: 13px; margin-top: 24px; text-align: center; }
+        a { color: var(--on-dark); font-weight: 700; text-decoration: none; border-bottom: 1px solid var(--on-dark); padding-bottom: 2px;}
+        a:hover { color: var(--primary); border-color: var(--primary); }
+    </style>
+    
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+    <div class="auth-container">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <h2 style="margin-top: 0; margin-bottom: 8px; color: var(--on-dark); text-transform: uppercase; letter-spacing: -0.5px; font-weight: 700; font-size: 28px;">Log in to QuizMoKo</h2>
+            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s; padding: 0;">🌓</button>
+        </div>
+        <div class="m-stripe-divider"></div>
+        
+        <% if (message) { %>
+        <div class="info-msg"><%= typeof message !== 'undefined' ? message : '' %></div>
+        <% } %>
+        <div id="error" class="error-msg"></div>
+        
+        <form id="login-form">
+            <input type="email" id="email" placeholder="EMAIL ADDRESS" required>
+            <input type="password" id="password" placeholder="PASSWORD" required>
+            
+            <!-- MANDATORY LEGAL DISCLAIMER -->
+            <div class="disclaimer-box" id="auth-disclaimer">
+                <label>
+                    <input type="checkbox" id="disclaimer-check" required>
+                    <span style="line-height: 1.4;">
+                        <b>DISCLAIMER:</b> I understand that AI can make mistakes. I agree to use my own Google API Key at my own risk, and I release QuizMoKo from any liability regarding API usage costs, account limits, or AI inaccuracies.
+                    </span>
+                </label>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="cursor: pointer; font-weight: 600; color: var(--body-strong); font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="remember-me" style="width: 16px; height: 16px; accent-color: var(--primary);">
+                    Keep me logged in
+                </label>
+            </div>
+
+            <button type="submit" id="submit-btn">LOG IN</button>
+
+            <div style="margin-top: 20px; text-align: center; border-top: 1px solid var(--hairline); padding-top: 20px;">
+                <p style="margin-top: 0; margin-bottom: 12px; font-weight: 600; font-size: 11px; letter-spacing: 1px;">OR CONTINUE WITH</p>
+                <button type="button" id="google-btn" style="background: #fff; color: #444; border: 1px solid #ddd; margin-top: 0; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="Google">
+                    GOOGLE ACCOUNT
+                </button>
+            </div>
+        </form>
+        <p>Don't have an account? <a href="/register">REGISTER HERE</a></p>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('hide_auth_disclaimer') === 'true') {
+                const disclaimer = document.getElementById('auth-disclaimer');
+                if(disclaimer) {
+                    disclaimer.style.display = 'none';
+                    document.getElementById('disclaimer-check').required = false;
+                }
+            }
+        });
+    </script>
+
+    <!-- Firebase JS SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // Your Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc",
+            authDomain: "quizmoko-51920.firebaseapp.com",
+            projectId: "quizmoko-51920",
+            storageBucket: "quizmoko-51920.firebasestorage.app",
+            messagingSenderId: "399313723605",
+            appId: "1:399313723605:web:85769dd5aa7edebc13025c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const errorDiv = document.getElementById('error');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            errorDiv.textContent = "";
+            submitBtn.textContent = "AUTHENTICATING...";
+            submitBtn.disabled = true;
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                if (document.getElementById('disclaimer-check') && document.getElementById('disclaimer-check').checked) {
+                    localStorage.setItem('hide_auth_disclaimer', 'true');
+                }
+
+                submitBtn.textContent = "ESTABLISHING SESSION...";
+
+                // Get ID Token and establish Flask Session
+                const token = await user.getIdToken();
+                const rememberMe = document.getElementById('remember-me').checked;
+
+                const sessionRes = await fetch('/api/login_session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token, remember_me: rememberMe })
+                });
+
+                if (!sessionRes.ok) throw new Error("Failed to establish session");
+
+                // Legacy cookie for safety (optional, but keeping it for now)
+                const maxAge = rememberMe ? 2592000 : 3600;
+                document.cookie = `token=${token}; path=/; max-age=${maxAge}; samesite=strict`;
+
+                // Redirect to dashboard
+                window.location.href = "/";
+            } catch (error) {
+                if(error.code === 'auth/invalid-credential') {
+                    errorDiv.textContent = "INCORRECT EMAIL OR PASSWORD.";
+                } else {
+                    errorDiv.textContent = error.message;
+                }
+                submitBtn.textContent = "LOG IN";
+                submitBtn.disabled = false;
+            }
+        });
+
+        const googleBtn = document.getElementById('google-btn');
+        googleBtn.addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            const errorDiv = document.getElementById('error');
+            const submitBtn = document.getElementById('submit-btn');
+
+            errorDiv.textContent = "";
+            googleBtn.disabled = true;
+            googleBtn.textContent = "AUTHENTICATING...";
+
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+
+                if (document.getElementById('disclaimer-check') && document.getElementById('disclaimer-check').checked) {
+                    localStorage.setItem('hide_auth_disclaimer', 'true');
+                }
+
+                googleBtn.textContent = "ESTABLISHING SESSION...";
+
+                // Get ID Token
+                const token = await user.getIdToken();
+                const rememberMe = document.getElementById('remember-me').checked;
+
+                const sessionRes = await fetch('/api/login_session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token, remember_me: rememberMe })
+                });
+
+                if (!sessionRes.ok) throw new Error("Failed to establish session");
+
+                const maxAge = rememberMe ? 2592000 : 3600;
+                document.cookie = `token=${token}; path=/; max-age=${maxAge}; samesite=strict`;
+
+                window.location.href = "/";
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                googleBtn.disabled = false;
+                googleBtn.innerHTML = `
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="Google">
+                    GOOGLE ACCOUNT
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

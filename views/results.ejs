@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QuizMoKo - Results</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
+    
+    <!-- MATHJAX FOR EQUATIONS -->
+    <script>
+      window.MathJax = {
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+        startup: { typeset: true }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --canvas: #0f172a; --surface-card: #1e293b; --surface-elevated: #334155; --surface-soft: #0f172a;
+            --on-dark: #f8fafc; --body: #94a3b8; --body-strong: #e2e8f0; --hairline: #334155;
+            --primary: #6366f1; --m-blue-light: #818cf8; --m-blue-dark: #4f46e5; --m-red: #fb7185;
+            --success: #34d399; --warning: #fbbf24; --radius-md: 12px; --radius-sm: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        [data-theme="light"] {
+            --canvas: #f8fafc; --surface-card: #ffffff; --surface-elevated: #f1f5f9; --surface-soft: #e2e8f0;
+            --on-dark: #0f172a; --body: #64748b; --body-strong: #334155; --hairline: #cbd5e1;
+            --primary: #4f46e5; --m-blue-light: #6366f1; --m-blue-dark: #4338ca; --m-red: #f43f5e;
+            --success: #10b981;
+        }
+
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 40px 5%; color: var(--body-strong); background-color: var(--canvas); transition: 0.3s;}
+        .container { max-width: 1400px; margin: auto; }
+        .back-link { text-decoration: none; color: var(--primary); font-weight: 700; font-size: 14px; margin-bottom: 32px; display: inline-block; transition: 0.2s;}
+        .back-link:hover { opacity: 0.8; }
+        
+        .card { background: var(--surface-card); padding: 32px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); }
+        h1 { color: var(--on-dark); font-weight: 800; letter-spacing: -1px; margin-top: 0; }
+        .m-stripe-divider { height: 4px; width: 80px; background: var(--primary); border-radius: 2px; margin-bottom: 32px; margin-top: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; padding: 16px; font-size: 12px; color: var(--body); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--hairline); }
+        td { padding: 20px 16px; border-bottom: 1px solid var(--hairline); }
+        
+        .score-badge { background: var(--surface-soft); padding: 6px 12px; border-radius: 6px; font-weight: 800; color: var(--success); font-family: monospace; border: 1px solid var(--hairline); }
+        .toggle-btn { background: transparent; border: 1px solid var(--hairline); color: var(--on-dark); padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s;}
+        .toggle-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        .details-row { display: none; background: var(--surface-soft); }
+        .details-container { padding: 32px; }
+        .review-block { padding: 20px; border-radius: var(--radius-sm); border: 1px solid var(--hairline); margin-bottom: 16px; background: var(--surface-card); white-space: pre-wrap; }
+        .review-correct { border-left: 4px solid var(--success); }
+        .review-wrong { border-left: 4px solid var(--m-red); }
+        
+        .btn-explain { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; margin-top: 15px; font-size: 12px;}
+        .explanation-box { margin-top: 15px; padding: 16px; background: var(--canvas); border: 1px solid var(--primary); border-radius: var(--radius-sm); display: none; font-size: 14px; line-height: 1.6;}
+
+        /* Bulk Actions Styles */
+        .bulk-actions { margin-bottom: 20px; display: none; align-items: center; gap: 12px; }
+        .btn-delete-bulk { background: var(--m-red); color: white; border: none; padding: 10px 20px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 13px; }
+        .btn-delete-bulk:hover { opacity: 0.9; transform: translateY(-1px); }
+        .checkbox-cell { width: 40px; text-align: center; }
+        .custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+    </style>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <a href="/" class="back-link">← BACK TO DASHBOARD</a>
+            <button onclick="toggleTheme()" style="background:transparent; border:none; font-size:24px; cursor:pointer;">🌓</button>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h1>📊 Results: <%= typeof title !== 'undefined' ? title : '' %></h1>
+                    <div class="m-stripe-divider"></div>
+                </div>
+                <div id="bulk-actions-bar" class="bulk-actions">
+                    <span id="selection-count" style="font-size: 13px; color: var(--body); font-weight: 600;">0 selected</span>
+                    <button class="btn-delete-bulk" onclick="deleteSelectedResults()">🗑️ DELETE SELECTED</button>
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th class="checkbox-cell"><input type="checkbox" id="select-all-checkbox" class="custom-checkbox" onclick="toggleSelectAll()"></th>
+                        <th>Student Name</th>
+                        <th>Score & Accuracy</th>
+                        <th>Time Summary</th>
+                        <th>Date & Time</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% for (let r of (results || [])) { %>
+                    <tr id="row-<%= typeof r.id !== 'undefined' ? r.id : '' %>">
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="result-checkbox custom-checkbox" value="<%= typeof r.id !== 'undefined' ? r.id : '' %>" onclick="updateBulkUI()">
+                        </td>
+                        <td style="font-weight: 700; color: var(--on-dark);">
+                            <%= typeof r.student_name !== 'undefined' ? r.student_name : '' %>
+                            <% if (r.completion_note == "Left without finishing") { %>
+                                <br><span style="font-size: 10px; color: var(--warning);">⚠️ ABANDONED</span>
+                            <% } %>
+                        </td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span class="score-badge"><%= typeof r.score !== 'undefined' && r.score ? r.score : '' %> / <%= typeof r.total !== 'undefined' && r.total ? r.total : '' %></span>
+                                <span style="font-size: 11px; font-weight: 700; color: var(--primary);">🎯 <%= typeof r.accuracy_pct !== 'undefined' && r.accuracy_pct ? r.accuracy_pct : '' %>% Accuracy</span>
+                                <span style="font-size: 10px; color: var(--body); font-weight: 600; margin-top: 2px;">
+                                    <% 
+                                      let incorrect_indices = [];
+                                      if (r.details) {
+                                          (r.details || []).forEach((item, idx) => {
+                                              if (!item.is_correct) incorrect_indices.push(idx + 1);
+                                          });
+                                      }
+                                    %>
+
+                                    <% if (incorrect_indices.length > 0) { %>
+                                        <span style="color: var(--m-red);">❌ Incorrect: Q<%= incorrect_indices.join(', ') %></span>
+                                    <% } else if (r.score == r.total && r.total > 0) { %>
+                                        <span style="color: var(--success);">✅ Perfect Score</span>
+                                    <% } else { %>
+                                        <span style="color: var(--body);">⏳ In Progress...</span>
+                                    <% } %>
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--body);">
+                                <span>⏱️ <b>Active:</b> <span id="active-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
+                                <span>⏸️ <b>Paused:</b> <span id="paused-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
+                                <span>🏁 <b>Total:</b> <span id="total-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
+                            </div>
+                            <script>
+                                (function() {
+                                    function fmt(s) {
+                                        const m = Math.floor(s / 60);
+                                        const sec = s % 60;
+                                        return `${m}m ${sec}s`;
+                                    }
+                                    document.getElementById('active-<%= typeof r.id !== 'undefined' ? r.id : '' %>').innerText = fmt(<%= r.time_active_seconds || 0 %>);
+                                    document.getElementById('paused-<%= typeof r.id !== 'undefined' ? r.id : '' %>').innerText = fmt(<%= r.time_paused_seconds || 0 %>);
+                                    document.getElementById('total-<%= typeof r.id !== 'undefined' ? r.id : '' %>').innerText = fmt(<%= r.total_duration_seconds || 0 %>);
+                                })();
+                            </script>
+                        </td>
+                        <td style="color: var(--body); font-size: 14px;"><%= typeof r.timestamp !== 'undefined' ? r.timestamp : '' %></td>
+                        <td>
+                            <% if (r.details) { %>
+                                <button class="toggle-btn" onclick="toggleDetails('<%= typeof r.id !== 'undefined' ? r.id : '' %>')">🔍 Mistakes ▼</button>
+                            <% } %>
+                            <button class="toggle-btn" onclick="downloadTeacherPDF('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; background: var(--primary); color: white;">📥 Solutions PDF</button>
+                            <button class="toggle-btn" onclick="copySolutionsLink('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; border-color: var(--success); color: var(--success);">🔗 Share Link</button>
+                        </td>
+                    </tr>
+                    <% if (r.details) { %>
+                    <tr id="details-<%= typeof r.id !== 'undefined' ? r.id : '' %>" class="details-row">
+                        <td colspan="6">
+                            <div class="details-container">
+                                <% (r.details || []).forEach((item, itemIdx) => { %>
+                                <div class="review-block <% if (item.is_correct) { %>review-correct<% } else { %>review-wrong<% } %>">
+                                    <div style="font-weight: 700; margin-bottom: 8px;">Question <%= itemIdx + 1 %></div>
+                                    <div style="font-size: 15px;"><%= typeof item.question !== 'undefined' && item.question ? item.question : '' %></div>
+                                    <div style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 4px; font-size: 13px;">
+                                        <b>Your Answer:</b> <%= typeof item.user_answer !== 'undefined' && item.user_answer ? item.user_answer : '' %><br>
+                                        <b>Correct:</b>
+                                        <% if (typeof item.correct_answer === 'object' && item.correct_answer !== null) { %>
+                                            <ul style="margin: 5px 0; padding-left: 20px;">
+                                                <% for (let [k, v] of Object.entries(item.correct_answer || {})) { %>
+                                                    <li><b><%= typeof k !== 'undefined' && k ? k : '' %>:</b> <%= typeof v !== 'undefined' ? v : '' %></li>
+                                                <% } %>
+                                            </ul>
+                                        <% } else { %>
+                                            <%= typeof item.correct_answer !== 'undefined' && item.correct_answer ? item.correct_answer : '' %>
+                                        <% } %>
+                                        <% if (item.ai_feedback) { %>
+                                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--hairline);">🤖 <%= typeof item.ai_feedback !== 'undefined' ? item.ai_feedback : '' %></div>
+                                        <% } %>
+                                    </div>
+                                    <% if (!item.is_correct) { %>
+                                        <button class="btn-explain" onclick="explainMistake(this, <%= itemIdx %>, 0)">
+                                            🤖 AI Tutor Explanation
+                                        </button>
+                                        <div class="explanation-box"></div>
+                                    <% } %>
+                                </div>
+                                <% }); %>
+                            </div>
+                        </td>
+                    </tr>
+                    <% } %>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        function toggleDetails(id) {
+            const row = document.getElementById('details-' + id);
+            row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
+            if (row.style.display === 'table-row') MathJax.typesetPromise([row]);
+        }
+
+        function copySolutionsLink(resultId) {
+            const url = window.location.origin + '/view_solutions/' + resultId;
+            navigator.clipboard.writeText(url).then(() => {
+                alert("Shareable solutions link copied to clipboard!");
+            });
+        }
+
+        const resultsData = <%- JSON.stringify(results) %>;
+
+        async function downloadTeacherPDF(resultId) {
+            // New strategy: Open the solutions page and trigger PDF download there
+            const url = window.location.origin + '/view_solutions/' + resultId + '?download=true';
+            window.open(url, '_blank');
+        }
+
+        function explainMistake(btn, qIdx, resIdx) {
+            const result = resultsData[resIdx];
+            const item = result.details[qIdx];
+
+            btn.innerText = "GENERATING..."; btn.disabled = true;
+            fetch('/api/explain', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    quiz_id: result.quiz_id,
+                    question: item.question,
+                    user_answer: item.user_answer,
+                    correct_answer: item.correct_answer
+                })
+            })
+            .then(res => res.json()).then(data => {
+                btn.style.display = 'none'; const box = btn.nextElementSibling; box.style.display = 'block';
+                box.innerHTML = `<strong>🤖 AI TUTOR:</strong><br><br>` + data.explanation;
+                MathJax.typesetPromise([box]);
+            });
+        }
+
+        function toggleSelectAll() {
+            const isChecked = document.getElementById('select-all-checkbox').checked;
+            const checkboxes = document.querySelectorAll('.result-checkbox');
+            checkboxes.forEach(cb => cb.checked = isChecked);
+            updateBulkUI();
+        }
+
+        function updateBulkUI() {
+            const checkboxes = document.querySelectorAll('.result-checkbox:checked');
+            const count = checkboxes.length;
+            const bar = document.getElementById('bulk-actions-bar');
+            const countLabel = document.getElementById('selection-count');
+
+            if (count > 0) {
+                bar.style.display = 'flex';
+                countLabel.innerText = `${count} selected`;
+            } else {
+                bar.style.display = 'none';
+            }
+
+            // Sync "Select All" checkbox state
+            const allCheckboxes = document.querySelectorAll('.result-checkbox');
+            document.getElementById('select-all-checkbox').checked = (count === allCheckboxes.length && allCheckboxes.length > 0);
+        }
+
+        async function deleteSelectedResults() {
+            const checkboxes = document.querySelectorAll('.result-checkbox:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+
+            if (ids.length === 0) return;
+
+            if (!confirm(`Are you sure you want to permanently delete ${ids.length} selected results? This cannot be undone.`)) {
+                return;
+            }
+
+            const btn = document.querySelector('.btn-delete-bulk');
+            const originalText = btn.innerText;
+            btn.innerText = "⌛ DELETING...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/delete_results', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ result_ids: ids })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // Refresh page to show updated list
+                    location.reload();
+                } else {
+                    alert("Delete failed: " + data.error);
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                alert("Network error during deletion.");
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

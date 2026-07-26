@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QuizMoKo - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Driver.js (For the Guided Tour) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+
+    <style>
+        /* --- EDUCATIONAL UI THEME --- */
+        :root {
+            --canvas: #0f172a; /* Slate 900 */
+            --surface-card: #1e293b; /* Slate 800 */
+            --surface-elevated: #334155;
+            --surface-soft: #0f172a;
+            --on-dark: #f8fafc;
+            --body: #94a3b8;
+            --body-strong: #e2e8f0;
+            --hairline: #334155;
+            --primary: #6366f1; /* Friendly Indigo */
+            --m-blue-light: #818cf8; 
+            --m-blue-dark: #4f46e5;
+            --m-red: #fb7185; /* Soft Rose */
+            --success: #34d399; /* Emerald */
+            --warning: #fbbf24;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        [data-theme="light"] {
+            --canvas: #f8fafc;
+            --surface-card: #ffffff;
+            --surface-elevated: #f1f5f9;
+            --surface-soft: #e2e8f0;
+            --on-dark: #0f172a;
+            --body: #64748b;
+            --body-strong: #334155;
+            --hairline: #cbd5e1;
+            --primary: #4f46e5;
+            --m-blue-light: #6366f1;
+            --m-blue-dark: #4338ca;
+            --m-red: #f43f5e;
+            --success: #10b981;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            color: var(--body-strong); 
+            background-color: var(--canvas);
+            font-weight: 400;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .container { max-width: 1200px; margin: auto; }
+        .dashboard-container {
+            width: 100%;
+            max-width: 1800px;
+            margin: auto; 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 32px;
+            align-items: start;
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-container.teacher-view { grid-template-columns: 450px 1fr; }
+            .sticky-col { position: sticky; top: 24px; }
+        }
+
+        /* --- MODE TABS --- */
+        .mode-tabs {
+            display: flex;
+            background: var(--surface-soft);
+            border: 1px solid var(--hairline);
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            padding: 8px;
+            gap: 4px;
+        }
+        .mode-tab {
+            flex: 1;
+            padding: 10px 4px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--body);
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .mode-tab:hover { background: var(--surface-elevated); color: var(--on-dark); }
+        .mode-tab.active { background: var(--primary); color: white; }
+        .mode-tab i { font-size: 16px; margin-bottom: 2px; }
+
+        .m-stripe-divider {
+            height: 4px;
+            width: 80px;
+            background: var(--primary);
+            border-radius: 2px;
+            margin-bottom: 32px;
+            margin-top: 10px;
+        }
+
+        .card { 
+            background: var(--surface-card); 
+            padding: 24px; 
+            border-radius: var(--radius-md); 
+            border: 1px solid var(--hairline); 
+            box-shadow: var(--shadow);
+        }
+        
+        h2, h3 { 
+            margin-top: 0; 
+            color: var(--on-dark); 
+            font-weight: 700; 
+            letter-spacing: -0.5px;
+        }
+        
+        /* Labels */
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+        
+        /* Inputs */
+        input[type="text"], input[type="number"], input[type="password"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        
+        /* Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+
+        .difficulty-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+        
+        .search-bar { width: 100%; padding: 16px; border: 1px solid var(--hairline); border-radius: 0px; font-size: 14px; box-sizing: border-box; background: var(--surface-soft); color: var(--on-dark); padding-left: 40px; margin-bottom: 0;}
+        .search-bar::placeholder { color: var(--body); }
+        
+        .subject-group { margin-bottom: 15px; }
+        .subject-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: var(--surface-elevated); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--hairline); 
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        .subject-header:hover { border-color: var(--primary); }
+        .subject-title { margin: 0; font-size: 16px; color: var(--on-dark); font-weight: 600; display: flex; align-items: center; }
+        .subject-badge { background: var(--primary); color: #ffffff; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 12px;}
+        .chevron { transition: transform 0.3s ease; stroke: var(--body); width: 18px; height: 18px;}
+        .chevron.open { transform: rotate(180deg); }
+        
+        .folder-content { display: none; padding-top: 15px; }
+        .folder-content.open { display: block; }
+
+        .quiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+
+        .quiz-item { background: var(--surface-card); border: 1px solid var(--hairline); padding: 20px; border-radius: var(--radius-md); transition: all 0.3s ease; display: flex; flex-direction: column; position: relative; box-shadow: var(--shadow);}
+        .quiz-item:hover { border-color: var(--primary); transform: translateY(-2px);}
+        
+        .quiz-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--on-dark); line-height: 1.3;}
+        .quiz-meta { font-size: 12px; color: var(--body); margin-bottom: 16px; font-weight: 400; display: flex; align-items: center; gap: 5px;}
+        
+        .link-display { background: var(--surface-soft); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--hairline); font-size: 12px; color: var(--primary); font-family: monospace; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;}
+        .link-display:hover { border-color: var(--primary); }
+        
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--hairline);}
+        .actions form { display: contents; } 
+        
+        .btn-action { background: var(--surface-soft); color: var(--body-strong); border: 1px solid var(--hairline); padding: 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; text-decoration: none; }
+        .btn-action:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-delete { grid-column: span 2; color: var(--m-red); } 
+        .btn-delete:hover { border-color: var(--m-red); color: var(--m-red); }
+
+        .limit-status-green { color: var(--success); font-weight: 600;}
+        .limit-status-red { color: var(--m-red); font-weight: 600;}
+
+        .btn-logout { background: transparent; color: var(--body-strong); border: 1px solid var(--hairline); padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 13px; }
+        .btn-logout:hover { border-color: var(--m-red); color: var(--m-red); }
+
+        /* Modal Overlay Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .modal-card {
+            background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); width: 100%; max-width: 450px; border: 1px solid var(--hairline); box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+    </style>
+    
+    <!-- Load Theme Before Body to Prevent FOUC (Flash of Unstyled Content) -->
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+    
+    <div style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
+        <div>
+            <h1 style="margin: 0; color: var(--on-dark); font-weight: 700; font-size: 36px; letter-spacing: -0.5px;" id="dashboard-header">
+                🚀 QuizMoKo <span style="font-size:16px; color:var(--body); font-weight:400; letter-spacing: 0; vertical-align: middle;">Teacher</span>
+            </h1>
+            <div class="m-stripe-divider"></div>
+        </div>
+        <div style="display: flex; gap: 16px; align-items: center;">
+            <% if (is_admin) { %>
+            <a href="/admin" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">🛡️ Admin Panel</a>
+            <% } %>
+            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;">🌙</button>
+            <button id="logout-btn" class="btn-logout">🚪 Logout</button>
+        </div>
+    </div>
+
+    <!-- Layout logic: Center form for students, grid for teachers -->
+    <div class="dashboard-container teacher-view">
+        
+        <div class="sticky-col" id="ai-generator-card">
+            <div class="mode-tabs">
+                <a href="/" class="mode-tab active">
+                    <span>🤖</span>
+                    AI GEN
+                </a>
+                <a href="/worksheet" class="mode-tab">
+                    <span>📄</span>
+                    WORKSHEET
+                </a>
+                <a href="/worksheet_answers" class="mode-tab">
+                    <span>🔑</span>
+                    ANSWERS
+                </a>
+                <% if (is_rmx_authorized) { %>
+                <a href="/rmxflash" class="mode-tab">
+                    <span>⚡</span>
+                    RMXFLASH
+                </a>
+                <% } %>
+            </div>
+            <div class="card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 16px; margin-bottom: 20px;">
+                    <h3 style="margin:0; font-size: 18px; text-transform: none;">
+                        🤖 AI Generator
+                    </h3>
+                    <button type="button" onclick="openApiKeyModal()" class="btn-secondary" id="api-key-btn">🔑 API Key</button>
+                </div>
+
+                <form action="/generate_ai" method="POST" onsubmit="return handleAILoading(event, this)">
+
+                    <!-- HIDDEN API KEY INPUT -->
+                    <input type="hidden" name="api_key" id="hidden_api_key" required>
+                    <input type="hidden" name="ollama_url" id="hidden_ollama_url" value="http://127.0.0.1:11434">
+                    
+                    <label style="margin-top:0;">Select AI Model</label>
+                    <div style="display: grid; grid-template-columns: 1fr 140px; gap: 10px; align-items: center; margin-bottom: 16px;">
+                        <select name="model_name" id="model_select" style="margin-bottom: 0;" onchange="updateCounterUI()">
+                            <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+                            <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                            <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite (Best limits)</option>
+                            <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+                            <option value="gemini-3.0-flash">Gemini 3.0 Flash</option>
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                            <optgroup label="Local Models (Ollama)">
+                                <option value="ollama:llama3">Llama 3 (Local)</option>
+                                <option value="ollama:mistral">Mistral (Local)</option>
+                                <option value="__install_ollama__">📥 Install Local Models...</option>
+                            </optgroup>
+                        </select>
+                        
+                        <div id="api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px 12px; border: 1px solid var(--hairline); font-weight: 700; white-space: nowrap; font-size: 11px; text-align: center; text-transform: uppercase;">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div>
+                            <label style="margin-top:0;">Quiz Topic</label>
+                            <input type="text" name="topic" placeholder="e.g. Linear Equations" required id="topic-input" style="margin-bottom: 0;">
+                        </div>
+                        <div>
+                            <label style="margin-top:0;">Subject / Folder</label>
+                            <select name="subject" onchange="toggleCustomSubject(this)" required style="margin-bottom: 0;">
+                                <% for (let s of (all_subjects || [])) { %>
+                                    <option value="<%= typeof s !== 'undefined' ? s : '' %>" <% if (s == 'General') { %>selected<% } %>><%= typeof s !== 'undefined' ? s : '' %></option>
+                                <% } %>
+                                <option value="__custom__">➕ Custom...</option>
+                            </select>
+                            <input type="text" name="custom_subject" class="custom-subject-input" style="display:none; margin-top:5px; box-sizing: border-box;" placeholder="Enter folder name">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div>
+                            <label style="margin-top:0;">Question Style</label>
+                            <select name="question_style" required style="margin-bottom: 0;">
+                                <option value="Simple / Direct">Simple / Direct</option>
+                                <option value="Word Problems">Word Problems</option>
+                                <option value="Mixed" selected>Mixed</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="margin-top:0;">Test Type</label>
+                            <select name="test_type" id="test_type_select" required onchange="toggleTypeDistribution()" style="margin-bottom: 0;">
+                                <option value="Multiple Choice">Multiple Choice Only</option>
+                                <option value="True/False">True/False Only</option>
+                                <option value="Identification">Identification Only</option>
+                                <option value="Open Ended">Open Ended Only</option>
+                                <option value="Graphing">Graphing / Drawing Only</option>
+                                <option value="Mixed" selected>Mixed (All Types)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Granular Mixed Distribution -->
+                    <div id="mixed-distribution-group" style="margin-bottom: 12px;">
+                        <label style="margin-top:0;">
+                            Mixed Distribution <span id="type-total" class="limit-status-green" style="font-size:10px; margin-left:5px; text-transform:none;">(Total: 10)</span>
+                        </label>
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
+                            <div>
+                                <label style="margin-top:0; color:var(--primary); font-size:9px;">MC</label>
+                                <input type="number" name="mc_count" value="2" oninput="updateTypeTotal()" required min="0" style="margin-bottom: 0; padding: 8px;">
+                            </div>
+                            <div>
+                                <label style="margin-top:0; color:var(--primary); font-size:9px;">T/F</label>
+                                <input type="number" name="tf_count" value="2" oninput="updateTypeTotal()" required min="0" style="margin-bottom: 0; padding: 8px;">
+                            </div>
+                            <div>
+                                <label style="margin-top:0; color:var(--primary); font-size:9px;">ID</label>
+                                <input type="number" name="id_count" value="2" oninput="updateTypeTotal()" required min="0" style="margin-bottom: 0; padding: 8px;">
+                            </div>
+                            <div>
+                                <label style="margin-top:0; color:var(--primary); font-size:9px;">OE</label>
+                                <input type="number" name="oe_count" value="2" oninput="updateTypeTotal()" required min="0" style="margin-bottom: 0; padding: 8px;">
+                            </div>
+                            <div>
+                                <label style="margin-top:0; color:var(--primary); font-size:9px;">GR</label>
+                                <input type="number" name="gr_count" value="2" oninput="updateTypeTotal()" required min="0" style="margin-bottom: 0; padding: 8px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;" id="limits-group">
+                        <div>
+                            <label style="margin-top:0;">Total Qs</label>
+                            <input type="number" name="num_items" value="10" required style="margin-bottom: 0;">
+                        </div>
+                        <div>
+                            <label style="margin-top:0;">Total Sec</label>
+                            <input type="number" name="time_limit" value="200" required style="margin-bottom: 0;">
+                        </div>
+                        <div>
+                            <label style="margin-top:0;">Images</label>
+                            <input type="number" name="images_count" value="0" min="0" required style="margin-bottom: 0;">
+                        </div>
+                        <div>
+                            <label style="margin-top:0;">Batch</label>
+                            <input type="number" name="batch_size" value="3" min="1" max="10" required style="margin-bottom: 0;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <label style="margin-top:0;">Quiz Mode</label>
+                        <select name="quiz_mode" style="margin-bottom: 0;">
+                            <option value="sequential">Sequential (Standard)</option>
+                            <option value="back_and_forth" selected>Back-and-Forth (Unified Timer)</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+                        <div>
+                            <label style="margin-top:0;">Difficulty <span id="pct-total" class="limit-status-green" style="font-size:10px; margin-left:5px; text-transform:none;">(Total: 100%)</span></label>
+                            <div class="difficulty-grid" style="margin-bottom: 0;">
+                                <div>
+                                    <label style="margin-top:0; color:var(--success); font-size:10px;">Easy</label>
+                                    <input type="number" name="easy_pct" value="50" oninput="updateTotal()" required style="margin-bottom: 0;">
+                                </div>
+                                <div>
+                                    <label style="margin-top:0; color:var(--warning); font-size:10px;">Avg</label>
+                                    <input type="number" name="avg_pct" value="25" oninput="updateTotal()" required style="margin-bottom: 0;">
+                                </div>
+                                <div>
+                                    <label style="margin-top:0; color:var(--m-red); font-size:10px;">Hard</label>
+                                    <input type="number" name="hard_pct" value="25" oninput="updateTotal()" required style="margin-bottom: 0;">
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="margin-top:0;">Instructions (Optional)</label>
+                            <textarea name="special_instructions" placeholder="e.g. 'Coordinate grid'" style="margin-bottom: 0; height: 58px;"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- AI Inaccuracy Warning Box (Removable) -->
+                    <div id="aiDisclaimer" style="position: relative; margin-bottom: 12px; padding: 10px; background: var(--surface-soft); border: 1px solid var(--warning); font-size: 11px; color: var(--body-strong); line-height: 1.4;">
+                        <button type="button" onclick="closeDisclaimer()" style="position: absolute; right: 8px; top: 8px; background: transparent; border: none; font-size: 14px; color: var(--warning); cursor: pointer; padding: 4px; line-height: 1;">✕</button>
+                        <strong style="color: var(--warning);">WARNING:</strong> Review before assigning.
+                    </div>
+
+                    <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 10px; background: var(--surface-soft); padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm);">
+                        <input type="checkbox" name="require_solution" id="require_solution" style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="require_solution" style="margin: 0; cursor: pointer; font-size: 14px;">📝 Require Solution for All Questions</label>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="ai-btn">
+                        ✨ GENERATE QUIZ
+                    </button>
+                </form>
+            </div>
+
+            <!-- API USAGE DASHBOARD (Isolated) -->
+            <div class="card" id="api-usage-card" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 12px; margin-bottom: 15px;">
+                    <h3 style="margin:0; font-size: 16px; text-transform: none;">📊 API Usage Tracker</h3>
+                    <button onclick="syncUsageHistory()" class="btn-secondary" style="font-size: 10px; padding: 4px 8px;" id="sync-history-btn">🔄 Sync History</button>
+                </div>
+
+                <div id="usage-summary" style="font-size: 13px; color: var(--body); line-height: 1.6;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Today's Total Calls:</span>
+                        <b id="today-total-calls" style="color: var(--on-dark);">0</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>All-Time AI Calls:</span>
+                        <b id="all-time-calls" style="color: var(--on-dark);">0</b>
+                    </div>
+                </div>
+
+                <div id="usage-details" style="display: none; margin-top: 15px; border-top: 1px solid var(--hairline); padding-top: 15px;">
+                    <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                        <thead>
+                            <tr style="color: var(--body); text-align: left; border-bottom: 1px solid var(--hairline);">
+                                <th style="padding: 8px 0; font-weight: 600;">Date</th>
+                                <th style="padding: 8px 0; font-weight: 600;">Model</th>
+                                <th style="padding: 8px 0; text-align: center; font-weight: 600;">Calls</th>
+                                <th style="padding: 8px 0; text-align: center; font-weight: 600;">Limit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usage-table-body">
+                            <!-- Rows injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <button onclick="toggleUsageDetails()" id="usage-toggle-btn" class="btn-secondary" style="width: 100%; margin-top: 15px; font-size: 11px; padding: 10px;">📉 Show Detailed Breakdown</button>
+            </div>
+        </div>
+
+        <div class="card" id="saved-quizzes-card" style="background: transparent; border: none; padding: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="font-size: 28px; margin: 0;">📚 Library</h2>
+                <button onclick="openCreateBlankModal()" class="btn-primary" style="width: auto; margin: 0; padding: 10px 20px; font-size: 14px;">➕ New Blank Quiz</button>
+            </div>
+            
+            <% if (grouped_quizzes) { %>
+                <div style="display: flex; gap: 12px; margin-bottom: 32px;" id="search-merge-bar">
+                    <input type="text" id="searchInput" onkeyup="filterQuizzes()" placeholder="🔍 Search quizzes..." class="search-bar" style="border-radius: var(--radius-sm);">
+                    <button id="mergeModeBtn" onclick="toggleMergeMode()" class="btn-primary" style="width: auto; margin-top: 0; white-space: nowrap; padding: 14px 24px;">🔗 Merge Mode</button>
+                </div>
+                
+                <div id="quiz-list-container">
+                    <% let groupIdx = 0; for (let [subject, quizzes] of Object.entries(grouped_quizzes || {})) { groupIdx++; %>
+                        <div class="subject-group" data-subject="<%= typeof subject !== 'undefined' && subject ? subject : '' %>">
+                            
+                            <div class="subject-header" onclick="toggleFolder(this)">
+                                <h3 class="subject-title">
+                                    📁 <%= typeof subject !== 'undefined' ? subject : '' %> 
+                                    <span class="subject-badge"><%= (quizzes || []).length %></span>
+                                </h3>
+                                <svg class="chevron <% if (groupIdx == 1) { %>open<% } %>" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                            
+                            <div class="folder-content <% if (groupIdx == 1) { %>open<% } %>">
+                                <div class="quiz-grid">
+                                    <% for (let sq of (quizzes || [])) { %>
+                                        <div class="quiz-item" data-title="<%= typeof sq.title !== 'undefined' && sq.title ? sq.title : '' %>" data-id="<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
+                                            <div class="quiz-title">📄 <%= typeof sq.title !== 'undefined' ? sq.title : '' %></div>
+                                            <div class="quiz-meta">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                                <%= typeof sq.time_limit !== 'undefined' ? sq.time_limit : '' %>s / question
+                                            </div>
+                                            
+                                            <div class="link-display" id="url-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')" title="Click to copy link!">Generating link...</div>
+                                            
+                                            <div class="actions">
+                                                <button onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')" class="btn-action btn-copy">📋 Copy</button>
+                                                <button onclick="openMoveModal('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>', '<%= typeof sq.subject !== 'undefined' ? sq.subject : '' %>')" class="btn-action">📁 Move</button>
+                                                <a href="/live/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="btn-action btn-live">📡 Live</a>
+                                                <a href="/results/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="btn-action btn-results">📊 Results</a>
+                                                <a href="/edit/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="btn-action btn-edit">✏️ Edit</a>
+                                                <form class="inline-form" action="/delete/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this quiz?');">
+                                                    <button type="submit" class="btn-action btn-delete">🗑️ Delete</button>
+                                                </form>
+                                            </div>
+                                            <script>document.getElementById("url-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>").innerText = window.location.origin + "/quiz/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>";</script>
+                                        </div>
+                                    <% } %>
+                                </div>
+                            </div>
+
+                        </div>
+                    <% } %>
+                </div>
+            <% } else { %>
+                <div style="background: var(--surface-card); padding: 64px; border: 1px solid var(--hairline); text-align: center;">
+                    <p style="color: var(--on-dark); font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin:0;">NO QUIZZES FOUND</p>
+                    <p style="color: var(--body); font-size: 14px; margin-top: 8px; margin-bottom: 24px;">Use the generator to start or upload a worksheet.</p>
+                    <div style="display: flex; gap: 12px; justify-content: center;">
+                        <a href="/worksheet" class="btn-primary" style="width: auto; text-decoration: none;">📄 Worksheet (Auto-Solve)</a>
+                        <a href="/worksheet_answers" class="btn-secondary" style="width: auto; text-decoration: none;">🔑 Worksheet + Answer Key</a>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+    
+    <!-- Merge Floating Action Bar -->
+    <div id="mergeActionBar" style="display:none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--surface-elevated); border: 1px solid var(--hairline); color: var(--on-dark); padding: 16px 32px; border-radius: var(--radius-md); box-shadow: var(--shadow); z-index: 1000; align-items: center; gap: 24px;">
+        <span id="mergeCount" style="font-weight: 600; font-size: 14px;">0 Selected</span>
+        <button onclick="executeMerge()" style="background: var(--primary); color: #fff; border: none; padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;">✅ Confirm Merge</button>
+        <button onclick="toggleMergeMode()" style="background: transparent; border: 1px solid var(--hairline); color: var(--on-dark); padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;">❌ Cancel</button>
+    </div>
+
+    <!-- API KEY MODAL -->
+    <div id="apiKeyModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2 id="api-key-modal-title" style="margin-bottom: 16px; font-size: 24px; text-transform: none;">🔑 API Key Setup</h2>
+            <div class="m-stripe-divider" style="width: 40px; margin-top: 0;"></div>
+            <p id="api-key-modal-desc" style="color: var(--body); font-size: 14px; margin-bottom: 24px; line-height: 1.5;">To generate quizzes, you need to provide a Google Gemini API Key.</p>
+            
+            <div id="gemini_key_container">
+                <div style="background: var(--surface-soft); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 24px; font-size: 12px; color: var(--body-strong); line-height: 1.5;">
+                    <strong style="color: var(--on-dark);">SECURITY:</strong> Do not share your key. It is saved locally in your browser.<br>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--m-blue-light); font-weight: 700; display: inline-block; margin-top: 8px; text-decoration: none;">GET FREE KEY ↗</a>
+                </div>
+
+                <label style="margin-top: 0;">Primary API Key</label>
+                <input type="text" id="modal_api_key_input" placeholder="Paste your primary API key..." autocomplete="off" spellcheck="false" style="-webkit-text-security: disc; margin-bottom: 12px;">
+
+                <label style="margin-top: 0;">Secondary Key 1 (Backup)</label>
+                <input type="text" id="modal_api_key_2" placeholder="Optional backup key..." autocomplete="off" spellcheck="false" style="-webkit-text-security: disc; margin-bottom: 12px;">
+
+                <label style="margin-top: 0;">Secondary Key 2 (Backup)</label>
+                <input type="text" id="modal_api_key_3" placeholder="Optional backup key..." autocomplete="off" spellcheck="false" style="-webkit-text-security: disc; margin-bottom: 20px;">
+            </div>
+            
+            <div id="ollama_url_container" style="display: none;">
+                <label style="margin-top: 0;">Ollama Public URL <span style="font-size: 10px; color: var(--body); text-transform: none;">(Requires ngrok if hosting on Render)</span></label>
+                <input type="text" id="modal_ollama_url_input" placeholder="e.g. https://1234-abcd.ngrok-free.app" autocomplete="off" style="margin-bottom: 20px;">
+            </div>
+
+            <button onclick="saveApiKey()" class="btn-primary" style="margin-top: 0;">💾 Save Settings</button>
+            <button onclick="closeApiKeyModal()" class="btn-secondary" id="modal-cancel-btn" style="width: 100%; margin-top: 12px; padding: 14px; display: none;">❌ Cancel</button>
+            <button type="button" id="modal-skip-btn" onclick="useLocalOnly()" style="background: transparent; color: var(--body); border: none; font-size: 12px; margin-top: 16px; cursor: pointer; text-decoration: underline; width: 100%;">Skip (I will only use local models)</button>
+        </div>
+    </div>
+
+    <!-- OLLAMA INSTRUCTIONS MODAL -->
+    <div id="ollamaModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;">🦙 Setup Local AI</h2>
+            <div class="m-stripe-divider" style="width: 40px; margin-top: 0;"></div>
+            <p style="color: var(--body); font-size: 14px; margin-bottom: 16px;">Run AI completely on your own hardware. Free and private.</p>
+
+            <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 12px; color: var(--warning); line-height: 1.4;">
+                <strong>Cloud Users:</strong> Make sure you have linked your Ngrok URL in the <b>🔑 API Key</b> settings before scanning or downloading models!
+            </div>
+
+            <label style="margin-top:0;">1. Install Ollama</label>
+            <p style="font-size: 13px; color: var(--body-strong); margin-top: 4px; margin-bottom: 16px;">Download and install from <a href="https://ollama.com/download" target="_blank" style="color: var(--primary); font-weight: bold;">ollama.com</a>. Ensure the app is running in your system tray.</p>
+
+            <label>2. Download a Model</label>
+            <p style="font-size: 13px; color: var(--body-strong); margin-top: 4px;">Select a model to download automatically.</p>
+            <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+                <select id="install_model_select" style="flex: 1; border-radius: var(--radius-sm); margin-bottom: 0;">
+                    <option value="llama3.1">Llama 3.1 (Recommended, 8B)</option>
+                    <option value="mistral-nemo">Mistral Nemo (Advanced, 12B)</option>
+                    <option value="qwen2.5:7b">Qwen 2.5 (Fast, 7B)</option>
+                    <option value="llama3">Llama 3 (Older, 8B)</option>
+                </select>
+                <button onclick="autoInstallModel(document.getElementById('install_model_select').value)" class="btn-secondary" id="btn-auto-install" style="white-space: nowrap; padding: 14px; background: var(--surface-soft); border: 1px solid var(--primary); color: var(--on-dark); font-weight: 700; transition: all 0.2s ease; margin-top: 0;">📥 Install</button>
+            </div>
+
+            <button onclick="scanOllama()" class="btn-primary" id="btn-scan-ollama" style="margin-top: 0;">🔍 Scan for Local Models</button>
+            <button onclick="closeOllamaModal()" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 14px;">❌ Close</button>
+        </div>
+    </div>
+
+    <!-- CREATE BLANK MODAL -->
+    <div id="createBlankModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2 style="margin-bottom: 16px; font-size: 24px;">➕ New Blank Quiz</h2>
+            <div class="m-stripe-divider" style="width: 40px; margin-top: 0;"></div>
+
+            <label>Quiz Title</label>
+            <input type="text" id="blank-quiz-title" placeholder="e.g. My Custom Test">
+
+            <label>Subject / Folder</label>
+            <select id="blank-quiz-subject" onchange="toggleCustomBlankSubject(this)">
+                <% for (let s of (all_subjects || [])) { %>
+                    <option value="<%= typeof s !== 'undefined' ? s : '' %>" <% if (s == 'General') { %>selected<% } %>><%= typeof s !== 'undefined' ? s : '' %></option>
+                <% } %>
+                <option value="__custom__">➕ New Folder...</option>
+            </select>
+            <input type="text" id="blank-quiz-custom-subject" placeholder="Enter folder name" style="display:none; margin-top: 8px;">
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="executeCreateBlank()" class="btn-primary" style="margin-top: 0; flex: 1;">Create Quiz</button>
+                <button onclick="closeCreateBlankModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOVE QUIZ MODAL -->
+    <div id="moveModal" class="modal-overlay">
+        <div class="modal-card">
+            <h2 style="margin-bottom: 16px; font-size: 24px;">📁 Move to Folder</h2>
+            <div class="m-stripe-divider" style="width: 40px; margin-top: 0;"></div>
+
+            <input type="hidden" id="move-quiz-id">
+            <label>Select Destination Folder</label>
+            <select id="move-quiz-subject" onchange="toggleCustomMoveSubject(this)">
+                <% for (let s of (all_subjects || [])) { %>
+                    <option value="<%= typeof s !== 'undefined' ? s : '' %>"><%= typeof s !== 'undefined' ? s : '' %></option>
+                <% } %>
+                <option value="__custom__">➕ New Folder...</option>
+            </select>
+            <input type="text" id="move-quiz-custom-subject" placeholder="Enter folder name" style="display:none; margin-top: 8px;">
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="executeMove()" class="btn-primary" style="margin-top: 0; flex: 1;">Move Quiz</button>
+                <button onclick="closeMoveModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- THEME TOGGLE LOGIC ---
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        // --- API KEY & DISCLAIMER LOGIC ---
+        const hiddenApiInput = document.getElementById('hidden_api_key');
+        const apiKeyModal = document.getElementById('apiKeyModal');
+        const modalApiInput = document.getElementById('modal_api_key_input');
+        const modalApiInput2 = document.getElementById('modal_api_key_2');
+        const modalApiInput3 = document.getElementById('modal_api_key_3');
+        const cancelBtn = document.getElementById('modal-cancel-btn');
+
+        function openApiKeyModal() {
+            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+            modalApiInput.value = keys[0] || localStorage.getItem('gemini_api_key') || '';
+            modalApiInput2.value = keys[1] || '';
+            modalApiInput3.value = keys[2] || '';
+
+            document.getElementById('modal_ollama_url_input').value = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
+            cancelBtn.style.display = (modalApiInput.value || localStorage.getItem('ollama_url')) ? 'block' : 'none';
+            
+            const model = document.getElementById('model_select').value;
+            const isLocal = model.startsWith('ollama:');
+            
+            const modalTitle = document.getElementById('api-key-modal-title');
+            const modalDesc = document.getElementById('api-key-modal-desc');
+            const skipBtn = document.getElementById('modal-skip-btn');
+
+            if (isLocal) {
+                document.getElementById('gemini_key_container').style.display = 'none';
+                document.getElementById('ollama_url_container').style.display = 'block';
+                modalTitle.innerText = '🌐 Local AI Setup';
+                modalDesc.innerHTML = `
+                    <strong style="color: var(--on-dark);">How to connect your device:</strong><br>
+                    <ol style="margin-top: 8px; padding-left: 20px; color: var(--body-strong); line-height: 1.6;">
+                        <li>Install & run <a href="https://ollama.com" target="_blank" style="color: var(--primary);">Ollama</a>.</li>
+                        <li>Install <a href="https://ngrok.com/download" target="_blank" style="color: var(--primary);">Ngrok</a>.</li>
+                        <li>Open terminal: <code style="background: #000; color: #0f0; padding: 2px 6px; border-radius: 4px; font-size: 11px;">ngrok http 11434</code></li>
+                        <li>Paste the <b>Forwarding URL</b> (https://...) below.</li>
+                    </ol>
+                `;
+                if (skipBtn) skipBtn.style.display = 'none';
+            } else {
+                document.getElementById('gemini_key_container').style.display = 'block';
+                document.getElementById('ollama_url_container').style.display = 'none';
+                modalTitle.innerText = '🔑 API Key Setup';
+                modalDesc.innerHTML = 'To generate quizzes, you need to provide a Google Gemini API Key.';
+                if (skipBtn) skipBtn.style.display = 'block';
+            }
+
+            apiKeyModal.style.display = 'flex';
+        }
+
+        function closeApiKeyModal() {
+            apiKeyModal.style.display = 'none';
+        }
+
+        function openOllamaModal() {
+            document.getElementById('apiKeyModal').style.display = 'none';
+            document.getElementById('ollamaModal').style.display = 'flex';
+        }
+
+        function closeOllamaModal() {
+            document.getElementById('ollamaModal').style.display = 'none';
+        }
+
+        async function useLocalOnly() {
+            const btn = document.querySelector('button[onclick="useLocalOnly()"]');
+            if(btn) btn.innerText = "Scanning for Local Models...";
+
+            const oUrl = document.getElementById('modal_ollama_url_input').value.trim() || 'http://127.0.0.1:11434';
+            localStorage.setItem('ollama_url', oUrl);
+            document.getElementById('hidden_ollama_url').value = oUrl;
+
+            try {
+                const res = await fetch('/api/ollama_tags?url=' + encodeURIComponent(oUrl));
+                const data = await res.json();
+                
+                if (data.installed && data.models.length > 0) {
+                    populateLocalModels(data.models);
+                    document.getElementById('model_select').value = 'ollama:' + data.models[0];
+                    updateCounterUI();
+                    closeApiKeyModal();
+                } else {
+                    openOllamaModal();
+                }
+            } catch (e) {
+                openOllamaModal();
+            }
+            
+            if(btn) btn.innerText = "Skip (I will only use local models)";
+        }
+
+        async function scanOllama() {
+            const btn = document.getElementById('btn-scan-ollama');
+            if (btn) { btn.innerText = "Scanning..."; btn.disabled = true; }
+            
+            try {
+                const oUrl = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
+                const res = await fetch('/api/ollama_tags?url=' + encodeURIComponent(oUrl));
+                const data = await res.json();
+                
+                if (data.installed && data.models.length > 0) {
+                    populateLocalModels(data.models);
+                    if (btn) { btn.innerText = `✅ Found ${data.models.length} models!`; btn.style.background = 'var(--success)'; }
+                    document.getElementById('model_select').value = 'ollama:' + data.models[0];
+                    updateCounterUI();
+                    
+                    setTimeout(() => {
+                        closeOllamaModal();
+                        closeApiKeyModal();
+                        if (btn) { btn.innerText = "🔍 Scan for Local Models"; btn.style.background = 'var(--primary)'; btn.disabled = false; }
+                    }, 1500);
+                } else {
+                    if (btn) { btn.innerText = "❌ No models found yet"; btn.style.background = 'var(--m-red)'; }
+                    setTimeout(() => { if(btn) { btn.innerText = "🔍 Scan for Local Models"; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
+                }
+            } catch (e) {
+                if (btn) { btn.innerText = "❌ Ollama not running"; btn.style.background = 'var(--m-red)'; }
+                setTimeout(() => { if(btn) { btn.innerText = "🔍 Scan for Local Models"; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
+            }
+        }
+
+        function populateLocalModels(models) {
+            const localOptGroup = document.querySelector('optgroup[label="Local Models (Ollama)"]');
+            localOptGroup.innerHTML = '';
+            models.forEach(model => {
+                const opt = document.createElement('option');
+                opt.value = 'ollama:' + model;
+                opt.innerText = model + ' (Local)';
+                localOptGroup.appendChild(opt);
+            });
+            const installOpt = document.createElement('option');
+            installOpt.value = '__install_ollama__';
+            installOpt.innerText = '📥 Install More Models...';
+            localOptGroup.appendChild(installOpt);
+        }
+
+        async function autoInstallModel(model) {
+            const btn = document.getElementById('btn-auto-install');
+            btn.disabled = true;
+            btn.innerText = "⏳ Initiating download...";
+            
+            try {
+                const oUrl = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
+                const response = await fetch('/api/install_model', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({model: model, url: oUrl})
+                });
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = "";
+                
+                while (true) {
+                    const {value, done} = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, {stream: true});
+                    let lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep partial chunks in memory
+                    
+                    for (let line of lines) {
+                        if (line.trim() === '') continue;
+                        try {
+                            const data = JSON.parse(line);
+                            if (data.status) {
+                                if (data.total && data.completed) {
+                                    const pct = Math.round((data.completed / data.total) * 100);
+                                    btn.innerText = `⏳ Downloading ${model}: ${pct}%`;
+                                    btn.style.background = `linear-gradient(90deg, var(--primary) ${pct}%, var(--surface-soft) ${pct}%)`;
+                                } else {
+                                    btn.innerText = `⏳ ${data.status}...`;
+                                }
+                            }
+                        } catch(e) {} // Silently handle any malformed JSON streaming chunks
+                    }
+                }
+                
+                btn.innerText = "✅ Model Ready! Scanning...";
+                btn.style.background = "var(--success)";
+                btn.style.color = "#fff";
+                setTimeout(() => scanOllama(), 1500);
+                
+            } catch (e) {
+                btn.innerText = "❌ Install Failed. Make sure Ollama is running.";
+                btn.disabled = false;
+            }
+        }
+
+        function saveApiKey() {
+            const key1 = modalApiInput.value.trim();
+            const key2 = modalApiInput2.value.trim();
+            const key3 = modalApiInput3.value.trim();
+            const oUrl = document.getElementById('modal_ollama_url_input').value.trim() || 'http://127.0.0.1:11434';
+            
+            const model = document.getElementById('model_select').value;
+            const isLocal = model.startsWith('ollama:');
+
+            if (!isLocal && !key1) {
+                alert("Please enter at least a Primary Gemini API Key.");
+                return; 
+            }
+            if (isLocal && !oUrl) {
+                alert("Please enter a Custom Ollama URL.");
+                return;
+            }
+
+            const keys = [key1];
+            if (key2) keys.push(key2);
+            if (key3) keys.push(key3);
+
+            localStorage.setItem('gemini_api_keys', JSON.stringify(keys));
+            localStorage.setItem('gemini_api_key', key1); // Compatibility
+            hiddenApiInput.value = key1;
+
+            localStorage.setItem('ollama_url', oUrl);
+            document.getElementById('hidden_ollama_url').value = oUrl;
+
+            closeApiKeyModal();
+            fetchUsageStats();
+
+            // Check if it's their first time for the tour
+            checkAndRunTour();
+        }
+
+        function closeDisclaimer() {
+            document.getElementById('aiDisclaimer').style.display = 'none';
+            localStorage.setItem('hide_ai_disclaimer', 'true');
+        }
+
+        async function scanOllamaSilently() {
+            try {
+                const oUrl = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
+                const res = await fetch('/api/ollama_tags?url=' + encodeURIComponent(oUrl));
+                const data = await res.json();
+                if (data.installed && data.models.length > 0) {
+                    populateLocalModels(data.models);
+                }
+            } catch (e) {
+                // Fail silently if user isn't running local host
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchUsageStats();
+            scanOllamaSilently();
+            toggleTypeDistribution();
+
+            // Check Disclaimer
+            if(localStorage.getItem('hide_ai_disclaimer') === 'true') {
+                document.getElementById('aiDisclaimer').style.display = 'none';
+            }
+
+            // Check API Key
+            const savedKeys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+            const savedKey = localStorage.getItem('gemini_api_key');
+
+            if (savedKeys.length > 0 || savedKey) {
+                if (savedKeys.length > 0) {
+                    hiddenApiInput.value = savedKeys[0];
+                } else {
+                    hiddenApiInput.value = savedKey;
+                    localStorage.setItem('gemini_api_keys', JSON.stringify([savedKey]));
+                }
+                
+                const savedUrl = localStorage.getItem('ollama_url');
+                if(savedUrl) {
+                    document.getElementById('hidden_ollama_url').value = savedUrl;
+                }
+                
+                checkAndRunTour();
+            } else {
+                openApiKeyModal(); // Force modal on first load
+            }
+        });
+
+        // --- GUIDED TOUR LOGIC ---
+        function checkAndRunTour() {
+            if (localStorage.getItem('tour_completed') === 'true') return;
+
+            const isTeacher = true;
+            const driver = window.driver.js.driver;
+            
+            const steps = [
+                { popover: { title: 'Welcome to QuizMoKo!', description: 'Let’s take a quick tour to show you how to generate awesome quizzes in seconds.' } },
+                { element: '#ai-generator-card', popover: { title: 'AI Generator', description: 'Configure your topic, difficulty, and AI models here to generate your quiz.' } },
+                { element: '#subject-folder-group', popover: { title: 'Organize', description: 'Assign your quiz to a folder or subject so it’s easy to find later.' } },
+                { element: '#api-key-btn', popover: { title: 'Settings', description: 'You can always update your API Key right here.' } }
+            ];
+
+            if (isTeacher) {
+                steps.push({ element: '#saved-quizzes-card', popover: { title: 'Your Library', description: 'All your generated quizzes will be saved here safely.' } });
+                steps.push({ element: '#search-merge-bar', popover: { title: 'Merge Tool', description: 'Select multiple quizzes and merge them into a single big worksheet!' } });
+            }
+            
+            steps.push({ popover: { title: 'You are ready!', description: 'Enjoy generating your quizzes. Click Done to begin!' } });
+
+            const tourObj = driver({
+                showProgress: true,
+                steps: steps,
+                onDestroyStarted: () => {
+                    if (!tourObj.hasNextStep() || confirm("Are you sure you want to skip the tour?")) {
+                        localStorage.setItem('tour_completed', 'true');
+                        tourObj.destroy();
+                    }
+                }
+            });
+
+            tourObj.drive();
+        }
+
+        // --- RATE LIMIT TRACKER LOGIC ---
+        const API_LIMITS = {
+            "gemini-3.6-flash": 20,
+            "gemini-3.5-flash": 20,
+            "gemini-3.5-flash-lite": 500,
+            "gemini-3.1-flash-lite": 500,
+            "gemini-3.0-flash": 20,
+            "gemini-2.5-flash": 20,
+            "gemini-2.5-flash-lite": 20
+        };
+
+        let GLOBAL_DAILY_STATS = {};
+
+        async function getHash(text) {
+            if (!text) return "default";
+            const msgUint8 = new TextEncoder().encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex.substring(0, 8);
+        }
+
+        async function fetchUsageStats() {
+            try {
+                const res = await fetch('/api/usage/stats');
+                const data = await res.json();
+                if (data.success) {
+                    GLOBAL_DAILY_STATS = data.daily_stats;
+                    updateUsageDashboard();
+                    updateCounterUI();
+                }
+            } catch (e) {
+                console.error("Failed to fetch usage stats:", e);
+            }
+        }
+
+        async function updateUsageDashboard() {
+            let todayTotal = 0;
+            let allTimeTotal = 0;
+            const tableBody = document.getElementById('usage-table-body');
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+
+            const today = new Date().toISOString().split('T')[0];
+
+            // Sort dates descending
+            const sortedDates = Object.keys(GLOBAL_DAILY_STATS).sort().reverse();
+
+            for (const date of sortedDates) {
+                const models = GLOBAL_DAILY_STATS[date];
+                for (const model in models) {
+                    const keys = models[model];
+                    let modelCount = 0;
+                    for (const kid in keys) {
+                        modelCount += keys[kid];
+                    }
+
+                    if (date === today) todayTotal += modelCount;
+                    allTimeTotal += modelCount;
+
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = "1px solid var(--hairline)";
+                    row.innerHTML = `
+                        <td style="padding: 10px 0; color: var(--body);">${date}</td>
+                        <td style="padding: 10px 0; color: var(--on-dark);">${model}</td>
+                        <td style="padding: 10px 0; text-align: center;">${modelCount}</td>
+                        <td style="padding: 10px 0; text-align: center; color: var(--body);">${API_LIMITS[model] || '∞'}</td>
+                    `;
+                    tableBody.appendChild(row);
+                }
+            }
+
+            document.getElementById('today-total-calls').innerText = todayTotal;
+            document.getElementById('all-time-calls').innerText = allTimeTotal;
+        }
+
+        function toggleUsageDetails() {
+            const details = document.getElementById('usage-details');
+            const btn = document.getElementById('usage-toggle-btn');
+            if (details.style.display === 'none') {
+                details.style.display = 'block';
+                btn.innerText = '📈 Hide Detailed Breakdown';
+            } else {
+                details.style.display = 'none';
+                btn.innerText = '📉 Show Detailed Breakdown';
+            }
+        }
+
+        async function syncUsageHistory() {
+            const btn = document.getElementById('sync-history-btn');
+            const originalText = btn.innerText;
+            btn.innerText = '⏳ Syncing...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/usage/sync_history');
+                const data = await res.json();
+                if (data.success) {
+                    alert("Historical usage synced successfully!");
+                    await fetchUsageStats();
+                } else {
+                    alert("Sync failed: " + data.error);
+                }
+            } catch (e) {
+                alert("Sync error: " + e);
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function updateCounterUI() {
+            let model = document.getElementById('model_select').value;
+            
+            if (model === '__install_ollama__') {
+                openOllamaModal();
+                document.getElementById('model_select').value = 'gemini-3.5-flash-lite';
+                model = 'gemini-3.5-flash-lite';
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            const modelStats = (GLOBAL_DAILY_STATS[today] && GLOBAL_DAILY_STATS[today][model]) || {};
+
+            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+            if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
+
+            let totalUsed = 0;
+            let totalLimit = 0;
+            let isLocal = model.startsWith('ollama:');
+            const baseLimit = API_LIMITS[model] || 20;
+
+            if (isLocal) {
+                totalLimit = '∞';
+                totalUsed = 0;
+            } else {
+                for (const key of keys) {
+                    const kid = await getHash(key);
+                    totalUsed += modelStats[kid] || 0;
+                    totalLimit += baseLimit;
+                }
+                if (keys.length === 0) totalLimit = baseLimit; // Default view
+            }
+
+            let remaining = isLocal ? '∞' : Math.max(0, totalLimit - totalUsed);
+            
+            let badge = document.getElementById('api-counter-badge');
+            if (badge) {
+                badge.innerHTML = `⏳ <b>${remaining} / ${totalLimit}</b><br>Requests Left`;
+
+                if (!isLocal && remaining <= 0) {
+                    badge.style.color = 'var(--m-red)';
+                    badge.style.borderColor = 'var(--m-red)';
+                } else {
+                    badge.style.color = 'var(--m-blue-light)';
+                    badge.style.borderColor = 'var(--hairline)';
+                }
+            }
+        }
+
+        // --- FORM SUBMIT LOGIC ---
+        async function handleAILoading(event, form) {
+            let model = form.model_name.value;
+            let isLocal = model.startsWith('ollama:');
+
+            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+            if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
+
+            // Verify key one last time
+            if (keys.length === 0 && !isLocal) {
+                alert("API Key is missing. Please setup your key first.");
+                openApiKeyModal();
+                event.preventDefault();
+                return false;
+            }
+
+            let numItems = parseInt(form.num_items.value);
+            let batchSize = parseInt(form.batch_size.value);
+            
+            // Optimization for 20+ questions: Ensure batch size is reasonable
+            if (numItems >= 20 && batchSize > 5) {
+                form.batch_size.value = 5;
+            }
+
+            let estimatedRequests = Math.ceil(numItems / batchSize);
+            
+            let isStudent = false;
+            if (isStudent) {
+                estimatedRequests *= 2; 
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            const modelStats = (GLOBAL_DAILY_STATS[today] && GLOBAL_DAILY_STATS[today][model]) || {};
+            const baseLimit = API_LIMITS[model] || 20;
+
+            let selectedKey = null;
+            if (!isLocal) {
+                for (const key of keys) {
+                    const kid = await getHash(key);
+                    const used = modelStats[kid] || 0;
+                    if (used + estimatedRequests <= baseLimit) {
+                        selectedKey = key;
+                        break;
+                    }
+                }
+
+                if (!selectedKey) {
+                    alert(`⚠️ Daily Rate Limit Reached for all keys on ${model}!\n\nYou need ${estimatedRequests} requests, but none of your keys have enough quota left today.`);
+                    event.preventDefault();
+                    return false;
+                }
+                form.api_key.value = selectedKey;
+            }
+
+            // Optimistically update UI (will sync for real on next page load or via fetch)
+            const kid = await getHash(selectedKey);
+            if (!GLOBAL_DAILY_STATS[today]) GLOBAL_DAILY_STATS[today] = {};
+            if (!GLOBAL_DAILY_STATS[today][model]) GLOBAL_DAILY_STATS[today][model] = {};
+            GLOBAL_DAILY_STATS[today][model][kid] = (GLOBAL_DAILY_STATS[today][model][kid] || 0) + estimatedRequests;
+            updateCounterUI();
+
+            const btn = document.getElementById('ai-btn');
+            if (isStudent) {
+                btn.innerHTML = "⏳ GENERATING & CHECKING... (PLEASE WAIT)";
+            } else {
+                btn.innerHTML = "⏳ GENERATING AI QUIZ... (PLEASE WAIT)";
+            }
+            
+            // LOCK THE FORM & BUTTON TO PREVENT DOUBLE-CLICKS
+            btn.style.color = "var(--warning)";
+            btn.style.borderColor = "var(--warning)";
+            btn.disabled = true; 
+            form.style.opacity = "0.5";
+            form.style.pointerEvents = "none";
+            
+            return true;
+        }
+
+        function toggleFolder(headerElement) {
+            const content = headerElement.nextElementSibling;
+            const chevron = headerElement.querySelector('.chevron');
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                chevron.classList.remove('open');
+            } else {
+                content.classList.add('open');
+                chevron.classList.add('open');
+            }
+        }
+
+        function filterQuizzes() {
+            let searchInputElem = document.getElementById('searchInput');
+            if (!searchInputElem) return; // For students, this doesn't exist
+            
+            let input = searchInputElem.value.toLowerCase();
+            let subjectGroups = document.querySelectorAll('.subject-group');
+            
+            subjectGroups.forEach(group => {
+                let items = group.querySelectorAll('.quiz-item');
+                let hasVisibleItems = false;
+                let folderContent = group.querySelector('.folder-content');
+                let chevron = group.querySelector('.chevron');
+                
+                items.forEach(item => {
+                    let titleText = item.getAttribute('data-title');
+                    let subjectText = group.getAttribute('data-subject');
+                    
+                    if(titleText.includes(input) || subjectText.includes(input)) {
+                        item.style.display = "flex"; 
+                        hasVisibleItems = true;
+                    } else {
+                        item.style.display = "none";
+                    }
+                });
+                
+                if (input.trim() !== '') {
+                    group.style.display = hasVisibleItems ? "block" : "none";
+                    if (hasVisibleItems) {
+                        folderContent.classList.add('open');
+                        chevron.classList.add('open');
+                    }
+                } else {
+                    group.style.display = "block";
+                }
+            });
+        }
+
+        function toggleTypeDistribution() {
+            const select = document.getElementById('test_type_select');
+            const group = document.getElementById('mixed-distribution-group');
+            if (select.value === 'Mixed') {
+                group.style.display = 'block';
+                updateTypeTotal();
+            } else {
+                group.style.display = 'none';
+            }
+        }
+
+        function updateTypeTotal() {
+            const mc = parseInt(document.getElementsByName('mc_count')[0].value) || 0;
+            const tf = parseInt(document.getElementsByName('tf_count')[0].value) || 0;
+            const id = parseInt(document.getElementsByName('id_count')[0].value) || 0;
+            const oe = parseInt(document.getElementsByName('oe_count')[0].value) || 0;
+            const gr = parseInt(document.getElementsByName('gr_count')[0].value) || 0;
+            const total = mc + tf + id + oe + gr;
+
+            const numItemsInput = document.getElementsByName('num_items')[0];
+            numItemsInput.value = total;
+
+            const label = document.getElementById('type-total');
+            label.innerText = "(Total: " + total + ")";
+            label.className = "limit-status-green";
+            updateTotal();
+        }
+
+        function updateTotal() {
+            let total = (parseFloat(document.getElementsByName('easy_pct')[0].value) || 0) + 
+                        (parseFloat(document.getElementsByName('avg_pct')[0].value) || 0) + 
+                        (parseFloat(document.getElementsByName('hard_pct')[0].value) || 0);
+            let label = document.getElementById('pct-total');
+            label.innerText = "(Total: " + total + "%)";
+            label.className = total === 100 ? "limit-status-green" : "limit-status-red";
+        }
+
+        function copyLink(id) {
+            const urlText = document.getElementById("url-" + id).innerText;
+            navigator.clipboard.writeText(urlText).then(() => alert("Quiz link copied to clipboard!"));
+        }
+
+        updateCounterUI();
+        
+        function toggleCustomSubject(selectElem) {
+            const customInput = selectElem.parentElement.querySelector('.custom-subject-input');
+            if (selectElem.value === '__custom__') {
+                customInput.style.display = 'block';
+                customInput.required = true;
+            } else {
+                customInput.style.display = 'none';
+                customInput.required = false;
+                customInput.value = '';
+            }
+        }
+
+        // --- CREATE BLANK MODAL LOGIC ---
+        function openCreateBlankModal() {
+            document.getElementById('createBlankModal').style.display = 'flex';
+        }
+        function closeCreateBlankModal() {
+            document.getElementById('createBlankModal').style.display = 'none';
+        }
+        function toggleCustomBlankSubject(select) {
+            document.getElementById('blank-quiz-custom-subject').style.display = (select.value === '__custom__') ? 'block' : 'none';
+        }
+        function executeCreateBlank() {
+            const title = document.getElementById('blank-quiz-title').value.trim() || "Untitled Quiz";
+            let subject = document.getElementById('blank-quiz-subject').value;
+            if (subject === '__custom__') {
+                subject = document.getElementById('blank-quiz-custom-subject').value.trim() || "General";
+            }
+            window.location.href = `/create_blank?title=${encodeURIComponent(title)}&subject=${encodeURIComponent(subject)}`;
+        }
+
+        // --- MOVE MODAL LOGIC ---
+        function openMoveModal(id, currentSubject) {
+            document.getElementById('move-quiz-id').value = id;
+            document.getElementById('move-quiz-subject').value = currentSubject;
+            document.getElementById('moveModal').style.display = 'flex';
+        }
+        function closeMoveModal() {
+            document.getElementById('moveModal').style.display = 'none';
+        }
+        function toggleCustomMoveSubject(select) {
+            document.getElementById('move-quiz-custom-subject').style.display = (select.value === '__custom__') ? 'block' : 'none';
+        }
+        async function executeMove() {
+            const id = document.getElementById('move-quiz-id').value;
+            let subject = document.getElementById('move-quiz-subject').value;
+            if (subject === '__custom__') {
+                subject = document.getElementById('move-quiz-custom-subject').value.trim() || "General";
+            }
+
+            try {
+                const res = await fetch('/api/move_quiz', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ quiz_id: id, subject: subject })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    location.reload(); // Refresh to show in new folder
+                } else {
+                    alert("Move failed: " + data.error);
+                }
+            } catch (e) {
+                alert("Error moving quiz.");
+            }
+        }
+
+        // --- MERGE UI LOGIC ---
+        let mergeMode = false;
+        let selectedQuizzes = new Set();
+
+        function toggleMergeMode() {
+            mergeMode = !mergeMode;
+            selectedQuizzes.clear();
+            
+            document.getElementById('mergeActionBar').style.display = mergeMode ? 'flex' : 'none';
+            const btn = document.getElementById('mergeModeBtn');
+            btn.style.color = mergeMode ? 'var(--m-red)' : 'var(--on-dark)';
+            btn.style.borderColor = mergeMode ? 'var(--m-red)' : 'var(--on-dark)';
+            btn.innerText = mergeMode ? 'CANCEL MERGE' : 'MERGE MODE';
+            
+            document.querySelectorAll('.quiz-item').forEach(item => {
+                if(mergeMode) {
+                    item.style.cursor = 'pointer';
+                    item.onclick = (e) => {
+                        if(e.target.tagName === 'A' || e.target.tagName === 'BUTTON' || e.target.closest('.actions')) {
+                            e.preventDefault(); return;
+                        }
+                        const qid = item.getAttribute('data-id');
+                        if(selectedQuizzes.has(qid)) {
+                            selectedQuizzes.delete(qid);
+                            item.style.border = '1px solid var(--hairline)';
+                            item.style.background = 'var(--canvas)';
+                        } else {
+                            selectedQuizzes.add(qid);
+                            item.style.border = '2px solid var(--on-dark)';
+                            item.style.background = 'var(--surface-elevated)';
+                        }
+                        document.getElementById('mergeCount').innerText = `${selectedQuizzes.size} SELECTED`;
+                    };
+                } else {
+                    item.style.cursor = 'default';
+                    item.onclick = null;
+                    item.style.border = '1px solid var(--hairline)';
+                    item.style.background = 'var(--canvas)';
+                }
+            });
+        }
+
+        async function executeMerge() {
+            if(selectedQuizzes.size < 2) {
+                alert('Please select at least 2 worksheets to merge.');
+                return;
+            }
+            const newTitle = prompt('Enter a title for the newly merged worksheet:', 'Merged Worksheet');
+            if(!newTitle) return;
+
+            document.getElementById('mergeCount').innerText = "MERGING...";
+            
+            try {
+                const res = await fetch('/merge', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ quiz_ids: Array.from(selectedQuizzes), new_title: newTitle })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    window.location.href = `/edit/${data.new_quiz_id}`;
+                } else {
+                    alert('Merge failed: ' + data.error);
+                }
+            } catch(err) {
+                alert("An error occurred during merge.");
+            }
+        }
+    </script>
+
+    <!-- FIREBASE LOGOUT LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc",
+            authDomain: "quizmoko-51920.firebaseapp.com",
+            projectId: "quizmoko-51920",
+            storageBucket: "quizmoko-51920.firebasestorage.app",
+            messagingSenderId: "399313723605",
+            appId: "1:399313723605:web:85769dd5aa7edebc13025c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                // Clear Flask Session
+                await fetch('/logout');
+                document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                window.location.href = "/login";
+            } catch (error) {
+                console.error("Error signing out: ", error);
+                alert("Failed to log out: " + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

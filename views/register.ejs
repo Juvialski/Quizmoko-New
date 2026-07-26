@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - QuizMoKo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --canvas: #000000;
+            --surface-card: #1a1a1a;
+            --surface-elevated: #262626;
+            --surface-soft: #0d0d0d;
+            --on-dark: #ffffff;
+            --body: #bbbbbb;
+            --body-strong: #e6e6e6;
+            --hairline: #3c3c3c;
+            --m-blue-light: #0066b1;
+            --m-blue-dark: #1c69d4;
+            --m-red: #e22718;
+            --success: #0fa336;
+            --warning: #f4b400;
+        }
+        
+        [data-theme="light"] {
+            --canvas: #f8fafc;
+            --surface-card: #ffffff;
+            --surface-elevated: #f1f5f9;
+            --surface-soft: #e2e8f0;
+            --on-dark: #0f172a;
+            --body: #475569;
+            --body-strong: #1e293b;
+            --hairline: #cbd5e1;
+        }
+
+        body { font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--canvas); color: var(--body-strong); margin: 0; padding: 20px; transition: background-color 0.3s ease, color 0.3s ease;}
+        .auth-container { background: var(--surface-card); padding: 40px; border-radius: 0px; border: 1px solid var(--hairline); width: 100%; max-width: 400px; text-align: left; box-sizing: border-box;}
+        
+        .auth-container h2 { margin-top: 0; margin-bottom: 8px; color: var(--on-dark); text-transform: uppercase; letter-spacing: -0.5px; font-weight: 700; font-size: 28px;}
+        .m-stripe-divider { height: 4px; width: 60px; background: linear-gradient(to right, var(--m-blue-light) 0%, var(--m-blue-light) 33%, var(--m-blue-dark) 33%, var(--m-blue-dark) 66%, var(--m-red) 66%, var(--m-red) 100%); margin-bottom: 24px; }
+        
+        .auth-container input[type="email"], .auth-container input[type="password"] { width: 100%; padding: 16px; margin: 10px 0 20px 0; border: 1px solid var(--hairline); border-radius: 4px; box-sizing: border-box; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); font-family: inherit;}
+        .auth-container input:focus { outline: none; border-color: var(--on-dark); background: var(--canvas); }
+        
+        .auth-container button { width: 100%; padding: 16px; background: transparent; color: var(--on-dark); border: 1px solid var(--on-dark); border-radius: 0px; cursor: pointer; font-size: 14px; font-weight: 700; transition: 0.2s; margin-top: 15px; text-transform: uppercase; letter-spacing: 1.5px;}
+        .auth-container button:hover { background: var(--on-dark); color: var(--canvas); }
+        
+        .error-msg { color: var(--m-red); margin-bottom: 15px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;}
+        
+        .role-selector { display: flex; justify-content: space-around; margin: 20px 0; background: var(--surface-soft); padding: 15px 10px; border-radius: 4px; border: 1px solid var(--hairline);}
+        .role-selector label { cursor: pointer; font-weight: 700; color: var(--body-strong); display: flex; align-items: center; gap: 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;}
+        .role-selector input[type="radio"] { cursor: pointer; width: 16px; height: 16px; accent-color: var(--m-blue-light);}
+        
+        .disclaimer-box { text-align: left; margin: 15px 0 20px 0; background: var(--surface-soft); padding: 16px; border: 1px solid var(--warning); border-radius: 4px; }
+        .disclaimer-box label { font-size: 12px; color: var(--warning); display: flex; align-items: start; gap: 12px; cursor: pointer; text-transform: none; font-weight: 400; margin: 0;}
+        .disclaimer-box input[type="checkbox"] { margin-top: 2px; width: 16px; height: 16px; cursor: pointer; accent-color: var(--warning);}
+
+        p { color: var(--body); font-size: 12px; margin-top: 24px; text-align: center; text-transform: uppercase; letter-spacing: 1px;}
+        a { color: var(--on-dark); font-weight: 700; text-decoration: none; border-bottom: 1px solid var(--on-dark); padding-bottom: 2px;}
+        a:hover { color: var(--m-blue-light); border-color: var(--m-blue-light); }
+    </style>
+    
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+    <div class="auth-container">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <h2 style="margin-top: 0; margin-bottom: 8px; color: var(--on-dark); text-transform: uppercase; letter-spacing: -0.5px; font-weight: 700; font-size: 28px;">Create Account</h2>
+            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s; padding: 0;">🌓</button>
+        </div>
+        <div class="m-stripe-divider"></div>
+        
+            <div id="error" class="error-msg"></div>
+            <form id="register-form">
+                <input type="email" id="email" placeholder="EMAIL ADDRESS" required>
+                <input type="password" id="password" placeholder="PASSWORD (MIN 6 CHARS)" required minlength="6">
+
+                <!-- MANDATORY LEGAL DISCLAIMER -->
+            <div class="disclaimer-box" id="auth-disclaimer">
+                <label>
+                    <input type="checkbox" id="disclaimer-check" required>
+                    <span style="line-height: 1.4;">
+                        <b>DISCLAIMER:</b> I understand that AI can make mistakes. I agree to use my own Google API Key at my own risk, and I release QuizMoKo from any liability regarding API usage costs, account limits, or AI inaccuracies.
+                    </span>
+                </label>
+            </div>
+
+            <button type="submit" id="submit-btn">CREATE ACCOUNT</button>
+
+            <div style="margin-top: 20px; text-align: center; border-top: 1px solid var(--hairline); padding-top: 20px;">
+                <p style="margin-top: 0; margin-bottom: 12px; font-weight: 700; font-size: 11px; letter-spacing: 1px;">OR CONTINUE WITH</p>
+                <button type="button" id="google-btn" style="background: #fff; color: #444; border: 1px solid #ddd; margin-top: 0; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 4px;">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="Google">
+                    GOOGLE ACCOUNT
+                </button>
+            </div>
+        </form>
+        <p>Already have an account? <a href="/login">LOG IN HERE</a></p>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('hide_auth_disclaimer') === 'true') {
+                const disclaimer = document.getElementById('auth-disclaimer');
+                if(disclaimer) {
+                    disclaimer.style.display = 'none';
+                    document.getElementById('disclaimer-check').required = false;
+                }
+            }
+        });
+    </script>
+
+    <!-- Firebase JS SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // Your Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc",
+            authDomain: "quizmoko-51920.firebaseapp.com",
+            projectId: "quizmoko-51920",
+            storageBucket: "quizmoko-51920.firebasestorage.app",
+            messagingSenderId: "399313723605",
+            appId: "1:399313723605:web:85769dd5aa7edebc13025c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+            const submitBtn = document.getElementById('submit-btn');
+            
+            errorDiv.textContent = "";
+            submitBtn.textContent = "REGISTERING...";
+            submitBtn.disabled = true;
+
+            try {
+                if (document.getElementById('disclaimer-check') && document.getElementById('disclaimer-check').checked) {
+                    localStorage.setItem('hide_auth_disclaimer', 'true');
+                }
+
+                // 1. Create User in Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // 2. Initial user setup (Optional: mark as teacher if needed, or leave for dashboard default)
+                // await fetch('/api/set_role', ...);
+
+                // 3. Keep user logged in immediately (default 30 days for new accounts)
+                const token = await user.getIdToken();
+                document.cookie = `token=${token}; path=/; max-age=2592000; samesite=strict`;
+                
+                // 4. Redirect to dashboard
+                window.location.href = "/";
+
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') {
+                    errorDiv.textContent = "THIS EMAIL IS ALREADY REGISTERED.";
+                } else {
+                    errorDiv.textContent = error.message;
+                }
+                submitBtn.textContent = "CREATE ACCOUNT";
+                submitBtn.disabled = false;
+            }
+        });
+
+        const googleBtn = document.getElementById('google-btn');
+        googleBtn.addEventListener('click', async () => {
+            const provider = new GoogleAuthProvider();
+            const errorDiv = document.getElementById('error');
+
+            errorDiv.textContent = "";
+            googleBtn.disabled = true;
+            googleBtn.textContent = "AUTHENTICATING...";
+
+            try {
+                if (document.getElementById('disclaimer-check') && document.getElementById('disclaimer-check').checked) {
+                    localStorage.setItem('hide_auth_disclaimer', 'true');
+                }
+
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+
+                googleBtn.textContent = "ESTABLISHING SESSION...";
+
+                // Set Session
+                const token = await user.getIdToken();
+                document.cookie = `token=${token}; path=/; max-age=2592000; samesite=strict`;
+
+                window.location.href = "/";
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                googleBtn.disabled = false;
+                googleBtn.innerHTML = `
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="Google">
+                    GOOGLE ACCOUNT
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quiz Created</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --canvas: #000000;
+            --surface-card: #1a1a1a;
+            --surface-elevated: #262626;
+            --surface-soft: #0d0d0d;
+            --on-dark: #ffffff;
+            --body: #bbbbbb;
+            --body-strong: #e6e6e6;
+            --hairline: #3c3c3c;
+            --primary: #6366f1; 
+            --m-blue-light: #818cf8; 
+            --m-blue-dark: #4f46e5;
+            --m-red: #fb7185; 
+            --success: #34d399; 
+            --warning: #fbbf24;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        [data-theme="light"] {
+            --canvas: #f8fafc;
+            --surface-card: #ffffff;
+            --surface-elevated: #f1f5f9;
+            --surface-soft: #e2e8f0;
+            --on-dark: #0f172a;
+            --body: #64748b;
+            --body-strong: #334155;
+            --hairline: #cbd5e1;
+            --primary: #4f46e5;
+            --m-blue-light: #6366f1;
+            --m-blue-dark: #4338ca;
+            --m-red: #f43f5e;
+            --success: #10b981;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--canvas); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; text-align: center; color: var(--body-strong); transition: background-color 0.3s ease, color 0.3s ease;}
+        .card { background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); max-width: 500px; width: 100%; box-sizing: border-box; position: relative;}
+        .link-box { padding: 15px; background: var(--surface-soft); border-radius: var(--radius-sm); font-size: 16px; margin: 25px 0; border: 1px solid var(--hairline); word-wrap: break-word; color: var(--primary); font-family: monospace;}
+        .btn-copy { background: var(--primary); color: #fff; border: none; padding: 16px; font-size: 15px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; width: 100%; margin-bottom: 15px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+        .btn-copy:hover { opacity: 0.9; transform: translateY(-1px); }
+        .back-link { color: var(--body); text-decoration: none; font-size: 13px; font-weight: 600; }
+        .back-link:hover { color: var(--on-dark); }
+    </style>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+    <div class="card">
+        <button onclick="toggleTheme()" title="Toggle Theme" style="position: absolute; top: 20px; right: 20px; background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s; padding: 0;">🌓</button>
+        <h1 style="margin-top:0; color: var(--on-dark); text-transform: uppercase; font-weight: 800; letter-spacing: -0.5px;">🎉 Quiz Ready!</h1>
+        <p>Send this link to your international student:</p>
+        
+        <div class="link-box" id="shareable-link">Generating link...</div>
+        
+        <button class="btn-copy" onclick="copyToClipboard()">📋 Copy Link</button>
+        <br>
+        <a href="/" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        const fullLink = window.location.origin + "/quiz/<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>";
+        document.getElementById("shareable-link").innerText = fullLink;
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(fullLink).then(() => {
+                alert("Link copied to clipboard!");
+            });
+        }
+    </script>
+</body>
+</html>

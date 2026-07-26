@@ -1,0 +1,10 @@
+__pycache__/
+*.db
+quizzes.db
+serviceAccountKey.json
+venv/
+env/
+.env
+.artifacts/
+tmp/appmap/
+*.appmap.json

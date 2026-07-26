@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Tracking - <%= typeof title !== 'undefined' ? title : '' %></title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Configure MathJax for live rendering of math in the preview -->
+    <script>
+      window.MathJax = {
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+
+    <style>
+        :root {
+            --canvas: #0f172a; 
+            --surface-card: #1e293b; 
+            --surface-elevated: #334155;
+            --surface-soft: #0f172a;
+            --on-dark: #f8fafc;
+            --body: #94a3b8;
+            --body-strong: #e2e8f0;
+            --hairline: #334155;
+            --primary: #6366f1; 
+            --m-blue-light: #818cf8; 
+            --m-blue-dark: #4f46e5;
+            --m-red: #fb7185; 
+            --success: #34d399; 
+            --warning: #fbbf24;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        [data-theme="light"] {
+            --canvas: #f8fafc;
+            --surface-card: #ffffff;
+            --surface-elevated: #f1f5f9;
+            --surface-soft: #e2e8f0;
+            --on-dark: #0f172a;
+            --body: #64748b;
+            --body-strong: #334155;
+            --hairline: #cbd5e1;
+            --primary: #4f46e5;
+            --m-blue-light: #6366f1;
+            --m-blue-dark: #4338ca;
+            --m-red: #f43f5e;
+            --success: #10b981;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--canvas); margin: 0; padding: 64px 20px; color: var(--body-strong); font-weight: 400; transition: background-color 0.3s ease, color 0.3s ease;}
+        .container { max-width: 1440px; margin: auto; }
+        
+        .card { background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); }
+        
+        h1 { margin-top: 0; font-size: 32px; color: var(--on-dark); font-weight: 700; letter-spacing: -0.5px; display: flex; align-items: center;}
+        .m-stripe-divider { height: 4px; width: 60px; background: var(--primary); border-radius: 2px; margin-bottom: 24px; }
+        
+        .back-link { display: inline-block; margin-bottom: 32px; color: var(--body); text-decoration: none; font-weight: 600; font-size: 13px; }
+        .back-link:hover { color: var(--on-dark); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 14px;}
+        th, td { padding: 20px 24px; text-align: left; border-bottom: 1px solid var(--hairline); vertical-align: middle;}
+        th { background-color: var(--surface-elevated); font-weight: 600; color: var(--on-dark); font-size: 13px; }
+        th:first-child { border-top-left-radius: var(--radius-sm); }
+        th:last-child { border-top-right-radius: var(--radius-sm); }
+        
+        .score-badge { background: var(--surface-soft); color: var(--on-dark); padding: 6px 12px; border: 1px solid var(--primary); font-weight: 600; font-size: 13px; border-radius: 16px;}
+        .pulse { display: inline-block; width: 12px; height: 12px; background-color: var(--m-red); margin-right: 16px; animation: pulse-anim 1.5s infinite;}
+        
+        .question-preview {
+            background: var(--surface-soft);
+            border: 1px solid var(--hairline);
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            color: var(--body);
+            font-size: 13px;
+            max-width: 350px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: monospace;
+        }
+        summary.question-preview { cursor: pointer; transition: 0.2s; list-style: none;}
+        summary.question-preview::-webkit-details-marker { display: none; }
+        summary.question-preview:hover { border-color: var(--primary); }
+        
+        .full-question-box { background: var(--surface-card); border: 1px solid var(--hairline); padding: 16px; border-radius: var(--radius-sm); margin-top: 8px; font-size: 13px; white-space: normal; color: var(--on-dark); box-shadow: var(--shadow); font-family: 'Inter', sans-serif;}
+        .full-question-box .resizable-image-wrapper { margin: 10px 0; display: flex; justify-content: flex-start;}
+        .full-question-box img { max-width: 100%; height: auto; background: white; padding: 5px; border-radius: 4px; }
+
+        @keyframes pulse-anim {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(226, 39, 24, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(226, 39, 24, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(226, 39, 24, 0); }
+        }
+    </style>
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+            <a href="/" class="back-link" style="margin-bottom: 0;">🔙 Back to Dashboard</a>
+            <div style="display: flex; gap: 16px; align-items: center;">
+                <button id="pause-btn" onclick="togglePause()" class="score-badge" style="background-color: var(--warning); color: var(--canvas); border: none; cursor: pointer; padding: 8px 16px;">⏸️ Pause Timers</button>
+                <button id="terminate-btn" onclick="terminateQuiz()" class="score-badge" style="background-color: var(--m-red); color: white; border: none; cursor: pointer; padding: 8px 16px;">🛑 Terminate Quiz</button>
+                <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8;">🌓</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h1><span class="pulse"></span> 📡 LIVE: <%= typeof title !== 'undefined' ? title : '' %></h1>
+            <div class="m-stripe-divider"></div>
+            <p style="color: var(--body); font-size: 12px; margin-top: -5px; text-transform: uppercase; letter-spacing: 1.5px;">TABLE UPDATES AUTOMATICALLY EVERY 2 SECONDS.</p>
+            
+            <table id="live-table">
+                <thead>
+                    <tr>
+                        <th>STUDENT NAME</th>
+                        <th style="width: 10%;">SIGNAL</th>
+                        <th style="width: 12%;">PROGRESS</th>
+                        <th>CURRENTLY ANSWERING</th>
+                        <th>WHITEBOARD</th>
+                        <th>LIVE SCORE</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="5" style="text-align:center; color:var(--body); padding:40px; text-transform: uppercase; letter-spacing: 1.5px;">Waiting for students to join...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Original Preserved Javascript -->
+    <script>
+        const quizId = "<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>";
+        const totalQ = <%= typeof total_q !== 'undefined' && total_q ? total_q : 0 %>;
+        const quizQuestions = <%- typeof quiz !== 'undefined' && quiz.questions ? JSON.stringify(quiz.questions) : '[]' %>;
+        
+        // WebSocket Initialization with Polling Fallback
+        let socket;
+        let useWS = true;
+
+        try {
+            socket = io({
+                transports: ['websocket', 'polling'],
+                reconnectionAttempts: 5,
+                timeout: 10000
+            });
+
+            socket.on('connect', () => {
+                console.log("[WS] Connected to server");
+                useWS = true;
+                socket.emit('join_quiz', { quiz_id: quizId });
+            });
+
+            socket.on('connect_error', (err) => {
+                console.warn("[WS] Connection failed, using polling fallback:", err.message);
+                useWS = false;
+            });
+
+            socket.on('update_session', (payload) => {
+                console.log("[WS] Received update:", payload);
+                sessionsCache[payload.session_id] = payload.data;
+                if (payload.paused !== undefined) {
+                    isPaused = payload.paused;
+                    updatePauseBtn();
+                }
+                renderTable();
+            });
+
+            socket.on('pause_state', (data) => {
+                isPaused = data.paused;
+                updatePauseBtn();
+            });
+
+            // --- ROOM CLEANUP ON LEAVE ---
+            window.addEventListener('beforeunload', () => {
+                console.log("[WS] Leaving room:", quizId);
+                socket.emit('leave_quiz', { quiz_id: quizId });
+            });
+
+        } catch (e) {
+            console.error("[WS] Initialization error:", e);
+            useWS = false;
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+        
+        let isPaused = false;
+        let sessionsCache = {};
+
+        let openDropdowns = new Set();
+        function toggleDropdown(sid, isOpen) {
+            if (isOpen) openDropdowns.add(sid);
+            else openDropdowns.delete(sid);
+        }
+        
+        function togglePause() {
+            fetch(`/api/live/${quizId}/toggle_pause`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    isPaused = data.paused;
+                    updatePauseBtn();
+                }
+            });
+        }
+
+        function terminateQuiz() {
+            if (!confirm("Are you sure you want to TERMINATE the quiz? All students will be sent to their results page immediately. This cannot be undone.")) return;
+            fetch(`/api/live/${quizId}/terminate`, { method: 'POST' });
+        }
+        
+        function updatePauseBtn() {
+            const btn = document.getElementById('pause-btn');
+            if (isPaused) {
+                btn.innerHTML = "▶️ Resume Timers";
+                btn.style.backgroundColor = "var(--success)";
+                btn.style.color = "white";
+            } else {
+                btn.innerHTML = "⏸️ Pause Timers";
+                btn.style.backgroundColor = "var(--warning)";
+                btn.style.color = "var(--canvas)";
+            }
+        }
+
+        function toggleWhiteboard(sid) {
+            fetch(`/api/live/${quizId}/whiteboard/${sid}/toggle`, { method: 'POST' });
+        }
+
+        function renderTable() {
+            const tbody = document.querySelector('#live-table tbody');
+            const data = sessionsCache;
+
+            if (Object.keys(data).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--body); padding:40px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;">No one is taking the quiz right now.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+
+            const sessions = Object.entries(data)
+                .sort((a, b) => b[1].last_active - a[1].last_active);
+
+            sessions.forEach(([sid, info]) => {
+                if (sid === '_meta') return;
+
+                // DATA INTEGRITY: Only show students with a valid name
+                const studentDisplayName = info.name;
+                if (!studentDisplayName || studentDisplayName === "Anonymous" || studentDisplayName === "undefined") {
+                    return; // Skip this ghost session
+                }
+
+                const tr = document.createElement('tr');
+                const statusText = info.status || 'Active';
+
+                const now = Math.floor(Date.now() / 1000);
+                const lastActive = Math.floor(info.last_active);
+                const diff = now - lastActive;
+
+                let signalColor = 'var(--success)';
+                let signalLabel = 'Online';
+
+                if (statusText.includes('Completed')) {
+                    signalLabel = 'Finished';
+                    signalColor = 'var(--body)';
+                } else if (diff > 30) {
+                    signalColor = 'var(--m-red)';
+                    signalLabel = 'Offline';
+                } else if (diff > 10) {
+                    signalColor = 'var(--warning)';
+                    signalLabel = 'Unstable';
+                }
+
+                const signalHtml = `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 8px; height: 8px; border-radius: 50%; background: ${signalColor}; display: inline-block;"></span>
+                        <span style="font-size: 10px; font-weight: 800; color: ${signalColor}; text-transform: uppercase;">${signalLabel}</span>
+                    </div>
+                `;
+
+                let statusColor = 'var(--warning)';
+                if (statusText.includes('Completed')) statusColor = 'var(--success)';
+                if (statusText.includes('Abandoned') || statusText.includes('Switched')) statusColor = 'var(--m-red)';
+                let statusHtml = `<span style="color: ${statusColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 12px;">${statusText}</span>`;
+
+                const studentDisplayName = (info.name && info.name !== "undefined") ? info.name : "Anonymous";
+                const qNum = parseInt(info.current_q) || 1;
+                const displayedQ = Math.max(1, Math.min(qNum, totalQ));
+                let qIndex = displayedQ - 1;
+
+                if (statusText.includes('Completed')) qIndex = totalQ - 1;
+
+                const currentQData = quizQuestions[qIndex] || {};
+                let rawQuestionHTML = currentQData.question || (statusText.includes('Completed') ? "Finished" : "Active");
+                let optionsList = currentQData.options || [];
+                let optionsHTML = Array.isArray(optionsList) ? optionsList.map(opt => `<li style="margin-bottom: 6px;">${opt}</li>`).join('') : '';
+
+                let snippetDiv = document.createElement('div');
+                snippetDiv.innerHTML = rawQuestionHTML;
+                let cleanText = snippetDiv.innerText || snippetDiv.textContent || "";
+                let snippet = cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText;
+
+                if (statusText.includes('Completed')) snippet = "🎉 Student has finished the quiz!";
+                else if (statusText.includes('Abandoned')) snippet = "❌ Student left the quiz early.";
+
+                let detailsHtml = '';
+                if (!statusText.includes('Completed') && quizQuestions[qIndex]) {
+                    let isOpen = openDropdowns.has(sid) ? 'open' : '';
+                    detailsHtml = `
+                        <details ${isOpen} ontoggle="toggleDropdown('${sid}', this.open)">
+                            <summary class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="Click to expand">${snippet}</summary>
+                            <div class="full-question-box" style="white-space: pre-wrap; margin-top: 10px; padding: 12px; background: var(--surface-soft); border-radius: 8px;">
+                                <div style="margin-bottom: 12px; font-weight: 600; line-height: 1.5;">${rawQuestionHTML}</div>
+                                <ul style="margin: 0; padding-left: 20px; color: var(--body); line-height: 1.4;">
+                                    ${optionsHTML}
+                                </ul>
+                            </div>
+                        </details>
+                    `;
+                } else {
+                    detailsHtml = `<div class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap;" title="${cleanText}">${snippet}</div>`;
+                }
+
+                const wbDisabled = info.whiteboard_disabled || false;
+                const wbBtnText = wbDisabled ? "✅ Enable" : "🚫 Disable";
+                const wbBtnColor = wbDisabled ? "var(--success)" : "var(--m-red)";
+                const wbStatusHtml = `
+                    <button onclick="toggleWhiteboard('${sid}')" class="score-badge" style="background: ${wbBtnColor}; color: white; border: none; cursor: pointer; padding: 4px 8px; font-size: 11px;">
+                        ${wbBtnText}
+                    </button>
+                `;
+
+                tr.innerHTML = `
+                    <td style="font-weight: 700; font-size: 16px; color: var(--on-dark);">${studentDisplayName}</td>
+                    <td>${signalHtml}</td>
+                    <td style="color: var(--body); font-weight: 400;">Q ${displayedQ} of ${totalQ}</td>
+                    <td style="max-width: 350px;">${detailsHtml}</td>
+                    <td>${wbStatusHtml}</td>
+                    <td><span class="score-badge">${parseFloat(info.score || 0).toFixed(2)} CORRECT</span></td>
+                    <td>${statusHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (window.MathJax) {
+                MathJax.typesetPromise([tbody]).catch(err => console.error(err));
+            }
+        }
+
+        function initialFetch() {
+            fetch('/api/live/' + quizId)
+            .then(res => res.json())
+            .then(response => {
+                if(response.paused !== undefined) {
+                    isPaused = response.paused;
+                    updatePauseBtn();
+                }
+                sessionsCache = response.sessions || response;
+                renderTable();
+            });
+        }
+        
+        initialFetch();
+        // Automatic HTTP Polling Fallback if WS is down or laggy
+        // Reduced interval to 2s to match the "TABLE UPDATES EVERY 2 SECONDS" header
+        setInterval(() => {
+            if (!useWS || (socket && !socket.connected)) {
+                console.log("[HTTP] Polling live data fallback...");
+                initialFetch();
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QuizMoKo - Worksheet to Quiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
+
+    <!-- Cropper.js for manual screenshot refinement -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --canvas: #0f172a; --surface-card: #1e293b; --surface-elevated: #334155; --surface-soft: #0f172a;
+            --on-dark: #f8fafc; --body: #94a3b8; --body-strong: #e2e8f0; --hairline: #334155;
+            --primary: #6366f1; --m-blue-light: #818cf8; --m-blue-dark: #4f46e5; --m-red: #fb7185;
+            --success: #34d399; --warning: #fbbf24; --radius-md: 12px; --radius-sm: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        [data-theme="light"] {
+            --canvas: #f8fafc; --surface-card: #ffffff; --surface-elevated: #f1f5f9; --surface-soft: #e2e8f0;
+            --on-dark: #0f172a; --body: #64748b; --body-strong: #334155; --hairline: #cbd5e1;
+            --primary: #4f46e5; --m-blue-light: #6366f1; --m-blue-dark: #4338ca; --m-red: #f43f5e;
+            --success: #10b981;
+        }
+
+        .container { max-width: 1200px; margin: auto; }
+        .dashboard-container {
+            width: 100%;
+            max-width: 1800px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 32px;
+            align-items: start;
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-container.teacher-view { grid-template-columns: 450px 1fr; }
+            .sticky-col { position: sticky; top: 24px; }
+        }
+
+        /* --- MODE TABS --- */
+        .mode-tabs {
+            display: flex;
+            background: var(--surface-soft);
+            border: 1px solid var(--hairline);
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+            padding: 8px;
+            gap: 4px;
+        }
+        .mode-tab {
+            flex: 1;
+            padding: 10px 4px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--body);
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: 0.2s;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .mode-tab:hover { background: var(--surface-elevated); color: var(--on-dark); }
+        .mode-tab.active { background: var(--primary); color: white; }
+        .mode-tab i { font-size: 16px; margin-bottom: 2px; }
+
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 40px 20px; color: var(--body-strong); background-color: var(--canvas); transition: 0.3s; }
+        .card { background: var(--surface-card); padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); margin-bottom: 24px; }
+
+        h1, h2, h3 { color: var(--on-dark); margin-top: 0; }
+        .m-stripe { height: 4px; width: 60px; background: var(--primary); border-radius: 2px; margin-bottom: 24px; }
+
+        .dropzone {
+            border: 2px dashed var(--hairline); border-radius: var(--radius-md); padding: 40px; text-align: center;
+            background: var(--surface-soft); cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .dropzone:hover, .dropzone.dragover { border-color: var(--primary); background: rgba(99, 102, 241, 0.05); }
+        .dropzone input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+        .file-list { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+        .file-tag { background: var(--surface-elevated); padding: 4px 12px; border-radius: 16px; font-size: 12px; border: 1px solid var(--hairline); }
+
+        .btn {
+            padding: 14px 24px; border-radius: var(--radius-sm); border: none; font-weight: 700; cursor: pointer;
+            transition: 0.2s; font-family: inherit; font-size: 14px;
+        }
+        .btn-primary { background: var(--primary); color: white; width: 100%; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); cursor: not-allowed; transform: none; }
+
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); }
+
+        label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; color: var(--body); }
+        select, input[type="text"], input[type="number"], textarea {
+            width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline);
+            background: var(--surface-soft); color: var(--on-dark); font-family: inherit;
+            transition: all 0.2s ease;
+        }
+        select:focus, input:focus, textarea:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
+        textarea { height: 80px; resize: vertical; }
+
+        #extraction-preview { display: none; margin-top: 32px; }
+        .question-item {
+            background: var(--surface-soft); border: 1px solid var(--hairline); padding: 16px; border-radius: var(--radius-sm);
+            margin-bottom: 12px; position: relative;
+        }
+        .q-type-badge {
+            font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--primary); color: white;
+            text-transform: uppercase; font-weight: 800; margin-right: 8px;
+        }
+        .q-img-desc { font-style: italic; color: var(--primary); font-size: 12px; margin-top: 8px; }
+
+        #progress-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9);
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .progress-box { width: 300px; height: 8px; background: var(--hairline); border-radius: 4px; overflow: hidden; margin-top: 20px; }
+        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: 0.3s; }
+
+        /* Cropper Modal */
+        #cropper-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95);
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
+            padding: 40px; box-sizing: border-box;
+        }
+        .cropper-container-box { background: var(--surface-card); padding: 24px; border-radius: var(--radius-md); width: 100%; max-width: 900px; max-height: 80vh; display: flex; flex-direction: column; }
+        .cropper-image-wrapper { flex: 1; overflow: hidden; background: #000; border-radius: var(--radius-sm); margin-bottom: 24px; }
+        #cropper-image { max-width: 100%; display: block; }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 1800px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+            <a href="/" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                DASHBOARD
+            </a>
+            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;">🌙</button>
+        </div>
+
+        <div class="dashboard-container teacher-view">
+            <div class="sticky-col">
+                <div class="mode-tabs">
+                    <a href="/" class="mode-tab">
+                        <span>🤖</span>
+                        AI GEN
+                    </a>
+                    <a href="/worksheet" class="mode-tab active">
+                        <span>📄</span>
+                        WORKSHEET
+                    </a>
+                    <a href="/worksheet_answers" class="mode-tab">
+                        <span>🔑</span>
+                        ANSWERS
+                    </a>
+                    <a href="/rmxflash" class="mode-tab">
+                        <span>⚡</span>
+                        RMXFLASH
+                    </a>
+                </div>
+                <div class="card" id="upload-card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
+                    <h1>📄 Worksheet to Quiz</h1>
+                    <div class="m-stripe"></div>
+                    <p style="color: var(--body); margin-bottom: 32px;">Convert your existing worksheet images or PDFs into a live, interactive quiz with AI.</p>
+
+                    <form id="worksheet-form" onsubmit="handleExtract(event)">
+                        <label>Step 1: Upload Files (Images or PDF)</label>
+                        <div class="dropzone" id="dropzone">
+                            <div style="font-size: 40px; margin-bottom: 8px;">📤</div>
+                            <div style="font-weight: 700;">Click, Drag, or Paste Worksheet Files</div>
+                            <div style="font-size: 12px; color: var(--body); margin-top: 4px;">Supports PNG, JPG, JPEG, and PDF</div>
+                            <input type="file" id="file-input" name="files" multiple accept="image/*,.pdf" onchange="updateFileList()">
+                        </div>
+                        <div class="file-list" id="file-list"></div>
+
+                        <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline);">
+                                <input type="checkbox" id="use_screenshots" style="width: 18px; height: 18px; cursor: pointer;">
+                                <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--on-dark);">📸 Capture real screenshots of diagrams (Gemini 2.5+ recommended)</label>
+                            </div>
+                            <div>
+                                <label>AI Model</label>
+                                <div style="display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center;">
+                                    <select id="model_select" onchange="updateCounterUI()">
+                                        <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+                                        <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                                        <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite (Best limits)</option>
+                                        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+                                        <option value="gemini-3.0-flash">Gemini 3.0 Flash</option>
+                                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                                    </select>
+                                    <div id="api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px; border: 1px solid var(--hairline); font-weight: 700; white-space: nowrap; font-size: 10px; text-align: center; text-transform: uppercase; border-radius: var(--radius-sm);">
+                                        Loading...
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label>Topic / Hint</label>
+                                <input type="text" id="topic_hint" placeholder="e.g. Algebra 1 Worksheet">
+                            </div>
+                            <div>
+                                <label>Subject Type (Optimization)</label>
+                                <select id="subject_input">
+                                    <option value="General" selected>General (Safe - Handles Math & Text)</option>
+                                    <option value="Math">Mathematics / Calculus</option>
+                                    <option value="Science">Science / Physics / Chemistry</option>
+                                    <option value="English">English / Literature (No Math)</option>
+                                    <option value="History">History / Social Studies (No Math)</option>
+                                    <option value="Biology">Biology (No Math)</option>
+                                </select>
+                                <p style="font-size: 10px; color: var(--body); margin-top: -12px;">Choosing a specific non-math subject improves extraction quality for text-heavy content.</p>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="extract-btn" style="margin-top: 16px;">🔍 EXTRACT QUESTIONS</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="right-col">
+                <div id="extraction-preview" class="card" style="margin-top: 0;">
+                    <h2>📝 Extracted Questions</h2>
+                    <div class="m-stripe"></div>
+                    <p style="font-size: 14px; color: var(--body); margin-bottom: 24px;">Review the extracted questions below. If everything looks good, proceed to solve and generate the quiz.</p>
+
+                    <div id="questions-list"></div>
+
+                    <div id="missing-alert" style="display: none; background: rgba(251, 113, 133, 0.1); border: 1px solid var(--m-red); border-radius: var(--radius-sm); padding: 12px; margin-top: 16px; color: var(--m-red); font-size: 13px; display: flex; align-items: center; justify-content: space-between;">
+                        <span>⚠️ Missing or Incomplete (Null Answers) detected: <b id="missing-indices-text"></b></span>
+                        <button onclick="handleTargetedRetry()" class="btn-secondary" id="retry-recovery-btn" style="padding: 6px 12px; font-size: 11px; margin: 0; border-color: var(--m-red); color: var(--m-red);">🔍 Targeted Recovery</button>
+                    </div>
+
+                    <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--hairline);">
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
+                            <div>
+                                <label>Solve Batch Size</label>
+                                <input type="number" id="batch_size" value="3" min="1" max="10">
+                            </div>
+                            <div>
+                                <label>Sec/Question</label>
+                                <input type="number" id="time_limit" value="20">
+                            </div>
+                            <div>
+                                <label>Quiz Mode</label>
+                                <select id="quiz_mode">
+                                    <option value="sequential">Sequential</option>
+                                    <option value="back_and_forth" selected>Back-and-Forth</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 24px; display: flex; align-items: center; gap: 10px; background: var(--surface-soft); padding: 16px; border: 1px solid var(--hairline); border-radius: var(--radius-md);">
+                            <input type="checkbox" id="require_solution" style="width: 20px; height: 20px; cursor: pointer;">
+                            <label for="require_solution" style="margin: 0; cursor: pointer; font-size: 15px; color: var(--on-dark);">📝 Require Solution for All Questions</label>
+                        </div>
+
+                        <button onclick="handleSolve()" class="btn btn-primary" id="solve-btn">✨ GENERATE LIVE QUIZ</button>
+                    </div>
+                </div>
+
+                <!-- Empty State for Right Column -->
+                <div id="empty-preview" class="card" style="margin-top: 0; text-align: center; padding: 100px 40px;">
+                    <div style="font-size: 64px; margin-bottom: 24px; opacity: 0.3;">📄</div>
+                    <h3 style="color: var(--body);">Questions will appear here after extraction</h3>
+                    <p style="color: var(--body); font-size: 14px;">Upload your worksheet on the left to begin.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="progress-overlay">
+        <h2 id="progress-text" style="color: white; margin: 0;">Processing...</h2>
+        <div class="progress-box">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <p id="progress-subtext" style="color: var(--body); margin-top: 12px; font-size: 14px;">This may take a minute depending on worksheet size.</p>
+    </div>
+
+    <!-- Cropper Modal -->
+    <div id="cropper-modal">
+        <div class="cropper-container-box">
+            <h2 style="margin-bottom: 8px;">✂️ Refine Screenshot</h2>
+            <p style="color: var(--body); font-size: 13px; margin-bottom: 20px;">Adjust the crop to remove extra text or whitespace around the diagram.</p>
+            <div class="cropper-image-wrapper">
+                <img id="cropper-image" src="">
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-primary" onclick="saveCroppedImage()" style="margin: 0;">✅ Save Crop</button>
+                <button class="btn btn-secondary" onclick="closeCropperModal()" style="margin: 0;">❌ Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
+        const fileListContainer = document.getElementById('file-list');
+        const overlay = document.getElementById('progress-overlay');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+
+        // --- RATE LIMIT TRACKER LOGIC ---
+        const API_LIMITS = {
+            "gemini-3.6-flash": 20,
+            "gemini-3.5-flash": 20,
+            "gemini-3.5-flash-lite": 500,
+            "gemini-3.1-flash-lite": 500,
+            "gemini-3.0-flash": 20,
+            "gemini-2.5-flash": 20,
+            "gemini-2.5-flash-lite": 20
+        };
+
+        let GLOBAL_DAILY_STATS = {};
+
+        async function getHash(text) {
+            if (!text) return "default";
+            const msgUint8 = new TextEncoder().encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex.substring(0, 8);
+        }
+
+        async function fetchUsageStats() {
+            try {
+                const res = await fetch('/api/usage/stats');
+                const data = await res.json();
+                if (data.success) {
+                    GLOBAL_DAILY_STATS = data.daily_stats;
+                    updateCounterUI();
+                }
+            } catch (e) {
+                console.error("Failed to fetch usage stats:", e);
+            }
+        }
+
+        async function updateCounterUI() {
+            let model = document.getElementById('model_select').value;
+            const today = new Date().toISOString().split('T')[0];
+            const modelStats = (GLOBAL_DAILY_STATS[today] && GLOBAL_DAILY_STATS[today][model]) || {};
+
+            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+            if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
+
+            let totalUsed = 0;
+            let totalLimit = 0;
+            let isLocal = model.startsWith('ollama:');
+            const baseLimit = API_LIMITS[model] || 20;
+
+            if (isLocal) {
+                totalLimit = '∞';
+                totalUsed = 0;
+            } else {
+                for (const key of keys) {
+                    const kid = await getHash(key);
+                    totalUsed += modelStats[kid] || 0;
+                    totalLimit += baseLimit;
+                }
+                if (keys.length === 0) totalLimit = baseLimit;
+            }
+
+            let remaining = isLocal ? '∞' : Math.max(0, totalLimit - totalUsed);
+
+            let badge = document.getElementById('api-counter-badge');
+            if (badge) {
+                badge.innerHTML = `⏳ <b>${remaining} / ${totalLimit}</b>`;
+                if (!isLocal && remaining <= 0) {
+                    badge.style.color = 'var(--m-red)';
+                    badge.style.borderColor = 'var(--m-red)';
+                } else {
+                    badge.style.color = 'var(--m-blue-light)';
+                    badge.style.borderColor = 'var(--hairline)';
+                }
+            }
+        }
+
+        async function getUsableKey(model, needed = 1) {
+            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+            if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
+
+            const today = new Date().toISOString().split('T')[0];
+            const modelStats = (GLOBAL_DAILY_STATS[today] && GLOBAL_DAILY_STATS[today][model]) || {};
+            const baseLimit = API_LIMITS[model] || 20;
+
+            for (const key of keys) {
+                const kid = await getHash(key);
+                const used = modelStats[kid] || 0;
+                if (used + needed <= baseLimit) return key;
+            }
+            return keys[0] || null;
+        }
+
+        window.addEventListener('DOMContentLoaded', fetchUsageStats);
+
+        let extractedQuestions = [];
+        let missingIndices = [];
+        let pastedFiles = [];
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        };
+
+        function updateFileList() {
+            fileListContainer.innerHTML = '';
+
+            // Show files from the input
+            for (let file of fileInput.files) {
+                const tag = document.createElement('div');
+                tag.className = 'file-tag';
+                tag.innerText = file.name;
+                fileListContainer.appendChild(tag);
+            }
+
+            // Show pasted files
+            pastedFiles.forEach((file, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'file-tag';
+                tag.style.borderColor = 'var(--primary)';
+                tag.innerHTML = `📋 ${file.name} <span onclick="removePasted(${index})" style="cursor:pointer; margin-left:5px; color:var(--m-red);">×</span>`;
+                fileListContainer.appendChild(tag);
+            });
+        }
+
+        function removePasted(index) {
+            pastedFiles.splice(index, 1);
+            updateFileList();
+        }
+
+        // --- PASTE FUNCTIONALITY ---
+        window.addEventListener('paste', e => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            let foundImage = false;
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const blob = item.getAsFile();
+                    const timestamp = new Date().getTime();
+                    const file = new File([blob], `pasted-image-${timestamp}.png`, { type: 'image/png' });
+                    pastedFiles.push(file);
+                    foundImage = true;
+                }
+            }
+            if (foundImage) updateFileList();
+        });
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); });
+        });
+
+        dropzone.addEventListener('dragover', () => dropzone.classList.add('dragover'));
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', e => {
+            dropzone.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            updateFileList();
+        });
+
+        async function handleExtract(e) {
+            e.preventDefault();
+            if (fileInput.files.length === 0 && pastedFiles.length === 0) return alert('Please upload or paste at least one file.');
+
+            const model = document.getElementById('model_select').value;
+            const isLocal = model.startsWith('ollama:');
+            const apiKey = isLocal ? null : await getUsableKey(model, 1);
+
+            if (!isLocal && !apiKey) return alert('No API keys with remaining quota found today. Please add more keys or wait for reset.');
+
+            const sessionId = "ws_" + Math.random().toString(36).substring(2, 15);
+            progressText.innerText = "🔍 Extracting Worksheet Content...";
+            overlay.style.display = 'flex';
+            progressBar.style.width = '10%';
+
+            const startTime = Date.now();
+            const POLL_TIMEOUT = 600000; // 10 minutes total max for solving
+
+            // Start Polling
+            const pollInterval = setInterval(async () => {
+                try {
+                    // Check for client-side timeout
+                    if (Date.now() - startTime > POLL_TIMEOUT) {
+                        clearInterval(pollInterval);
+                        alert("Solving timed out. Please check your internet connection and dashboard to see if the quiz was created.");
+                        overlay.style.display = 'none';
+                        return;
+                    }
+
+                    const res = await fetch(`/api/progress/${sessionId}`);
+                    const data = await res.json();
+                    if (data.message) progressText.innerText = data.message;
+                    if (data.percentage) progressBar.style.width = data.percentage + '%';
+                } catch(e) {}
+            }, 2000);
+
+            const formData = new FormData();
+            for (let file of fileInput.files) formData.append('files', file);
+            for (let file of pastedFiles) formData.append('files', file);
+
+            formData.append('api_key', apiKey);
+            formData.append('model_name', document.getElementById('model_select').value);
+            formData.append('topic_hint', document.getElementById('topic_hint').value);
+            formData.append('subject', document.getElementById('subject_input').value);
+            formData.append('use_screenshots', document.getElementById('use_screenshots').checked);
+            formData.append('session_id', sessionId);
+
+            try {
+                const res = await fetch('/api/extract_worksheet', { method: 'POST', body: formData });
+                const data = await res.json();
+                clearInterval(pollInterval);
+
+                if (data.success) {
+                    progressBar.style.width = '100%';
+                    progressText.innerText = "✅ Extraction Complete!";
+
+                    extractedQuestions = data.questions;
+                    missingIndices = data.missing_indices || [];
+                    renderPreview();
+
+                    const missingAlert = document.getElementById('missing-alert');
+                    if (missingIndices.length > 0) {
+                        missingAlert.style.display = 'flex';
+                        document.getElementById('missing-indices-text').innerText = missingIndices.join(', ');
+                    } else {
+                        missingAlert.style.display = 'none';
+                    }
+
+                    setTimeout(() => {
+                        document.getElementById('upload-card').style.display = 'none';
+                        document.getElementById('extraction-preview').style.display = 'block';
+                        overlay.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 1000);
+                } else {
+                    alert('Extraction failed: ' + data.error);
+                }
+            } catch (err) {
+                alert('An error occurred during extraction.');
+            } finally {
+                overlay.style.display = 'none';
+                progressBar.style.width = '0%';
+            }
+        }
+
+        async function handleTargetedRetry() {
+            const model = document.getElementById('model_select').value;
+            const apiKey = await getUsableKey(model, 2);
+            if (!apiKey) return alert("No API key available.");
+
+            progressText.innerText = `🔍 Recovering questions ${missingIndices.join(', ')}...`;
+            overlay.style.display = 'flex';
+
+            const formData = new FormData();
+            for (let file of fileInput.files) formData.append('files', file);
+            for (let file of pastedFiles) formData.append('files', file);
+            formData.append('missing_numbers', JSON.stringify(missingIndices));
+            formData.append('topic_hint', document.getElementById('topic_hint').value);
+            formData.append('api_key', apiKey);
+            formData.append('model_name', model);
+
+            try {
+                const res = await fetch('/api/recover_questions', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    data.recovered.forEach(rq => {
+                        // Standardize keys: Recovery might return 'question' instead of 'raw_text'
+                        if (rq.question && !rq.raw_text) {
+                            rq.raw_text = rq.question;
+                            delete rq.question;
+                        }
+
+                        const idx = extractedQuestions.findIndex(q => q.original_index == rq.original_index);
+                        if (idx !== -1) extractedQuestions[idx] = rq;
+                        else extractedQuestions.push(rq);
+                    });
+                    extractedQuestions.sort((a,b) => parseInt(a.original_index || 999) - parseInt(b.original_index || 999));
+
+                    const extractedNums = extractedQuestions.filter(q => {
+                        const ans = String(q.answer || "").toLowerCase();
+                        return ans && ans !== "null" && !ans.includes("missing");
+                    }).map(q => parseInt(q.original_index));
+
+                    missingIndices = missingIndices.filter(n => !extractedNums.includes(n));
+
+                    const missingAlert = document.getElementById('missing-alert');
+                    if (missingIndices.length > 0) {
+                        document.getElementById('missing-indices-text').innerText = missingIndices.join(', ');
+                    } else {
+                        missingAlert.style.display = 'none';
+                    }
+                    renderPreview();
+                    alert(`Successfully recovered ${data.recovered.length} items!`);
+                } else {
+                    alert("Recovery failed: " + data.error);
+                }
+            } catch (e) {
+                alert("Error during recovery.");
+            } finally {
+                overlay.style.display = 'none';
+            }
+        }
+
+        function renderPreview() {
+            const list = document.getElementById('questions-list');
+            list.innerHTML = '';
+
+            if (extractedQuestions.length > 0) {
+                document.getElementById('empty-preview').style.display = 'none';
+                document.getElementById('extraction-preview').style.display = 'block';
+            }
+
+            extractedQuestions.forEach((q, i) => {
+                const item = document.createElement('div');
+                item.className = 'question-item';
+
+                // --- NEW: TYPE SELECTION DROPDOWN ---
+                const typeOptions = [
+                    { val: 'multiple_choice', label: 'Multiple Choice' },
+                    { val: 'multiple_choice_multi', label: 'Multiple Choice (Multi-Answers)' },
+                    { val: 'true_false', label: 'True/False' },
+                    { val: 'identification', label: 'Identification (Integer)' },
+                    { val: 'open_ended', label: 'Open Ended / Descriptive' },
+                    { val: 'graphing', label: 'Graphing / Drawing' }
+                ];
+
+                let typeSelectorHtml = `<select onchange="updateQuestionType(${i}, this.value)" style="width: auto; padding: 4px 8px; font-size: 11px; margin: 0; margin-right: 12px; background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--primary); border-radius: 4px; font-weight: 700; cursor: pointer;">`;
+                typeOptions.forEach(opt => {
+                    typeSelectorHtml += `<option value="${opt.val}" ${q.type === opt.val ? 'selected' : ''}>${opt.label}</option>`;
+                });
+                typeSelectorHtml += `</select>`;
+
+                // Check for captured screenshot in raw_text
+                const imgMatch = q.raw_text.match(/<div class="resizable-image-wrapper">.*?src="([^"]+)".*?<\/div>\s*<\/div>/is);
+                const hasScreenshot = !!imgMatch;
+
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center;">
+                            ${typeSelectorHtml}
+                            <span style="font-weight: 800; color: var(--on-dark); font-size: 13px;">Question ${i + 1}</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            ${hasScreenshot ? `<button onclick="openCropRefiner(${i})" class="btn-secondary" style="font-size: 10px; padding: 4px 8px; border-color: var(--warning); color: var(--warning);">✂️ REFINE CROP</button>` : ''}
+                            <button onclick="removeQuestion(${i})" style="background: transparent; border: none; color: var(--m-red); font-size: 18px; cursor: pointer; padding: 4px;">🗑️</button>
+                        </div>
+                    </div>
+                    <div contenteditable="true" onblur="updateQuestionText(${i}, this.innerText)" style="padding: 12px; border: 1px solid var(--hairline); border-radius: 4px; background: var(--canvas); color: var(--on-dark); font-size: 14px; line-height: 1.5; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--hairline)'">${q.raw_text.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim()}</div>
+
+                    ${hasScreenshot ? `<div style="margin-top: 12px; padding: 12px; background: var(--canvas); border-radius: var(--radius-sm); border: 1px solid var(--hairline); text-align: center;">${imgMatch[0]}</div>` : ''}
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // --- CROP REFINER LOGIC ---
+        let cropper = null;
+        let currentCroppingIndex = null;
+
+        function openCropRefiner(index) {
+            currentCroppingIndex = index;
+            const q = extractedQuestions[index];
+            const imgMatch = q.raw_text.match(/src="([^"]+)"/i);
+            if (!imgMatch) return;
+
+            const modal = document.getElementById('cropper-modal');
+            const image = document.getElementById('cropper-image');
+
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+
+            modal.style.display = 'flex';
+
+            image.onload = () => {
+                cropper = new Cropper(image, {
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.9,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                });
+                image.onload = null; // Prevent re-triggering
+            };
+
+            image.src = imgMatch[1];
+        }
+
+        function closeCropperModal() {
+            document.getElementById('cropper-modal').style.display = 'none';
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+        }
+
+        function saveCroppedImage() {
+            if (!cropper) return;
+
+            const canvas = cropper.getCroppedCanvas({
+                maxWidth: 2000,
+                maxHeight: 2000,
+                fillColor: '#fff',
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+
+            const newBase64 = canvas.toDataURL('image/png');
+            const q = extractedQuestions[currentCroppingIndex];
+
+            // Replace old image HTML with new one
+            const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${newBase64}" alt="Source Diagram"></div></div>`;
+
+            // Strip old image wrapper and append new one
+            const cleanText = q.raw_text.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim();
+            q.raw_text = cleanText + "\n" + imgHtml;
+
+            renderPreview();
+            closeCropperModal();
+        }
+
+        function updateQuestionType(index, type) {
+            extractedQuestions[index].type = type;
+        }
+
+        function removeQuestion(index) {
+            if (confirm("Remove this question from extraction?")) {
+                extractedQuestions.splice(index, 1);
+                renderPreview();
+            }
+        }
+
+        function updateQuestionText(index, text) {
+            const q = extractedQuestions[index];
+            const oldText = q.raw_text || "";
+            const imgMatch = oldText.match(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is);
+            q.raw_text = text + (imgMatch ? "\n" + imgMatch[0] : "");
+        }
+
+        async function handleSolve() {
+            const batchSize = parseInt(document.getElementById('batch_size').value);
+            const model = document.getElementById('model_select').value;
+            const isLocal = model.startsWith('ollama:');
+
+            const estimatedRequests = Math.ceil(extractedQuestions.length / batchSize);
+            const apiKey = isLocal ? null : await getUsableKey(model, estimatedRequests);
+
+            if (!isLocal && !apiKey) return alert(`No API keys with enough remaining quota (${estimatedRequests} calls needed) found today.`);
+
+            const subject = document.getElementById('subject_input').value;
+            const timeLimit = document.getElementById('time_limit').value;
+            const topicHint = document.getElementById('topic_hint').value;
+            const requireSolution = document.getElementById('require_solution').checked;
+
+            const sessionId = "solve_" + Math.random().toString(36).substring(2, 15);
+            progressText.innerText = "✨ Solving & Generating Quiz...";
+            overlay.style.display = 'flex';
+            progressBar.style.width = '5%';
+
+            const startTime = Date.now();
+            const POLL_TIMEOUT = 600000; // 10 minutes total max for solving
+
+            // Start Polling
+            const pollInterval = setInterval(async () => {
+                try {
+                    // Check for client-side timeout
+                    if (Date.now() - startTime > POLL_TIMEOUT) {
+                        clearInterval(pollInterval);
+                        alert("Solving timed out. Please check your internet connection and dashboard to see if the quiz was created.");
+                        overlay.style.display = 'none';
+                        return;
+                    }
+
+                    const res = await fetch(`/api/progress/${sessionId}`);
+                    const data = await res.json();
+
+                    if (data.message) progressText.innerText = data.message;
+                    if (data.percentage) progressBar.style.width = data.percentage + '%';
+
+                    if (data.status === 'completed' && data.quiz_id) {
+                        clearInterval(pollInterval);
+                        progressBar.style.width = '100%';
+                        setTimeout(() => {
+                            window.location.href = `/edit/${data.quiz_id}`;
+                        }, 500);
+                    } else if (data.status === 'error') {
+                        clearInterval(pollInterval);
+                        alert('Solving failed: ' + (data.error || data.message));
+                        overlay.style.display = 'none';
+                    }
+                } catch(e) {
+                    console.error("Polling error:", e);
+                }
+            }, 2000);
+
+            try {
+                const res = await fetch('/api/solve_worksheet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        questions: extractedQuestions,
+                        batch_size: batchSize,
+                        api_key: apiKey,
+                        subject: subject,
+                        time_limit: timeLimit,
+                        quiz_mode: document.getElementById('quiz_mode').value,
+                        topic: topicHint || "Worksheet Quiz",
+                        require_solution: requireSolution,
+                        model_name: document.getElementById('model_select').value,
+                        session_id: sessionId
+                    })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || 'Failed to start solving');
+                }
+
+                // We don't clear the interval here; we wait for the polling to detect completion
+            } catch (error) {
+                clearInterval(pollInterval);
+                alert('Solving failed: ' + error.message);
+                overlay.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

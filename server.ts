@@ -16,7 +16,7 @@ import {
   WORKSHEET_SOLVER_PROMPT,
   WORKSHEET_SOLVER_PROMPT_NON_MATH,
   LATEX_POLISH_PROMPT
-} from './prompts';
+} from './prompts.js';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, setLogLevel } from 'firebase/firestore';
 

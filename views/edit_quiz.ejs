@@ -1696,6 +1696,11 @@
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
+                    if (data.quiz && data.quiz.title) {
+                        quizData.title = data.quiz.title;
+                        const titleInput = document.getElementById('quiz-title');
+                        if (titleInput) titleInput.value = data.quiz.title;
+                    }
                     if (btn) {
                         btn.innerHTML = "✅ SAVED";
                         btn.style.background = "var(--success)";

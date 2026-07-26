@@ -250,6 +250,22 @@ function loadPersistentData() {
   }
 }
 
+function getUniqueQuizTitle(title: string, currentQuizId?: string): string {
+  const baseTitle = String(title || '').trim();
+  let uniqueTitle = baseTitle;
+  let counter = 1;
+
+  // Find other quizzes (filtering out the current one if it exists)
+  const otherQuizzes = Array.from(quizzes.values()).filter((q: any) => q.id !== currentQuizId);
+
+  while (otherQuizzes.some((q: any) => (q.title || '').trim().toLowerCase() === uniqueTitle.toLowerCase())) {
+    uniqueTitle = `${baseTitle} (${counter})`;
+    counter++;
+  }
+
+  return uniqueTitle;
+}
+
 async function loadFromFirestore() {
   if (firestoreDbs.length === 0) return;
   console.log('[Firebase] Loading data from Firestore collections...');
@@ -643,6 +659,9 @@ app.post('/api/quiz/:quiz_id/update', tokenRequired, (req, res) => {
   if (!quiz) {
     return res.status(404).json({ success: false, error: 'Quiz not found' });
   }
+  if (req.body && req.body.title) {
+    req.body.title = getUniqueQuizTitle(req.body.title, req.params.quiz_id);
+  }
   const updated = { ...quiz, ...req.body };
   quizzes.set(req.params.quiz_id, updated);
   savePersistentData();
@@ -919,6 +938,9 @@ Correct Answer: "${correct_answer}"`;
 app.post(['/update/:quiz_id', '/api/quiz/:quiz_id/update'], tokenRequired, (req, res) => {
   const quizId = req.params.quiz_id;
   const existing = quizzes.get(quizId) || { id: quizId, created_at: new Date().toISOString() };
+  if (req.body && req.body.title) {
+    req.body.title = getUniqueQuizTitle(req.body.title, quizId);
+  }
   const updated = { ...existing, ...req.body, id: quizId };
   quizzes.set(quizId, updated);
   savePersistentData();
@@ -928,12 +950,13 @@ app.post(['/update/:quiz_id', '/api/quiz/:quiz_id/update'], tokenRequired, (req,
 
 app.get('/create_blank', tokenRequired, (req: any, res) => {
   const title = (req.query.title as string) || 'Untitled Quiz';
+  const uniqueTitle = getUniqueQuizTitle(title);
   const subject = (req.query.subject as string) || 'General';
   const newId = `quiz_${Date.now()}`;
   const newQuiz = {
     id: newId,
     user_id: req.user ? req.user.uid : 'teacher_test',
-    title,
+    title: uniqueTitle,
     subject,
     time_limit: 30,
     quiz_mode: 'back_and_forth',
@@ -956,6 +979,7 @@ app.get('/create_blank', tokenRequired, (req: any, res) => {
 
 app.post('/merge', tokenRequired, (req: any, res) => {
   const { quiz_ids = [], new_title = 'Merged Quiz' } = req.body;
+  const uniqueTitle = getUniqueQuizTitle(new_title);
   let mergedQuestions: any[] = [];
   let subject = 'General';
 
@@ -971,7 +995,7 @@ app.post('/merge', tokenRequired, (req: any, res) => {
   const newQuiz = {
     id: newId,
     user_id: req.user ? req.user.uid : 'teacher_test',
-    title: new_title,
+    title: uniqueTitle,
     subject,
     time_limit: 30,
     quiz_mode: 'back_and_forth',
@@ -1579,11 +1603,12 @@ app.post('/api/solve_worksheet', tokenRequired, async (req: any, res) => {
         };
       });
 
+      const uniqueTitle = getUniqueQuizTitle(topic || 'Worksheet Quiz');
       const newQuizId = `quiz_${Date.now()}`;
       const newQuiz = {
         id: newQuizId,
         user_id: req.user ? req.user.uid : 'teacher_test',
-        title: topic || 'Worksheet Quiz',
+        title: uniqueTitle,
         subject: subject || 'General',
         time_limit: parseInt(time_limit) || 20,
         quiz_mode: quiz_mode || 'back_and_forth',
@@ -2210,11 +2235,12 @@ app.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: any, re
       type: q.type || (q.options && q.options.length > 0 ? 'multiple_choice' : 'identification')
     }));
 
+    const uniqueTitle = getUniqueQuizTitle(topic || 'Extracted Worksheet Quiz');
     const newQuizId = `quiz_${Date.now()}`;
     const newQuiz = {
       id: newQuizId,
       user_id: req.user ? req.user.uid : 'teacher_test',
-      title: topic || 'Extracted Worksheet Quiz',
+      title: uniqueTitle,
       subject: subject || 'General',
       time_limit: parseInt(time_limit) || 30,
       quiz_mode: quiz_mode || 'back_and_forth',

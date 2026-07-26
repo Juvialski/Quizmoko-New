@@ -1,6 +1,7 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -139,6 +140,47 @@ const sampleQuizzes = [
 ];
 
 sampleQuizzes.forEach(q => quizzes.set(q.id, q));
+
+// --- FILE-BASED PERSISTENCE FOR LOCAL STORAGE ---
+const DATA_DIR = path.join(process.cwd(), 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+const QUIZZES_FILE = path.join(DATA_DIR, 'quizzes.json');
+const RESULTS_FILE = path.join(DATA_DIR, 'results.json');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+
+function savePersistentData() {
+  try {
+    fs.writeFileSync(QUIZZES_FILE, JSON.stringify(Object.fromEntries(quizzes), null, 2));
+    fs.writeFileSync(RESULTS_FILE, JSON.stringify(Object.fromEntries(results), null, 2));
+    fs.writeFileSync(USERS_FILE, JSON.stringify(Object.fromEntries(users), null, 2));
+  } catch (err) {
+    console.warn('Failed to save data to disk:', err);
+  }
+}
+
+function loadPersistentData() {
+  try {
+    if (fs.existsSync(QUIZZES_FILE)) {
+      const data = JSON.parse(fs.readFileSync(QUIZZES_FILE, 'utf-8'));
+      Object.entries(data).forEach(([k, v]) => quizzes.set(k, v));
+    }
+    if (fs.existsSync(RESULTS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(RESULTS_FILE, 'utf-8'));
+      Object.entries(data).forEach(([k, v]) => results.set(k, v));
+    }
+    if (fs.existsSync(USERS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8'));
+      Object.entries(data).forEach(([k, v]) => users.set(k, v));
+    }
+  } catch (err) {
+    console.warn('Failed to load data from disk:', err);
+  }
+}
+
+// Load existing disk data on startup over defaults
+loadPersistentData();
 
 // --- HELPER FOR LIVE SESSION STATE ---
 function getOrCreateLiveState(quizId: string) {
@@ -661,6 +703,7 @@ app.post(['/submit', '/api/submit_quiz'], tokenRequired, async (req: any, res) =
   };
 
   results.set(resultId, resultObj);
+  savePersistentData();
 
   res.json({
     success: true,
@@ -703,6 +746,7 @@ app.post(['/update/:quiz_id', '/api/quiz/:quiz_id/update'], tokenRequired, (req,
   const existing = quizzes.get(quizId) || { id: quizId, created_at: new Date().toISOString() };
   const updated = { ...existing, ...req.body, id: quizId };
   quizzes.set(quizId, updated);
+  savePersistentData();
   res.json({ success: true, quiz_id: quizId, quiz: updated, redirect: `/edit/${quizId}` });
 });
 
@@ -729,6 +773,7 @@ app.get('/create_blank', tokenRequired, (req: any, res) => {
     ]
   };
   quizzes.set(newId, newQuiz);
+  savePersistentData();
   res.redirect(`/edit/${newId}`);
 });
 
@@ -761,6 +806,7 @@ app.post('/merge', tokenRequired, (req: any, res) => {
   };
 
   quizzes.set(newId, newQuiz);
+  savePersistentData();
   res.json({ success: true, new_quiz_id: newId });
 });
 
@@ -770,6 +816,7 @@ app.post('/api/move_quiz', tokenRequired, (req, res) => {
   if (quiz) {
     quiz.subject = subject || 'General';
     quizzes.set(quiz_id, quiz);
+    savePersistentData();
     return res.json({ success: true });
   }
   res.status(404).json({ success: false, error: 'Quiz not found' });

@@ -74,9 +74,12 @@
             align-items: start;
         }
 
-        @media (min-width: 1024px) {
-            .dashboard-container.teacher-view { grid-template-columns: 450px 1fr; }
+        @media (min-width: 769px) {
+            .dashboard-container.teacher-view { grid-template-columns: 350px 1fr; }
             .sticky-col { position: sticky; top: 24px; }
+        }
+        @media (min-width: 1200px) {
+            .dashboard-container.teacher-view { grid-template-columns: 450px 1fr; }
         }
 
         /* --- MODE TABS --- */
@@ -219,7 +222,7 @@
         .icon-sm { width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 6px; }
         
         .quiz-card-horizontal {
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex; flex-direction: row !important; justify-content: space-between; align-items: center;
             background: var(--surface-card); padding: 16px 20px;
             border-radius: var(--radius-md); margin-bottom: 12px;
             box-shadow: var(--shadow); transition: transform 0.2s;

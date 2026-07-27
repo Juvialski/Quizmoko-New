@@ -66,12 +66,14 @@
         }
         .quiz-wrapper { display: flex; width: 100vw; height: 100vh; overflow: hidden; }
         .left-panel { flex: 1; overflow-y: auto; padding: 40px 20px; transition: 0.3s; display: flex; justify-content: center; align-items: flex-start; }
-        .right-panel { width: 50%; border-left: 2px solid var(--hairline); background: #fff; display: none; flex-direction: column; position: relative;}
+        .right-panel { width: 50%; border-left: 2px solid var(--hairline); background: var(--surface-card); display: none; flex-direction: column; position: relative;}
 
         /* Whiteboard Styles */
-        .whiteboard-container { flex: 1; position: relative; overflow: hidden; background-color: #ffffff; transition: background 0.2s; cursor: crosshair;}
+        .whiteboard-container { flex: 1; position: relative; overflow: hidden; background-color: var(--canvas); transition: background 0.2s; cursor: crosshair;}
         .whiteboard-container.grid-mode {
-            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='%23e2e8f0' stroke-width='1'/%3E%3C/svg%3E") !important;
+            background-image: linear-gradient(var(--hairline) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--hairline) 1px, transparent 1px) !important;
+            background-size: 40px 40px !important;
             background-repeat: repeat !important;
         }
 
@@ -88,7 +90,8 @@
         .quiz-container { background: var(--surface-card); padding: 50px 60px; max-width: 1200px; width: 100%; margin: 0 auto 40px auto; border: 1px solid var(--hairline); text-align: center; transition: 0.3s; position: relative;}
         .quiz-container.split-mode { max-width: 800px; padding: 40px; }
         .top-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 20px; margin-bottom: 30px; }
-        .font-btn { background: transparent; border: 1px solid var(--hairline); border-radius: 4px; width: 32px; height: 32px; font-weight: bold; color: var(--on-dark); cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 16px;}
+        .font-btn { background: var(--surface-soft); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 0 12px; font-weight: bold; color: var(--on-dark); cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 13px; height: 32px; min-width: 36px; box-sizing: border-box; }
+        .font-btn:hover { border-color: var(--primary); color: var(--primary); }
         #timer { font-size: 50px; color: var(--m-red); font-weight: 800; margin-bottom: 20px; font-variant-numeric: tabular-nums; letter-spacing: -2px;}
         #question-text { font-size: calc(24px * var(--font-scale)); margin-bottom: 35px; color: var(--body-strong); line-height: 1.6; text-align: left; transition: text-align 0.2s ease;}
         #question-text.centered { text-align: center; }
@@ -319,8 +322,8 @@
         <button id="center-toggle" onclick="toggleQuestionCentering()" style="background:transparent; border:none; cursor:pointer; color:var(--body); padding:8px;" title="Toggle Alignment">
             <i data-lucide="align-center"></i>
         </button>
-        <button class="font-btn" onclick="adjustFontSize(-0.1)" style="background:var(--surface-soft); border:none; color:var(--on-dark); padding:6px 12px; border-radius:var(--radius-sm); font-weight:600;">A-</button>
-        <button class="font-btn" onclick="adjustFontSize(0.1)" style="background:var(--surface-soft); border:none; color:var(--on-dark); padding:6px 12px; border-radius:var(--radius-sm); font-weight:600;">A+</button>
+        <button class="font-btn" onclick="adjustFontSize(-0.1)">A-</button>
+        <button class="font-btn" onclick="adjustFontSize(0.1)">A+</button>
         <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" style="display:none; background:var(--primary); color:#fff; border:none; border-radius:var(--radius-sm); padding:6px 12px; font-size:12px; cursor:pointer; font-weight:700; transition:0.2s;">
             <i data-lucide="pen-tool" class="icon-sm"></i> Whiteboard
         </button>
@@ -380,7 +383,11 @@
                 <button class="wb-btn" onclick="addText()">文本 Text</button>
                 <button class="wb-btn" id="wb-grid-toggle" onclick="toggleWBGrid()">⬛ Grid: Off</button>
                 <button class="wb-btn" onclick="clearCanvas()"><i data-lucide="trash-2" class="icon-sm"></i>️ Clear</button>
-                <select class="wb-btn" onchange="setLineWidth(this.value)"><option value="2">2px</option><option value="4" selected>4px</option><option value="8">8px</option></select>
+                <select class="wb-btn" id="wb-size" onchange="setLineWidth(this.value)"><option value="2">2px</option><option value="4" selected>4px</option><option value="8">8px</option><option value="12">12px</option></select>
+                <div style="display: flex; align-items: center; gap: 6px; margin-left: 4px; flex-shrink: 0;">
+                    <span style="font-size: 11px; font-weight: 600; color: var(--body);">Color:</span>
+                    <input type="color" id="wb-color" value="#f8fafc" class="wb-btn" style="padding: 2px; width: 34px; height: 28px; border: 1px solid var(--hairline); background: var(--surface-card); cursor: pointer; border-radius: var(--radius-sm);" onchange="this.dataset.userChanged = 'true';">
+                </div>
                 <div style="flex:1;"></div>
                 <div style="font-size:10px; color:#64748b; font-weight:800;">SOLUTION AREA</div>
             </div>
@@ -614,6 +621,15 @@
             const n = c === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', n);
             localStorage.setItem('theme', n);
+            updateWhiteboardThemeColors();
+        }
+
+        function updateWhiteboardThemeColors() {
+            const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+            const colorInput = document.getElementById('wb-color');
+            if (colorInput && !colorInput.dataset.userChanged) {
+                colorInput.value = theme === 'dark' ? '#f8fafc' : '#18181b';
+            }
         }
 
         function adjustFontSize(s) {
@@ -796,7 +812,8 @@
             if (shouldShow) {
                 rightPanel.style.display = 'flex';
                 quizContainer.classList.add('split-mode');
-                btn.innerText = 'HIDE WHITEBOARD';
+                btn.innerHTML = '<i data-lucide="eye-off" class="icon-sm"></i> HIDE WHITEBOARD';
+                if (window.lucide) lucide.createIcons();
                 if (!whiteboardInitialized) {
                     initWhiteboard();
                 } else {
@@ -806,7 +823,8 @@
             } else {
                 rightPanel.style.display = 'none';
                 quizContainer.classList.remove('split-mode');
-                btn.innerText = 'SHOW WHITEBOARD';
+                btn.innerHTML = '<i data-lucide="pen-tool" class="icon-sm"></i> SHOW WHITEBOARD';
+                if (window.lucide) lucide.createIcons();
             }
         }
 
@@ -872,7 +890,8 @@
                     bfControls.style.display = 'flex';
                     btnPrev.innerText = '⬅️ PREVIOUS'; // Ensure text is reset
                     btnPrev.disabled = currentIndex === 0;
-                    btnNext.innerText = currentIndex === quizData.questions.length - 1 ? '<i data-lucide="flag" class="icon-sm"></i> FINISH & SUBMIT' : 'NEXT / CONFIRM <i data-lucide="arrow-right" class="icon-sm"></i>️';
+                    btnNext.innerHTML = currentIndex === quizData.questions.length - 1 ? '<i data-lucide="flag" class="icon-sm"></i> FINISH & SUBMIT' : 'NEXT / CONFIRM <i data-lucide="arrow-right" class="icon-sm"></i>️';
+                    if (window.lucide) lucide.createIcons();
                     btnNext.disabled = false;
                 } else {
                     btnConfirm.style.display = 'none';
@@ -1627,6 +1646,7 @@
             const textCont = document.getElementById('wb-text-container'), textInput = document.getElementById('wb-text-input'), resizer = textCont.querySelector('.wb-resizer');
             resizeCanvas(); window.addEventListener('resize', resizeCanvas);
             whiteboardInitialized = true;
+            updateWhiteboardThemeColors();
 
             canvas.onpointerdown = e => {
                 const r = canvas.getBoundingClientRect(); startX = (e.clientX - r.left); startY = (e.clientY - r.top);
@@ -1711,6 +1731,10 @@
             saveQuizState();
         }
         function addText() { setTool('text'); }
+        function setLineWidth(w) {
+            const sizeInput = document.getElementById('wb-size');
+            if (sizeInput) sizeInput.value = w;
+        }
         function resizeCanvas() { if(!canvas) return; const h = document.getElementById('canvas-holder'); canvas.width = h.clientWidth; canvas.height = h.clientHeight; redrawCanvas(); }
 
         // --- NEW: OFFLINE GUARD LOGIC ---

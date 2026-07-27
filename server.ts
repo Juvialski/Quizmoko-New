@@ -53,6 +53,29 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 app.use(cors());
 
+// Middleware to detect and self-heal double-pasted URLs (e.g., /quiz/ed68af71https://quizmoko.onrender.com/quiz/ed68af71)
+app.use((req, res, next) => {
+  const urlStr = req.originalUrl || req.url;
+  if (urlStr.includes('http:/') || urlStr.includes('https:/')) {
+    const lastHttpIndex = Math.max(urlStr.lastIndexOf('http:/'), urlStr.lastIndexOf('https:/'));
+    if (lastHttpIndex !== -1) {
+      const doublePart = urlStr.substring(lastHttpIndex);
+      try {
+        const parsed = new URL(doublePart);
+        console.log(`[URL Recover] Redirecting from duplicated URL ${urlStr} to ${parsed.pathname + parsed.search}`);
+        return res.redirect(parsed.pathname + parsed.search);
+      } catch (e) {
+        const match = doublePart.match(/(?:https?:\/+|www\.)[^\/]+(\/.*)$/);
+        if (match && match[1]) {
+          console.log(`[URL Recover] Redirecting (fallback) from duplicated URL ${urlStr} to ${match[1]}`);
+          return res.redirect(match[1]);
+        }
+      }
+    }
+  }
+  next();
+});
+
 // Configure view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(process.cwd(), 'views'));

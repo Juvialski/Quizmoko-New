@@ -6,7 +6,8 @@
   "main": "server.ts",
   "scripts": {
     "dev": "tsx watch server.ts",
-    "lint": "echo 'No lint script'",
+    "lint": "node test_ejs.cjs",
+    "test": "node test_ejs.cjs",
     "build": "echo 'No build step required'",
     "start": "tsx server.ts"
   },

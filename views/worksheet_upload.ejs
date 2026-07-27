@@ -769,7 +769,7 @@
         function openCropRefiner(index) {
             currentCroppingIndex = index;
             const q = extractedQuestions[index];
-            const imgMatch = q.raw_text.match(/src="([^"]+)'/i);
+            const imgMatch = q.raw_text.match(/src=["']([^"']+)["']/i);
             if (!imgMatch) return;
 
             const modal = document.getElementById('cropper-modal');

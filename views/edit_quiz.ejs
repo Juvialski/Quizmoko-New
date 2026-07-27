@@ -139,10 +139,8 @@
         .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: stretch; }
         @media (max-width: 1024px) { .edit-grid { grid-template-columns: 1fr; } } 
         
-        .live-preview { background: var(--canvas); padding: 24px; border: 1px solid var(--hairline); border-radius: var(--radius-md); height: 100%; color: var(--body-strong); box-sizing: border-box; font-size: 16px; line-height: 1.6;}
-        
-        .resizable-image-wrapper { display: flex; justify-content: center; margin: 24px auto; width: 100%; }
-        .image-content-box { background: white; padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); display: inline-block; position: relative; max-width: 200%; }
+        .resizable-image-wrapper { display: flex; justify-content: center; margin: 24px auto; width: 100%; max-width: 100%; overflow-x: auto; box-sizing: border-box; }
+        .image-content-box { background: white; padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); display: inline-block; position: relative; max-width: 200%; box-sizing: border-box; }
         .live-preview img { width: 100%; height: auto; display: block; margin: 0 auto; border-radius: var(--radius-sm); }
 
         .image-control-panel { background: var(--surface-soft); padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); margin-bottom: 16px; display: flex; align-items: center; gap: 15px; }
@@ -196,9 +194,20 @@
     
         /* Live Preview Styling */
         .live-preview {
-            background: var(--surface-card); border: 1px solid var(--hairline);
-            border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow);
-            position: sticky; top: 20px; font-size: 18px; color: var(--on-dark);
+            background: var(--surface-card);
+            border: 1px solid var(--hairline);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--on-dark);
+            height: auto;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            box-sizing: border-box;
         }
         .live-preview button {
             background: var(--surface-elevated); color: var(--on-dark);

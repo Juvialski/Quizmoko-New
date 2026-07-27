@@ -159,9 +159,12 @@ export const WORKSHEET_EXTRACTION_PROMPT = `Extract EVERY SINGLE question from t
 
 CRITICAL RULES:
 1. NO SKIPPING (REFINED): Scan the entire segment and extract every question or task. However, DO NOT extract headers, question numbers (e.g. "Question 1"), parts (e.g. "Part A"), or metadata as separate items. These should only be part of a question's context.
-2. GROUP CONTEXT & INSTRUCTIONS: If a group of questions is preceded by shared information, data sets, or instructions (e.g., 'Use the following table...', 'For problems 1-5...', 'Data: 1, 2, 3'), you MUST prepend this ENTIRE context/instruction to EACH question in that group.
-   - This includes any text starting with "Use the following information to answer..." or standalone data blocks.
-   - Example: 'Data: 1, 2, 3. Find mean.', 'Data: 1, 2, 3. Find median.'.
+2. GROUP CONTEXT & INSTRUCTIONS (STRICT): If a group of questions is preceded by a heading, a general instruction, or shared context (e.g., "Simplify:", "Simplify using rules of exponents.", "Solve each equation:", "For problems 1-5, find the area:"), you MUST prepend this instruction or context to the beginning of the 'raw_text' of EVERY SINGLE question in that group!
+   - DO NOT just prepend it to the first question in the group. EVERY question in that group must contain the instruction/heading so that each question is fully self-contained.
+   - Example: If the worksheet says "Simplify: 7. m^3 * m^4, 8. m^6 / m^2", you MUST extract:
+     Question 7: "Simplify: m^3 * m^4"
+     Question 8: "Simplify: m^6 / m^2"
+   - Standalone text blocks of instructions or headings must never be extracted as separate questions. Instead, distribute them to ALL questions they apply to.
 3. NO SPLITTING SUB-PARTS (CRITICAL): ONE MAIN NUMBER = ONE QUESTION. If a question has sub-parts (e.g., 11a, 11b), you MUST keep them together in a single 'raw_text' block. NEVER extract sub-parts as separate items in the JSON array.
    - Example: '11. a) Define X. b) Define Y.' must be ONE object with both parts in 'raw_text'.
    - NEWLINE RULE: Ensure each sub-part (a, b, c) starts on a NEW LINE in 'raw_text' (use '\\n' for newlines) for better readability.
@@ -197,8 +200,9 @@ export const WORKSHEET_EXTRACTION_PROMPT_NON_MATH = `Extract EVERY SINGLE questi
 
 CRITICAL RULES:
 1. NO SKIPPING (REFINED): Scan the entire segment and extract every question or task. However, DO NOT extract headers, question numbers (e.g. "Question 1"), parts (e.g. "Part A"), or metadata as separate items. These should only be part of a question's context.
-2. GROUP CONTEXT & INSTRUCTIONS: If a group of questions is preceded by shared information, passages, or instructions (e.g., 'Read the following paragraph...', 'For problems 1-5...', 'Passage A: ...'), you MUST prepend this ENTIRE context/instruction to EACH question in that group.
-   - This includes any text starting with "Use the following information to answer..." or standalone text blocks.
+2. GROUP CONTEXT & INSTRUCTIONS (STRICT): If a group of questions is preceded by shared information, passages, general instructions, or headings (e.g., 'Read the following paragraph...', 'For problems 1-5...', 'Identify the nouns in the following sentences:', 'Passage A: ...'), you MUST prepend this ENTIRE context/instruction to the beginning of the 'raw_text' of EVERY SINGLE question in that group!
+   - DO NOT just prepend it to the first question in the group. EVERY question in that group must contain the instruction/passage so that each question is fully self-contained.
+   - Standalone text blocks of instructions, passages, or headings must never be extracted as separate questions. Instead, distribute them to ALL questions they apply to.
 3. NO SPLITTING SUB-PARTS (CRITICAL): ONE MAIN NUMBER = ONE QUESTION. If a question has sub-parts (e.g., 11a, 11b), you MUST keep them together in a single 'raw_text' block. NEVER extract sub-parts as separate items in the JSON array.
    - Example: '11. a) Define X. b) Define Y.' must be ONE object with both parts in 'raw_text'.
    - NEWLINE RULE: Ensure each sub-part (a, b, c) starts on a NEW LINE in 'raw_text' (use '\\n' for newlines) for better readability.
@@ -295,6 +299,7 @@ THE FOLLOWING QUESTION NUMBERS ARE MISSING: {missing_numbers}
 Scan the document EXHAUSTIVELY and extract ONLY these specific items.
 CRITICAL: Focus on 'raw_text', 'options', 'type', 'original_index', and 'bounding_box'.
 CRITICAL: Never extract a standalone number as a 'raw_text'. Ensure the full statement is included.
+CRITICAL: If the missing question is part of a section with a general instruction, heading, or shared context (e.g., "Simplify using exponents"), you MUST prepend that general instruction/context to the beginning of the question's 'raw_text' so it is fully self-contained.
 CRITICAL: If there's any diagram, drawing, map, or visual illustration associated with the question, include a very generous bounding_box coordinate [ymin, xmin, ymax, xmax] (0 to 1000) so that it is never cut off.
 Return a JSON array of objects with keys: 'raw_text', 'options', 'type', 'original_index', and 'bounding_box'.`;
 
@@ -335,8 +340,14 @@ CRITICAL RULES:
    - If the question is Multiple Choice, extract the text of all options into the 'choices' array.
    - CHOICE FORMATTING: Wrap math/numbers in single '$' tags and use \\text{ s} for units (e.g., "$0.4 \\text{ s}$"). DO NOT wrap plain words or dates in '$' tags.
    - MULTI-PAGE CHOICES: If a question is clearly Multiple Choice but the options are missing from the current view (perhaps on the next page), extract the statement and leave 'choices' as an empty array []. You will be asked to reconcile these in a later stage.
-6. IDENTIFIER: Generate a random 12-character alphanumeric string (e.g., 'a1B2c3D4e5F6') for the 'identifier' field.
-7. JSON STRUCTURE: Return a JSON array of objects with these keys:
+6. GROUP CONTEXT & INSTRUCTIONS (STRICT): If a group of questions is preceded by a heading, a general instruction, or shared context (e.g., "Simplify:", "Simplify using rules of exponents.", "Solve each equation:", "For problems 1-5, find the area:"), you MUST prepend this instruction or context to the beginning of the 'statement' of EVERY SINGLE question in that group!
+   - DO NOT just prepend it to the first question in the group. EVERY question in that group must contain the instruction/heading so that each question is fully self-contained.
+   - Example: If the worksheet says "Simplify: 7. m^3 * m^4, 8. m^6 / m^2", you MUST extract:
+     Question 7: "Simplify: m^3 * m^4"
+     Question 8: "Simplify: m^6 / m^2"
+   - Standalone text blocks of instructions or headings must never be extracted as separate questions. Instead, distribute them to ALL questions they apply to.
+7. IDENTIFIER: Generate a random 12-character alphanumeric string (e.g., 'a1B2c3D4e5F6') for the 'identifier' field.
+8. JSON STRUCTURE: Return a JSON array of objects with these keys:
    - 'statement': The full question text.
    - 'choices': A JSON list of option strings (empty [] if not MC).
    - 'original_index': The question number from the sheet.

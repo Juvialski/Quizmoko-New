@@ -747,7 +747,7 @@
             currentCroppingIndex = index;
             const q = extractedQuestions[index];
             const targetText = q.question || q.raw_text || '';
-            const imgMatch = targetText.match(/src="([^"]+)'/);
+            const imgMatch = targetText.match(/src=["']([^"']+)["']/i);
             if (!imgMatch) return;
 
             const modal = document.getElementById('cropper-modal');

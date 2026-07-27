@@ -293,7 +293,7 @@
             const list = document.getElementById('questions-list');
             list.innerHTML = extractedQuestions.map((q, i) => {
                 const statementText = q.statement || '';
-                const imgMatch = statementText.match(/src="([^"]+)"/);
+                const imgMatch = statementText.match(/src=["']([^"']+)["']/i);
                 const hasImg = !!imgMatch;
 
                 return `
@@ -317,7 +317,7 @@
             currentCroppingIndex = index;
             const q = extractedQuestions[index];
             const statementText = q.statement || '';
-            const imgMatch = statementText.match(/src="([^"]+)"/);
+            const imgMatch = statementText.match(/src=["']([^"']+)["']/i);
             if (!imgMatch) return;
 
             const modal = document.getElementById('cropper-modal');

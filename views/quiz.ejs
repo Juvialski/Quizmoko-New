@@ -19,6 +19,7 @@
 
     <style>
         :root {
+            --font-scale: 1.0;
             --canvas: #090d16;
             --surface-card: #131927;
             --surface-elevated: #1c2436;
@@ -39,6 +40,7 @@
         }
         
         [data-theme="light"] {
+            --font-scale: 1.0;
             --canvas: #fafafa;
             --surface-card: #ffffff;
             --surface-elevated: #f4f4f5;
@@ -58,26 +60,39 @@
         body { 
             font-family: 'Inter', sans-serif; 
             margin: 0; 
-            padding: 40px 20px; 
+            padding: 0; 
             color: var(--body-strong); 
             background-color: var(--canvas);
             font-weight: 400;
             transition: background-color 0.3s ease, color 0.3s ease;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
         }
         .quiz-wrapper { display: flex; width: 100vw; height: 100vh; overflow: hidden; }
         .left-panel { flex: 1; overflow-y: auto; padding: 40px 20px; transition: 0.3s; display: flex; justify-content: center; align-items: flex-start; }
         .right-panel { width: 50%; border-left: 2px solid var(--hairline); background: var(--surface-card); display: none; flex-direction: column; position: relative;}
 
         /* Whiteboard Styles */
-        .whiteboard-container { flex: 1; position: relative; overflow: hidden; background-color: var(--canvas); transition: background 0.2s; cursor: crosshair;}
+        .whiteboard-container { flex: 1; position: relative; overflow: hidden; background-color: #ffffff; transition: background 0.2s; cursor: crosshair;}
         .whiteboard-container.grid-mode {
-            background-image: linear-gradient(var(--hairline) 1px, transparent 1px),
-                              linear-gradient(90deg, var(--hairline) 1px, transparent 1px) !important;
+            background-image: linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px) !important;
             background-size: 40px 40px !important;
             background-repeat: repeat !important;
         }
+        
+        /* Inline Icon small adjustment to prevent awkward layout */
+        .icon-sm {
+            width: 16px !important;
+            height: 16px !important;
+            display: inline-block !important;
+            vertical-align: middle !important;
+            margin-right: 4px;
+        }
 
         .wb-toolbar { background: var(--surface-elevated); padding: 10px; display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--hairline); align-items: center; z-index: 10;}
+        .wb-toolbar select { width: auto !important; min-width: 80px; }
         #wb-text-container { position: absolute; display: none; z-index: 100; border: 1px dashed var(--primary); background: rgba(255,255,255,0.8); cursor: move; min-width: 100px; min-height: 40px;}
         #wb-text-input { width: 100%; height: 100%; border: none; background: transparent; color: black; font-family: 'Inter', sans-serif; font-size: 16px; padding: 4px; outline: none; resize: none; overflow: hidden;}
         .wb-resizer { width: 10px; height: 10px; background: var(--primary); position: absolute; right: -5px; bottom: -5px; cursor: nwse-resize;}
@@ -189,30 +204,29 @@
             background: var(--primary); color: #fff;
         }
         
-        /* Floating Whiteboard Dock */
-        .wb-toolbar {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 8px; background: var(--surface-elevated);
-            padding: 8px; border-radius: 30px; box-shadow: var(--shadow);
-            border: 1px solid var(--hairline); z-index: 1000;
-        }
-        .wb-btn {
-            background: transparent; color: var(--on-dark); border: none;
-            padding: 8px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;
-            cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;
-        }
-        .wb-btn:hover, .wb-btn.active {
-            background: var(--primary); color: #fff;
-        }
-        
         /* Timer Pill styling */
         #timer {
-            font-size: 14px; font-weight: 700; text-align: center; margin: 0 auto 20px auto;
-            width: fit-content; padding: 6px 16px; border-radius: 20px;
-            background: var(--surface-elevated); color: var(--on-dark);
+            font-size: 28px;
+            font-weight: 800;
+            text-align: center;
+            margin: 0 auto 24px auto;
+            width: fit-content;
+            padding: 8px 24px;
+            border-radius: 12px;
+            background: var(--surface-elevated);
+            color: var(--on-dark);
             border: 1px solid var(--hairline);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -1px;
+            box-shadow: var(--shadow);
+            transition: all 0.2s ease;
         }
-        #timer.urgent { background: rgba(251, 113, 133, 0.1); color: var(--m-red); border-color: var(--m-red); }
+        #timer.urgent {
+            background: rgba(251, 113, 133, 0.1) !important;
+            color: var(--m-red) !important;
+            border-color: var(--m-red) !important;
+            box-shadow: 0 0 10px rgba(251, 113, 133, 0.2);
+        }
 
     
         
@@ -625,16 +639,17 @@
         }
 
         function updateWhiteboardThemeColors() {
-            const theme = document.documentElement.getAttribute('data-theme') || 'dark';
             const colorInput = document.getElementById('wb-color');
             if (colorInput && !colorInput.dataset.userChanged) {
-                colorInput.value = theme === 'dark' ? '#f8fafc' : '#18181b';
+                colorInput.value = '#18181b'; // Default to high-contrast dark ink on the white whiteboard
             }
         }
 
         function adjustFontSize(s) {
-            const current = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--font-scale'));
-            document.documentElement.style.setProperty('--font-scale', Math.min(Math.max(current + s, 0.7), 1.6));
+            const scaleStr = getComputedStyle(document.documentElement).getPropertyValue('--font-scale').trim();
+            const current = scaleStr ? parseFloat(scaleStr) : 1.0;
+            const newScale = Math.min(Math.max((isNaN(current) ? 1.0 : current) + s, 0.7), 1.6);
+            document.documentElement.style.setProperty('--font-scale', newScale);
         }
 
         function formatTime(secs) {
@@ -1048,6 +1063,7 @@
                 timerElem.style.padding = '8px 16px';
                 timerElem.style.borderRadius = 'var(--radius-sm)';
                 timerElem.style.fontWeight = '800';
+                timerElem.classList.remove('urgent');
             } else {
                 timerElem.innerText = formatTime(Math.max(0, timeRemaining));
                 timerElem.style.backgroundColor = '';
@@ -1055,6 +1071,11 @@
                 timerElem.style.borderColor = '';
                 timerElem.style.padding = '';
                 timerElem.style.borderRadius = '';
+                if (timeRemaining <= 15) {
+                    timerElem.classList.add('urgent');
+                } else {
+                    timerElem.classList.remove('urgent');
+                }
             }
         }
 
@@ -1639,14 +1660,30 @@
             });
         }
 
+        let resizeObserver;
         function initWhiteboard() {
             if (whiteboardInitialized) return; // PREVENT MULTIPLE EVENT LISTENERS
             canvas = document.getElementById('main-canvas'); if (!canvas) return;
             ctx = canvas.getContext('2d', { willReadFrequently: true });
             const textCont = document.getElementById('wb-text-container'), textInput = document.getElementById('wb-text-input'), resizer = textCont.querySelector('.wb-resizer');
-            resizeCanvas(); window.addEventListener('resize', resizeCanvas);
+            
+            const canvasHolder = document.getElementById('canvas-holder');
+            if (window.ResizeObserver && canvasHolder) {
+                let debounceTimeout;
+                resizeObserver = new ResizeObserver(entries => {
+                    if (debounceTimeout) clearTimeout(debounceTimeout);
+                    debounceTimeout = setTimeout(() => {
+                        resizeCanvas();
+                    }, 30);
+                });
+                resizeObserver.observe(canvasHolder);
+            } else {
+                window.addEventListener('resize', resizeCanvas);
+            }
+            
             whiteboardInitialized = true;
             updateWhiteboardThemeColors();
+            setTimeout(resizeCanvas, 50);
 
             canvas.onpointerdown = e => {
                 const r = canvas.getBoundingClientRect(); startX = (e.clientX - r.left); startY = (e.clientY - r.top);
@@ -1735,7 +1772,18 @@
             const sizeInput = document.getElementById('wb-size');
             if (sizeInput) sizeInput.value = w;
         }
-        function resizeCanvas() { if(!canvas) return; const h = document.getElementById('canvas-holder'); canvas.width = h.clientWidth; canvas.height = h.clientHeight; redrawCanvas(); }
+        function resizeCanvas() { 
+            if(!canvas) return; 
+            const h = document.getElementById('canvas-holder'); 
+            if (!h) return;
+            const w = h.clientWidth;
+            const h_val = h.clientHeight;
+            if (w === 0 || h_val === 0) return;
+            if (canvas.width === w && canvas.height === h_val) return;
+            canvas.width = w; 
+            canvas.height = h_val; 
+            redrawCanvas(); 
+        }
 
         // --- NEW: OFFLINE GUARD LOGIC ---
         window.addEventListener('online', updateOnlineStatus);

@@ -480,6 +480,26 @@ function getGeminiClient(customApiKey?: string) {
   return new GoogleGenAI({ apiKey });
 }
 
+function getRealModelName(modelName?: string): string {
+  const model = (modelName || '').toLowerCase().trim();
+  if (!model) return 'gemini-3.6-flash';
+
+  if (model.startsWith('ollama:')) return model;
+
+  // Map to the correct, existing Gemini models
+  if (model.includes('gemini-3.1-flash-lite') || model.includes('gemini-3.5-flash-lite') || model.includes('gemini-2.5-flash-lite')) {
+    return 'gemini-3.1-flash-lite';
+  }
+  if (model.includes('gemini-3.1-pro-preview') || model.includes('pro')) {
+    return 'gemini-3.1-pro-preview';
+  }
+  if (model.includes('gemini-3.6-flash') || model.includes('gemini-3.5-flash') || model.includes('gemini-3.0-flash') || model.includes('gemini-2.5-flash') || model.includes('flash')) {
+    return 'gemini-3.6-flash';
+  }
+
+  return 'gemini-3.6-flash';
+}
+
 // Helper to fix single unescaped backslashes in JSON strings (e.g. LaTeX commands like \frac, \alpha, \theta)
 function fixJsonLatexEscapes(jsonStr: string): string {
   let result = '';
@@ -889,7 +909,7 @@ Return your response STRICTLY as a JSON object in the format: {"is_correct": boo
 
           console.log(`[AI Grading] QType: ${qType}, Q: "${q.question}", Expected: "${expected}", Actual: "${actual}"`);
           const response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash-lite',
+            model: getRealModelName('gemini-3.5-flash-lite'),
             contents: [{ role: 'user', parts }],
             config: { responseMimeType: 'application/json' }
           });
@@ -999,7 +1019,7 @@ Student's Answer: "${user_answer}"
 Correct Answer: "${correct_answer}"`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: getRealModelName('gemini-2.5-flash'),
         contents: [prompt]
       });
 
@@ -1409,7 +1429,7 @@ app.post('/api/extract_worksheet', tokenRequired, upload.any(), async (req: any,
     let questions: any[] = [];
 
     if (ai && wsFiles.length > 0) {
-      const selectedModel = model_name || 'gemini-3.5-flash-lite';
+      const selectedModel = getRealModelName(model_name);
       const pdfFile = wsFiles.find(f => f.mimetype === 'application/pdf');
       const imgFile = wsFiles.find(f => f.mimetype && f.mimetype.startsWith('image/'));
 
@@ -1632,7 +1652,7 @@ app.post('/api/solve_worksheet', tokenRequired, async (req: any, res) => {
       const ai = getGeminiClient(api_key);
       const isNonMath = ['English', 'History', 'Biology', 'Social Studies'].includes(subject);
       const solverPromptTemplate = isNonMath ? WORKSHEET_SOLVER_PROMPT_NON_MATH : WORKSHEET_SOLVER_PROMPT;
-      const selectedModel = model_name || 'gemini-3.5-flash-lite';
+      const selectedModel = getRealModelName(model_name);
 
       let solvedResults: any[] = [];
       const batchNum = parseInt(batch_size) || 3;
@@ -1733,7 +1753,7 @@ app.post('/api/extract_rmxflash', tokenRequired, upload.any(), async (req: any, 
     let goldenKey: Record<string, string> = {};
 
     if (ai) {
-      const selectedModel = model_name || 'gemini-3.5-flash-lite';
+      const selectedModel = getRealModelName(model_name);
 
       let prompt = RMX_FLASH_EXTRACTION_PROMPT
         .replace('{latex_rules}', SHARED_LATEX_RULES)
@@ -1939,7 +1959,7 @@ app.post('/api/extract_worksheet_with_answers', tokenRequired, upload.any(), asy
     let goldenReference: Record<string, string> = {};
 
     if (ai) {
-      const selectedModel = model_name || 'gemini-3.5-flash-lite';
+      const selectedModel = getRealModelName(model_name);
       const pdfFileWs = wsFiles.find(f => f.mimetype === 'application/pdf');
       const imgFileWs = wsFiles.find(f => f.mimetype && f.mimetype.startsWith('image/'));
 
@@ -2194,7 +2214,7 @@ app.post('/api/recover_questions', tokenRequired, upload.any(), async (req: any,
     let recovered: any[] = [];
 
     if (ai && files.length > 0) {
-      const selectedModel = model_name || 'gemini-3.5-flash-lite';
+      const selectedModel = getRealModelName(model_name);
       const prompt = RECOVERY_PROMPT
         .replace('{topic_hint}', topic_hint)
         .replace('{missing_numbers}', JSON.stringify(missingNums));
@@ -2288,7 +2308,7 @@ app.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: any, re
           .replace('{golden_reference}', JSON.stringify(golden_reference))
           .replace('{batch_json}', JSON.stringify(questions));
 
-        const selectedModel = model_name || 'gemini-3.5-flash-lite';
+        const selectedModel = getRealModelName(model_name);
         const response = await ai.models.generateContent({
           model: selectedModel,
           contents: [prompt],

@@ -533,9 +533,8 @@
             // 2. Pure Standard Mode with Identical Line Break Logic to Edit/Quiz Page
             let str = String(data);
 
-            // FIX: Sanitization was stripping \n (0x0A) and \r (0x0D)!
-            // We only strip truly non-printable control characters, but PRESERVE \n, \r, and \t
-            str = str.replace(/[\x00-\x09\x0B-\x0C\x0E-\x1F\x7F-\x9F]/g, '');
+            // FIX: Restrict the stripping strictly to tab characters (\t) as requested, preserving all other characters (including \n and \r)
+            str = str.replace(/\t/g, '');
 
             // Use the same logic as the Quiz/Edit pages: split by image blocks and replace \n with <br>
             const parts = str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi);

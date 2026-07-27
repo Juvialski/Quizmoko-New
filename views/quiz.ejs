@@ -242,10 +242,10 @@
                 
 <div class="top-bar" style="display:flex; justify-content:space-between; align-items:center; padding: 12px 24px; background: var(--surface-card); border-bottom: 1px solid var(--hairline);">
     <div class="header-left" style="display:flex; align-items:center; gap: 16px;">
-        <span style="font-weight: 800; display:flex; align-items:center; gap:8px;'>
+        <span style="font-weight: 800; display:flex; align-items:center; gap:8px;">
             <i data-lucide="rocket" class="icon-sm"></i> QUIZMOKO
         </span>
-        <div id='connection-dot" style="width:8px; height:8px; border-radius:50%; background:var(--success);" title="Online"></div>
+        <div id="connection-dot" style="width:8px; height:8px; border-radius:50%; background:var(--success);" title="Online"></div>
         <span id="q-tracker" style="display:none; background:var(--surface-elevated); padding: 6px 12px; border-radius: var(--radius-sm); font-size:13px; font-weight:600;">
             Question <span id="q-num">1</span> of <%= (quiz.questions || []).length %>
         </span>
@@ -255,15 +255,15 @@
         <span id="score-tracker" style="display:none; background:rgba(52, 211, 153, 0.1); color:var(--success); padding: 6px 12px; border-radius: var(--radius-sm); margin-right: 16px; font-weight:800; font-size:13px;">
             Score: <span id="live-score">0.00</span>
         </span>
-        <button id="math-retry-btn" onclick="renderMath()" style="display:none; background:var(--surface-soft); border:none; border-radius:var(--radius-sm); padding:6px 12px; font-size:12px; color:var(--body); cursor:pointer; margin-right:16px;'>
+        <button id="math-retry-btn" onclick="renderMath()" style="display:none; background:var(--surface-soft); border:none; border-radius:var(--radius-sm); padding:6px 12px; font-size:12px; color:var(--body); cursor:pointer; margin-right:16px;">
             <i data-lucide="refresh-cw" class="icon-sm"></i> Retry Math
         </button>
-        <button id='btn-end-early" onclick="submitQuiz('early')" style="display:none; background: rgba(251, 113, 133, 0.1); color: var(--m-red); border: none; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; font-weight: bold; transition:0.2s;'>
+        <button id="btn-end-early" onclick="submitQuiz('early')" style="display:none; background: rgba(251, 113, 133, 0.1); color: var(--m-red); border: none; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; font-weight: bold; transition:0.2s;">
             <i data-lucide="log-out" class="icon-sm"></i> End Quiz
         </button>
     </div>
 
-    <div class='header-right font-controls" style="display:flex; gap:8px; align-items:center;">
+    <div class="header-right font-controls" style="display:flex; gap:8px; align-items:center;">
         <button onclick="toggleTheme()" style="background:transparent; border:none; cursor:pointer; color:var(--body); padding:8px;">
             <i data-lucide="moon"></i>
         </button>
@@ -272,15 +272,15 @@
         </button>
         <button class="font-btn" onclick="adjustFontSize(-0.1)" style="background:var(--surface-soft); border:none; color:var(--on-dark); padding:6px 12px; border-radius:var(--radius-sm); font-weight:600;">A-</button>
         <button class="font-btn" onclick="adjustFontSize(0.1)" style="background:var(--surface-soft); border:none; color:var(--on-dark); padding:6px 12px; border-radius:var(--radius-sm); font-weight:600;">A+</button>
-        <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" style="display:none; background:var(--primary); color:#fff; border:none; border-radius:var(--radius-sm); padding:6px 12px; font-size:12px; cursor:pointer; font-weight:700; transition:0.2s;'>
+        <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" style="display:none; background:var(--primary); color:#fff; border:none; border-radius:var(--radius-sm); padding:6px 12px; font-size:12px; cursor:pointer; font-weight:700; transition:0.2s;">
             <i data-lucide="pen-tool" class="icon-sm"></i> Whiteboard
         </button>
     </div>
 </div>
 
-                <div id='start-screen">
-                    <h1 style="margin:0; font-size: 40px; color: var(--on-dark); letter-spacing: -0.5px; font-weight: 700;'><i data-lucide="edit-3" class="icon-sm"></i> <%= typeof quiz.title !== 'undefined' ? quiz.title : '' %></h1>
-                    <div style='height:4px; width:60px; background:var(--primary); margin:20px auto;"></div>
+                <div id="start-screen">
+                    <h1 style="margin:0; font-size: 40px; color: var(--on-dark); letter-spacing: -0.5px; font-weight: 700;"><i data-lucide="edit-3" class="icon-sm"></i> <%= typeof quiz.title !== 'undefined' ? quiz.title : '' %></h1>
+                    <div style="height:4px; width:60px; background:var(--primary); margin:20px auto;"></div>
                     <p style="color: var(--body); font-size: 16px;">Time limit: <strong><%= typeof quiz.time_limit !== 'undefined' ? quiz.time_limit : '' %> seconds</strong> per question.</p>
                     <input type="text" id="student-name" placeholder="Enter your full name" required>
                     <button class="btn-start" onclick="beginQuiz()"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Start Quiz</button>
@@ -296,48 +296,48 @@
                         <div class="feedback-body" id="feedback-text" style="margin-bottom: 20px;"></div>
 
                         <!-- NEW: Retry Grading Button -->
-                        <button id="btn-retry-grading" onclick="retryGrading()" class="btn-next-question" style="display:none; background: var(--surface-elevated); margin-bottom: 10px; border: 1px solid var(--hairline);'><i data-lucide="refresh-cw" class="icon-sm"></i> RETRY GRADING</button>
+                        <button id="btn-retry-grading" onclick="retryGrading()" class="btn-next-question" style="display:none; background: var(--surface-elevated); margin-bottom: 10px; border: 1px solid var(--hairline);"><i data-lucide="refresh-cw" class="icon-sm"></i> RETRY GRADING</button>
 
-                        <button class='btn-next-question" onclick="advanceQuestion()'>CONTINUE TO NEXT QUESTION <i data-lucide="arrow-right" class="icon-sm"></i>️</button>
+                        <button class="btn-next-question" onclick="advanceQuestion()">CONTINUE TO NEXT QUESTION <i data-lucide="arrow-right" class="icon-sm"></i>️</button>
                     </div>
 
-                    <button id='btn-confirm" class="btn-confirm" onclick="confirmSelection()">CONFIRM ANSWER</button>
+                    <button id="btn-confirm" class="btn-confirm" onclick="confirmSelection()">CONFIRM ANSWER</button>
 
                     <!-- NEW: Back-and-Forth Navigation Controls -->
                     <div id="bf-nav-controls" style="display:none; margin-top: 30px; display: flex; gap: 20px;">
                         <button id="btn-prev" class="btn-nav" onclick="prevQuestion()" style="flex: 1; padding: 18px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--hairline); background: var(--surface-elevated); color: var(--on-dark); transition: 0.2s; font-size: 14px;">⬅️ PREVIOUS</button>
-                        <button id="btn-next" class="btn-nav" onclick="nextQuestion()" style="flex: 2; padding: 18px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: white; transition: 0.2s; font-size: 14px;'>NEXT / CONFIRM <i data-lucide="arrow-right" class="icon-sm"></i>️</button>
+                        <button id="btn-next" class="btn-nav" onclick="nextQuestion()" style="flex: 2; padding: 18px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: white; transition: 0.2s; font-size: 14px;">NEXT / CONFIRM <i data-lucide="arrow-right" class="icon-sm"></i>️</button>
                     </div>
                 </div>
-                <div id='result-screen" style="display:none;">
-                    <h2 style="font-size: 36px; margin:0; color:var(--on-dark); letter-spacing: -0.5px;'><i data-lucide="party-popper" class="icon-sm"></i> Quiz Complete</h2>
-                    <div style='height:4px; width:60px; background:var(--primary); margin:20px auto;"></div>
+                <div id="result-screen" style="display:none;">
+                    <h2 style="font-size: 36px; margin:0; color:var(--on-dark); letter-spacing: -0.5px;"><i data-lucide="party-popper" class="icon-sm"></i> Quiz Complete</h2>
+                    <div style="height:4px; width:60px; background:var(--primary); margin:20px auto;"></div>
                     <h1 id="score-text">Grading...</h1>
                     <p id="save-status-msg" style="color: var(--body); font-size: 16px;">Score successfully submitted.</p>
-                    <button class="btn-confirm" id="pdf-btn" onclick="openSharedSolutions()" style="display:block; background: var(--m-blue-dark); margin-bottom: 40px;'><i data-lucide="download" class="icon-sm"></i> VIEW & DOWNLOAD SOLUTIONS</button>
-                    <hr style='border: 1px solid var(--hairline); margin: 64px 0;">
-                    <h3 style="text-align: left; font-size: 24px; color: var(--on-dark); margin-bottom: 24px;'><i data-lucide="search" class="icon-sm"></i> Detailed Review</h3>
-                    <div id='review-container"></div>
+                    <button class="btn-confirm" id="pdf-btn" onclick="openSharedSolutions()" style="display:block; background: var(--m-blue-dark); margin-bottom: 40px;"><i data-lucide="download" class="icon-sm"></i> VIEW & DOWNLOAD SOLUTIONS</button>
+                    <hr style="border: 1px solid var(--hairline); margin: 64px 0;">
+                    <h3 style="text-align: left; font-size: 24px; color: var(--on-dark); margin-bottom: 24px;"><i data-lucide="search" class="icon-sm"></i> Detailed Review</h3>
+                    <div id="review-container"></div>
                 </div>
             </div>
         </div>
         <div class="right-panel" id="right-panel">
             <div class="wb-toolbar">
-                <button class="wb-btn active" data-tool="draw" onclick="setTool('draw')'><i data-lucide="edit-2" class="icon-sm"></i>️ Draw</button>
-                <button class='wb-btn" data-tool="erase" onclick="setTool('erase')'><i data-lucide="eraser" class="icon-sm"></i> Eraser</button>
-                <button class='wb-btn" data-tool="line" onclick="setTool('line')'><i data-lucide="ruler" class="icon-sm"></i> Line</button>
-                <button class='wb-btn" data-tool="rect" onclick="setTool('rect')">⬜ Rect</button>
-                <button class="wb-btn" data-tool="circle" onclick="setTool('circle')">⭕ Circle</button>
+                <button class="wb-btn active" data-tool='draw' onclick="setTool('draw')"><i data-lucide="edit-2" class="icon-sm"></i>️ Draw</button>
+                <button class="wb-btn" data-tool='erase' onclick="setTool('erase')"><i data-lucide="eraser" class="icon-sm"></i> Eraser</button>
+                <button class="wb-btn" data-tool='line' onclick="setTool('line')"><i data-lucide="ruler" class="icon-sm"></i> Line</button>
+                <button class="wb-btn" data-tool='rect' onclick="setTool('rect')">⬜ Rect</button>
+                <button class="wb-btn" data-tool='circle' onclick="setTool('circle')">⭕ Circle</button>
                 <button class="wb-btn" onclick="addText()">文本 Text</button>
                 <button class="wb-btn" id="wb-grid-toggle" onclick="toggleWBGrid()">⬛ Grid: Off</button>
-                <button class="wb-btn" onclick="clearCanvas()'><i data-lucide="trash-2" class="icon-sm"></i>️ Clear</button>
-                <option value='2">2px</option><option value="4" selected>4px</option><option value="8">8px</option></select>
+                <button class="wb-btn" onclick="clearCanvas()"><i data-lucide="trash-2" class="icon-sm"></i>️ Clear</button>
+                <select class="wb-btn" onchange="setLineWidth(this.value)"><option value="2">2px</option><option value="4" selected>4px</option><option value="8">8px</option></select>
                 <div style="flex:1;"></div>
                 <div style="font-size:10px; color:#64748b; font-weight:800;">SOLUTION AREA</div>
             </div>
             <div class="whiteboard-container" id="canvas-holder">
                 <div id="wb-text-container">
-                    <textarea id="wb-text-input" spellcheck="false"></textarea>
+                    <textarea id="wb-text-input" spellcheck='false'></textarea>
                     <div class="wb-resizer"></div>
                 </div>
                 <canvas id="main-canvas"></canvas>
@@ -352,8 +352,8 @@
     </div>
 
     <script>
-        const quizId = "<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>";
-        const quizData = <%- JSON.stringify(quiz) %>;
+        const quizId = '<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>';
+        const quizData = <%- JSON.stringify(quiz).replace(/</g, "\\u003c") %>;
 
         // WebSocket Initialization with Polling Fallback
         let socket;
@@ -367,13 +367,13 @@
             });
 
             socket.on('connect', () => {
-                console.log("[WS] Connected to server");
+                console.log('[WS] Connected to server');
                 useWS = true;
                 socket.emit('join_quiz', { quiz_id: quizId });
             });
 
             socket.on('connect_error', (err) => {
-                console.warn("[WS] Connection failed, falling back to HTTP polling:", err.message);
+                console.warn('[WS] Connection failed, falling back to HTTP polling:', err.message);
                 useWS = false;
             });
 
@@ -401,8 +401,8 @@
                     if (prevPaused !== isPaused) updatePauseUI();
                 }
                 if (data.terminated && !isSubmitting) {
-                    console.log("[WS Ping Ack] Teacher terminated the session.");
-                    submitQuiz("terminated");
+                    console.log('[WS Ping Ack] Teacher terminated the session.');
+                    submitQuiz('terminated');
                 }
                 if (data.whiteboard_disabled !== undefined) {
                     whiteboardDisabledByTeacher = !!data.whiteboard_disabled;
@@ -412,8 +412,8 @@
 
             socket.on('terminate', (data) => {
                 if (data.terminated && !isSubmitting) {
-                    console.log("[WS] Teacher terminated the session.");
-                    submitQuiz("terminated");
+                    console.log('[WS] Teacher terminated the session.');
+                    submitQuiz('terminated');
                 }
             });
 
@@ -434,12 +434,12 @@
                 }
             });
         } catch (e) {
-            console.error("[WS] Initialization error:", e);
+            console.error('[WS] Initialization error:', e);
             useWS = false;
         }
 
-        let sessionId = "sess_" + Math.random().toString(36).substr(2, 9);
-        let currentIndex = 0, timeRemaining = 0, timerInterval, answers = {}, solutionSnapshots = {}, studentName = "Anonymous", currentSelectedOption = null, isPaused = false, pingInterval, isSubmitting = false;
+        let sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
+        let currentIndex = 0, timeRemaining = 0, timerInterval, answers = {}, solutionSnapshots = {}, studentName = 'Anonymous', currentSelectedOption = null, isPaused = false, pingInterval, isSubmitting = false;
         let whiteboardDisabledByTeacher = false;
         let studentWhiteboardPreference = true; // DEFAULT TO SHOWN
         let isWhiteboardDirty = false; // TRACK IF WHITEBOARD WAS CHANGED
@@ -476,7 +476,7 @@
         function saveQuizState() {
             if (isSubmitting) return;
             const state = {
-                studentName: studentName || "Anonymous",
+                studentName: studentName || 'Anonymous',
                 currentIndex: parseInt(currentIndex) || 0,
                 answers, questionPages,
                 totalScore: parseFloat(totalScore) || 0,
@@ -493,7 +493,7 @@
             if (!saved) return false;
             try {
                 const state = JSON.parse(saved);
-                studentName = state.studentName || "Anonymous";
+                studentName = state.studentName || 'Anonymous';
                 currentIndex = parseInt(state.currentIndex) || 0;
                 answers = state.answers || {};
                 questionPages = state.questionPages || {};
@@ -513,7 +513,7 @@
                     if (progressiveResults[i] === null) {
                         pendingGradings++;
                         // RE-TRIGGER GRADING FOR STUCK QUESTIONS
-                        const apiKey = localStorage.getItem('gemini_api_key') || "";
+                        const apiKey = localStorage.getItem('gemini_api_key') || '';
                         fetch('/api/grade_individual', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -522,7 +522,7 @@
                                 session_id: sessionId,
                                 student_name: studentName,
                                 q_index: i,
-                                student_answer: answers[i] || "",
+                                student_answer: answers[i] || '',
                                 solution_snapshots: solutionSnapshots[i] || [],
                                 api_key: apiKey
                             })
@@ -530,7 +530,7 @@
                             if (data.success) {
                                 progressiveResults[i] = {
                                     question: quizData.questions[i].question,
-                                    user_answer: answers[i] || "No Answer",
+                                    user_answer: answers[i] || 'No Answer',
                                     correct_answer: data.correct_answer,
                                     is_correct: data.is_correct,
                                     ai_feedback: data.ai_feedback,
@@ -538,7 +538,7 @@
                                 };
                                 // Note: totalScore will be synced on next submitQuiz or handleAnswer
                             }
-                        }).catch(e => console.error("Grading re-trigger failed:", e))
+                        }).catch(e => console.error('Grading re-trigger failed:', e))
                         .finally(() => { pendingGradings--; });
                     }
                 }
@@ -555,7 +555,7 @@
                 progressiveResults[i] = null; // Prepare slots for background grading
             });
         } else {
-            console.error("[QUIZ] Critical Error: quizData.questions is missing or not an array!", quizData);
+            console.error('[QUIZ] Critical Error: quizData.questions is missing or not an array!', quizData);
             // Fallback for UI stability
             quizData.questions = [];
         }
@@ -581,7 +581,7 @@
         function toggleQuestionCentering() { document.getElementById('question-text').classList.toggle('centered'); }
 
         function formatText(t) {
-            if (t === null || t === undefined) return "";
+            if (t === null || t === undefined) return '';
 
             // 1. Unpack JSON Objects/Lists (if any)
             let data = t;
@@ -610,13 +610,13 @@
 
             // --- NEW: RENDER MANUALLY ENTERED TIKZ ---
             str = str.replace(/\[TIKZ\]([\s\S]*?)\[\/TIKZ\]/gi, (match, code) => {
-                const cleanCode = code.replace(/```tikz/g, "").replace(/```/g, "").trim();
+                const cleanCode = code.replace(/```tikz/g, '').replace(/```/g, '').trim();
                 const sanitizedCode = cleanCode.replace(/\\documentclass(?:\[.*?\])?\{.*?\}/g, '')
                                              .replace(/\\usepackage(?:\[.*?\])?\{.*?\}/g, '')
                                              .replace(/\\begin\{document\}/g, '')
                                              .replace(/\\end\{document\}/g, '').trim();
 
-                const tikzEnv = sanitizedCode.includes("\\begin{tikzpicture}") ? sanitizedCode : `\\begin{tikzpicture}\n${sanitizedCode}\n\\end{tikzpicture}`;
+                const tikzEnv = sanitizedCode.includes('\\begin{tikzpicture}') ? sanitizedCode : `\\begin{tikzpicture}\n${sanitizedCode}\n\\end{tikzpicture}`;
                 const fullLatex = `\\documentclass[tikz,border=10mm]{standalone}\n\\usepackage{amsmath}\n\\usepackage{amssymb}\n\\begin{document}\n${tikzEnv}\n\\end{document}`;
 
                 const dataData = new TextEncoder().encode(fullLatex);
@@ -625,7 +625,7 @@
                 for (let i = 0; i < compressed.byteLength; i++) { binary += String.fromCharCode(compressed[i]); }
                 const b64 = window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
                 const imgUrl = `https://kroki.io/tikz/svg/${b64}`;
-                return `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUrl}" alt="Math Diagram"></div></div>`;
+                return `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUrl}" alt='Math Diagram'></div></div>`;
             });
 
             return str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi).map(p => {
@@ -644,7 +644,7 @@
             }).join('');
         }
 
-        function renderMath(t = "quiz-screen") {
+        function renderMath(t = 'quiz-screen') {
             // Show retry button if it takes too long
             const retryBtn = document.getElementById('math-retry-btn');
             if (retryBtn) retryBtn.style.display = 'inline-block';
@@ -660,8 +660,8 @@
 
         function sendPing(s) {
             // DATA INTEGRITY: Never send background pings for Anonymous students
-            // A student only becomes non-anonymous after clicking "Start Quiz"
-            if ((!studentName || studentName === "Anonymous" || studentName === "undefined") && s !== "Started") {
+            // A student only becomes non-anonymous after clicking 'Start Quiz'
+            if ((!studentName || studentName === 'Anonymous' || studentName === 'undefined') && s !== 'Started') {
                 return;
             }
 
@@ -690,29 +690,29 @@
                     isPaused = !!d.paused;
                     whiteboardDisabledByTeacher = !!d.whiteboard_disabled;
                     updateWhiteboardLayout(); // FORCE UPDATE LAYOUT
-                    if (!!d.terminated && !isSubmitting) submitQuiz("terminated");
+                    if (!!d.terminated && !isSubmitting) submitQuiz('terminated');
                     if (d.time_remaining !== undefined && d.time_remaining > 0) {
                          const diff = Math.abs(timeRemaining - d.time_remaining);
                          if (diff > 5) timeRemaining = d.time_remaining;
                     }
                 })
-                .catch(e => console.warn("[HTTP] Ping fallback failed:", e));
+                .catch(e => console.warn('[HTTP] Ping fallback failed:', e));
             }
         }
 
         function beginQuiz() {
             try {
                 const n = document.getElementById('student-name').value.trim();
-                if(!n) return alert("Enter name!");
+                if(!n) return alert('Enter name!');
                 studentName = n;
-                console.log("[QUIZ] Starting Quiz...");
+                console.log('[QUIZ] Starting Quiz...');
                 quizStartTime = Date.now();
-                sendPing("Started");
+                sendPing('Started');
                 saveQuizState();
                 startQuizUI();
             } catch (err) {
-                console.error("[QUIZ] Fatal error in beginQuiz:", err);
-                alert("Failed to start quiz. Error: " + err.message);
+                console.error('[QUIZ] Fatal error in beginQuiz:', err);
+                alert('Failed to start quiz. Error: ' + err.message);
             }
         }
 
@@ -747,7 +747,7 @@
             if (shouldShow) {
                 rightPanel.style.display = 'flex';
                 quizContainer.classList.add('split-mode');
-                btn.innerText = "HIDE WHITEBOARD";
+                btn.innerText = 'HIDE WHITEBOARD';
                 if (!whiteboardInitialized) {
                     initWhiteboard();
                 } else {
@@ -757,7 +757,7 @@
             } else {
                 rightPanel.style.display = 'none';
                 quizContainer.classList.remove('split-mode');
-                btn.innerText = "SHOW WHITEBOARD";
+                btn.innerText = 'SHOW WHITEBOARD';
             }
         }
 
@@ -766,7 +766,7 @@
             document.getElementById('quiz-screen').style.display = 'block';
             document.getElementById('q-tracker').style.display = 'inline-block';
 
-            // HIDE LIVE SCORE in Back-and-Forth Mode to prevent "brute forcing" answers
+            // HIDE LIVE SCORE in Back-and-Forth Mode to prevent 'brute forcing' answers
             const scoreTracker = document.getElementById('score-tracker');
             if (scoreTracker) {
                 scoreTracker.style.display = (quizData.quiz_mode === 'back_and_forth') ? 'none' : 'inline-block';
@@ -798,7 +798,7 @@
                 }
             }
 
-            pingInterval = setInterval(() => { if (document.visibilityState !== 'hidden') sendPing("Active"); }, 2000);
+            pingInterval = setInterval(() => { if (document.visibilityState !== 'hidden') sendPing('Active'); }, 2000);
             startTimer(); // Start timer here instead of every question
             loadQuestion();
         }
@@ -808,31 +808,31 @@
                 if (currentIndex >= quizData.questions.length) return submitQuiz();
 
                 // Reset instant feedback
-                const feedbackCont = document.getElementById("instant-feedback");
-                if (feedbackCont) feedbackCont.style.display = "none";
+                const feedbackCont = document.getElementById('instant-feedback');
+                if (feedbackCont) feedbackCont.style.display = 'none';
 
                 currentSelectedOption = answers[currentIndex] || null; // RESTORE PREVIOUS ANSWER
 
-                const btnConfirm = document.getElementById("btn-confirm");
-                const bfControls = document.getElementById("bf-nav-controls");
-                const btnNext = document.getElementById("btn-next");
-                const btnPrev = document.getElementById("btn-prev");
+                const btnConfirm = document.getElementById('btn-confirm');
+                const bfControls = document.getElementById('bf-nav-controls');
+                const btnNext = document.getElementById('btn-next');
+                const btnPrev = document.getElementById('btn-prev');
 
                 if (quizData.quiz_mode === 'back_and_forth') {
-                    btnConfirm.style.display = "none";
-                    bfControls.style.display = "flex";
-                    btnPrev.innerText = "⬅️ PREVIOUS'; // Ensure text is reset
+                    btnConfirm.style.display = 'none';
+                    bfControls.style.display = 'flex';
+                    btnPrev.innerText = '⬅️ PREVIOUS'; // Ensure text is reset
                     btnPrev.disabled = currentIndex === 0;
-                    btnNext.innerText = currentIndex === quizData.questions.length - 1 ? '<i data-lucide="flag" class="icon-sm"></i> FINISH & SUBMIT' : 'NEXT / CONFIRM <i data-lucide="arrow-right" class="icon-sm"></i>️";
+                    btnNext.innerText = currentIndex === quizData.questions.length - 1 ? '<i data-lucide="flag" class="icon-sm"></i> FINISH & SUBMIT' : 'NEXT / CONFIRM <i data-lucide="arrow-right" class="icon-sm"></i>️';
                     btnNext.disabled = false;
                 } else {
-                    btnConfirm.style.display = "none";
-                    btnConfirm.innerText = "CONFIRM ANSWER";
+                    btnConfirm.style.display = 'none';
+                    btnConfirm.innerText = 'CONFIRM ANSWER';
                     btnConfirm.disabled = false;
-                    bfControls.style.display = "none";
+                    bfControls.style.display = 'none';
                 }
 
-                document.getElementById("q-num").innerText = currentIndex + 1;
+                document.getElementById('q-num').innerText = currentIndex + 1;
                 const q = quizData.questions[currentIndex];
 
                 currentPageIndex = 0;
@@ -842,50 +842,50 @@
                 }
                 updateWhiteboardLayout();
 
-                document.getElementById("question-text").innerHTML = formatText(q.question);
-                const opts = document.getElementById("options-container");
-                opts.innerHTML = "";
+                document.getElementById('question-text').innerHTML = formatText(q.question);
+                const opts = document.getElementById('options-container');
+                opts.innerHTML = '';
 
-                if (q.type === "open_ended") {
-                    const ta = document.createElement("textarea");
-                    ta.placeholder = "Explain...";
-                    ta.value = answers[currentIndex] || ""; // RESTORE ANSWER ON RELOAD
+                if (q.type === 'open_ended') {
+                    const ta = document.createElement('textarea');
+                    ta.placeholder = 'Explain...';
+                    ta.value = answers[currentIndex] || ''; // RESTORE ANSWER ON RELOAD
                     ta.oninput = e => {
                         currentSelectedOption = e.target.value;
                         if (quizData.quiz_mode !== 'back_and_forth') {
-                            btnConfirm.style.display = e.target.value.trim().length > 0 ? "block" : "none";
+                            btnConfirm.style.display = e.target.value.trim().length > 0 ? 'block' : 'none';
                         }
                     };
                     opts.appendChild(ta);
                     ta.focus();
-                } else if (q.type === "identification" || q.type === "graphing") {
-                    const inp = document.createElement("input");
-                    inp.type = "text";
-                    inp.placeholder = "Answer...";
-                    if (q.type === "identification" && quizData.subject === 'Math') {
-                        inp.inputMode = "decimal";
+                } else if (q.type === 'identification' || q.type === 'graphing') {
+                    const inp = document.createElement('input');
+                    inp.type = 'text';
+                    inp.placeholder = 'Answer...';
+                    if (q.type === 'identification' && quizData.subject === 'Math') {
+                        inp.inputMode = 'decimal';
                     }
-                    inp.value = answers[currentIndex] || ""; // RESTORE ANSWER ON RELOAD
+                    inp.value = answers[currentIndex] || ''; // RESTORE ANSWER ON RELOAD
                     inp.oninput = e => {
-                        if (q.type === "identification" && quizData.subject === 'Math') {
+                        if (q.type === 'identification' && quizData.subject === 'Math') {
                             e.target.value = e.target.value.replace(/[^0-9.\-\/]/g, '');
                         }
                         currentSelectedOption = e.target.value;
                         if (quizData.quiz_mode !== 'back_and_forth') {
-                            btnConfirm.style.display = e.target.value.trim() ? "block" : "none";
+                            btnConfirm.style.display = e.target.value.trim() ? 'block' : 'none';
                         }
                     };
                     opts.appendChild(inp);
-                    if (q.type === "graphing" && quizData.quiz_mode !== 'back_and_forth') btnConfirm.style.display = "block";
+                    if (q.type === 'graphing' && quizData.quiz_mode !== 'back_and_forth') btnConfirm.style.display = 'block';
                     inp.focus();
                 } else {
                     q.options.forEach((o, optIdx) => {
-                        const b = document.createElement("button");
-                        b.className = "option-btn";
+                        const b = document.createElement('button');
+                        b.className = 'option-btn';
 
                         // RESTORE SELECTION
                         if (q.type === 'multiple_choice_multi') {
-                            const currentSet = new Set(String(answers[currentIndex] || "").replace(',', ' ').split(/\s+/).filter(x => x));
+                            const currentSet = new Set(String(answers[currentIndex] || '').replace(',', ' ').split(/\s+/).filter(x => x));
                             const letter = o.trim().toUpperCase()[0];
                             if (currentSet.has(letter)) b.classList.add('selected');
                         } else {
@@ -903,7 +903,7 @@
                                     .sort()
                                     .join(', ');
                                 currentSelectedOption = selected;
-                                btnConfirm.style.display = selected.length > 0 ? "block" : "none";
+                                btnConfirm.style.display = selected.length > 0 ? 'block' : 'none';
                                 if (quizData.quiz_mode === 'back_and_forth') {
                                     btnNext.disabled = false;
                                 }
@@ -912,7 +912,7 @@
                                 document.querySelectorAll('.option-btn').forEach(x => x.classList.remove('selected'));
                                 b.classList.add('selected');
                                 if (quizData.quiz_mode !== 'back_and_forth') {
-                                    btnConfirm.style.display = "block";
+                                    btnConfirm.style.display = 'block';
                                 }
                             }
                         };
@@ -921,7 +921,7 @@
                 }
                 renderMath();
             } catch (err) {
-                console.error("Critical error loading question:", err);
+                console.error('Critical error loading question:', err);
                 currentIndex++;
                 loadQuestion();
             }
@@ -930,20 +930,20 @@
         function nextQuestion() {
             if (isGrading) return;
 
-            const currentVal = currentSelectedOption || "";
+            const currentVal = currentSelectedOption || '';
             const prevVal = answers[currentIndex];
 
             // SMART GRADING: Trigger only if answer changed OR no result yet
             if (currentVal !== prevVal || progressiveResults[currentIndex] === null || isWhiteboardDirty) {
-                console.log("[BF-MODE] Answer changed or new. Triggering grading...");
+                console.log('[BF-MODE] Answer changed or new. Triggering grading...');
                 confirmSelection();
             } else {
-                console.log("[BF-MODE] No change. Just navigating.");
+                console.log('[BF-MODE] No change. Just navigating.');
                 if (currentIndex < quizData.questions.length - 1) {
                     currentIndex++;
                     saveQuizState();
                     loadQuestion();
-                    sendPing("Navigating");
+                    sendPing('Navigating');
                 } else {
                     submitQuiz();
                 }
@@ -953,40 +953,40 @@
         function prevQuestion() {
             if (isGrading) return;
             if (currentIndex > 0) {
-                const currentVal = currentSelectedOption || "";
+                const currentVal = currentSelectedOption || '';
                 const prevVal = answers[currentIndex];
 
                 // SMART GRADING: Trigger only if answer changed OR no result yet
                 if (currentVal !== prevVal || progressiveResults[currentIndex] === null || isWhiteboardDirty) {
-                    console.log("[BF-MODE] Answer changed (Prev). Triggering grading...");
+                    console.log('[BF-MODE] Answer changed (Prev). Triggering grading...');
                     confirmSelection(-1);
                 } else {
                     currentIndex--;
                     saveQuizState();
                     loadQuestion();
-                    sendPing("Navigating");
+                    sendPing('Navigating');
                 }
             }
         }
 
         function updatePauseUI() {
-            const timerElem = document.getElementById("timer");
+            const timerElem = document.getElementById('timer');
             if (!timerElem) return;
             if (isPaused) {
                 timerElem.innerHTML = `⏸️ PAUSED BY TEACHER (${formatTime(Math.max(0, timeRemaining))})`;
-                timerElem.style.backgroundColor = "rgba(251, 191, 36, 0.25)";
-                timerElem.style.color = "var(--warning)";
-                timerElem.style.borderColor = "var(--warning)";
-                timerElem.style.padding = "8px 16px";
-                timerElem.style.borderRadius = "var(--radius-sm)";
-                timerElem.style.fontWeight = "800";
+                timerElem.style.backgroundColor = 'rgba(251, 191, 36, 0.25)';
+                timerElem.style.color = 'var(--warning)';
+                timerElem.style.borderColor = 'var(--warning)';
+                timerElem.style.padding = '8px 16px';
+                timerElem.style.borderRadius = 'var(--radius-sm)';
+                timerElem.style.fontWeight = '800';
             } else {
                 timerElem.innerText = formatTime(Math.max(0, timeRemaining));
-                timerElem.style.backgroundColor = "";
-                timerElem.style.color = "";
-                timerElem.style.borderColor = "";
-                timerElem.style.padding = "";
-                timerElem.style.borderRadius = "";
+                timerElem.style.backgroundColor = '';
+                timerElem.style.color = '';
+                timerElem.style.borderColor = '';
+                timerElem.style.padding = '';
+                timerElem.style.borderRadius = '';
             }
         }
 
@@ -1001,11 +1001,11 @@
                     if (timeRemaining <= 0) {
                         clearInterval(timerInterval);
                         timerInterval = null;
-                        console.log("[TIMER] Time's up! Advancing...");
+                        console.log('[TIMER] Time\'s up! Advancing...');
                         if (quizData.quiz_mode === 'back_and_forth') {
                             submitQuiz();
                         } else {
-                            handleAnswer(currentSelectedOption || "No Answer (Timeout)");
+                            handleAnswer(currentSelectedOption || 'No Answer (Timeout)');
                         }
                     }
                 } else {
@@ -1021,14 +1021,14 @@
             let btn;
 
             if (isBF) {
-                btn = direction === 1 ? document.getElementById("btn-next") : document.getElementById("btn-prev");
+                btn = direction === 1 ? document.getElementById('btn-next') : document.getElementById('btn-prev');
             } else {
-                btn = document.getElementById("btn-confirm");
+                btn = document.getElementById('btn-confirm');
             }
 
-            btn.innerText = "⌛ SAVING...";
+            btn.innerText = '⌛ SAVING...';
             btn.disabled = true;
-            handleAnswer(currentSelectedOption || "", direction, btn);
+            handleAnswer(currentSelectedOption || '', direction, btn);
         }
 
         async function handleAnswer(val, direction = 1, btn = null) {
@@ -1062,7 +1062,7 @@
                             return temp.toDataURL('image/png');
                         });
                         solutionSnapshots[qIndex] = snapshots;
-                    } catch (snapErr) { console.error("Snapshot error:", snapErr); }
+                    } catch (snapErr) { console.error('Snapshot error:', snapErr); }
                 }
 
                 // 2. SAVE STATE (BUT DO NOT ADVANCE INDEX YET FOR SEQUENTIAL MODE)
@@ -1075,7 +1075,7 @@
 
                 // 3. BACKGROUND GRADING (Trigger immediately, but we'll await it later if it's the last question)
                 const metrics = getCurrentTimeMetrics();
-                const apiKey = localStorage.getItem('gemini_api_key') || "";
+                const apiKey = localStorage.getItem('gemini_api_key') || '';
                 const gradingPromise = fetch('/api/grade_individual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1094,12 +1094,12 @@
                     })
                 }).then(async res => {
                     const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || "Grading failed");
+                    if (!res.ok) throw new Error(data.error || 'Grading failed');
 
                     console.log(`[QUIZ] Background Grading Complete for Q${qIndex+1}:`, data);
                     progressiveResults[qIndex] = {
                         question: q.question,
-                        user_answer: val || "No Answer",
+                        user_answer: val || 'No Answer',
                         correct_answer: data.correct_answer,
                         is_correct: data.is_correct,
                         ai_feedback: data.ai_feedback,
@@ -1108,20 +1108,20 @@
 
                     // RECALCULATE TOTAL SCORE FROM ALL GRADED ITEMS
                     totalScore = progressiveResults.reduce((sum, res) => sum + (res ? (Number(res.score_fraction) || 0) : 0), 0);
-                    const liveScoreElem = document.getElementById("live-score");
+                    const liveScoreElem = document.getElementById('live-score');
                     if (liveScoreElem) liveScoreElem.innerText = totalScore.toFixed(2);
 
-                    sendPing("Score Synced");
+                    sendPing('Score Synced');
                     saveQuizState();
                 }).catch(e => {
-                    console.error("BG Grading Error:", e);
+                    console.error('BG Grading Error:', e);
                     progressiveResults[qIndex] = {
                         question: q.question,
                         user_answer: val,
-                        correct_answer: "Grading Error",
+                        correct_answer: 'Grading Error',
                         is_correct: false,
                         score_fraction: 0,
-                        ai_feedback: "Error: " + e.message
+                        ai_feedback: 'Error: ' + e.message
                     };
                 }).finally(() => {
                     pendingGradings--;
@@ -1131,7 +1131,7 @@
 
                 if (isBF) {
                     // Back-and-Forth Mode: Advance instantly (Original behavior)
-                    sendPing("Navigating");
+                    sendPing('Navigating');
                     if (currentIndex >= 0 && currentIndex < quizData.questions.length) {
                         // Unified Timer: Do NOT reset timeRemaining in BF mode
                         isWhiteboardDirty = false;
@@ -1141,56 +1141,56 @@
                     }
                 } else {
                     // Sequential Mode: Show Instant Evaluation
-                    sendPing("Evaluating");
-                    if (btn) btn.style.display = "none";
-                    const feedbackCont = document.getElementById("instant-feedback");
-                    const statusElem = document.getElementById("feedback-status");
-                    const textElem = document.getElementById("feedback-text");
+                    sendPing('Evaluating');
+                    if (btn) btn.style.display = 'none';
+                    const feedbackCont = document.getElementById('instant-feedback');
+                    const statusElem = document.getElementById('feedback-status');
+                    const textElem = document.getElementById('feedback-text');
 
-                    feedbackCont.style.display = "block";
-                    statusElem.innerText = "⌛ EVALUATING...";
-                    textElem.innerText = "Please wait while we check your answer...";
-                    feedbackCont.classList.remove("feedback-correct", "feedback-wrong");
+                    feedbackCont.style.display = 'block';
+                    statusElem.innerText = '⌛ EVALUATING...';
+                    textElem.innerText = 'Please wait while we check your answer...';
+                    feedbackCont.classList.remove('feedback-correct', 'feedback-wrong');
 
                     // WAIT FOR GRADING
                     await gradingPromise;
 
                     const result = progressiveResults[qIndex];
-                    const retryBtn = document.getElementById("btn-retry-grading");
+                    const retryBtn = document.getElementById('btn-retry-grading');
 
                     if (result.is_correct) {
-                        feedbackCont.classList.add("feedback-correct');
+                        feedbackCont.classList.add('feedback-correct');
                         statusElem.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> CORRECT!';
-                        if (retryBtn) retryBtn.style.display = 'none";
+                        if (retryBtn) retryBtn.style.display = 'none';
                     } else {
-                        feedbackCont.classList.add("feedback-wrong');
+                        feedbackCont.classList.add('feedback-wrong');
                         statusElem.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> INCORRECT';
 
                         // Show retry button if AI error occurred
-                        if (retryBtn && (result.correct_answer === 'Grading Error" || (result.ai_feedback && result.ai_feedback.toLowerCase().includes("error")))) {
-                            retryBtn.style.display = "block";
+                        if (retryBtn && (result.correct_answer === 'Grading Error' || (result.ai_feedback && result.ai_feedback.toLowerCase().includes('error')))) {
+                            retryBtn.style.display = 'block';
                         } else if (retryBtn) {
-                            retryBtn.style.display = "none";
+                            retryBtn.style.display = 'none';
                         }
                     }
 
-                    let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;'>${formatText(result.correct_answer)}</div>`;
+                    let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(result.correct_answer)}</div>`;
                     if (result.ai_feedback && result.ai_feedback.trim()) {
                         feedbackHtml += `<br><br><i data-lucide="bot" class="icon-sm"></i> <em>${formatText(result.ai_feedback)}</em>`;
                     }
                     textElem.innerHTML = feedbackHtml;
-                    renderMath('instant-feedback");
+                    renderMath('instant-feedback');
 
                     // Disable interaction with options - CRITICAL: Select all relevant elements
-                    const inputs = document.getElementById("options-container").querySelectorAll('button, input, textarea');
+                    const inputs = document.getElementById('options-container').querySelectorAll('button, input, textarea');
                     inputs.forEach(el => {
                         el.disabled = true;
-                        el.style.opacity = "0.6";
-                        el.style.pointerEvents = "none";
+                        el.style.opacity = '0.6';
+                        el.style.pointerEvents = 'none';
                     });
 
                     // Scroll feedback into view
-                    document.getElementById("instant-feedback').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    document.getElementById('instant-feedback').scrollIntoView({ behavior: 'smooth', block: 'center' });
 
                     // Handle Final Question Navigation
                     if (isLast) {
@@ -1199,8 +1199,8 @@
                     }
                 }
             } catch (fatalErr) {
-                console.error('FATAL UI CRASH:", fatalErr);
-                // alert("Something went wrong: " + fatalErr.message);
+                console.error('FATAL UI CRASH:', fatalErr);
+                // alert('Something went wrong: ' + fatalErr.message);
                 if (quizData.quiz_mode === 'back_and_forth') {
                     currentIndex += direction;
                 } else {
@@ -1221,11 +1221,11 @@
             }
 
             // RESET FEEDBACK UI
-            document.getElementById("instant-feedback").style.display = "none";
-            const btnConfirm = document.getElementById("btn-confirm");
-            if (btnConfirm) btnConfirm.style.display = "block";
-            const retryBtn = document.getElementById("btn-retry-grading");
-            if (retryBtn) retryBtn.style.display = "none";
+            document.getElementById('instant-feedback').style.display = 'none';
+            const btnConfirm = document.getElementById('btn-confirm');
+            if (btnConfirm) btnConfirm.style.display = 'block';
+            const retryBtn = document.getElementById('btn-retry-grading');
+            if (retryBtn) retryBtn.style.display = 'none';
 
             currentIndex++; // Advance index here for sequential mode
             isWhiteboardDirty = false;
@@ -1236,21 +1236,21 @@
         }
 
         async function retryGrading() {
-            const retryBtn = document.getElementById("btn-retry-grading");
+            const retryBtn = document.getElementById('btn-retry-grading');
             if (!retryBtn) return;
 
             const originalText = retryBtn.innerText;
-            retryBtn.innerText = "⌛ RE-CHECKING...";
+            retryBtn.innerText = '⌛ RE-CHECKING...';
             retryBtn.disabled = true;
 
             const qIndex = currentIndex;
             const q = quizData.questions[qIndex];
-            const val = answers[qIndex] || "";
+            const val = answers[qIndex] || '';
             const snapshots = solutionSnapshots[qIndex] || [];
             const metrics = getCurrentTimeMetrics();
 
             try {
-                const apiKey = localStorage.getItem('gemini_api_key') || "";
+                const apiKey = localStorage.getItem('gemini_api_key') || '';
                 const res = await fetch('/api/grade_individual', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1270,12 +1270,12 @@
                 });
 
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.error || "Grading failed");
+                if (!res.ok) throw new Error(data.error || 'Grading failed');
 
                 console.log(`[QUIZ] Retry Grading Complete for Q${qIndex+1}:`, data);
                 progressiveResults[qIndex] = {
                     question: q.question,
-                    user_answer: val || "No Answer",
+                    user_answer: val || 'No Answer',
                     correct_answer: data.correct_answer,
                     is_correct: data.is_correct,
                     ai_feedback: data.ai_feedback,
@@ -1284,60 +1284,60 @@
 
                 // RECALCULATE TOTAL SCORE & UPDATE UI
                 totalScore = progressiveResults.reduce((sum, r) => sum + (r ? (Number(r.score_fraction) || 0) : 0), 0);
-                const liveScoreElem = document.getElementById("live-score");
+                const liveScoreElem = document.getElementById('live-score');
                 if (liveScoreElem) liveScoreElem.innerText = totalScore.toFixed(2);
 
                 // SYNC & PERSIST
-                sendPing("Score Synced");
+                sendPing('Score Synced');
                 saveQuizState();
 
                 // RE-RENDER FEEDBACK BOX
-                const feedbackCont = document.getElementById("instant-feedback");
-                const statusElem = document.getElementById("feedback-status");
-                const textElem = document.getElementById("feedback-text");
+                const feedbackCont = document.getElementById('instant-feedback');
+                const statusElem = document.getElementById('feedback-status');
+                const textElem = document.getElementById('feedback-text');
 
-                feedbackCont.classList.remove("feedback-correct", "feedback-wrong");
+                feedbackCont.classList.remove('feedback-correct', 'feedback-wrong');
 
                 if (data.is_correct) {
-                    feedbackCont.classList.add("feedback-correct');
+                    feedbackCont.classList.add('feedback-correct');
                     statusElem.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> CORRECT!';
-                    retryBtn.style.display = 'none";
+                    retryBtn.style.display = 'none';
                 } else {
-                    feedbackCont.classList.add("feedback-wrong');
+                    feedbackCont.classList.add('feedback-wrong');
                     statusElem.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> INCORRECT';
                     // Only show retry if it's still an error
-                    if (data.correct_answer === 'Grading Error" || (data.ai_feedback && data.ai_feedback.toLowerCase().includes("error"))) {
-                        retryBtn.style.display = "block";
+                    if (data.correct_answer === 'Grading Error' || (data.ai_feedback && data.ai_feedback.toLowerCase().includes('error'))) {
+                        retryBtn.style.display = 'block';
                     } else {
-                        retryBtn.style.display = "none";
+                        retryBtn.style.display = 'none';
                     }
                 }
 
-                let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;'>${formatText(data.correct_answer)}</div><br>`;
+                let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(data.correct_answer)}</div><br>`;
                 if (data.ai_feedback) {
                     feedbackHtml += `<i data-lucide="bot" class="icon-sm"></i> <em>${data.ai_feedback}</em>`;
                 }
                 textElem.innerHTML = feedbackHtml;
-                renderMath('instant-feedback");
+                renderMath('instant-feedback');
 
             } catch (e) {
-                console.error("Retry Grading Error:", e);
-                alert("Retry failed: " + e.message);
+                console.error('Retry Grading Error:', e);
+                alert('Retry failed: ' + e.message);
             } finally {
                 retryBtn.innerText = originalText;
                 retryBtn.disabled = false;
             }
         }
 
-        async function submitQuiz(status = "completed") {
+        async function submitQuiz(status = 'completed') {
             if (isSubmitting) return;
 
-            if (status === 'early' && !confirm("Are you sure you want to end the quiz early? Unanswered questions will be marked as incorrect.")) return;
+            if (status === 'early' && !confirm('Are you sure you want to end the quiz early? Unanswered questions will be marked as incorrect.')) return;
 
             // SHOW LOADING STATE IMMEDIATELY
-            document.getElementById("quiz-screen").style.display = "none";
-            document.getElementById("result-screen").style.display = "block";
-            document.getElementById("score-text").innerText = "Finalizing Results...";
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+            document.getElementById('score-text').innerText = 'Finalizing Results...';
 
             // Anti-Stuck: Clear any active timers
             if (timerInterval) clearInterval(timerInterval);
@@ -1347,7 +1347,7 @@
             let waitStart = Date.now();
             while (pendingGradings > 0 && (Date.now() - waitStart < 15000)) {
                 console.log(`[QUIZ] Waiting for ${pendingGradings} pending gradings...`);
-                document.getElementById("score-text").innerText = `Finalizing Results (${pendingGradings} left)...`;
+                document.getElementById('score-text').innerText = `Finalizing Results (${pendingGradings} left)...`;
                 await new Promise(r => setTimeout(r, 1000));
             }
 
@@ -1359,7 +1359,7 @@
             let finalCalculatedScore = 0;
             progressiveResults = progressiveResults.map((r, i) => {
                 const q = quizData.questions[i];
-                const userAns = answers[i] || "No Answer";
+                const userAns = answers[i] || 'No Answer';
 
                 // Case 1: Already graded successfully
                 if (r && r.correct_answer !== 'Finalizing...') {
@@ -1377,8 +1377,8 @@
                     if (q.type === 'multiple_choice' && normCorrect.length > 1 && (normCorrect[1] === ')' || normCorrect[1] === '.')) normCorrect = normCorrect[0];
                     
                     if (q.type === 'true_false') {
-                        if (normUser.includes("TRUE")) normUser = "A";
-                        else if (normUser.includes("FALSE")) normUser = "B";
+                        if (normUser.includes('TRUE')) normUser = 'A';
+                        else if (normUser.includes('FALSE')) normUser = 'B';
                     }
                     if (q.type === 'identification') {
                         const cleanExpected = normCorrect.replace(/[^A-Z0-9]/g, '');
@@ -1395,7 +1395,7 @@
                     }
                     scoreFrac = isCorrect ? 1 : 0;
                 } else if (q.type === 'multiple_choice_multi') {
-                    const getSet = (s) => new Set(String(s || "").replace(',', ' ').split(/\s+/).filter(x => x && x.length === 1).map(x => x.toUpperCase()));
+                    const getSet = (s) => new Set(String(s || '').replace(',', ' ').split(/\s+/).filter(x => x && x.length === 1).map(x => x.toUpperCase()));
                     const setStudent = getSet(userAns);
                     const setCorrect = getSet(q.answer);
 
@@ -1414,7 +1414,7 @@
                     correct_answer: (r && r.correct_answer) ? r.correct_answer : 'Finalizing...',
                     is_correct: isCorrect,
                     score_fraction: scoreFrac,
-                    ai_feedback: (r && r.ai_feedback) ? r.ai_feedback : "Grading finalized locally."
+                    ai_feedback: (r && r.ai_feedback) ? r.ai_feedback : 'Grading finalized locally.'
                 };
             });
 
@@ -1442,7 +1442,7 @@
                         quiz_id: quizId, session_id: sessionId, student_name: studentName,
                         current_q: currentIndex + 1, score: finalCalculatedScore, status: finalStatus
                     })
-                }).catch(e => console.error("Final status ping fallback failed:", e));
+                }).catch(e => console.error('Final status ping fallback failed:', e));
 
                 // 2. PRIMARY SUBMIT
                 const response = await fetch('/submit', {
@@ -1463,19 +1463,19 @@
                 if (!response.ok) throw new Error(data.error || `Server error ${response.status}`);
                 resultId = data.result_id;
             } catch (err) {
-                console.error("Submission failed:", err);
-                if (document.getElementById("save-status-msg")) {
-                    document.getElementById("save-status-msg").innerHTML = `<span style="color:var(--m-red)'><i data-lucide="alert-triangle" class="icon-sm"></i>️ Save error: ${err.message}. Please screenshot this result.</span>`;
+                console.error('Submission failed:', err);
+                if (document.getElementById('save-status-msg')) {
+                    document.getElementById('save-status-msg').innerHTML = `<span style="color:var(--m-red)"><i data-lucide="alert-triangle" class="icon-sm"></i>️ Save error: ${err.message}. Please screenshot this result.</span>`;
                 }
             } finally {
                 // ALWAYS show the results UI regardless of save success
-                document.getElementById('score-text").innerText = `${finalCalculatedScore.toFixed(2)} / ${quizData.questions.length}`;
-                const rev = document.getElementById("review-container"); rev.innerHTML = "";
+                document.getElementById('score-text').innerText = `${finalCalculatedScore.toFixed(2)} / ${quizData.questions.length}`;
+                const rev = document.getElementById('review-container'); rev.innerHTML = '';
                 progressiveResults.forEach((item, i) => {
-                    const b = document.createElement("div'); b.className = `review-block`;
+                    const b = document.createElement('div'); b.className = `review-block`;
 
                     const statusClass = item.is_correct ? 'status-correct' : 'status-wrong';
-                    const statusText = item.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide='x" class="icon-sm"></i> Incorrect';
+                    const statusText = item.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide="x" class="icon-sm"></i> Incorrect';
 
                     let html = `
                         <div class="status-badge ${statusClass}">${statusText}</div>
@@ -1489,9 +1489,9 @@
                     // --- SHOW WHITEBOARD SNAPSHOTS ---
                     const snapshots = solutionSnapshots[i];
                     if (snapshots && snapshots.length > 0) {
-                        html += `<div class="workings-title'><i data-lucide="edit-3" class="icon-sm"></i> Your Workings:</div>`;
+                        html += `<div class="workings-title"><i data-lucide="edit-3" class="icon-sm"></i> Your Workings:</div>`;
                         snapshots.forEach(img => {
-                            html += `<img src='${img}" class="workings-img" alt="Whiteboard Snapshot">`;
+                            html += `<img src="${img}" class="workings-img" alt='Whiteboard Snapshot'>`;
                         });
                     }
 
@@ -1503,29 +1503,29 @@
                             </div>
                             <div class="ans-box">
                                 <span class="ans-label">Correct Answer</span>
-                                <div class="ans-value">${formatText(item.correct_answer || "N/A")}</div>
+                                <div class="ans-value">${formatText(item.correct_answer || 'N/A')}</div>
                             </div>
                         </div>
                     `;
 
                     if (item.ai_feedback) {
-                        html += `<div style="margin-top: 15px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 4px; font-size: 13px;'><i data-lucide="bot" class="icon-sm"></i> ${item.ai_feedback}</div>`;
+                        html += `<div style="margin-top: 15px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 4px; font-size: 13px;"><i data-lucide="bot" class="icon-sm"></i> ${item.ai_feedback}</div>`;
                     }
 
                     if (!item.is_correct) {
                         html += `
-                                <button class='wb-btn" style="margin-top: 15px; width: 100%; border-color: var(--primary); color: var(--primary);"
-                                onclick="explainMistakeStudent(this, ${i})'>
+                                <button class="wb-btn" style="margin-top: 15px; width: 100%; border-color: var(--primary); color: var(--primary);"
+                                onclick="explainMistakeStudent(this, ${i})">
                                 <i data-lucide="bot" class="icon-sm"></i> AI Tutor: Explain My Mistake
                             </button>
-                            <div class='explanation-box" style="display:none;"></div>
+                            <div class="explanation-box" style="display:none;"></div>
                         `;
                     }
 
                     b.innerHTML = html;
                     rev.appendChild(b);
                 });
-                renderMath("review-container");
+                renderMath('review-container');
 
                 // --- CLEAR LOCAL RAM LAST ---
                 // We wipe large base64 snapshots only AFTER the UI has finished rendering them
@@ -1536,7 +1536,7 @@
         }
 
         function openSharedSolutions() {
-            if (!resultId) return alert("Result still saving...");
+            if (!resultId) return alert('Result still saving...');
             window.open(`/view_solutions/${resultId}?download=true`, '_blank');
         }
 
@@ -1548,12 +1548,12 @@
                 btn.style.display = 'none';
                 const box = btn.nextElementSibling;
                 box.style.display = 'block';
-                box.innerHTML = `<strong style="color: var(--on-dark);'><i data-lucide="bot" class="icon-sm"></i> AI TUTOR (Synced):</strong><br><br>` + formatText(item.ai_feedback);
-                renderMath('review-container");
+                box.innerHTML = `<strong style="color: var(--on-dark);"><i data-lucide="bot" class="icon-sm"></i> AI TUTOR (Synced):</strong><br><br>` + formatText(item.ai_feedback);
+                renderMath('review-container');
                 return;
             }
 
-            btn.innerText = "GENERATING..."; btn.disabled = true;
+            btn.innerText = 'GENERATING...'; btn.disabled = true;
             fetch('/api/explain', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -1566,8 +1566,8 @@
             })
             .then(res => res.json()).then(data => {
                 btn.style.display = 'none'; const box = btn.nextElementSibling; box.style.display = 'block';
-                box.innerHTML = `<strong style="color: var(--on-dark);'><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + formatText(data.explanation);
-                renderMath('review-container");
+                box.innerHTML = `<strong style="color: var(--on-dark);"><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + formatText(data.explanation);
+                renderMath('review-container');
             });
         }
 
@@ -1630,7 +1630,7 @@
             else if (s.tool === 'circle' && s.points[1]) tCtx.arc(s.points[0].x, s.points[0].y, Math.sqrt(Math.pow(s.points[1].x-s.points[0].x,2)+Math.pow(s.points[1].y-s.points[0].y,2)), 0, Math.PI*2);
             tCtx.stroke(); tCtx.globalCompositeOperation = 'source-over';
         }
-        function saveCurrentPage() { console.log("[WB] Current page strokes saved."); }
+        function saveCurrentPage() { console.log('[WB] Current page strokes saved.'); }
         function addNewPage() {
             questionPages[currentIndex].push({ strokes: [], texts: [] });
             currentPageIndex = questionPages[currentIndex].length - 1;
@@ -1675,15 +1675,15 @@
 
             if (isOnline) {
                 dot.style.background = 'var(--success)';
-                dot.title = "Online";
+                dot.title = 'Online';
                 if (btnConfirm && btnConfirm.dataset.wasDisabledByOffline === 'true') {
                     btnConfirm.disabled = false;
-                    btnConfirm.innerText = "CONFIRM ANSWER";
+                    btnConfirm.innerText = 'CONFIRM ANSWER';
                     delete btnConfirm.dataset.wasDisabledByOffline;
                 }
             } else {
                 dot.style.background = 'var(--m-red)';
-                dot.title = "Offline - Reconnecting...';
+                dot.title = 'Offline - Reconnecting...';
                 if (btnConfirm && !btnConfirm.disabled) {
                     btnConfirm.disabled = true;
                     btnConfirm.innerHTML = '<i data-lucide="plug" class="icon-sm"></i> RECONNECTING...';
@@ -1694,8 +1694,8 @@
 
         window.onload = () => {
             if (loadQuizState()) {
-                console.log('[QUIZ] Restoring session for:", studentName);
-                sendPing("Resumed");
+                console.log('[QUIZ] Restoring session for:', studentName);
+                sendPing('Resumed');
                 startQuizUI();
             }
         };

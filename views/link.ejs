@@ -89,14 +89,14 @@
 <body>
     <div class="card">
         <button onclick="toggleTheme()" title="Toggle Theme" style="position: absolute; top: 20px; right: 20px; background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s; padding: 0;"><i data-lucide="moon"></i></button>
-        <h1 style="margin-top:0; color: var(--on-dark); text-transform: uppercase; font-weight: 800; letter-spacing: -0.5px;'><i data-lucide="party-popper" class="icon-sm"></i> Quiz Ready!</h1>
+        <h1 style="margin-top:0; color: var(--on-dark); text-transform: uppercase; font-weight: 800; letter-spacing: -0.5px;"><i data-lucide="party-popper" class="icon-sm"></i> Quiz Ready!</h1>
         <p>Send this link to your international student:</p>
         
-        <div class='link-box" id="shareable-link">Generating link...</div>
+        <div class="link-box" id="shareable-link">Generating link...</div>
         
-        <button class="btn-copy" onclick="copyToClipboard()'><i data-lucide="clipboard" class="icon-sm"></i> Copy Link</button>
+        <button class="btn-copy" onclick="copyToClipboard()"><i data-lucide="clipboard" class="icon-sm"></i> Copy Link</button>
         <br>
-        <a href='/" class="back-link">← Back to Dashboard</a>
+        <a href="/" class="back-link">← Back to Dashboard</a>
     </div>
 
     <script>
@@ -107,12 +107,12 @@
             localStorage.setItem('theme', next);
         }
 
-        const fullLink = window.location.origin + "/quiz/<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>";
-        document.getElementById("shareable-link").innerText = fullLink;
+        const fullLink = window.location.origin + '/quiz/<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>';
+        document.getElementById('shareable-link').innerText = fullLink;
 
         function copyToClipboard() {
             navigator.clipboard.writeText(fullLink).then(() => {
-                alert("Link copied to clipboard!");
+                alert('Link copied to clipboard!');
             });
         }
     </script>

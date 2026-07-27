@@ -41,7 +41,7 @@
             --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
         
-        [data-theme="light"] {
+        [data-theme='light'] {
             --canvas: #fafafa;
             --surface-card: #ffffff;
             --surface-elevated: #f4f4f5;
@@ -58,7 +58,7 @@
             --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
-        [data-theme="dark"] {
+        [data-theme='dark'] {
             --canvas: #0f172a; --surface-card: #1e293b; --surface-elevated: #0f172a; --surface-soft: #1e293b;
             --on-dark: #f8fafc; --body: #94a3b8; --body-strong: #f1f5f9; --hairline: #334155;
             --primary: #818cf8; --m-blue-light: #a5b4fc; --m-blue-dark: #4f46e5; --m-red: #fb7185;
@@ -175,11 +175,11 @@
 <body>
     <div class="height-control-panel">
         <label>Workings Box Height</label>
-        <input type="range" min="100" max="800" value="350" class="height-slider" id="height-slider" oninput="updateWbHeight(this.value)">
+        <input type="range" min='100' max='800' value="350" class="height-slider" id="height-slider" oninput="updateWbHeight(this.value)">
         <div class="height-value" id="height-val-label">350px</div>
     </div>
-    <button class="pdf-btn" id="main-pdf-btn" onclick="downloadThisPageAsPDF()'><i data-lucide="file-text" class="icon-sm"></i> Save as PDF</button>
-    <button class='theme-toggle" onclick="toggleTheme()"><i data-lucide="moon"></i></button>
+    <button class="pdf-btn" id="main-pdf-btn" onclick="downloadThisPageAsPDF()"><i data-lucide="file-text" class="icon-sm"></i> Save as PDF</button>
+    <button class="theme-toggle" onclick="toggleTheme()"><i data-lucide="moon"></i></button>
 
     <div class="container">
         <div class="header-card">
@@ -193,19 +193,19 @@
             <div id="grading-status" style="display:none; color: var(--warning); font-weight: 700; font-size: 14px; margin-top: 10px;">⏳ Grading in progress...</div>
 
             <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
-                <button id="force-sync-btn" onclick="forceSyncResults()" style="background: var(--surface-soft); color: var(--warning); border: 1px solid var(--warning); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s;'><i data-lucide="zap" class="icon-sm"></i> FORCE SYNC & REPAIR</button>
+                <button id="force-sync-btn" onclick="forceSyncResults()" style="background: var(--surface-soft); color: var(--warning); border: 1px solid var(--warning); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s;"><i data-lucide="zap" class="icon-sm"></i> FORCE SYNC & REPAIR</button>
             </div>
         </div>
 
-        <div id='solutions-container">
+        <div id="solutions-container">
             <% (result && result.details ? result.details : (quiz && quiz.questions ? quiz.questions : [])).forEach((item, itemIdx) => { %>
             <div class="solution-card" id="card-<%= itemIdx %>">
                 <div class="question-header">
                     <span class="q-num">Question <%= itemIdx + 1 %></span>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <span style="font-size: 13px; font-weight: 800; color: var(--body); background: var(--surface-soft); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--hairline);">Points: <%= (item.score_fraction !== undefined ? item.score_fraction : (item.is_correct ? 1 : 0)).toFixed(2) %> / 1.0</span>
-                        <span class="status-badge <% if (item.is_correct) { %>status-correct<% } else if (item.correct_answer == 'Finalizing...') { %>status-grading<% } else { %>status-wrong<% } %>" id="status-<%= itemIdx %>'>
-                            <% if (item.correct_answer == 'Finalizing...') { %>⏳ Finalizing...<% } else if (item.is_correct) { %><i data-lucide="check" class="icon-sm"></i> Correct<% } else { %><i data-lucide='x" class="icon-sm"></i> Incorrect<% } %>
+                        <span class='status-badge <% if (item.is_correct) { %>status-correct<% } else if (item.correct_answer == 'Finalizing...') { %>status-grading<% } else { %>status-wrong<% } %>" id="status-<%= itemIdx %>">
+                            <% if (item.correct_answer == 'Finalizing...') { %>⏳ Finalizing...<% } else if (item.is_correct) { %><i data-lucide="check" class="icon-sm"></i> Correct<% } else { %><i data-lucide="x" class="icon-sm"></i> Incorrect<% } %>
                         </span>
                     </div>
                 </div>
@@ -217,9 +217,9 @@
                 <% let snapshots = (result && result.solution_snapshots) ? result.solution_snapshots[itemIdx] : null; %>
                 <div id="snapshots-container-<%= itemIdx %>">
                     <% if (snapshots && snapshots.length > 0) { %>
-                        <div class="workings-title'><i data-lucide="edit-3" class="icon-sm"></i> Workings / Whiteboard Solutions:</div>
+                        <div class="workings-title"><i data-lucide="edit-3" class="icon-sm"></i> Workings / Whiteboard Solutions:</div>
                         <% for (let img of snapshots) { %>
-                            <img src='<%= img %>" class="workings-img" alt="Student Workings">
+                            <img src='<%= img %>" class="workings-img" alt='Student Workings'>
                         <% } %>
                     <% } %>
                 </div>
@@ -236,20 +236,20 @@
                             <span class="ans-label" style="margin-bottom: 0;">Correct Answer</span>
                             <% if (typeof session !== 'undefined' && session.user) { %>
                             <div style="display: flex; gap: 8px; align-items: center;">
-                                <button class="edit-btn" onclick="recheckAnswer(<%= itemIdx %>, this)" style="background: transparent; border: none; color: var(--warning); font-size: 11px; cursor: pointer; font-weight: 800;'><i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK</button>
+                                <button class="edit-btn" onclick='recheckAnswer(<%= itemIdx %>, this)' style="background: transparent; border: none; color: var(--warning); font-size: 11px; cursor: pointer; font-weight: 800;"><i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK</button>
                             </div>
                             <% } %>
                         </div>
-                        <div class='ans-value" id="correct-ans-<%= itemIdx %>">
+                        <div class="ans-value" id="correct-ans-<%= itemIdx %>">
                             <%= typeof item.correct_answer !== 'undefined' ? item.correct_answer : '' %>
                         </div>
                     </div>
                 </div>
 
                 <% const qType = item.type || (typeof quiz !== 'undefined' && quiz && quiz.questions && quiz.questions[itemIdx] ? quiz.questions[itemIdx].type : ''); %>
-                <div class="ai-feedback" id="feedback-<%= itemIdx %>" style="display:<% if ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback && item.ai_feedback.trim()) { %>block<% } else { %>none<% } %>;'>
+                <div class="ai-feedback" id="feedback-<%= itemIdx %>" style="display:<% if ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback && item.ai_feedback.trim()) { %>block<% } else { %>none<% } %>;">
                     <strong><i data-lucide="bot" class="icon-sm"></i> AI Tutor Feedback:</strong><br>
-                    <span class='feedback-text"><%= ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback) ? item.ai_feedback : '' %></span>
+                    <span class="feedback-text"><%= ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback) ? item.ai_feedback : '' %></span>
                 </div>
 
                 <% if (typeof session === 'undefined' || !session.user) { %>
@@ -257,10 +257,10 @@
                 <div id="student-help-<%= itemIdx %>">
                     <button class="wb-btn" style="margin-top: 15px; width: 100%; border-color: var(--primary); color: var(--primary);"
                         onclick="explainMistakeResults(this)"
-                        data-q-idx="<%= itemIdx %>'>
+                        data-q-idx='<%= itemIdx %>">
                         <i data-lucide="bot" class="icon-sm"></i> AI Tutor: Explain My Mistake
                     </button>
-                    <div class='explanation-box" style="display:none;" id="explanation-<%= itemIdx %>"></div>
+                    <div class="explanation-box" style="display:none;" id="explanation-<%= itemIdx %>"></div>
                 </div>
                 <% } %>
                 <% } %>
@@ -274,7 +274,7 @@
     </div>
 
     <script>
-        const resultId = "<%= typeof result.id !== 'undefined' ? result.id : '' %>";
+        const resultId = '<%= typeof result.id !== 'undefined' ? result.id : '' %>';
         let isComplete = false;
         let isEditing = false;
         let currentAnswersData = {}; // Store raw values for editing
@@ -284,12 +284,12 @@
             const item = initialDetails[qIdx];
             if (!item) return;
 
-            btn.innerText = "GENERATING EXPLANATION..."; btn.disabled = true;
+            btn.innerText = 'GENERATING EXPLANATION...'; btn.disabled = true;
             fetch('/api/explain', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    quiz_id: "<%= typeof result.quiz_id !== 'undefined' ? result.quiz_id : '' %>',
+                    quiz_id: '<%= typeof result.quiz_id !== 'undefined' ? result.quiz_id : '' %>',
                     question: item.question,
                     user_answer: item.user_answer,
                     correct_answer: item.correct_answer,
@@ -307,13 +307,13 @@
             }).catch(err => {
                 btn.innerHTML = '<i data-lucide="bot" class="icon-sm"></i> AI Tutor: Explain My Mistake';
                 btn.disabled = false;
-                alert('Failed to generate explanation. Please try again.");
+                alert('Failed to generate explanation. Please try again.');
             });
         }
 
         function startEditAnswer(index) {
             isEditing = true;
-            const currentVal = currentAnswersData[index] || "";
+            const currentVal = currentAnswersData[index] || '';
             document.getElementById(`correct-ans-${index}`).style.display = 'none';
             document.getElementById(`edit-box-${index}`).style.display = 'block';
             document.getElementById(`edit-input-${index}`).value = currentVal;
@@ -330,7 +330,7 @@
             const saveBtn = document.querySelector(`#edit-box-${index} button:first-child`);
             const originalText = saveBtn.innerText;
 
-            saveBtn.innerText = "SAVING...";
+            saveBtn.innerText = 'SAVING...';
             saveBtn.disabled = true;
 
             try {
@@ -347,7 +347,7 @@
                         const errData = await res.json();
                         errorMsg = errData.error || errorMsg;
                     } catch(e) {}
-                    alert("Error: " + errorMsg);
+                    alert('Error: ' + errorMsg);
                     return;
                 }
 
@@ -362,12 +362,12 @@
 
                     // Trigger MathJax re-render
                     if (window.MathJax && window.MathJax.typesetPromise) {
-                        console.log("[DEBUG] Triggering MathJax re-typeset...");
+                        console.log('[DEBUG] Triggering MathJax re-typeset...');
                         MathJax.typesetPromise([document.getElementById(`correct-ans-${index}`)]).then(() => {
-                            console.log("[DEBUG] MathJax re-typeset complete.");
-                        }).catch((err) => console.error("[DEBUG] MathJax Error:", err));
+                            console.log('[DEBUG] MathJax re-typeset complete.');
+                        }).catch((err) => console.error('[DEBUG] MathJax Error:', err));
                     } else {
-                        console.warn("[DEBUG] MathJax not loaded or typesetPromise missing.");
+                        console.warn('[DEBUG] MathJax not loaded or typesetPromise missing.');
                     }
 
                     // --- NEW: AUTO RE-CHECK AFTER EDIT ---
@@ -375,11 +375,11 @@
                     recheckAnswer(index);
 
                 } else {
-                    alert("Error saving: " + (data.error || "Unknown error"));
+                    alert('Error saving: ' + (data.error || 'Unknown error'));
                 }
             } catch (e) {
-                console.error("Save error:", e);
-                alert("Network or Connection error while saving. Please check your internet or session.");
+                console.error('Save error:', e);
+                alert('Network or Connection error while saving. Please check your internet or session.');
             } finally {
                 saveBtn.innerText = originalText;
                 saveBtn.disabled = false;
@@ -387,7 +387,7 @@
         }
 
         async function recheckAnswer(index, btn = null) {
-            const targetBtn = btn || document.querySelector(`#card-${index} .edit-btn[onclick*="recheckAnswer']`);
+            const targetBtn = btn || document.querySelector(`#card-${index} .edit-btn[onclick*='recheckAnswer']`);
             const originalText = targetBtn ? targetBtn.innerText : '<i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK';
 
             if (targetBtn) {
@@ -407,10 +407,10 @@
                     // 1. Update Status Badge
                     const statusBadge = document.getElementById(`status-${index}`);
                     statusBadge.className = `status-badge ${data.is_correct ? 'status-correct' : 'status-wrong'}`;
-                    statusBadge.innerText = data.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide='x" class="icon-sm"></i> Incorrect';
+                    statusBadge.innerText = data.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide="x" class="icon-sm"></i> Incorrect';
 
                     // Update Point display in parent
-                    const pointBox = statusBadge.parentElement.querySelector('span[style*="background: var(--surface-soft)"]');
+                    const pointBox = statusBadge.parentElement.querySelector("span[style*='background: var(--surface-soft)']");
                     if (pointBox) pointBox.innerText = `Points: ${data.score_fraction.toFixed(2)} / 1.0`;
 
                     // 2. Update Total Score Header
@@ -428,21 +428,21 @@
 
                     // 4. Highlight success
                     if (targetBtn) {
-                        targetBtn.style.color = "var(--success)";
+                        targetBtn.style.color = 'var(--success)';
                         setTimeout(() => {
                             targetBtn.innerText = originalText;
                             targetBtn.disabled = false;
-                            targetBtn.style.color = "var(--warning)";
+                            targetBtn.style.color = 'var(--warning)';
                         }, 2000);
                     }
                 } else {
-                    alert("Re-check failed: " + data.error);
+                    alert('Re-check failed: ' + data.error);
                 }
             } catch (e) {
-                console.error("Recheck error:", e);
-                alert("Network error while re-checking.");
+                console.error('Recheck error:', e);
+                alert('Network error while re-checking.');
             } finally {
-                if (targetBtn && targetBtn.innerText === "⌛ RE-CHECKING...") {
+                if (targetBtn && targetBtn.innerText === '⌛ RE-CHECKING...') {
                     targetBtn.innerText = originalText;
                     targetBtn.disabled = false;
                 }
@@ -454,9 +454,9 @@
             const targetBtn = btn || document.getElementById('reprocess-all-btn');
             const originalText = targetBtn.innerText;
 
-            if (isAll && !confirm("Re-format all Open Ended answers into high-quality bullet points?")) return;
+            if (isAll && !confirm('Re-format all Open Ended answers into high-quality bullet points?')) return;
 
-            targetBtn.innerText = "🪄 RE-FORMATTING...";
+            targetBtn.innerText = '🪄 RE-FORMATTING...';
             targetBtn.disabled = true;
 
             try {
@@ -476,13 +476,13 @@
                     });
                     // Re-run MathJax
                     if (window.MathJax && window.MathJax.typesetPromise) MathJax.typesetPromise();
-                    if (!isAll) alert("Answer re-formatted successfully!");
+                    if (!isAll) alert('Answer re-formatted successfully!');
                 } else {
-                    alert("Re-format failed: " + (data.error || "Unknown error"));
+                    alert('Re-format failed: ' + (data.error || 'Unknown error'));
                 }
             } catch (e) {
-                console.error("Reprocess error:", e);
-                alert("Network error during re-formatting.");
+                console.error('Reprocess error:', e);
+                alert('Network error during re-formatting.');
             } finally {
                 targetBtn.innerText = originalText;
                 targetBtn.disabled = false;
@@ -506,7 +506,7 @@
         document.documentElement.setAttribute('data-theme', savedTheme);
 
         function formatDisplay(val) {
-            if (!val) return "";
+            if (!val) return '';
 
             // 1. Unpack JSON Objects/Lists (if any)
             let data = val;
@@ -540,7 +540,7 @@
             // Use the same logic as the Quiz/Edit pages: split by image blocks and replace \n with <br>
             const parts = str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi);
             return parts.map(part => {
-                if (part.startsWith('<div class="resizable-image-wrapper'')) return part;
+                if (part.startsWith('<div class="resizable-image-wrapper">')) return part;
 
                 // Process bullets and line breaks in the text parts
                 // Use a regex to catch both Windows (\r\n) and Unix (\n) line endings
@@ -570,21 +570,21 @@
                 await new Promise(r => setTimeout(r, 1000));
 
                 if (!isComplete) {
-                    alert('Sync completed, but some items might still be grading. Try again in a few seconds.");
+                    alert('Sync completed, but some items might still be grading. Try again in a few seconds.');
                 } else {
-                    btn.style.borderColor = "var(--success)";
-                    btn.style.color = "var(--success)';
+                    btn.style.borderColor = 'var(--success)';
+                    btn.style.color = 'var(--success)';
                     btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> REPAIRED';
                 }
             } catch (err) {
-                console.error('Force sync failed:", err);
-                alert("Failed to sync: " + err.message);
+                console.error('Force sync failed:', err);
+                alert('Failed to sync: ' + err.message);
             } finally {
                 setTimeout(() => {
                     btn.innerText = originalText;
                     btn.disabled = false;
-                    btn.style.borderColor = "var(--warning)";
-                    btn.style.color = "var(--warning)";
+                    btn.style.borderColor = 'var(--warning)';
+                    btn.style.color = 'var(--warning)';
                 }, 3000);
             }
         }
@@ -616,9 +616,9 @@
                     // Update snapshots if any
                     const snaps = (data.solution_snapshots && data.solution_snapshots[String(i)]) ? data.solution_snapshots[String(i)] : null;
                     if (snaps && snaps.length > 0) {
-                        let snapHtml = '<div class="workings-title'><i data-lucide="edit-3" class="icon-sm"></i> Workings / Whiteboard Solutions:</div>';
+                        let snapHtml = '<div class="workings-title"><i data-lucide="edit-3" class="icon-sm"></i> Workings / Whiteboard Solutions:</div>';
                         snaps.forEach(img => {
-                            snapHtml += `<img src='${img}" class="workings-img" alt="Student Workings">`;
+                            snapHtml += `<img src="${img}" class="workings-img" alt='Student Workings'>`;
                         });
                         // Only update if changed to avoid unnecessary re-renders
                         if (snapContainer.innerHTML.trim() !== snapHtml.trim()) {
@@ -628,11 +628,11 @@
 
                     if (item.correct_answer === 'Finalizing...') {
                         stillGrading = true;
-                        correctAnsBox.innerHTML = "⏳ Finalizing...';
+                        correctAnsBox.innerHTML = '⏳ Finalizing...';
                     } else {
                         // Update Status
                         statusBadge.className = `status-badge ${item.is_correct ? 'status-correct' : 'status-wrong'}`;
-                        statusBadge.innerText = item.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide='x" class="icon-sm"></i> Incorrect';
+                        statusBadge.innerText = item.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide="x" class="icon-sm"></i> Incorrect';
 
                         // Update Correct Answer
                         correctAnsBox.innerHTML = formatDisplay(item.correct_answer);
@@ -649,7 +649,7 @@
 
                 if (!stillGrading) {
                     isComplete = true;
-                    console.log("[POLLING] Grading complete.");
+                    console.log('[POLLING] Grading complete.');
                 } else {
                     setTimeout(pollResults, 3000);
                 }
@@ -660,13 +660,13 @@
                 }
 
             } catch (e) {
-                console.error("Polling error:", e);
+                console.error('Polling error:', e);
                 setTimeout(pollResults, 5000);
             }
         }
 
         // Start polling or initial render
-        const initialDetails = <%- JSON.stringify(result.details) %>;
+        const initialDetails = <%- JSON.stringify(result.details).replace(/</g, "\\u003c") %>;
         initialDetails.forEach((item, i) => {
             currentAnswersData[i] = item.correct_answer; // Store for edit
             const qTextBox = document.getElementById(`question-text-${i}`);
@@ -697,7 +697,7 @@
         async function downloadThisPageAsPDF() {
             const btn = document.getElementById('main-pdf-btn');
             const originalText = btn.innerHTML;
-            btn.innerText = "⏳ Preparing for Print...";
+            btn.innerText = '⏳ Preparing for Print...';
             btn.disabled = true;
 
             try {
@@ -710,7 +710,7 @@
                 await new Promise(resolve => setTimeout(resolve, 500));
 
                 // NEW RELIABLE STRATEGY: Use Browser's Native Print
-                // This is 100% immune to "blank canvas" issues
+                // This is 100% immune to 'blank canvas' issues
                 window.print();
 
             } catch (err) {

@@ -138,18 +138,18 @@
 <body>
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-            <a href="/" class="back-link" style="margin-bottom: 0;'><i data-lucide="arrow-left" class="icon-sm"></i> Back to Dashboard</a>
-            <div style='display: flex; gap: 16px; align-items: center;">
+            <a href="/" class="back-link" style="margin-bottom: 0;"><i data-lucide="arrow-left" class="icon-sm"></i> Back to Dashboard</a>
+            <div style="display: flex; gap: 16px; align-items: center;">
                 <button id="pause-btn" onclick="togglePause()" class="score-badge" style="background-color: var(--warning); color: var(--canvas); border: none; cursor: pointer; padding: 8px 16px;">⏸️ Pause Timers</button>
-                <button id="terminate-btn" onclick="terminateQuiz()" class="score-badge" style="background-color: var(--m-red); color: white; border: none; cursor: pointer; padding: 8px 16px;'><i data-lucide="stop-circle" class="icon-sm"></i> Terminate Quiz</button>
-                <button onclick='toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8;"><i data-lucide="moon"></i></button>
+                <button id="terminate-btn" onclick="terminateQuiz()" class="score-badge" style="background-color: var(--m-red); color: white; border: none; cursor: pointer; padding: 8px 16px;"><i data-lucide="stop-circle" class="icon-sm"></i> Terminate Quiz</button>
+                <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8;"><i data-lucide="moon"></i></button>
             </div>
         </div>
         
         <div class="card">
-            <h1><span class="pulse'></span> <i data-lucide="radio" class="icon-sm"></i> LIVE: <%= typeof title !== 'undefined' ? title : '' %></h1>
+            <h1><span class="pulse"></span> <i data-lucide="radio" class="icon-sm"></i> LIVE: <%= typeof title !== 'undefined' ? title : '' %></h1>
             
-            <p style='color: var(--body); font-size: 12px; margin-top: -5px; text-transform: uppercase; letter-spacing: 1.5px;">TABLE UPDATES AUTOMATICALLY EVERY 2 SECONDS.</p>
+            <p style="color: var(--body); font-size: 12px; margin-top: -5px; text-transform: uppercase; letter-spacing: 1.5px;">TABLE UPDATES AUTOMATICALLY EVERY 2 SECONDS.</p>
             
             <table id="live-table">
                 <thead>
@@ -164,7 +164,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan="5" style="text-align:center; color:var(--body); padding:40px; text-transform: uppercase; letter-spacing: 1.5px;">Waiting for students to join...</td></tr>
+                    <tr><td colspan='5' style="text-align:center; color:var(--body); padding:40px; text-transform: uppercase; letter-spacing: 1.5px;">Waiting for students to join...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -172,9 +172,9 @@
 
     <!-- Original Preserved Javascript -->
     <script>
-        const quizId = "<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>";
+        const quizId = '<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>';
         const totalQ = <%= typeof total_q !== 'undefined' && total_q ? total_q : 0 %>;
-        const quizQuestions = <%- typeof quiz !== 'undefined' && quiz.questions ? JSON.stringify(quiz.questions) : '[]' %>;
+        const quizQuestions = <%- typeof quiz !== 'undefined' && quiz.questions ? JSON.stringify(quiz.questions).replace(/</g, "\\u003c") : '[]' %>;
         
         // WebSocket Initialization with Polling Fallback
         let socket;
@@ -188,18 +188,18 @@
             });
 
             socket.on('connect', () => {
-                console.log("[WS] Connected to server");
+                console.log('[WS] Connected to server');
                 useWS = true;
                 socket.emit('join_quiz', { quiz_id: quizId });
             });
 
             socket.on('connect_error', (err) => {
-                console.warn("[WS] Connection failed, using polling fallback:", err.message);
+                console.warn('[WS] Connection failed, using polling fallback:', err.message);
                 useWS = false;
             });
 
             socket.on('update_session', (payload) => {
-                console.log("[WS] Received update:", payload);
+                console.log('[WS] Received update:', payload);
                 sessionsCache[payload.session_id] = payload.data;
                 if (payload.paused !== undefined) {
                     isPaused = payload.paused;
@@ -215,12 +215,12 @@
 
             // --- ROOM CLEANUP ON LEAVE ---
             window.addEventListener('beforeunload', () => {
-                console.log("[WS] Leaving room:", quizId);
+                console.log('[WS] Leaving room:', quizId);
                 socket.emit('leave_quiz', { quiz_id: quizId });
             });
 
         } catch (e) {
-            console.error("[WS] Initialization error:", e);
+            console.error('[WS] Initialization error:', e);
             useWS = false;
         }
 
@@ -252,20 +252,20 @@
         }
 
         function terminateQuiz() {
-            if (!confirm("Are you sure you want to TERMINATE the quiz? All students will be sent to their results page immediately. This cannot be undone.")) return;
+            if (!confirm('Are you sure you want to TERMINATE the quiz? All students will be sent to their results page immediately. This cannot be undone.')) return;
             fetch(`/api/live/${quizId}/terminate`, { method: 'POST' });
         }
         
         function updatePauseBtn() {
             const btn = document.getElementById('pause-btn');
             if (isPaused) {
-                btn.innerHTML = "▶️ Resume Timers";
-                btn.style.backgroundColor = "var(--success)";
-                btn.style.color = "white";
+                btn.innerHTML = '▶️ Resume Timers';
+                btn.style.backgroundColor = 'var(--success)';
+                btn.style.color = 'white';
             } else {
-                btn.innerHTML = "⏸️ Pause Timers";
-                btn.style.backgroundColor = "var(--warning)";
-                btn.style.color = "var(--canvas)";
+                btn.innerHTML = '⏸️ Pause Timers';
+                btn.style.backgroundColor = 'var(--warning)';
+                btn.style.color = 'var(--canvas)';
             }
         }
 
@@ -291,8 +291,8 @@
                 if (sid === '_meta') return;
 
                 // DATA INTEGRITY: Fallback across name and student_name properties
-                const studentDisplayName = (info.name || info.student_name || "").trim();
-                if (!studentDisplayName || studentDisplayName === "undefined") {
+                const studentDisplayName = (info.name || info.student_name || '').trim();
+                if (!studentDisplayName || studentDisplayName === 'undefined') {
                     return; // Skip invalid ghost session
                 }
 
@@ -336,23 +336,23 @@
                 if (statusText.includes('Completed')) qIndex = Math.max(0, totalQ - 1);
 
                 const currentQData = quizQuestions[qIndex] || {};
-                let rawQuestionHTML = currentQData.question || (statusText.includes('Completed') ? "Finished" : "Active");
+                let rawQuestionHTML = currentQData.question || (statusText.includes('Completed') ? 'Finished' : 'Active');
                 let optionsList = currentQData.options || [];
                 let optionsHTML = Array.isArray(optionsList) ? optionsList.map(opt => `<li style="margin-bottom: 6px;">${opt}</li>`).join('') : '';
 
                 let snippetDiv = document.createElement('div');
                 snippetDiv.innerHTML = rawQuestionHTML;
-                let cleanText = snippetDiv.innerText || snippetDiv.textContent || "';
+                let cleanText = snippetDiv.innerText || snippetDiv.textContent || '';
                 let snippet = cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText;
 
                 if (statusText.includes('Completed')) snippet = '<i data-lucide="party-popper" class="icon-sm"></i> Student has finished the quiz!';
-                else if (statusText.includes('Abandoned')) snippet = '<i data-lucide='x-circle" class="icon-sm"></i> Student left the quiz early.';
+                else if (statusText.includes('Abandoned')) snippet = '<i data-lucide="x-circle" class="icon-sm"></i> Student left the quiz early.';
 
                 let detailsHtml = '';
                 if (!statusText.includes('Completed') && quizQuestions[qIndex]) {
                     let isOpen = openDropdowns.has(sid) ? 'open' : '';
                     detailsHtml = `
-                        <details ${isOpen} ontoggle="toggleDropdown('${sid}', this.open)">
+                        <details ${isOpen} ontoggle='toggleDropdown('${sid}', this.open)'>
                             <summary class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="Click to expand">${snippet}</summary>
                             <div class="full-question-box" style="white-space: pre-wrap; margin-top: 10px; padding: 12px; background: var(--surface-soft); border-radius: 8px;">
                                 <div style="margin-bottom: 12px; font-weight: 600; line-height: 1.5;">${rawQuestionHTML}</div>
@@ -363,12 +363,12 @@
                         </details>
                     `;
                 } else {
-                    detailsHtml = `<div class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap;" title="${cleanText}'>${snippet}</div>`;
+                    detailsHtml = `<div class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap;" title="${cleanText}">${snippet}</div>`;
                 }
 
                 const wbDisabled = info.whiteboard_disabled || false;
-                const wbBtnText = wbDisabled ? '<i data-lucide="check-circle" class="icon-sm"></i> Enable WB' : '<i data-lucide='slash" class="icon-sm"></i> Disable WB';
-                const wbBtnColor = wbDisabled ? "var(--success)" : "var(--m-red)";
+                const wbBtnText = wbDisabled ? '<i data-lucide="check-circle" class="icon-sm"></i> Enable WB' : '<i data-lucide="slash" class="icon-sm"></i> Disable WB';
+                const wbBtnColor = wbDisabled ? 'var(--success)' : 'var(--m-red)';
                 const wbStatusHtml = `
                     <button onclick="toggleWhiteboard('${sid}')" class="score-badge" style="background: ${wbBtnColor}; color: white; border: none; cursor: pointer; padding: 4px 8px; font-size: 11px;">
                         ${wbBtnText}
@@ -407,10 +407,10 @@
         
         initialFetch();
         // Automatic HTTP Polling Fallback if WS is down or laggy
-        // Reduced interval to 2s to match the "TABLE UPDATES EVERY 2 SECONDS" header
+        // Reduced interval to 2s to match the 'TABLE UPDATES EVERY 2 SECONDS' header
         setInterval(() => {
             if (!useWS || (socket && !socket.connected)) {
-                console.log("[HTTP] Polling live data fallback...");
+                console.log('[HTTP] Polling live data fallback...');
                 initialFetch();
             }
         }, 2000);

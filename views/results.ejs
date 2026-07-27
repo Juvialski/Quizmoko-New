@@ -150,13 +150,13 @@
     </div>
     <div id="bulk-actions-bar" class="bulk-actions">
         <span id="selection-count" style="font-size: 13px; color: var(--body); font-weight: 600;">0 selected</span>
-        <button class="btn-delete-bulk" onclick="deleteSelectedResults()'><i data-lucide="trash-2" class="icon-sm"></i> DELETE</button>
+        <button class="btn-delete-bulk" onclick="deleteSelectedResults()"><i data-lucide="trash-2" class="icon-sm"></i> DELETE</button>
     </div>
 </div>
 
 <% 
 // Compute Analytics
-let classAvg = 0, completionRate = 0, avgTime = 0, hardestQ = 'N/A";
+let classAvg = 0, completionRate = 0, avgTime = 0, hardestQ = 'N/A';
 if (results && results.length > 0) {
     let totalScore = 0, totalQuestions = 0;
     let completedCount = 0;
@@ -166,7 +166,7 @@ if (results && results.length > 0) {
     results.forEach(r => {
         totalScore += r.score || 0;
         totalQuestions += r.total || 0;
-        if (r.completion_note !== "Left without finishing") completedCount++;
+        if (r.completion_note !== 'Left without finishing') completedCount++;
         totalActiveTime += r.time_active_seconds || 0;
         
         if (r.details) {
@@ -190,7 +190,7 @@ if (results && results.length > 0) {
             maxMissIdx = parseInt(idx);
         }
     }
-    if (maxMissIdx !== -1) hardestQ = "Q" + (maxMissIdx + 1);
+    if (maxMissIdx !== -1) hardestQ = 'Q' + (maxMissIdx + 1);
 }
 %>
 
@@ -228,7 +228,7 @@ if (results && results.length > 0) {
                 <tbody>
                     <% if (!results || results.length === 0) { %>
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 40px; color: var(--body);">
+                            <td colspan='6' style="text-align: center; padding: 40px; color: var(--body);">
                                 <i>No results found for this quiz yet. Share the link with students!</i>
                             </td>
                         </tr>
@@ -240,15 +240,15 @@ if (results && results.length > 0) {
                         </td>
                         <td style="font-weight: 700; color: var(--on-dark);">
                             <%= typeof r.student_name !== 'undefined' ? r.student_name : '' %>
-                            <% if (r.completion_note == "Left without finishing") { %>
-                                <br><span style="font-size: 10px; color: var(--warning);'><i data-lucide="alert-triangle" class="icon-sm"></i>️ ABANDONED</span>
+                            <% if (r.completion_note == 'Left without finishing') { %>
+                                <br><span style="font-size: 10px; color: var(--warning);"><i data-lucide="alert-triangle" class="icon-sm"></i>️ ABANDONED</span>
                             <% } %>
                         </td>
                         <td>
-                            <div style='display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
                                 <span class="score-badge"><%= typeof r.score !== 'undefined' && r.score ? r.score : '' %> / <%= typeof r.total !== 'undefined' && r.total ? r.total : '' %></span>
-                                <span style="font-size: 11px; font-weight: 700; color: var(--primary);'><i data-lucide="target" class="icon-sm"></i> <%= typeof r.accuracy_pct !== 'undefined' && r.accuracy_pct ? r.accuracy_pct : '' %>% Accuracy</span>
-                                <span style='font-size: 10px; color: var(--body); font-weight: 600; margin-top: 2px;">
+                                <span style="font-size: 11px; font-weight: 700; color: var(--primary);"><i data-lucide="target" class="icon-sm"></i> <%= typeof r.accuracy_pct !== 'undefined' && r.accuracy_pct ? r.accuracy_pct : '' %>% Accuracy</span>
+                                <span style="font-size: 10px; color: var(--body); font-weight: 600; margin-top: 2px;">
                                     <% 
                                       let incorrect_indices = [];
                                       if (r.details) {
@@ -259,11 +259,11 @@ if (results && results.length > 0) {
                                     %>
 
                                     <% if (incorrect_indices.length > 0) { %>
-                                        <span style="color: var(--m-red);'><i data-lucide="x-circle" class="icon-sm"></i> Incorrect: Q<%= incorrect_indices.join(', ') %></span>
+                                        <span style="color: var(--m-red);"><i data-lucide="x-circle" class="icon-sm"></i> Incorrect: Q<%= incorrect_indices.join(', ') %></span>
                                     <% } else if (r.score == r.total && r.total > 0) { %>
-                                        <span style='color: var(--success);'><i data-lucide="check-circle" class="icon-sm"></i> Perfect Score</span>
+                                        <span style="color: var(--success);"><i data-lucide="check-circle" class="icon-sm"></i> Perfect Score</span>
                                     <% } else { %>
-                                        <span style='color: var(--body);">⏳ In Progress...</span>
+                                        <span style="color: var(--body);">⏳ In Progress...</span>
                                     <% } %>
                                 </span>
                             </div>
@@ -271,8 +271,8 @@ if (results && results.length > 0) {
                         <td>
                             <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--body);">
                                 <span>⏱️ <b>Active:</b> <span id="active-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
-                                <span>⏸️ <b>Paused:</b> <span id="paused-<%= typeof r.id !== 'undefined' ? r.id : '' %>'></span></span>
-                                <span><i data-lucide="flag" class="icon-sm"></i> <b>Total:</b> <span id='total-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
+                                <span>⏸️ <b>Paused:</b> <span id="paused-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
+                                <span><i data-lucide="flag" class="icon-sm"></i> <b>Total:</b> <span id="total-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
                             </div>
                             <script>
                                 (function() {
@@ -290,15 +290,15 @@ if (results && results.length > 0) {
                         <td style="color: var(--body); font-size: 14px;"><%= typeof r.timestamp !== 'undefined' ? r.timestamp : '' %></td>
                         <td>
                             <% if (r.details) { %>
-                                <button class="toggle-btn" onclick="toggleDetails('<%= typeof r.id !== 'undefined' ? r.id : '' %>')'><i data-lucide="search" class="icon-sm"></i> Mistakes</button>
+                                <button class="toggle-btn" onclick="toggleDetails('<%= typeof r.id !== 'undefined' ? r.id : '' %>')"><i data-lucide="search" class="icon-sm"></i> Mistakes</button>
                             <% } %>
-                            <button class='toggle-btn" onclick="downloadTeacherPDF('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; background: var(--primary); color: white;'><i data-lucide="download" class="icon-sm"></i> Solutions</button>
-                            <button class='toggle-btn" onclick="copySolutionsLink('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; border-color: var(--success); color: var(--success);'><i data-lucide="link" class="icon-sm"></i> Share</button>
+                            <button class="toggle-btn" onclick="downloadTeacherPDF('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; background: var(--primary); color: white;"><i data-lucide="download" class="icon-sm"></i> Solutions</button>
+                            <button class="toggle-btn" onclick="copySolutionsLink('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; border-color: var(--success); color: var(--success);"><i data-lucide="link" class="icon-sm"></i> Share</button>
                         </td>
                     </tr>
                     <% if (r.details) { %>
-                    <tr id='details-<%= typeof r.id !== 'undefined' ? r.id : '' %>" class="details-row">
-                        <td colspan="6">
+                    <tr id="details-<%= typeof r.id !== 'undefined' ? r.id : '' %>" class="details-row">
+                        <td colspan='6'>
                             <div class="details-container">
                                 <% (r.details || []).forEach((item, itemIdx) => { %>
                                 <div class="review-block <% if (item.is_correct) { %>review-correct<% } else { %>review-wrong<% } %>">
@@ -322,10 +322,10 @@ if (results && results.length > 0) {
                                         <% } %>
                                     </div>
                                     <% if (!item.is_correct) { %>
-                                        <button class="btn-explain" onclick="explainMistake(this, <%= itemIdx %>, 0)'>
+                                        <button class="btn-explain" onclick='explainMistake(this, <%= itemIdx %>, 0)'>
                                             <i data-lucide="bot" class="icon-sm"></i> AI Tutor Explanation
                                         </button>
-                                        <div class='explanation-box"></div>
+                                        <div class="explanation-box"></div>
                                     <% } %>
                                 </div>
                                 <% }); %>
@@ -357,11 +357,11 @@ if (results && results.length > 0) {
         function copySolutionsLink(resultId) {
             const url = window.location.origin + '/view_solutions/' + resultId;
             navigator.clipboard.writeText(url).then(() => {
-                alert("Shareable solutions link copied to clipboard!");
+                alert('Shareable solutions link copied to clipboard!');
             });
         }
 
-        const resultsData = <%- JSON.stringify(results) %>;
+        const resultsData = <%- JSON.stringify(results).replace(/</g, "\\u003c") %>;
 
         async function downloadTeacherPDF(resultId) {
             // New strategy: Open the solutions page and trigger PDF download there
@@ -373,7 +373,7 @@ if (results && results.length > 0) {
             const result = resultsData[resIdx];
             const item = result.details[qIdx];
 
-            btn.innerText = "GENERATING...'; btn.disabled = true;
+            btn.innerText = 'GENERATING...'; btn.disabled = true;
             fetch('/api/explain', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -412,7 +412,7 @@ if (results && results.length > 0) {
                 bar.style.display = 'none';
             }
 
-            // Sync 'Select All" checkbox state
+            // Sync 'Select All' checkbox state
             const allCheckboxes = document.querySelectorAll('.result-checkbox');
             document.getElementById('select-all-checkbox').checked = (count === allCheckboxes.length && allCheckboxes.length > 0);
         }
@@ -429,7 +429,7 @@ if (results && results.length > 0) {
 
             const btn = document.querySelector('.btn-delete-bulk');
             const originalText = btn.innerText;
-            btn.innerText = "⌛ DELETING...";
+            btn.innerText = '⌛ DELETING...';
             btn.disabled = true;
 
             try {
@@ -443,12 +443,12 @@ if (results && results.length > 0) {
                     // Refresh page to show updated list
                     location.reload();
                 } else {
-                    alert("Delete failed: " + data.error);
+                    alert('Delete failed: ' + data.error);
                     btn.innerText = originalText;
                     btn.disabled = false;
                 }
             } catch (e) {
-                alert("Network error during deletion.");
+                alert('Network error during deletion.');
                 btn.innerText = originalText;
                 btn.disabled = false;
             }

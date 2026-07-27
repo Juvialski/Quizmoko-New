@@ -212,46 +212,46 @@
         <div class="dashboard-container teacher-view">
             <div class="sticky-col">
                 <div class="mode-tabs">
-                    <a href="/" class="mode-tab'>
+                    <a href="/" class="mode-tab">
                         <span><i data-lucide="bot" class="icon-sm"></i></span>
                         AI GEN
                     </a>
-                    <a href='/worksheet" class="mode-tab active'>
+                    <a href="/worksheet" class="mode-tab active">
                         <span><i data-lucide="file-text" class="icon-sm"></i></span>
                         WORKSHEET
                     </a>
-                    <a href='/worksheet_answers" class="mode-tab'>
+                    <a href="/worksheet_answers" class="mode-tab">
                         <span><i data-lucide="key" class="icon-sm"></i></span>
                         ANSWERS
                     </a>
-                    <a href='/rmxflash" class="mode-tab'>
+                    <a href="/rmxflash" class="mode-tab">
                         <span><i data-lucide="zap" class="icon-sm"></i></span>
                         RMXFLASH
                     </a>
                 </div>
-                <div class='card" id="upload-card" style="border-top-left-radius: 0; border-top-right-radius: 0;'>
+                <div class="card" id="upload-card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
                     <h1><i data-lucide="file-text" class="icon-sm"></i> Worksheet to Quiz</h1>
-                    <div class='m-stripe"></div>
+                    <div class="m-stripe"></div>
                     <p style="color: var(--body); margin-bottom: 32px;">Convert your existing worksheet images or PDFs into a live, interactive quiz with AI.</p>
 
                     <form id="worksheet-form" onsubmit="handleExtract(event)">
                         <label>Step 1: Upload Files (Images or PDF)</label>
                         <div class="dropzone" id="dropzone">
-                            <div style="font-size: 40px; margin-bottom: 8px;'><i data-lucide="upload" class="icon-sm"></i></div>
-                            <div style='font-weight: 700;">Click, Drag, or Paste Worksheet Files</div>
+                            <div style="font-size: 40px; margin-bottom: 8px;"><i data-lucide="upload" class="icon-sm"></i></div>
+                            <div style="font-weight: 700;">Click, Drag, or Paste Worksheet Files</div>
                             <div style="font-size: 12px; color: var(--body); margin-top: 4px;">Supports PNG, JPG, JPEG, and PDF</div>
-                            <input type="file" id="file-input" name="files" multiple accept="image/*,.pdf" onchange="updateFileList()">
+                            <input type="file" id="file-input" name="files" multiple accept='image/*,.pdf' onchange="updateFileList()">
                         </div>
                         <div class="file-list" id="file-list"></div>
 
                         <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr; gap: 16px;">
                             <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline);">
                                 <input type="checkbox" id="use_screenshots" style="width: 18px; height: 18px; cursor: pointer;">
-                                <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--on-dark);'><i data-lucide="camera" class="icon-sm"></i> Capture real screenshots of diagrams (Gemini 2.5+ recommended)</label>
+                                <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--on-dark);"><i data-lucide="camera" class="icon-sm"></i> Capture real screenshots of diagrams (Gemini 2.5+ recommended)</label>
                             </div>
                             <div>
                                 <label>AI Model</label>
-                                <div style='display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center;">
+                                <div style="display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center;">
                                     <select id="model_select" onchange="updateCounterUI()">
                                         <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
                                         <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
@@ -284,29 +284,29 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary" id="extract-btn" style="margin-top: 16px;'><i data-lucide="search" class="icon-sm"></i> EXTRACT QUESTIONS</button>
+                        <button type="submit" class="btn btn-primary" id="extract-btn" style="margin-top: 16px;"><i data-lucide="search" class="icon-sm"></i> EXTRACT QUESTIONS</button>
                     </form>
                 </div>
             </div>
 
-            <div id='right-col">
-                <div id="extraction-preview" class="card" style="margin-top: 0;'>
+            <div id="right-col">
+                <div id="extraction-preview" class="card" style="margin-top: 0;">
                     <h2><i data-lucide="edit-3" class="icon-sm"></i> Extracted Questions</h2>
-                    <div class='m-stripe"></div>
+                    <div class="m-stripe"></div>
                     <p style="font-size: 14px; color: var(--body); margin-bottom: 24px;">Review the extracted questions below. If everything looks good, proceed to solve and generate the quiz.</p>
 
                     <div id="questions-list"></div>
 
-                    <div id="missing-alert" style="display: none; background: rgba(251, 113, 133, 0.1); border: 1px solid var(--m-red); border-radius: var(--radius-sm); padding: 12px; margin-top: 16px; color: var(--m-red); font-size: 13px; display: flex; align-items: center; justify-content: space-between;'>
-                        <span><i data-lucide="alert-triangle" class="icon-sm"></i>️ Missing or Incomplete (Null Answers) detected: <b id='missing-indices-text"></b></span>
-                        <button onclick="handleTargetedRetry()" class="btn-secondary" id="retry-recovery-btn" style="padding: 6px 12px; font-size: 11px; margin: 0; border-color: var(--m-red); color: var(--m-red);'><i data-lucide="search" class="icon-sm"></i> Targeted Recovery</button>
+                    <div id="missing-alert" style="display: none; background: rgba(251, 113, 133, 0.1); border: 1px solid var(--m-red); border-radius: var(--radius-sm); padding: 12px; margin-top: 16px; color: var(--m-red); font-size: 13px; display: flex; align-items: center; justify-content: space-between;">
+                        <span><i data-lucide="alert-triangle" class="icon-sm"></i>️ Missing or Incomplete (Null Answers) detected: <b id="missing-indices-text"></b></span>
+                        <button onclick="handleTargetedRetry()" class="btn-secondary" id="retry-recovery-btn" style="padding: 6px 12px; font-size: 11px; margin: 0; border-color: var(--m-red); color: var(--m-red);"><i data-lucide="search" class="icon-sm"></i> Targeted Recovery</button>
                     </div>
 
-                    <div style='margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--hairline);">
+                    <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--hairline);">
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
                             <div>
                                 <label>Solve Batch Size</label>
-                                <input type="number" id="batch_size" value="3" min="1" max="10">
+                                <input type="number" id="batch_size" value="3" min='1' max='10'>
                             </div>
                             <div>
                                 <label>Sec/Question</label>
@@ -323,17 +323,17 @@
 
                         <div style="margin-bottom: 24px; display: flex; align-items: center; gap: 10px; background: var(--surface-soft); padding: 16px; border: 1px solid var(--hairline); border-radius: var(--radius-md);">
                             <input type="checkbox" id="require_solution" style="width: 20px; height: 20px; cursor: pointer;">
-                            <label for="require_solution" style="margin: 0; cursor: pointer; font-size: 15px; color: var(--on-dark);'><i data-lucide="edit-3" class="icon-sm"></i> Require Solution for All Questions</label>
+                            <label for="require_solution" style="margin: 0; cursor: pointer; font-size: 15px; color: var(--on-dark);"><i data-lucide="edit-3" class="icon-sm"></i> Require Solution for All Questions</label>
                         </div>
 
-                        <button onclick='handleSolve()" class="btn btn-primary" id="solve-btn'><i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ</button>
+                        <button onclick="handleSolve()" class="btn btn-primary" id="solve-btn"><i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ</button>
                     </div>
                 </div>
 
                 <!-- Empty State for Right Column -->
-                <div id='empty-preview" class="card" style="margin-top: 0; text-align: center; padding: 100px 40px;">
-                    <div style="font-size: 64px; margin-bottom: 24px; opacity: 0.3;'><i data-lucide="file-text" class="icon-sm"></i></div>
-                    <h3 style='color: var(--body);">Questions will appear here after extraction</h3>
+                <div id="empty-preview" class="card" style="margin-top: 0; text-align: center; padding: 100px 40px;">
+                    <div style="font-size: 64px; margin-bottom: 24px; opacity: 0.3;"><i data-lucide="file-text" class="icon-sm"></i></div>
+                    <h3 style="color: var(--body);">Questions will appear here after extraction</h3>
                     <p style="color: var(--body); font-size: 14px;">Upload your worksheet on the left to begin.</p>
                 </div>
             </div>
@@ -351,14 +351,14 @@
     <!-- Cropper Modal -->
     <div id="cropper-modal">
         <div class="cropper-container-box">
-            <h2 style="margin-bottom: 8px;'><i data-lucide="scissors" class="icon-sm"></i>️ Refine Screenshot</h2>
-            <p style='color: var(--body); font-size: 13px; margin-bottom: 20px;">Adjust the crop to remove extra text or whitespace around the diagram.</p>
+            <h2 style="margin-bottom: 8px;"><i data-lucide="scissors" class="icon-sm"></i>️ Refine Screenshot</h2>
+            <p style="color: var(--body); font-size: 13px; margin-bottom: 20px;">Adjust the crop to remove extra text or whitespace around the diagram.</p>
             <div class="cropper-image-wrapper">
-                <img id="cropper-image" src="">
+                <img id="cropper-image" src=''>
             </div>
             <div style="display: flex; gap: 12px;">
-                <button class="btn btn-primary" onclick="saveCroppedImage()" style="margin: 0;'><i data-lucide="check-circle" class="icon-sm"></i> Save Crop</button>
-                <button class='btn btn-secondary" onclick="closeCropperModal()" style="margin: 0;'><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
+                <button class="btn btn-primary" onclick="saveCroppedImage()" style="margin: 0;"><i data-lucide="check-circle" class="icon-sm"></i> Save Crop</button>
+                <button class="btn btn-secondary" onclick="closeCropperModal()" style="margin: 0;"><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
             </div>
         </div>
     </div>
@@ -373,19 +373,19 @@
 
         // --- RATE LIMIT TRACKER LOGIC ---
         const API_LIMITS = {
-            'gemini-3.6-flash": 20,
-            "gemini-3.5-flash": 20,
-            "gemini-3.5-flash-lite": 500,
-            "gemini-3.1-flash-lite": 500,
-            "gemini-3.0-flash": 20,
-            "gemini-2.5-flash": 20,
-            "gemini-2.5-flash-lite": 20
+            'gemini-3.6-flash': 20,
+            'gemini-3.5-flash': 20,
+            'gemini-3.5-flash-lite': 500,
+            'gemini-3.1-flash-lite': 500,
+            'gemini-3.0-flash': 20,
+            'gemini-2.5-flash': 20,
+            'gemini-2.5-flash-lite': 20
         };
 
         let GLOBAL_DAILY_STATS = {};
 
         async function getHash(text) {
-            if (!text) return "default";
+            if (!text) return 'default';
             const msgUint8 = new TextEncoder().encode(text);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -402,7 +402,7 @@
                     updateCounterUI();
                 }
             } catch (e) {
-                console.error("Failed to fetch usage stats:', e);
+                console.error('Failed to fetch usage stats:', e);
             }
         }
 
@@ -496,7 +496,7 @@
                 const tag = document.createElement('div');
                 tag.className = 'file-tag';
                 tag.style.borderColor = 'var(--primary)';
-                tag.innerHTML = `<i data-lucide="clipboard" class="icon-sm"></i> ${file.name} <span onclick='removePasted(${index})" style="cursor:pointer; margin-left:5px; color:var(--m-red);">×</span>`;
+                tag.innerHTML = `<i data-lucide="clipboard" class="icon-sm"></i> ${file.name} <span onclick="removePasted(${index})" style="cursor:pointer; margin-left:5px; color:var(--m-red);">×</span>`;
                 fileListContainer.appendChild(tag);
             });
         }
@@ -544,7 +544,7 @@
 
             if (!isLocal && !apiKey) return alert('No API keys with remaining quota found today. Please add more keys or wait for reset.');
 
-            const sessionId = "ws_' + Math.random().toString(36).substring(2, 15);
+            const sessionId = 'ws_' + Math.random().toString(36).substring(2, 15);
             progressText.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Extracting Worksheet Content...';
             overlay.style.display = 'flex';
             progressBar.style.width = '10%';
@@ -677,8 +677,8 @@
                     });
 
                     const extractedNums = extractedQuestions.filter(q => {
-                        const ans = String(q.answer || '").toLowerCase();
-                        return ans && ans !== "null" && !ans.includes("missing");
+                        const ans = String(q.answer || '').toLowerCase();
+                        return ans && ans !== 'null' && !ans.includes('missing');
                     }).map(q => {
                         const parsed = parseIndex(q.original_index);
                         return parsed.num;
@@ -695,10 +695,10 @@
                     renderPreview();
                     alert(`Successfully recovered ${data.recovered.length} items!`);
                 } else {
-                    alert("Recovery failed: " + data.error);
+                    alert('Recovery failed: ' + data.error);
                 }
             } catch (e) {
-                alert("Error during recovery.");
+                alert('Error during recovery.');
             } finally {
                 overlay.style.display = 'none';
             }
@@ -734,7 +734,7 @@
                 typeSelectorHtml += `</select>`;
 
                 // Check for captured screenshot in raw_text
-                const imgMatch = q.raw_text.match(/<div class="resizable-image-wrapper">.*?src="([^"]+)".*?<\/div>\s*<\/div>/is);
+                const imgMatch = q.raw_text.match(/<div class="resizable-image-wrapper">.*?src="([^"]+)'.*?<\/div>\s*<\/div>/is);
                 const hasScreenshot = !!imgMatch;
 
                 item.innerHTML = `
@@ -744,11 +744,11 @@
                             <span style="font-weight: 800; color: var(--on-dark); font-size: 13px;">Question ${i + 1}</span>
                         </div>
                         <div style="display: flex; gap: 8px;">
-                            ${hasScreenshot ? `<button onclick="openCropRefiner(${i})" class="btn-secondary" style="font-size: 10px; padding: 4px 8px; border-color: var(--warning); color: var(--warning);'><i data-lucide="scissors" class="icon-sm"></i>️ REFINE CROP</button>` : ''}
-                            <button onclick='removeQuestion(${i})" style="background: transparent; border: none; color: var(--m-red); font-size: 18px; cursor: pointer; padding: 4px;'><i data-lucide="trash-2" class="icon-sm"></i>️</button>
+                            ${hasScreenshot ? `<button onclick="openCropRefiner(${i})" class="btn-secondary" style="font-size: 10px; padding: 4px 8px; border-color: var(--warning); color: var(--warning);"><i data-lucide="scissors" class="icon-sm"></i>️ REFINE CROP</button>` : ''}
+                            <button onclick="removeQuestion(${i})" style="background: transparent; border: none; color: var(--m-red); font-size: 18px; cursor: pointer; padding: 4px;"><i data-lucide="trash-2" class="icon-sm"></i>️</button>
                         </div>
                     </div>
-                    <div contenteditable='true" onblur="updateQuestionText(${i}, this.innerText)" style="padding: 12px; border: 1px solid var(--hairline); border-radius: 4px; background: var(--canvas); color: var(--on-dark); font-size: 14px; line-height: 1.5; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--hairline)'">${q.raw_text.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim()}</div>
+                    <div contenteditable='true' onblur='updateQuestionText(${i}, this.innerText)' style="padding: 12px; border: 1px solid var(--hairline); border-radius: 4px; background: var(--canvas); color: var(--on-dark); font-size: 14px; line-height: 1.5; outline: none; transition: 0.2s;" onfocus='this.style.borderColor='var(--primary)'' onblur='this.style.borderColor='var(--hairline)''>${q.raw_text.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim()}</div>
 
                     ${hasScreenshot ? `<div style="margin-top: 12px; padding: 12px; background: var(--canvas); border-radius: var(--radius-sm); border: 1px solid var(--hairline); text-align: center;">${imgMatch[0]}</div>` : ''}
                 `;
@@ -756,7 +756,7 @@
             });
 
             if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise([list]).catch(err => console.error("MathJax error:", err));
+                MathJax.typesetPromise([list]).catch(err => console.error('MathJax error:', err));
             }
         }
 
@@ -767,7 +767,7 @@
         function openCropRefiner(index) {
             currentCroppingIndex = index;
             const q = extractedQuestions[index];
-            const imgMatch = q.raw_text.match(/src="([^"]+)"/i);
+            const imgMatch = q.raw_text.match(/src="([^"]+)'/i);
             if (!imgMatch) return;
 
             const modal = document.getElementById('cropper-modal');
@@ -822,11 +822,11 @@
             const q = extractedQuestions[currentCroppingIndex];
 
             // Replace old image HTML with new one
-            const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${newBase64}" alt="Source Diagram"></div></div>`;
+            const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${newBase64}" alt='Source Diagram'></div></div>`;
 
             // Strip old image wrapper and append new one
             const cleanText = q.raw_text.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim();
-            q.raw_text = cleanText + "\n" + imgHtml;
+            q.raw_text = cleanText + '\n' + imgHtml;
 
             renderPreview();
             closeCropperModal();
@@ -837,7 +837,7 @@
         }
 
         function removeQuestion(index) {
-            if (confirm("Remove this question from extraction?")) {
+            if (confirm('Remove this question from extraction?')) {
                 extractedQuestions.splice(index, 1);
                 renderPreview();
             }
@@ -845,9 +845,9 @@
 
         function updateQuestionText(index, text) {
             const q = extractedQuestions[index];
-            const oldText = q.raw_text || "";
+            const oldText = q.raw_text || '';
             const imgMatch = oldText.match(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is);
-            q.raw_text = text + (imgMatch ? "\n" + imgMatch[0] : "");
+            q.raw_text = text + (imgMatch ? '\n' + imgMatch[0] : '');
         }
 
         async function handleSolve() {
@@ -865,7 +865,7 @@
             const topicHint = document.getElementById('topic_hint').value;
             const requireSolution = document.getElementById('require_solution').checked;
 
-            const sessionId = "solve_' + Math.random().toString(36).substring(2, 15);
+            const sessionId = 'solve_' + Math.random().toString(36).substring(2, 15);
             progressText.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> Solving & Generating Quiz...';
             overlay.style.display = 'flex';
             progressBar.style.width = '5%';
@@ -879,7 +879,7 @@
                     // Check for client-side timeout
                     if (Date.now() - startTime > POLL_TIMEOUT) {
                         clearInterval(pollInterval);
-                        alert('Solving timed out. Please check your internet connection and dashboard to see if the quiz was created.");
+                        alert('Solving timed out. Please check your internet connection and dashboard to see if the quiz was created.');
                         overlay.style.display = 'none';
                         return;
                     }
@@ -921,7 +921,7 @@
                         subject: subject,
                         time_limit: timeLimit,
                         quiz_mode: document.getElementById('quiz_mode').value,
-                        topic: topicHint || "Worksheet Quiz",
+                        topic: topicHint || 'Worksheet Quiz',
                         require_solution: requireSolution,
                         model_name: document.getElementById('model_select').value,
                         session_id: sessionId

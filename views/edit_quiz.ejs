@@ -243,35 +243,35 @@
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
             <div style="display: flex; gap: 12px; align-items: center;">
-                <a href="/" class="back-link" style="margin-bottom: 0;'><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>
-                <form action='/delete/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" method="POST" onsubmit="return confirm('Discard this quiz? This will delete it permanently.');" style="display: inline;">
-                    <button type="submit" class="btn btn-danger" style="font-size: 11px; padding: 6px 12px;'><i data-lucide="trash-2" class="icon-sm"></i> Discard</button>
+                <a href="/" class="back-link" style="margin-bottom: 0;"><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>
+                <form action="/delete/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" method="POST" onsubmit="return confirm('Discard this quiz? This will delete it permanently.');" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" style="font-size: 11px; padding: 6px 12px;"><i data-lucide="trash-2" class="icon-sm"></i> Discard</button>
                 </form>
                 <% if (quiz.golden_reference || quiz.worksheet_source) { %>
-                <button class='btn" onclick="toggleGoldenSidebar()" style="background: var(--warning); color: black; border: none; font-size: 11px; padding: 6px 12px;'><i data-lucide="shield" class="icon-sm"></i> Reference</button>
+                <button class="btn" onclick="toggleGoldenSidebar()" style="background: var(--warning); color: black; border: none; font-size: 11px; padding: 6px 12px;"><i data-lucide="shield" class="icon-sm"></i> Reference</button>
                 <% } %>
             </div>
-            <button onclick='toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;"><i data-lucide="moon"></i></button>
+            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;"><i data-lucide="moon"></i></button>
         </div>
         
         <div class="card share-card">
-            <label class="share-label'><i data-lucide="link" class="icon-sm"></i> Student Share Link</label>
-            <input type='text" id="share-link" class="share-input" readonly onclick="this.select(); document.execCommand('copy'); alert('Copied!');">
+            <label class="share-label"><i data-lucide="link" class="icon-sm"></i> Student Share Link</label>
+            <input type="text" id="share-link" class="share-input" readonly onclick="this.select(); document.execCommand('copy'); alert('Copied!');">
         </div>
 
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h2 style="margin: 0;'><i data-lucide="edit-2" class="icon-sm"></i>️ Edit Details</h2>
+                <h2 style="margin: 0;"><i data-lucide="edit-2" class="icon-sm"></i>️ Edit Details</h2>
                 
-<div style='display: flex; gap: 8px; flex-wrap: wrap;">
-    <button class="btn btn-secondary" onclick="openImportModal()" style="background: var(--primary); color: white; border: none; font-size: 13px;'><i data-lucide="download" class="icon-sm"></i> Import Qs</button>
-    <button class='btn btn-secondary" onclick="shuffleQuestions()" style="font-size: 13px;'><i data-lucide="shuffle" class="icon-sm"></i> Shuffle Qs</button>
-    <button class='btn btn-secondary" onclick="shuffleChoices()" style="font-size: 13px;'><i data-lucide="shuffle" class="icon-sm"></i> Shuffle Choices</button>
-    <button class='btn btn-secondary" onclick="manualPolish()" id="manual-polish-btn" style="font-size: 13px;'><i data-lucide="wand-2" class="icon-sm"></i> Polish Math</button>
-    <button class='btn btn-secondary" onclick="recheckAllAnswers()" id="recheck-ans-btn" style="font-size: 13px; border-color: var(--warning); color: var(--warning); background: transparent;'><i data-lucide="check-circle" class="icon-sm"></i> Re-Check</button>
+<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <button class="btn btn-secondary" onclick="openImportModal()" style="background: var(--primary); color: white; border: none; font-size: 13px;"><i data-lucide="download" class="icon-sm"></i> Import Qs</button>
+    <button class="btn btn-secondary" onclick="shuffleQuestions()" style="font-size: 13px;"><i data-lucide="shuffle" class="icon-sm"></i> Shuffle Qs</button>
+    <button class="btn btn-secondary" onclick="shuffleChoices()" style="font-size: 13px;"><i data-lucide="shuffle" class="icon-sm"></i> Shuffle Choices</button>
+    <button class="btn btn-secondary" onclick="manualPolish()" id="manual-polish-btn" style="font-size: 13px;"><i data-lucide="wand-2" class="icon-sm"></i> Polish Math</button>
+    <button class="btn btn-secondary" onclick="recheckAllAnswers()" id="recheck-ans-btn" style="font-size: 13px; border-color: var(--warning); color: var(--warning); background: transparent;"><i data-lucide="check-circle" class="icon-sm"></i> Re-Check</button>
 </div>
 </div>
-<div style='display: grid;
+<div style="display: grid;
  grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 24px;">
                 <div><label>Quiz Title</label><input type="text" id="quiz-title"></div>
                 <div><label>Time Limit (Seconds)</label><input type="number" id="quiz-time"></div>
@@ -286,31 +286,31 @@
 
             <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-soft); padding: 16px; border: 1px solid var(--hairline); border-radius: var(--radius-sm);">
                 <input type="checkbox" id="require-solution" style="width: 20px; height: 20px; cursor: pointer;">
-                <label for="require-solution" style="margin: 0; cursor: pointer; font-size: 15px; color: var(--on-dark); text-transform: none; letter-spacing: normal;'><i data-lucide="edit-3" class="icon-sm"></i> Require Solution for All Questions (Split-screen Whiteboard)</label>
+                <label for="require-solution" style="margin: 0; cursor: pointer; font-size: 15px; color: var(--on-dark); text-transform: none; letter-spacing: normal;"><i data-lucide="edit-3" class="icon-sm"></i> Require Solution for All Questions (Split-screen Whiteboard)</label>
             </div>
         </div>
 
-        <div class='card" id="worksheet-source-card" style="display: none;">
+        <div class="card" id="worksheet-source-card" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0;'><i data-lucide="package" class="icon-sm"></i> Original Worksheet Source</h3>
-                <button class='btn btn-secondary" onclick="toggleWorksheetSource()" style="font-size: 11px;">SHOW / HIDE</button>
+                <h3 style="margin: 0;"><i data-lucide="package" class="icon-sm"></i> Original Worksheet Source</h3>
+                <button class="btn btn-secondary" onclick="toggleWorksheetSource()" style="font-size: 11px;">SHOW / HIDE</button>
             </div>
             <div id="worksheet-source-content" style="display: none; max-height: 400px; overflow-y: auto; border-top: 1px solid var(--hairline); padding-top: 16px;"></div>
         </div>
 
         <div id="questions-container"></div>
         
-        <button id="add-q-btn" class="btn btn-save" onclick="addAIQuestion()" style="background-color: transparent; border: 1px dashed var(--body); color: var(--body-strong);'><i data-lucide="plus-circle" class="icon-sm"></i> Generate Question</button>
+        <button id="add-q-btn" class="btn btn-save" onclick="addAIQuestion()" style="background-color: transparent; border: 1px dashed var(--body); color: var(--body-strong);"><i data-lucide="plus-circle" class="icon-sm"></i> Generate Question</button>
 
-        <button class='btn btn-save" onclick="saveQuiz()'><i data-lucide="save" class="icon-sm"></i> Save Changes</button>
-        <a href='/export/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" target="_blank" class="btn-export'><i data-lucide="file-down" class="icon-sm"></i> Export</a>
+        <button class="btn btn-save" onclick="saveQuiz()"><i data-lucide="save" class="icon-sm"></i> Save Changes</button>
+        <a href="/export/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" target='_blank' class="btn-export"><i data-lucide="file-down" class="icon-sm"></i> Export</a>
     </div>
 
-    <div class='sidebar-overlay" id="sidebar-overlay" onclick="toggleGoldenSidebar()"></div>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleGoldenSidebar()"></div>
     <div class="golden-sidebar" id="golden-sidebar">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h2 style="margin: 0; color: var(--warning);'><i data-lucide="shield" class="icon-sm"></i>️ Reference Panel</h2>
-            <button onclick='toggleGoldenSidebar()" style="background: transparent; border: none; font-size: 20px; color: var(--body); cursor: pointer;">×</button>
+            <h2 style="margin: 0; color: var(--warning);"><i data-lucide="shield" class="icon-sm"></i>️ Reference Panel</h2>
+            <button onclick="toggleGoldenSidebar()" style="background: transparent; border: none; font-size: 20px; color: var(--body); cursor: pointer;">×</button>
         </div>
         <p style="font-size: 12px; color: var(--body); margin-bottom: 20px;">Use this reference to manually verify question accuracy against your original files.</p>
         <div id="golden-sidebar-content"></div>
@@ -322,7 +322,7 @@
             <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Transfer Question</h2>
             <p style="color: var(--body); font-size: 14px; margin-bottom: 20px;">Select a target quiz to copy this question into.</p>
 
-            <input type="text" id="transfer-search" placeholder="Search quizzes..." onkeyup="filterTransferQuizzes()" style="margin-bottom: 16px; padding: 12px; font-size: 13px;">
+            <input type="text" id="transfer-search" placeholder="Search quizzes..." onkeyup='filterTransferQuizzes()' style="margin-bottom: 16px; padding: 12px; font-size: 13px;">
 
             <div id="transfer-quiz-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;">
                 <!-- Quizzes will be loaded here -->
@@ -342,7 +342,7 @@
             <div id="import-step-1">
                 <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Import Questions</h2>
                 <p style="color: var(--body); font-size: 14px; margin-bottom: 20px;">Select a source quiz to import questions from.</p>
-                <input type="text" id="import-search" placeholder="Search quizzes..." onkeyup="filterImportQuizzes()" style="margin-bottom: 16px; padding: 12px; font-size: 13px;">
+                <input type="text" id="import-search" placeholder="Search quizzes..." onkeyup='filterImportQuizzes()' style="margin-bottom: 16px; padding: 12px; font-size: 13px;">
                 <div id="import-quiz-list" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;"></div>
                 <button class="btn btn-secondary" style="width: 100%;" onclick="closeImportModal()">Cancel</button>
             </div>
@@ -365,7 +365,7 @@
         let GLOBAL_DAILY_STATS = {};
 
         async function getHash(text) {
-            if (!text) return "default";
+            if (!text) return 'default';
             const msgUint8 = new TextEncoder().encode(text);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -381,7 +381,7 @@
                     GLOBAL_DAILY_STATS = data.daily_stats;
                 }
             } catch (e) {
-                console.error("Failed to fetch usage stats:", e);
+                console.error('Failed to fetch usage stats:', e);
             }
         }
 
@@ -393,11 +393,11 @@
             const modelStats = (GLOBAL_DAILY_STATS[today] && GLOBAL_DAILY_STATS[today][model]) || {};
 
             const API_LIMITS = {
-                "gemini-3.6-flash": 20,
-                "gemini-3.5-flash": 20,
-                "gemini-3.5-flash-lite": 500,
-                "gemini-3.1-flash-lite": 500,
-                "gemini-2.5-flash": 20
+                'gemini-3.6-flash': 20,
+                'gemini-3.5-flash': 20,
+                'gemini-3.5-flash-lite': 500,
+                'gemini-3.1-flash-lite': 500,
+                'gemini-2.5-flash': 20
             }; // Minimum mapping
             const baseLimit = API_LIMITS[model] || 20;
 
@@ -431,8 +431,8 @@
             localStorage.setItem('theme', next);
         }
 
-        document.getElementById('share-link').value = window.location.origin + "/quiz/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>";
-        const quizData = <%- JSON.stringify(quiz) %>;
+        document.getElementById('share-link').value = window.location.origin + '/quiz/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>';
+        const quizData = <%- JSON.stringify(quiz).replace(/</g, "\\u003c") %>;
         document.getElementById('quiz-title').value = quizData.title;
         document.getElementById('quiz-time').value = quizData.time_limit;
         document.getElementById('quiz-mode').value = quizData.quiz_mode || 'back_and_forth';
@@ -455,7 +455,7 @@
                 item.innerHTML = `
                     <div style="font-weight:700; color:var(--primary);">[Source Q${i + 1}]</div>
                     <div>${q.raw_text}</div>
-                    ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;'><i data-lucide="image" class="icon-sm"></i>️ ${q.image_description}</div>` : ''}
+                    ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;"><i data-lucide="image" class="icon-sm"></i>️ ${q.image_description}</div>` : ''}
                 `;
                 sourceContent.appendChild(item);
             });
@@ -481,7 +481,7 @@
         }
 
         function processTikzToImageJS(text) {
-            if (!text) return '";
+            if (!text) return "";
             return text.replace(/\[TIKZ\]([\s\S]*?)\[\/TIKZ\]/gi, (match, code) => {
                 const cleanCode = code.replace(/```tikz/g, "").replace(/```/g, "").trim();
 
@@ -566,8 +566,8 @@
             if (q.answer) {
                 html += `
                     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--hairline); text-align: left;">
-                        <div style="font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;'><i data-lucide="check-circle" class="icon-sm"></i> Answer Key Preview:</div>
-                        <div style='font-size: 15px; color: var(--on-dark); font-weight: 600; background: rgba(99, 102, 241, 0.05); padding: 12px; border-radius: 8px;">${formatText(q.answer)}</div>
+                        <div style="font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;"><i data-lucide="check-circle" class="icon-sm"></i> Answer Key Preview:</div>
+                        <div style="font-size: 15px; color: var(--on-dark); font-weight: 600; background: rgba(99, 102, 241, 0.05); padding: 12px; border-radius: 8px;">${formatText(q.answer)}</div>
                     </div>
                 `;
             }
@@ -739,7 +739,7 @@
             }
 
             const originalText = btn.innerHTML;
-            btn.innerHTML = "⌛...';
+            btn.innerHTML = "⌛...";
             btn.disabled = true;
 
             try {
@@ -768,7 +768,7 @@
                     markQuestionChanged(index); // Ensure save button appears after reformat
                     setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
                 } else {
-                    alert('Re-format failed: " + data.error);
+                    alert("Re-format failed: " + data.error);
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 }
@@ -902,11 +902,11 @@
                         </div>
                     </div>
                     <div class="header-buttons">
-                        <button id="save-btn-${qIndex}" class="btn" onclick="saveQuiz(false, this, ${qIndex})" style="background: var(--success); color: white; border: none; font-size: 11px; padding: 6px 12px; display: none;'><i data-lucide="save" class="icon-sm"></i> Save</button>
-                        <button class='btn btn-secondary" onclick="resolveQuestionSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--success); color: var(--success); background: transparent;'><i data-lucide="lightbulb" class="icon-sm"></i> Re-solve</button>
-                        <button class='btn btn-secondary" onclick="manualPolishSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--primary); color: var(--primary); background: transparent;'><i data-lucide="sparkles" class="icon-sm"></i> Polish</button>
-                        <button id='regen-btn-${qIndex}" class="btn btn-regen" onclick="regenerateQuestion(${qIndex})'><i data-lucide="refresh-cw" class="icon-sm"></i> Regenerate</button>
-                        <button class='btn btn-danger" onclick="removeQuestion(${qIndex})'><i data-lucide="trash-2" class="icon-sm"></i>️ Remove</button>
+                        <button id="save-btn-${qIndex}" class="btn" onclick="saveQuiz(false, this, ${qIndex})" style="background: var(--success); color: white; border: none; font-size: 11px; padding: 6px 12px; display: none;"><i data-lucide="save" class="icon-sm"></i> Save</button>
+                        <button class="btn btn-secondary" onclick="resolveQuestionSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--success); color: var(--success); background: transparent;"><i data-lucide="lightbulb" class="icon-sm"></i> Re-solve</button>
+                        <button class="btn btn-secondary" onclick="manualPolishSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--primary); color: var(--primary); background: transparent;"><i data-lucide="sparkles" class="icon-sm"></i> Polish</button>
+                        <button id="regen-btn-${qIndex}" class="btn btn-regen" onclick="regenerateQuestion(${qIndex})"><i data-lucide="refresh-cw" class="icon-sm"></i> Regenerate</button>
+                        <button class="btn btn-danger" onclick="removeQuestion(${qIndex})"><i data-lucide="trash-2" class="icon-sm"></i>️ Remove</button>
                     </div>`;
                 block.appendChild(header);
 
@@ -922,9 +922,9 @@
                 qTextLabel.style.alignItems = 'center';
                 qTextLabel.innerHTML = `
                     <span>QUESTION TEXT</span>
-                    <div style='display: flex; gap: 8px;">
-                        <button class="btn" onclick="triggerImageUpload(${qIndex})" style="background: var(--surface-elevated); font-size: 10px; padding: 4px 8px; border: 1px solid var(--hairline);'><i data-lucide="image" class="icon-sm"></i>️ ATTACH IMAGE</button>
-                        ${extractedData.imagePart ? `<button class='btn" onclick="removeAttachedImage(${qIndex})" style="background: var(--m-red); color: white; font-size: 10px; padding: 4px 8px; border: none;'><i data-lucide="trash-2" class="icon-sm"></i>️ Remove</button>` : ''}
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn" onclick="triggerImageUpload(${qIndex})" style="background: var(--surface-elevated); font-size: 10px; padding: 4px 8px; border: 1px solid var(--hairline);"><i data-lucide="image" class="icon-sm"></i>️ ATTACH IMAGE</button>
+                        ${extractedData.imagePart ? `<button class="btn" onclick="removeAttachedImage(${qIndex})" style="background: var(--m-red); color: white; font-size: 10px; padding: 4px 8px; border: none;"><i data-lucide="trash-2" class="icon-sm"></i>️ Remove</button>` : ''}
                     </div>
                 `;
                 leftCol.appendChild(qTextLabel);
@@ -934,7 +934,7 @@
                 qTextInput.dataset.imagePart = extractedData.imagePart; 
                 qTextInput.oninput = (e) => {
                     const hiddenImage = e.target.dataset.imagePart;
-                    quizData.questions[qIndex].question = e.target.value + (hiddenImage ? '\n" + hiddenImage : "");
+                    quizData.questions[qIndex].question = e.target.value + (hiddenImage ? '\n' + hiddenImage : '');
                     updatePreview(qIndex, qPreviewBox);
                     markQuestionChanged(qIndex);
                 };
@@ -945,13 +945,13 @@
                 optsLabel.style.justifyContent = 'space-between';
                 optsLabel.style.alignItems = 'center';
 
-                let optsLabelText = "OPTIONS (A), B), C), D))";
-                if (q.type === 'identification') optsLabelText = "NO OPTIONS (IDENTIFICATION)";
-                else if (q.type === 'multiple_choice_multi') optsLabelText = "OPTIONS (SELECT ALL THAT APPLY)";
+                let optsLabelText = 'OPTIONS (A), B), C), D))';
+                if (q.type === 'identification') optsLabelText = 'NO OPTIONS (IDENTIFICATION)';
+                else if (q.type === 'multiple_choice_multi') optsLabelText = 'OPTIONS (SELECT ALL THAT APPLY)';
 
                 optsLabel.innerHTML = `
                     <span>${optsLabelText}</span>
-                    ${q.type !== 'identification' && q.type !== 'true_false' ? `<button class="btn" onclick="addOption(${qIndex})" style="background: var(--surface-soft); color: var(--primary); font-size: 10px; padding: 4px 8px; border: 1px solid var(--primary); font-weight: 800;'><i data-lucide="plus-circle" class="icon-sm"></i> ADD CHOICE</button>` : ''}
+                    ${q.type !== 'identification' && q.type !== 'true_false' ? `<button class="btn" onclick="addOption(${qIndex})" style="background: var(--surface-soft); color: var(--primary); font-size: 10px; padding: 4px 8px; border: 1px solid var(--primary); font-weight: 800;"><i data-lucide="plus-circle" class="icon-sm"></i> ADD CHOICE</button>` : ''}
                 `;
                 leftCol.appendChild(optsLabel);
 
@@ -990,7 +990,7 @@
                         optsContainer.appendChild(optWrapper);
                     });
                 } else if (q.type === 'identification') {
-                    optsContainer.innerHTML = '<p style='font-size: 12px; color: var(--body);">Student will see a text box to type their answer.</p>';
+                    optsContainer.innerHTML = '<p style="font-size: 12px; color: var(--body);">Student will see a text box to type their answer.</p>';
                 }
                 leftCol.appendChild(optsContainer);
 
@@ -999,12 +999,12 @@
                 ansLabel.style.justifyContent = 'space-between';
                 ansLabel.style.alignItems = 'center';
 
-                let ansLabelText = q.type === 'identification' ? "CORRECT ANSWER (EXACT WORD)" : "CORRECT ANSWER LETTER";
-                if (q.type === 'multiple_choice_multi') ansLabelText = "CORRECT ANSWER LETTERS (E.G. A, C)";
+                let ansLabelText = q.type === 'identification' ? 'CORRECT ANSWER (EXACT WORD)' : 'CORRECT ANSWER LETTER';
+                if (q.type === 'multiple_choice_multi') ansLabelText = 'CORRECT ANSWER LETTERS (E.G. A, C)';
 
                 ansLabel.innerHTML = `
                     <span>${ansLabelText}</span>
-                    <button class="btn" onclick="reformatSingleAnswer(${qIndex}, this)" style="background: var(--surface-soft); color: var(--success); font-size: 10px; padding: 4px 8px; border: 1px solid var(--success); font-weight: 800;'>🪄 RE-FORMAT</button>
+                    <button class="btn" onclick="reformatSingleAnswer(${qIndex}, this)" style="background: var(--surface-soft); color: var(--success); font-size: 10px; padding: 4px 8px; border: 1px solid var(--success); font-weight: 800;">🪄 RE-FORMAT</button>
                 `;
                 leftCol.appendChild(ansLabel);
 
@@ -1033,11 +1033,11 @@
 
                     // Initial width extraction from the HTML if it exists, otherwise 100%
                     const widthMatch = extractedData.imagePart.match(/width:\s*(\d+)%/);
-                    const currentWidth = widthMatch ? widthMatch[1] : '100";
+                    const currentWidth = widthMatch ? widthMatch[1] : '100';
 
                     controlPanel.innerHTML = `
                         <label>IMAGE SIZE:</label>
-                        <input type="range" min="10" max="200" value="${currentWidth}" oninput="adjustImageWidth(${qIndex}, this.value)">
+                        <input type="range" min='10' max='200' value="${currentWidth}" oninput="adjustImageWidth(${qIndex}, this.value)">
                         <span style="font-size: 10px; font-weight: 700; min-width: 30px;">${currentWidth}%</span>
                     `;
                     rightCol.appendChild(controlPanel);
@@ -1049,7 +1049,7 @@
 
                 qTextInput.oninput = (e) => {
                     const hiddenImage = e.target.dataset.imagePart;
-                    quizData.questions[qIndex].question = e.target.value + (hiddenImage ? "\n" + hiddenImage : "");
+                    quizData.questions[qIndex].question = e.target.value + (hiddenImage ? '\n' + hiddenImage : '');
                     updatePreview(qIndex, qPreviewBox);
                     markQuestionChanged(qIndex); // Ensure save button appears when question text changes
                 };
@@ -1077,7 +1077,7 @@
 
         function removeOption(qIndex, optIndex) {
             const q = quizData.questions[qIndex];
-            if (q.options.length <= 2) return alert("Must have at least 2 options.");
+            if (q.options.length <= 2) return alert('Must have at least 2 options.');
             q.options.splice(optIndex, 1);
 
             // Re-normalize letters
@@ -1117,7 +1117,7 @@
                         [plainOptions[i], plainOptions[j]] = [plainOptions[j], plainOptions[i]];
                     }
 
-                    let newAnswerLetter = "A";
+                    let newAnswerLetter = 'A';
                     q.options = plainOptions.map((text, idx) => {
                         const letter = String.fromCharCode(65 + idx);
                         if (text === originalAnswerText) newAnswerLetter = letter;
@@ -1133,11 +1133,11 @@
             const letter = q.answer.trim().toUpperCase();
 
             // Try to find by starting letter first
-            let option = q.options.find(opt => opt.toUpperCase().startsWith(letter + ")") || opt.toUpperCase().startsWith(letter + "."));
+            let option = q.options.find(opt => opt.toUpperCase().startsWith(letter + ')') || opt.toUpperCase().startsWith(letter + '.'));
 
             if (!option) {
                 // Fallback: If answer is a single letter, assume it's an index (A=0, B=1...)
-                if (letter.length === 1 && letter >= "A" && letter <= "Z") {
+                if (letter.length === 1 && letter >= 'A' && letter <= 'Z') {
                     const idx = letter.charCodeAt(0) - 65;
                     if (idx < q.options.length) option = q.options[idx];
                 }
@@ -1147,7 +1147,7 @@
                 const match = option.match(/^[A-Z][\)\.]\s*(.*)/i);
                 return match ? match[1].trim() : option.trim();
             }
-            return "";
+            return '';
         }
 
         async function reprocessQuestionType(qIndex, targetType) {
@@ -1156,15 +1156,15 @@
 
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);
-            if (!apiKey) { alert("No API keys with remaining quota found today.'); return; }
+            if (!apiKey) { alert('No API keys with remaining quota found today.'); return; }
 
             const btn = document.getElementById(`regen-btn-${qIndex}`);
             const originalText = btn ? btn.innerHTML : '<i data-lucide="refresh-cw" class="icon-sm"></i>';
-            btn.innerHTML = 'REFORMATTING...";
+            btn.innerHTML = 'REFORMATTING...';
             btn.disabled = true;
 
             // Get source context if available
-            let sourceContext = { raw_text: q.question, image_description: "" };
+            let sourceContext = { raw_text: q.question, image_description: '' };
             if (q.source_index !== undefined && quizData.worksheet_source && quizData.worksheet_source.extracted_questions) {
                 sourceContext = quizData.worksheet_source.extracted_questions[q.source_index];
             }
@@ -1202,12 +1202,12 @@
                     saveQuiz(false); // Pass false to prevent the standard dashboard redirect
                     setTimeout(() => window.location.reload(), 500);
                 } else {
-                    alert("Reprocessing failed: " + data.error);
+                    alert('Reprocessing failed: ' + data.error);
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 }
             } catch (e) {
-                alert("Error reprocessing question.");
+                alert('Error reprocessing question.');
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }
@@ -1217,9 +1217,9 @@
             const originalText = btn.innerText;
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);
-            if (!apiKey) return alert("No API keys with remaining quota found today.");
+            if (!apiKey) return alert('No API keys with remaining quota found today.');
 
-            btn.innerText = "⏳ Solving...";
+            btn.innerText = '⏳ Solving...';
             btn.disabled = true;
 
             const q = quizData.questions[index];
@@ -1249,10 +1249,10 @@
                     saveQuiz(false); // Silent save
                     setTimeout(() => window.location.reload(), 300); // Reload to clean UI
                 } else {
-                    alert("Re-solve failed: " + data.error);
+                    alert('Re-solve failed: ' + data.error);
                 }
             } catch (e) {
-                alert("Error calling resolve API.");
+                alert('Error calling resolve API.');
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
@@ -1263,9 +1263,9 @@
             const originalText = btn.innerText;
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);
-            if (!apiKey) return alert("No API keys with remaining quota found today.");
+            if (!apiKey) return alert('No API keys with remaining quota found today.');
 
-            btn.innerText = "⏳...";
+            btn.innerText = '⏳...';
             btn.disabled = true;
 
             const q = quizData.questions[index];
@@ -1286,13 +1286,13 @@
                     quizData.questions[index] = data.questions[0];
                     renderQuestions();
                 } else {
-                    alert("Polishing failed: " + data.error);
+                    alert('Polishing failed: ' + data.error);
                 }
             } catch (e) {
                 if (e.name === 'AbortError') {
-                    alert("Polishing timed out. The server is taking too long to respond.");
+                    alert('Polishing timed out. The server is taking too long to respond.');
                 } else {
-                    alert("Error calling polish API: " + e.message);
+                    alert('Error calling polish API: ' + e.message);
                 }
             } finally {
                 btn.innerText = originalText;
@@ -1306,11 +1306,11 @@
 
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 2);
-            if (!apiKey) { alert("No API keys with remaining quota found today."); return; }
+            if (!apiKey) { alert('No API keys with remaining quota found today.'); return; }
 
-            if (!confirm("AI will now scan and fix all math formatting and fractions. This may take a few seconds. Continue?")) return;
+            if (!confirm('AI will now scan and fix all math formatting and fractions. This may take a few seconds. Continue?')) return;
 
-            btn.innerText = "⏳ Polishing Math...";
+            btn.innerText = '⏳ Polishing Math...';
             btn.disabled = true;
 
             try {
@@ -1329,15 +1329,15 @@
                 if (data.success) {
                     quizData.questions = data.questions;
                     renderQuestions();
-                    alert("Math formatting polished successfully!");
+                    alert('Math formatting polished successfully!');
                 } else {
-                    alert("Polishing failed: " + data.error);
+                    alert('Polishing failed: ' + data.error);
                 }
             } catch (e) {
                 if (e.name === 'AbortError') {
-                    alert("Polishing timed out. The server is taking too long to respond.");
+                    alert('Polishing timed out. The server is taking too long to respond.');
                 } else {
-                    alert("Error during polishing: ' + e.message);
+                    alert('Error during polishing: ' + e.message);
                 }
             } finally {
                 btn.innerText = originalText;
@@ -1359,10 +1359,10 @@
                 if (quizData.golden_reference && Object.keys(quizData.golden_reference).length > 0) {
                     const header = document.createElement('h3');
                     header.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> Original Answer Key';
-                    header.style.fontSize = '14px";
-                    header.style.color = "var(--success)";
-                    header.style.marginBottom = "12px";
-                    header.style.marginTop = "0';
+                    header.style.fontSize = '14px';
+                    header.style.color = 'var(--success)';
+                    header.style.marginBottom = '12px';
+                    header.style.marginTop = '0';
                     content.appendChild(header);
 
                     const parseIndex = (idxStr) => {
@@ -1397,12 +1397,12 @@
                 if (quizData.worksheet_source && quizData.worksheet_source.extracted_questions) {
                     const header = document.createElement('h3');
                     header.innerHTML = '<i data-lucide="package" class="icon-sm"></i> Source Worksheet Text';
-                    header.style.fontSize = '14px";
-                    header.style.color = "var(--primary)";
-                    header.style.marginBottom = "12px";
-                    header.style.marginTop = "24px";
-                    header.style.borderTop = "1px solid var(--hairline)";
-                    header.style.paddingTop = "16px";
+                    header.style.fontSize = '14px';
+                    header.style.color = 'var(--primary)';
+                    header.style.marginBottom = '12px';
+                    header.style.marginTop = '24px';
+                    header.style.borderTop = '1px solid var(--hairline)';
+                    header.style.paddingTop = '16px';
                     content.appendChild(header);
 
                     quizData.worksheet_source.extracted_questions.forEach((q, i) => {
@@ -1412,14 +1412,14 @@
                         item.innerHTML = `
                             <div style="font-weight:700; color:var(--primary); margin-bottom:4px;">[Source Q${i + 1}]</div>
                             <div>${q.raw_text}</div>
-                            ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;'><i data-lucide="image" class="icon-sm"></i>️ ${q.image_description}</div>` : ''}
+                            ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;"><i data-lucide="image" class="icon-sm"></i>️ ${q.image_description}</div>` : ''}
                         `;
                         content.appendChild(item);
                     });
                 }
 
                 if (content.innerHTML === '') {
-                    content.innerHTML = '<p style='font-size: 13px; color: var(--body);">No reference data available for this quiz.</p>';
+                    content.innerHTML = '<p style="font-size: 13px; color: var(--body);">No reference data available for this quiz.</p>';
                 } else {
                     renderMath(content);
                 }
@@ -1431,11 +1431,11 @@
             const originalText = btn.innerText;
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 2);
-            if (!apiKey) return alert("No API keys found.");
+            if (!apiKey) return alert('No API keys found.');
 
-            if (!confirm("AI will now perform a deep scan to verify all answers match the original document. Continue?")) return;
+            if (!confirm('AI will now perform a deep scan to verify all answers match the original document. Continue?')) return;
 
-            btn.innerText = "⏳ Re-Checking...";
+            btn.innerText = '⏳ Re-Checking...';
             btn.disabled = true;
 
             try {
@@ -1455,13 +1455,13 @@
                 if (data.success) {
                     quizData.questions = data.questions;
                     renderQuestions();
-                    alert("Answer integrity verified and fixed!");
-                } else { alert("Re-check failed: " + data.error); }
+                    alert('Answer integrity verified and fixed!');
+                } else { alert('Re-check failed: ' + data.error); }
             } catch (e) {
                 if (e.name === 'AbortError') {
-                    alert("Re-check timed out. The server is taking too long to respond.");
+                    alert('Re-check timed out. The server is taking too long to respond.');
                 } else {
-                    alert("Error during re-check: " + e.message);
+                    alert('Error during re-check: ' + e.message);
                 }
             } finally { btn.innerText = originalText; btn.disabled = false; }
         }
@@ -1537,7 +1537,7 @@
 
             const btn = document.getElementById('confirm-transfer-btn');
             btn.disabled = true;
-            btn.innerText = "Transferring...";
+            btn.innerText = 'Transferring...';
 
             try {
                 const res = await fetch('/api/transfer_question', {
@@ -1551,17 +1551,17 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    alert("Question copied successfully!");
+                    alert('Question copied successfully!');
                     closeTransferModal();
                 } else {
-                    alert("Transfer failed: " + data.error);
+                    alert('Transfer failed: ' + data.error);
                     btn.disabled = false;
-                    btn.innerText = "Confirm Transfer";
+                    btn.innerText = 'Confirm Transfer';
                 }
             } catch (e) {
-                alert("Error during transfer.");
+                alert('Error during transfer.');
                 btn.disabled = false;
-                btn.innerText = "Confirm Transfer";
+                btn.innerText = 'Confirm Transfer';
             }
         }
 
@@ -1590,14 +1590,14 @@
                                 <div style="font-weight: 700; color: var(--on-dark);">${quiz.title}</div>
                                 <div style="font-size: 11px; color: var(--body);">${quiz.subject}</div>
                             </div>
-                            <span style="font-size: 18px; color: var(--primary);'><i data-lucide="arrow-right" class="icon-sm"></i>️</span>
+                            <span style="font-size: 18px; color: var(--primary);"><i data-lucide="arrow-right" class="icon-sm"></i>️</span>
                         `;
                         item.onclick = () => loadQuestionsForImport(quiz.id, quiz.title);
                         listContainer.appendChild(item);
                     });
                 }
             } catch (e) {
-                listContainer.innerHTML = '<p style='text-align: center; color: var(--m-red);">Error loading quizzes.</p>';
+                listContainer.innerHTML = '<p style="text-align: center; color: var(--m-red);">Error loading quizzes.</p>';
             }
         }
 
@@ -1640,7 +1640,7 @@
             const checkboxes = document.querySelectorAll('#import-question-list input[type="checkbox"]');
             const allChecked = Array.from(checkboxes).every(c => c.checked);
             checkboxes.forEach(c => c.checked = !allChecked);
-            btn.innerText = allChecked ? "Select All" : "Unselect All";
+            btn.innerText = allChecked ? 'Select All' : 'Unselect All';
         }
 
         function filterImportQuizzes() {
@@ -1654,11 +1654,11 @@
 
         async function executeBulkImport() {
             const selectedIndices = Array.from(document.querySelectorAll('#import-question-list input[type="checkbox"]:checked')).map(c => parseInt(c.value));
-            if (selectedIndices.length === 0) return alert("Select at least one question.");
+            if (selectedIndices.length === 0) return alert('Select at least one question.');
 
             const btn = document.getElementById('confirm-bulk-import-btn');
             btn.disabled = true;
-            btn.innerText = "Importing...";
+            btn.innerText = 'Importing...';
 
             try {
                 const res = await fetch('/api/bulk_import_questions', {
@@ -1675,14 +1675,14 @@
                     alert(`Successfully imported ${data.count} questions!`);
                     window.location.reload();
                 } else {
-                    alert("Import failed: " + data.error);
+                    alert('Import failed: ' + data.error);
                     btn.disabled = false;
-                    btn.innerText = "Confirm Import";
+                    btn.innerText = 'Confirm Import';
                 }
             } catch (e) {
-                alert("Error during import.");
+                alert('Error during import.');
                 btn.disabled = false;
-                btn.innerText = "Confirm Import";
+                btn.innerText = 'Confirm Import';
             }
         }
 
@@ -1695,16 +1695,16 @@
 
             targets.forEach((idx) => {
                 const q = quizData.questions[idx];
-                const cleanAns = String(q.answer || "").trim();
-                const cleanText = String(q.question || "").trim();
+                const cleanAns = String(q.answer || '').trim();
+                const cleanText = String(q.question || '').trim();
 
-                if (!cleanText || !cleanAns || cleanAns.toLowerCase() === "no answer provided') {
+                if (!cleanText || !cleanAns || cleanAns.toLowerCase() === 'no answer provided') {
                     invalidQuestions.push(idx + 1);
                 }
             });
 
             if (invalidQuestions.length > 0 && singleIndex === null) {
-                const proceed = confirm(`<i data-lucide="alert-triangle" class="icon-sm"></i>️ WARNING: Questions ${invalidQuestions.join(', ")} appear to have empty text or answers.\n\nStudents will not be able to be graded properly on these.\n\nSave anyway?`);
+                const proceed = confirm(`<i data-lucide="alert-triangle" class="icon-sm"></i>️ WARNING: Questions ${invalidQuestions.join(', ')} appear to have empty text or answers.\n\nStudents will not be able to be graded properly on these.\n\nSave anyway?`);
                 if (!proceed) return;
             } else if (invalidQuestions.length > 0 && singleIndex !== null) {
                 alert(`Cannot save: Question ${singleIndex + 1} has empty text or answer.`);
@@ -1712,10 +1712,10 @@
             }
 
             // --- UI FEEDBACK FOR SINGLE SAVE ---
-            let originalBtnText = "";
+            let originalBtnText = '';
             if (btn) {
                 originalBtnText = btn.innerHTML;
-                btn.innerHTML = "⌛...';
+                btn.innerHTML = '⌛...';
                 btn.disabled = true;
             }
 
@@ -1746,9 +1746,9 @@
                     }
                     if (btn) {
                         btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> SAVED';
-                        btn.style.background = 'var(--success)";
+                        btn.style.background = 'var(--success)';
                         setTimeout(() => {
-                            btn.style.display = "none";
+                            btn.style.display = 'none';
                             btn.innerHTML = originalBtnText;
                             btn.disabled = false;
                         }, 1500);

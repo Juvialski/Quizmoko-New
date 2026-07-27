@@ -120,7 +120,7 @@
             padding: 24px; 
             border-radius: var(--radius-md); 
             border: 1px solid var(--hairline); 
-            box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline);
+            box-shadow: var(--shadow);
         }
         
         h2, h3 { 
@@ -296,38 +296,42 @@
         </div>
         <div style="display: flex; gap: 16px; align-items: center;">
             <% if (is_admin) { %>
-            <a href="/admin" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 8px;'><i data-lucide="shield" class="icon-sm"></i>️ Admin Panel</a>
+            <a href="/admin" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield" class="icon-sm"></i>️ Admin Panel</a>
             <% } %>
-            <button onclick='toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;"><i data-lucide="moon"></i></button>
-            <button id="logout-btn" class="btn-logout'><i data-lucide="log-out" class="icon-sm"></i> Logout</button>
+            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;"><i data-lucide="moon"></i></button>
+            <button id="logout-btn" class="btn-logout"><i data-lucide="log-out" class="icon-sm"></i> Logout</button>
         </div>
     </div>
 
     <!-- Layout logic: Center form for students, grid for teachers -->
-    <div class='dashboard-container teacher-view">
+    <div class="dashboard-container teacher-view">
         
         <div class="sticky-col" id="ai-generator-card">
             <div class="mode-tabs">
-                <a href="/" class="mode-tab active'>
+                <a href="/" class="mode-tab active">
                     <span><i data-lucide="bot" class="icon-sm"></i></span>
                     AI GEN
                 </a>
-                <a href='/worksheet" class="mode-tab'>
+                <a href="/worksheet" class="mode-tab">
                     <span><i data-lucide="file-text" class="icon-sm"></i></span>
                     WORKSHEET
                 </a>
-                <a href='/worksheet_answers" class="mode-tab'>
+                <a href="/worksheet_answers" class="mode-tab">
                     <span><i data-lucide="key" class="icon-sm"></i></span>
                     ANSWERS
                 </a>
                 <% if (is_rmx_authorized) { %>
-                <a href='/rmxflash" class="mode-tab'>
+                <a href="/rmxflash" class="mode-tab">
                     <span><i data-lucide="zap" class="icon-sm"></i></span>
                     RMXFLASH
                 </a>
                 <% } %>
             </div>
-            <div class='card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
+                <style>.mobile-only { display: none; } @media (max-width: 1023px) { .mobile-only { display: block !important; margin-bottom: 10px; } }</style>
+                <button type="button" class="btn-primary mobile-only" onclick="document.getElementById('saved-quizzes-card').scrollIntoView({behavior: 'smooth'})" style="width: 100%; display: none;">
+                    <i data-lucide="arrow-down" class="icon-sm"></i> Jump to Library / Folders
+                </button>
+            <div class="card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 16px; margin-bottom: 20px;">
                     <h3 style="margin:0; font-size: 18px; text-transform: none;">
                         <i data-lucide="sparkles" style="display:inline-block; vertical-align:middle; margin-right:8px; width:20px;"></i> AI Generator
@@ -341,9 +345,9 @@
     <input type="hidden" name="ollama_url" id="hidden_ollama_url" value="http://127.0.0.1:11434">
     
     <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion('acc-basic')'>
+        <div class="accordion-header" onclick="toggleAccordion('acc-basic')">
             <span><i data-lucide="settings" class="icon-sm"></i> Basic Setup</span>
-            <i data-lucide='chevron-down" class="icon-sm"></i>
+            <i data-lucide="chevron-down" class="icon-sm"></i>
         </div>
         <div class="accordion-body open" id="acc-basic">
             <label style="margin-top:0;">Select AI Model</label>
@@ -356,13 +360,13 @@
                     <option value="gemini-3.0-flash">Gemini 3.0 Flash</option>
                     <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                     <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-                    <optgroup label="Local Models (Ollama)">
+                    <optgroup label='Local Models (Ollama)'>
                         <option value="ollama:llama3">Llama 3 (Local)</option>
                         <option value="ollama:mistral">Mistral (Local)</option>
-                        <option value="__install_ollama__'><i data-lucide="download" class="icon-sm"></i> Install Local Models...</option>
+                        <option value="__install_ollama__"><i data-lucide="download" class="icon-sm"></i> Install Local Models...</option>
                     </optgroup>
                 </select>
-                <div id='api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px 12px; border-radius: var(--radius-sm); font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase;">
+                <div id="api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px 12px; border-radius: var(--radius-sm); font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase;">
                     Loading...
                 </div>
             </div>
@@ -378,18 +382,18 @@
                         <% for (let s of (all_subjects || [])) { %>
                             <option value="<%= typeof s !== 'undefined' ? s : '' %>" <% if (s == 'General') { %>selected<% } %>><%= typeof s !== 'undefined' ? s : '' %></option>
                         <% } %>
-                        <option value="__custom__'><i data-lucide="plus-circle" class="icon-sm"></i> Custom...</option>
+                        <option value="__custom__"><i data-lucide="plus-circle" class="icon-sm"></i> Custom...</option>
                     </select>
-                    <input type='text" name="custom_subject" class="custom-subject-input" style="display:none; margin-top:5px; box-sizing: border-box;" placeholder="Enter folder name">
+                    <input type="text" name="custom_subject" class="custom-subject-input" style="display:none; margin-top:5px; box-sizing: border-box;" placeholder="Enter folder name">
                 </div>
             </div>
         </div>
     </div>
     
     <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion('acc-types')'>
+        <div class="accordion-header" onclick="toggleAccordion('acc-types')">
             <span><i data-lucide="layers" class="icon-sm"></i> Question Types & Limits</span>
-            <i data-lucide='chevron-down" class="icon-sm"></i>
+            <i data-lucide="chevron-down" class="icon-sm"></i>
         </div>
         <div class="accordion-body" id="acc-types">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
@@ -421,7 +425,7 @@
                         <span style="font-size:9px; font-weight:bold; color:var(--primary);">MC</span>
                         <div>
                             <button type="button" class="stepper-btn" onclick="stepVal('mc_count', -1)">-</button>
-                            <input type="number" name="mc_count" id="mc_count" value="2" oninput="updateTypeTotal()" required min="0" class="stepper-input">
+                            <input type="number" name="mc_count" id="mc_count" value="2" oninput="updateTypeTotal()" required min='0' class="stepper-input">
                             <button type="button" class="stepper-btn" onclick="stepVal('mc_count', 1)">+</button>
                         </div>
                     </div>
@@ -429,7 +433,7 @@
                         <span style="font-size:9px; font-weight:bold; color:var(--primary);">T/F</span>
                         <div>
                             <button type="button" class="stepper-btn" onclick="stepVal('tf_count', -1)">-</button>
-                            <input type="number" name="tf_count" id="tf_count" value="2" oninput="updateTypeTotal()" required min="0" class="stepper-input">
+                            <input type="number" name="tf_count" id="tf_count" value="2" oninput="updateTypeTotal()" required min='0' class="stepper-input">
                             <button type="button" class="stepper-btn" onclick="stepVal('tf_count', 1)">+</button>
                         </div>
                     </div>
@@ -437,7 +441,7 @@
                         <span style="font-size:9px; font-weight:bold; color:var(--primary);">ID</span>
                         <div>
                             <button type="button" class="stepper-btn" onclick="stepVal('id_count', -1)">-</button>
-                            <input type="number" name="id_count" id="id_count" value="2" oninput="updateTypeTotal()" required min="0" class="stepper-input">
+                            <input type="number" name="id_count" id="id_count" value="2" oninput="updateTypeTotal()" required min='0' class="stepper-input">
                             <button type="button" class="stepper-btn" onclick="stepVal('id_count', 1)">+</button>
                         </div>
                     </div>
@@ -445,7 +449,7 @@
                         <span style="font-size:9px; font-weight:bold; color:var(--primary);">OE</span>
                         <div>
                             <button type="button" class="stepper-btn" onclick="stepVal('oe_count', -1)">-</button>
-                            <input type="number" name="oe_count" id="oe_count" value="2" oninput="updateTypeTotal()" required min="0" class="stepper-input">
+                            <input type="number" name="oe_count" id="oe_count" value="2" oninput="updateTypeTotal()" required min='0' class="stepper-input">
                             <button type="button" class="stepper-btn" onclick="stepVal('oe_count', 1)">+</button>
                         </div>
                     </div>
@@ -453,7 +457,7 @@
                         <span style="font-size:9px; font-weight:bold; color:var(--primary);">GR</span>
                         <div>
                             <button type="button" class="stepper-btn" onclick="stepVal('gr_count', -1)">-</button>
-                            <input type="number" name="gr_count" id="gr_count" value="2" oninput="updateTypeTotal()" required min="0" class="stepper-input">
+                            <input type="number" name="gr_count" id="gr_count" value="2" oninput="updateTypeTotal()" required min='0' class="stepper-input">
                             <button type="button" class="stepper-btn" onclick="stepVal('gr_count', 1)">+</button>
                         </div>
                     </div>
@@ -463,16 +467,16 @@
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;" id="limits-group">
                 <div><label>Total Qs</label><input type="number" name="num_items" value="10" required></div>
                 <div><label>Time(s)</label><input type="number" name="time_limit" value="200" required></div>
-                <div><label>Images</label><input type="number" name="images_count" value="0" min="0" required></div>
-                <div><label>Batch</label><input type="number" name="batch_size" value="3" min="1" max="10" required></div>
+                <div><label>Images</label><input type="number" name="images_count" value="0" min='0' required></div>
+                <div><label>Batch</label><input type="number" name="batch_size" value="3" min='1' max='10' required></div>
             </div>
         </div>
     </div>
     
     <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion('acc-diff')'>
+        <div class="accordion-header" onclick="toggleAccordion('acc-diff')">
             <span><i data-lucide="bar-chart" class="icon-sm"></i> Difficulty & Mode</span>
-            <i data-lucide='chevron-down" class="icon-sm"></i>
+            <i data-lucide="chevron-down" class="icon-sm"></i>
         </div>
         <div class="accordion-body" id="acc-diff">
             <div style="margin-bottom: 12px;">
@@ -511,11 +515,11 @@
             <!-- API USAGE DASHBOARD (Isolated) -->
             <div class="card" id="api-usage-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 12px; margin-bottom: 15px;">
-                    <h3 style="margin:0; font-size: 16px; text-transform: none;'><i data-lucide="bar-chart-2" class="icon-sm"></i> API Usage Tracker</h3>
-                    <button onclick='syncUsageHistory()" class="btn-secondary" style="font-size: 10px; padding: 4px 8px;" id="sync-history-btn'><i data-lucide="refresh-cw" class="icon-sm"></i> Sync History</button>
+                    <h3 style="margin:0; font-size: 16px; text-transform: none;"><i data-lucide="bar-chart-2" class="icon-sm"></i> API Usage Tracker</h3>
+                    <button onclick="syncUsageHistory()" class="btn-secondary" style="font-size: 10px; padding: 4px 8px;" id="sync-history-btn"><i data-lucide="refresh-cw" class="icon-sm"></i> Sync History</button>
                 </div>
 
-                <div id='usage-summary" style="font-size: 13px; color: var(--body); line-height: 1.6;">
+                <div id="usage-summary" style="font-size: 13px; color: var(--body); line-height: 1.6;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                         <span>Today's Total Calls:</span>
                         <b id="today-total-calls" style="color: var(--on-dark);">0</b>
@@ -542,38 +546,38 @@
                     </table>
                 </div>
 
-                <button onclick="toggleUsageDetails()" id="usage-toggle-btn" class="btn-secondary" style="width: 100%; margin-top: 15px; font-size: 11px; padding: 10px;'><i data-lucide="trending-down" class="icon-sm"></i> Show Detailed Breakdown</button>
+                <button onclick="toggleUsageDetails()" id="usage-toggle-btn" class="btn-secondary" style="width: 100%; margin-top: 15px; font-size: 11px; padding: 10px;"><i data-lucide="trending-down" class="icon-sm"></i> Show Detailed Breakdown</button>
             </div>
         </div>
 
-        <div class='card" id="saved-quizzes-card" style="background: transparent; border: none; padding: 0;">
+        <div class="card" id="saved-quizzes-card" style="background: transparent; border: none; padding: 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h2 style="font-size: 28px; margin: 0;'><i data-lucide="book-open" class="icon-sm"></i> Library</h2>
-                <button onclick='openCreateBlankModal()" class="btn-primary" style="width: auto; margin: 0; padding: 10px 20px; font-size: 14px;'><i data-lucide="plus-circle" class="icon-sm"></i> New Blank Quiz</button>
+                <h2 style="font-size: 28px; margin: 0;"><i data-lucide="book-open" class="icon-sm"></i> Library</h2>
+                <button onclick="openCreateBlankModal()" class="btn-primary" style="width: auto; margin: 0; padding: 10px 20px; font-size: 14px;"><i data-lucide="plus-circle" class="icon-sm"></i> New Blank Quiz</button>
             </div>
             
             <% if (grouped_quizzes) { %>
-                <div style='display: flex; gap: 12px; margin-bottom: 32px;" id="search-merge-bar">
-                    <input type="text" id="searchInput" onkeyup="filterQuizzes()" placeholder="Search quizzes..." class="search-bar" style="border-radius: var(--radius-sm);">
-                    <button id="mergeModeBtn" onclick="toggleMergeMode()" class="btn-primary" style="width: auto; margin-top: 0; white-space: nowrap; padding: 14px 24px;'><i data-lucide="link" class="icon-sm"></i> Merge Mode</button>
+                <div style="display: flex; gap: 12px; margin-bottom: 32px;" id="search-merge-bar">
+                    <input type="text" id="searchInput" onkeyup='filterQuizzes()' placeholder="Search quizzes..." class="search-bar" style="border-radius: var(--radius-sm);">
+                    <button id="mergeModeBtn" onclick="toggleMergeMode()" class="btn-primary" style="width: auto; margin-top: 0; white-space: nowrap; padding: 14px 24px;"><i data-lucide="link" class="icon-sm"></i> Merge Mode</button>
                 </div>
                 
-                <div id='quiz-list-container">
+                <div id="quiz-list-container">
                     <% let groupIdx = 0; for (let [subject, quizzes] of Object.entries(grouped_quizzes || {})) { groupIdx++; %>
                         <div class="subject-group" data-subject="<%= typeof subject !== 'undefined' && subject ? subject : '' %>">
                             
                             <div class="subject-header" onclick="toggleFolder(this)">
-                                <h3 class="subject-title'>
+                                <h3 class="subject-title">
                                     <i data-lucide="folder" class="icon-sm"></i> <%= typeof subject !== 'undefined' ? subject : '' %> 
-                                    <span class='subject-badge"><%= (quizzes || []).length %></span>
+                                    <span class="subject-badge"><%= (quizzes || []).length %></span>
                                 </h3>
-                                <svg class="chevron <% if (groupIdx == 1) { %>open<% } %>" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                <svg class="chevron open" width='20' height='20' viewBox='0 0 24 24' fill='none' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>
                             </div>
                             
-                            <div class="folder-content <% if (groupIdx == 1) { %>open<% } %>">
+                            <div class="folder-content open">
                                 <div class="quiz-grid">
                                     <% for (let sq of (quizzes || [])) { %>
-                                        <div class="quiz-card-horizontal" data-title="<%= typeof sq.title !== 'undefined' && sq.title ? sq.title : '' %>" data-id="<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
+                                        <div class="quiz-card-horizontal quiz-item" data-title="<%= typeof sq.title !== 'undefined' && sq.title ? sq.title : '' %>" data-id="<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
     <div class="quiz-info">
         <div style="font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 4px; text-transform: uppercase;">
             <i data-lucide="book-open" class="icon-sm" style="width: 12px; margin-right: 4px;"></i> <%= typeof sq.subject !== 'undefined' ? sq.subject : 'Quiz' %>
@@ -589,23 +593,23 @@
     
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
         <a href="/live/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="primary-action-btn"><i data-lucide="radio" class="icon-sm" style="color:white;"></i> Launch</a>
-        <a href="/edit/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="primary-action-btn" style="background: var(--surface-soft); color: var(--on-dark);'><i data-lucide="edit-3" class="icon-sm"></i> Edit</a>
+        <a href="/edit/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="primary-action-btn" style="background: var(--surface-soft); color: var(--on-dark);"><i data-lucide="edit-3" class="icon-sm"></i> Edit</a>
         
-        <div class='quiz-actions-menu">
+        <div class="quiz-actions-menu">
             <button type="button" onclick="toggleQuizDropdown('dropdown-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')" style="background:none; border:none; color:var(--body); cursor:pointer; padding: 8px;">
                 <i data-lucide="more-vertical"></i>
             </button>
             <div class="quiz-actions-dropdown" id="dropdown-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
-                <button type="button" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')'><i data-lucide="copy" class="icon-sm"></i> Copy Link</button>
-                <button type='button" onclick="openMoveModal('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>', '<%= typeof sq.subject !== 'undefined' ? sq.subject : '' %>')'><i data-lucide="folder-output" class="icon-sm"></i> Move</button>
-                <a href='/results/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>'><i data-lucide="bar-chart-2" class="icon-sm"></i> Results</a>
-                <form action='/delete/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" method="POST" onsubmit="return confirm('Delete this quiz?');">
-                    <button type="submit" style="color: var(--m-red);'><i data-lucide="trash-2" class="icon-sm"></i> Delete</button>
+                <button type="button" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"><i data-lucide="copy" class="icon-sm"></i> Copy Link</button>
+                <button type="button" onclick="openMoveModal('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>', '<%= typeof sq.subject !== 'undefined' ? sq.subject : '' %>')"><i data-lucide="folder-output" class="icon-sm"></i> Move</button>
+                <a href="/results/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>"><i data-lucide="bar-chart-2" class="icon-sm"></i> Results</a>
+                <form action="/delete/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" method="POST" onsubmit="return confirm('Delete this quiz?');">
+                    <button type="submit" style="color: var(--m-red);"><i data-lucide="trash-2" class="icon-sm"></i> Delete</button>
                 </form>
             </div>
         </div>
     </div>
-    <script>document.getElementById('url-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>").innerText = window.location.origin + "/quiz/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>";</script>
+    <script>document.getElementById('url-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>').innerText = window.location.origin + '/quiz/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>';</script>
 </div>
                                     <% } %>
                                 </div>
@@ -619,8 +623,8 @@
                     <p style="color: var(--on-dark); font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin:0;">NO QUIZZES FOUND</p>
                     <p style="color: var(--body); font-size: 14px; margin-top: 8px; margin-bottom: 24px;">Use the generator to start or upload a worksheet.</p>
                     <div style="display: flex; gap: 12px; justify-content: center;">
-                        <a href="/worksheet" class="btn-primary" style="width: auto; text-decoration: none;'><i data-lucide="file-text" class="icon-sm"></i> Worksheet (Auto-Solve)</a>
-                        <a href='/worksheet_answers" class="btn-secondary" style="width: auto; text-decoration: none;'><i data-lucide="key" class="icon-sm"></i> Worksheet + Answer Key</a>
+                        <a href="/worksheet" class="btn-primary" style="width: auto; text-decoration: none;"><i data-lucide="file-text" class="icon-sm"></i> Worksheet (Auto-Solve)</a>
+                        <a href="/worksheet_answers" class="btn-secondary" style="width: auto; text-decoration: none;"><i data-lucide="key" class="icon-sm"></i> Worksheet + Answer Key</a>
                     </div>
                 </div>
             <% } %>
@@ -628,14 +632,14 @@
     </div>
     
     <!-- Merge Floating Action Bar -->
-    <div id='mergeActionBar" style="display:none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--surface-elevated); border: 1px solid var(--hairline); color: var(--on-dark); padding: 16px 32px; border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); z-index: 1000; align-items: center; gap: 24px;">
+    <div id="mergeActionBar" style="display:none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--surface-elevated); border: 1px solid var(--hairline); color: var(--on-dark); padding: 16px 32px; border-radius: var(--radius-md); box-shadow: var(--shadow); z-index: 1000; align-items: center; gap: 24px;">
         <span id="mergeCount" style="font-weight: 600; font-size: 14px;">0 Selected</span>
-        <button onclick="executeMerge()" style="background: var(--primary); color: #fff; border: none; padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;'><i data-lucide="check-circle" class="icon-sm"></i> Confirm Merge</button>
-        <button onclick='toggleMergeMode()" style="background: transparent; border: 1px solid var(--hairline); color: var(--on-dark); padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;'><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
+        <button onclick="executeMerge()" style="background: var(--primary); color: #fff; border: none; padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;"><i data-lucide="check-circle" class="icon-sm"></i> Confirm Merge</button>
+        <button onclick="toggleMergeMode()" style="background: transparent; border: 1px solid var(--hairline); color: var(--on-dark); padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;"><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
     </div>
 
     <!-- API KEY MODAL -->
-    <div id='apiKeyModal" class="modal-overlay">
+    <div id="apiKeyModal" class="modal-overlay">
         <div class="modal-card">
             <h2 id="api-key-modal-title" style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key Setup</h2>
             
@@ -644,43 +648,43 @@
             <div id="gemini_key_container">
                 <div style="background: var(--surface-soft); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 24px; font-size: 12px; color: var(--body-strong); line-height: 1.5;">
                     <strong style="color: var(--on-dark);">SECURITY:</strong> Do not share your key. It is saved locally in your browser.<br>
-                    <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: var(--m-blue-light); font-weight: 700; display: inline-block; margin-top: 8px; text-decoration: none;">GET FREE KEY ↗</a>
+                    <a href="https://aistudio.google.com/app/apikey" target='_blank' style="color: var(--m-blue-light); font-weight: 700; display: inline-block; margin-top: 8px; text-decoration: none;">GET FREE KEY ↗</a>
                 </div>
 
                 <label style="margin-top: 0;">Primary API Key</label>
-                <input type="text" id="modal_api_key_input" placeholder="Paste your primary API key..." autocomplete="off" spellcheck="false" style="-webkit-text-security: disc; margin-bottom: 12px;">
+                <input type="text" id="modal_api_key_input" placeholder="Paste your primary API key..." autocomplete='off' spellcheck='false' style="-webkit-text-security: disc; margin-bottom: 12px;">
 
                 <label style="margin-top: 0;">Secondary Key 1 (Backup)</label>
-                <input type="text" id="modal_api_key_2" placeholder="Optional backup key..." autocomplete="off" spellcheck="false" style="-webkit-text-security: disc; margin-bottom: 12px;">
+                <input type="text" id="modal_api_key_2" placeholder="Optional backup key..." autocomplete='off' spellcheck='false' style="-webkit-text-security: disc; margin-bottom: 12px;">
 
                 <label style="margin-top: 0;">Secondary Key 2 (Backup)</label>
-                <input type="text" id="modal_api_key_3" placeholder="Optional backup key..." autocomplete="off" spellcheck="false" style="-webkit-text-security: disc; margin-bottom: 20px;">
+                <input type="text" id="modal_api_key_3" placeholder="Optional backup key..." autocomplete='off' spellcheck='false' style="-webkit-text-security: disc; margin-bottom: 20px;">
             </div>
             
             <div id="ollama_url_container" style="display: none;">
                 <label style="margin-top: 0;">Ollama Public URL <span style="font-size: 10px; color: var(--body); text-transform: none;">(Requires ngrok if hosting on Render)</span></label>
-                <input type="text" id="modal_ollama_url_input" placeholder="e.g. https://1234-abcd.ngrok-free.app" autocomplete="off" style="margin-bottom: 20px;">
+                <input type="text" id="modal_ollama_url_input" placeholder="e.g. https://1234-abcd.ngrok-free.app" autocomplete='off' style="margin-bottom: 20px;">
             </div>
 
-            <button onclick="saveApiKey()" class="btn-primary" style="margin-top: 0;'><i data-lucide="save" class="icon-sm"></i> Save Settings</button>
-            <button onclick='closeApiKeyModal()" class="btn-secondary" id="modal-cancel-btn" style="width: 100%; margin-top: 12px; padding: 14px; display: none;'><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
-            <button type='button" id="modal-skip-btn" onclick="useLocalOnly()" style="background: transparent; color: var(--body); border: none; font-size: 12px; margin-top: 16px; cursor: pointer; text-decoration: underline; width: 100%;">Skip (I will only use local models)</button>
+            <button onclick="saveApiKey()" class="btn-primary" style="margin-top: 0;"><i data-lucide="save" class="icon-sm"></i> Save Settings</button>
+            <button onclick="closeApiKeyModal()" class="btn-secondary" id="modal-cancel-btn" style="width: 100%; margin-top: 12px; padding: 14px; display: none;"><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
+            <button type="button" id="modal-skip-btn" onclick="useLocalOnly()" style="background: transparent; color: var(--body); border: none; font-size: 12px; margin-top: 16px; cursor: pointer; text-decoration: underline; width: 100%;">Skip (I will only use local models)</button>
         </div>
     </div>
 
     <!-- OLLAMA INSTRUCTIONS MODAL -->
     <div id="ollamaModal" class="modal-overlay">
         <div class="modal-card">
-            <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;'><i data-lucide="box" class="icon-sm"></i> Setup Local AI</h2>
+            <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="box" class="icon-sm"></i> Setup Local AI</h2>
             
-            <p style='color: var(--body); font-size: 14px; margin-bottom: 16px;">Run AI completely on your own hardware. Free and private.</p>
+            <p style="color: var(--body); font-size: 14px; margin-bottom: 16px;">Run AI completely on your own hardware. Free and private.</p>
 
             <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 12px; color: var(--warning); line-height: 1.4;">
                 <strong>Cloud Users:</strong> Make sure you have linked your Ngrok URL in the <b><i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key</b> settings before scanning or downloading models!
             </div>
 
             <label style="margin-top:0;">1. Install Ollama</label>
-            <p style="font-size: 13px; color: var(--body-strong); margin-top: 4px; margin-bottom: 16px;">Download and install from <a href="https://ollama.com/download" target="_blank" style="color: var(--primary); font-weight: bold;">ollama.com</a>. Ensure the app is running in your system tray.</p>
+            <p style="font-size: 13px; color: var(--body-strong); margin-top: 4px; margin-bottom: 16px;">Download and install from <a href="https://ollama.com/download" target='_blank' style="color: var(--primary); font-weight: bold;">ollama.com</a>. Ensure the app is running in your system tray.</p>
 
             <label>2. Download a Model</label>
             <p style="font-size: 13px; color: var(--body-strong); margin-top: 4px;">Select a model to download automatically.</p>
@@ -691,31 +695,31 @@
                     <option value="qwen2.5:7b">Qwen 2.5 (Fast, 7B)</option>
                     <option value="llama3">Llama 3 (Older, 8B)</option>
                 </select>
-                <button onclick="autoInstallModel(document.getElementById('install_model_select').value)" class="btn-secondary" id="btn-auto-install" style="white-space: nowrap; padding: 14px; background: var(--surface-soft); border: 1px solid var(--primary); color: var(--on-dark); font-weight: 700; transition: all 0.2s ease; margin-top: 0;'><i data-lucide="download" class="icon-sm"></i> Install</button>
+                <button onclick="autoInstallModel(document.getElementById('install_model_select').value)" class="btn-secondary" id="btn-auto-install" style="white-space: nowrap; padding: 14px; background: var(--surface-soft); border: 1px solid var(--primary); color: var(--on-dark); font-weight: 700; transition: all 0.2s ease; margin-top: 0;"><i data-lucide="download" class="icon-sm"></i> Install</button>
             </div>
 
-            <button onclick='scanOllama()" class="btn-primary" id="btn-scan-ollama" style="margin-top: 0;'><i data-lucide="search" class="icon-sm"></i> Scan for Local Models</button>
-            <button onclick='closeOllamaModal()" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 14px;'><i data-lucide="x-circle" class="icon-sm"></i> Close</button>
+            <button onclick="scanOllama()" class="btn-primary" id="btn-scan-ollama" style="margin-top: 0;"><i data-lucide="search" class="icon-sm"></i> Scan for Local Models</button>
+            <button onclick="closeOllamaModal()" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 14px;"><i data-lucide="x-circle" class="icon-sm"></i> Close</button>
         </div>
     </div>
 
     <!-- CREATE BLANK MODAL -->
-    <div id='createBlankModal" class="modal-overlay">
+    <div id="createBlankModal" class="modal-overlay">
         <div class="modal-card">
-            <h2 style="margin-bottom: 16px; font-size: 24px;'><i data-lucide="plus-circle" class="icon-sm"></i> New Blank Quiz</h2>
+            <h2 style="margin-bottom: 16px; font-size: 24px;"><i data-lucide="plus-circle" class="icon-sm"></i> New Blank Quiz</h2>
             
 
             <label>Quiz Title</label>
-            <input type='text" id="blank-quiz-title" placeholder="e.g. My Custom Test">
+            <input type="text" id="blank-quiz-title" placeholder="e.g. My Custom Test">
 
             <label>Subject / Folder</label>
             <select id="blank-quiz-subject" onchange="toggleCustomBlankSubject(this)">
                 <% for (let s of (all_subjects || [])) { %>
                     <option value="<%= typeof s !== 'undefined' ? s : '' %>" <% if (s == 'General') { %>selected<% } %>><%= typeof s !== 'undefined' ? s : '' %></option>
                 <% } %>
-                <option value="__custom__'><i data-lucide="plus-circle" class="icon-sm"></i> New Folder...</option>
+                <option value="__custom__"><i data-lucide="plus-circle" class="icon-sm"></i> New Folder...</option>
             </select>
-            <input type='text" id="blank-quiz-custom-subject" placeholder="Enter folder name" style="display:none; margin-top: 8px;">
+            <input type="text" id="blank-quiz-custom-subject" placeholder="Enter folder name" style="display:none; margin-top: 8px;">
 
             <div style="display: flex; gap: 12px; margin-top: 24px;">
                 <button onclick="executeCreateBlank()" class="btn-primary" style="margin-top: 0; flex: 1;">Create Quiz</button>
@@ -727,22 +731,22 @@
     <!-- MOVE QUIZ MODAL -->
     <div id="moveModal" class="modal-overlay">
         <div class="modal-card">
-            <h2 style="margin-bottom: 16px; font-size: 24px;'><i data-lucide="folder-output" class="icon-sm"></i> Move to Folder</h2>
+            <h2 style="margin-bottom: 16px; font-size: 24px;"><i data-lucide="folder-output" class="icon-sm"></i> Move to Folder</h2>
             
 
-            <input type='hidden" id="move-quiz-id">
+            <input type="hidden" id="move-quiz-id">
             <label>Select Destination Folder</label>
             <select id="move-quiz-subject" onchange="toggleCustomMoveSubject(this)">
                 <% for (let s of (all_subjects || [])) { %>
                     <option value="<%= typeof s !== 'undefined' ? s : '' %>"><%= typeof s !== 'undefined' ? s : '' %></option>
                 <% } %>
-                <option value="__custom__'><i data-lucide="plus-circle" class="icon-sm"></i> New Folder...</option>
+                <option value="__custom__"><i data-lucide="plus-circle" class="icon-sm"></i> New Folder...</option>
             </select>
-            <input type='text" id="move-quiz-custom-subject" placeholder="Enter folder name" style="display:none; margin-top: 8px;">
+            <input type="text" id="move-quiz-custom-subject" placeholder="Enter folder name" style="display:none; margin-top: 8px;">
 
             <div style="display: flex; gap: 12px; margin-top: 24px;">
                 <button onclick="executeMove()" class="btn-primary" style="margin-top: 0; flex: 1;">Move Quiz</button>
-                <button onclick="closeMoveModal()" class="btn-secondary" style="flex: 1;'>Cancel</button>
+                <button onclick="closeMoveModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
             </div>
         </div>
     </div>
@@ -785,10 +789,10 @@
                 document.getElementById('ollama_url_container').style.display = 'block';
                 modalTitle.innerHTML = '<i data-lucide="globe" class="icon-sm"></i> Local AI Setup';
                 modalDesc.innerHTML = `
-                    <strong style='color: var(--on-dark);">How to connect your device:</strong><br>
+                    <strong style="color: var(--on-dark);">How to connect your device:</strong><br>
                     <ol style="margin-top: 8px; padding-left: 20px; color: var(--body-strong); line-height: 1.6;">
-                        <li>Install & run <a href="https://ollama.com" target="_blank" style="color: var(--primary);">Ollama</a>.</li>
-                        <li>Install <a href="https://ngrok.com/download" target="_blank" style="color: var(--primary);">Ngrok</a>.</li>
+                        <li>Install & run <a href="https://ollama.com" target='_blank' style="color: var(--primary);">Ollama</a>.</li>
+                        <li>Install <a href="https://ngrok.com/download" target='_blank' style="color: var(--primary);">Ngrok</a>.</li>
                         <li>Open terminal: <code style="background: #000; color: #0f0; padding: 2px 6px; border-radius: 4px; font-size: 11px;">ngrok http 11434</code></li>
                         <li>Paste the <b>Forwarding URL</b> (https://...) below.</li>
                     </ol>
@@ -820,7 +824,7 @@
 
         async function useLocalOnly() {
             const btn = document.querySelector('button[onclick="useLocalOnly()"]');
-            if(btn) btn.innerText = "Scanning for Local Models...";
+            if(btn) btn.innerText = 'Scanning for Local Models...';
 
             const oUrl = document.getElementById('modal_ollama_url_input').value.trim() || 'http://127.0.0.1:11434';
             localStorage.setItem('ollama_url', oUrl);
@@ -842,12 +846,12 @@
                 openOllamaModal();
             }
             
-            if(btn) btn.innerText = "Skip (I will only use local models)";
+            if(btn) btn.innerText = 'Skip (I will only use local models)';
         }
 
         async function scanOllama() {
             const btn = document.getElementById('btn-scan-ollama');
-            if (btn) { btn.innerText = "Scanning...'; btn.disabled = true; }
+            if (btn) { btn.innerText = 'Scanning...'; btn.disabled = true; }
             
             try {
                 const oUrl = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
@@ -863,20 +867,20 @@
                     setTimeout(() => {
                         closeOllamaModal();
                         closeApiKeyModal();
-                        if (btn) { btn.innerHTML = '<i data-lucide='search" class="icon-sm'></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false; }
+                        if (btn) { btn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false; }
                     }, 1500);
                 } else {
                     if (btn) { btn.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> No models found yet'; btn.style.background = 'var(--m-red)'; }
-                    setTimeout(() => { if(btn) { btn.innerHTML = '<i data-lucide='search" class="icon-sm'></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
+                    setTimeout(() => { if(btn) { btn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
                 }
             } catch (e) {
                 if (btn) { btn.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> Ollama not running'; btn.style.background = 'var(--m-red)'; }
-                setTimeout(() => { if(btn) { btn.innerHTML = '<i data-lucide='search" class="icon-sm"></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
+                setTimeout(() => { if(btn) { btn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
             }
         }
 
         function populateLocalModels(models) {
-            const localOptGroup = document.querySelector('optgroup[label="Local Models (Ollama)']');
+            const localOptGroup = document.querySelector("optgroup[label='Local Models (Ollama)']");
             localOptGroup.innerHTML = '';
             models.forEach(model => {
                 const opt = document.createElement('option');
@@ -893,7 +897,7 @@
         async function autoInstallModel(model) {
             const btn = document.getElementById('btn-auto-install');
             btn.disabled = true;
-            btn.innerText = '⏳ Initiating download...";
+            btn.innerText = '⏳ Initiating download...';
             
             try {
                 const oUrl = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
@@ -905,7 +909,7 @@
                 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                let buffer = "';
+                let buffer = '';
                 
                 while (true) {
                     const {value, done} = await reader.read();
@@ -933,8 +937,8 @@
                 }
                 
                 btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> Model Ready! Scanning...';
-                btn.style.background = 'var(--success)";
-                btn.style.color = "#fff';
+                btn.style.background = 'var(--success)';
+                btn.style.color = '#fff';
                 setTimeout(() => scanOllama(), 1500);
                 
             } catch (e) {
@@ -953,11 +957,11 @@
             const isLocal = model.startsWith('ollama:');
 
             if (!isLocal && !key1) {
-                alert('Please enter at least a Primary Gemini API Key.");
+                alert('Please enter at least a Primary Gemini API Key.');
                 return; 
             }
             if (isLocal && !oUrl) {
-                alert("Please enter a Custom Ollama URL.");
+                alert('Please enter a Custom Ollama URL.');
                 return;
             }
 
@@ -1055,7 +1059,7 @@
                 showProgress: true,
                 steps: steps,
                 onDestroyStarted: () => {
-                    if (!tourObj.hasNextStep() || confirm("Are you sure you want to skip the tour?")) {
+                    if (!tourObj.hasNextStep() || confirm('Are you sure you want to skip the tour?')) {
                         localStorage.setItem('tour_completed', 'true');
                         tourObj.destroy();
                     }
@@ -1067,19 +1071,19 @@
 
         // --- RATE LIMIT TRACKER LOGIC ---
         const API_LIMITS = {
-            "gemini-3.6-flash": 20,
-            "gemini-3.5-flash": 20,
-            "gemini-3.5-flash-lite": 500,
-            "gemini-3.1-flash-lite": 500,
-            "gemini-3.0-flash": 20,
-            "gemini-2.5-flash": 20,
-            "gemini-2.5-flash-lite": 20
+            'gemini-3.6-flash': 20,
+            'gemini-3.5-flash': 20,
+            'gemini-3.5-flash-lite': 500,
+            'gemini-3.1-flash-lite': 500,
+            'gemini-3.0-flash': 20,
+            'gemini-2.5-flash': 20,
+            'gemini-2.5-flash-lite': 20
         };
 
         let GLOBAL_DAILY_STATS = {};
 
         async function getHash(text) {
-            if (!text) return "default";
+            if (!text) return 'default';
             const msgUint8 = new TextEncoder().encode(text);
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -1097,7 +1101,7 @@
                     updateCounterUI();
                 }
             } catch (e) {
-                console.error("Failed to fetch usage stats:", e);
+                console.error('Failed to fetch usage stats:', e);
             }
         }
 
@@ -1126,12 +1130,12 @@
                     allTimeTotal += modelCount;
 
                     const row = document.createElement('tr');
-                    row.style.borderBottom = "1px solid var(--hairline)";
+                    row.style.borderBottom = '1px solid var(--hairline)';
                     row.innerHTML = `
                         <td style="padding: 10px 0; color: var(--body);">${date}</td>
                         <td style="padding: 10px 0; color: var(--on-dark);">${model}</td>
                         <td style="padding: 10px 0; text-align: center;">${modelCount}</td>
-                        <td style="padding: 10px 0; text-align: center; color: var(--body);'>${API_LIMITS[model] || '∞'}</td>
+                        <td style="padding: 10px 0; text-align: center; color: var(--body);">${API_LIMITS[model] || '∞'}</td>
                     `;
                     tableBody.appendChild(row);
                 }
@@ -1149,7 +1153,7 @@
                 btn.innerHTML = '<i data-lucide="trending-up" class="icon-sm"></i> Hide Detailed Breakdown';
             } else {
                 details.style.display = 'none';
-                btn.innerHTML = '<i data-lucide='trending-down" class="icon-sm"></i> Show Detailed Breakdown';
+                btn.innerHTML = '<i data-lucide="trending-down" class="icon-sm"></i> Show Detailed Breakdown';
             }
         }
 
@@ -1163,13 +1167,13 @@
                 const res = await fetch('/api/usage/sync_history');
                 const data = await res.json();
                 if (data.success) {
-                    alert("Historical usage synced successfully!");
+                    alert('Historical usage synced successfully!');
                     await fetchUsageStats();
                 } else {
-                    alert("Sync failed: " + data.error);
+                    alert('Sync failed: ' + data.error);
                 }
             } catch (e) {
-                alert("Sync error: " + e);
+                alert('Sync error: ' + e);
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
@@ -1234,7 +1238,7 @@
 
             // Verify key one last time
             if (keys.length === 0 && !isLocal) {
-                alert("API Key is missing. Please setup your key first.");
+                alert('API Key is missing. Please setup your key first.');
                 openApiKeyModal();
                 event.preventDefault();
                 return false;
@@ -1287,17 +1291,17 @@
 
             const btn = document.getElementById('ai-btn');
             if (isStudent) {
-                btn.innerHTML = "⏳ GENERATING & CHECKING... (PLEASE WAIT)";
+                btn.innerHTML = '⏳ GENERATING & CHECKING... (PLEASE WAIT)';
             } else {
-                btn.innerHTML = "⏳ GENERATING AI QUIZ... (PLEASE WAIT)";
+                btn.innerHTML = '⏳ GENERATING AI QUIZ... (PLEASE WAIT)';
             }
             
             // LOCK THE FORM & BUTTON TO PREVENT DOUBLE-CLICKS
-            btn.style.color = "var(--warning)";
-            btn.style.borderColor = "var(--warning)";
+            btn.style.color = 'var(--warning)';
+            btn.style.borderColor = 'var(--warning)';
             btn.disabled = true; 
-            form.style.opacity = "0.5";
-            form.style.pointerEvents = "none";
+            form.style.opacity = '0.5';
+            form.style.pointerEvents = 'none';
             
             return true;
         }
@@ -1331,22 +1335,22 @@
                     let titleText = item.getAttribute('data-title');
                     let subjectText = group.getAttribute('data-subject');
                     
-                    if(titleText.includes(input) || subjectText.includes(input)) {
-                        item.style.display = "flex"; 
+                    if(titleText.toLowerCase().includes(input) || subjectText.toLowerCase().includes(input)) {
+                        item.style.display = 'flex'; 
                         hasVisibleItems = true;
                     } else {
-                        item.style.display = "none";
+                        item.style.display = 'none';
                     }
                 });
                 
                 if (input.trim() !== '') {
-                    group.style.display = hasVisibleItems ? "block" : "none";
+                    group.style.display = hasVisibleItems ? 'block' : 'none';
                     if (hasVisibleItems) {
                         folderContent.classList.add('open');
                         chevron.classList.add('open');
                     }
                 } else {
-                    group.style.display = "block";
+                    group.style.display = 'block';
                 }
             });
         }
@@ -1374,8 +1378,8 @@
             numItemsInput.value = total;
 
             const label = document.getElementById('type-total');
-            label.innerText = "(Total: " + total + ")";
-            label.className = "limit-status-green";
+            label.innerText = '(Total: ' + total + ')';
+            label.className = 'limit-status-green';
             updateTotal();
         }
 
@@ -1384,13 +1388,13 @@
                         (parseFloat(document.getElementsByName('avg_pct')[0].value) || 0) + 
                         (parseFloat(document.getElementsByName('hard_pct')[0].value) || 0);
             let label = document.getElementById('pct-total');
-            label.innerText = "(Total: " + total + "%)";
-            label.className = total === 100 ? "limit-status-green" : "limit-status-red";
+            label.innerText = '(Total: ' + total + '%)';
+            label.className = total === 100 ? 'limit-status-green' : 'limit-status-red';
         }
 
         function copyLink(id) {
-            const urlText = document.getElementById("url-" + id).innerText;
-            navigator.clipboard.writeText(urlText).then(() => alert("Quiz link copied to clipboard!"));
+            const urlText = document.getElementById('url-' + id).innerText;
+            navigator.clipboard.writeText(urlText).then(() => alert('Quiz link copied to clipboard!'));
         }
 
         updateCounterUI();
@@ -1418,10 +1422,10 @@
             document.getElementById('blank-quiz-custom-subject').style.display = (select.value === '__custom__') ? 'block' : 'none';
         }
         function executeCreateBlank() {
-            const title = document.getElementById('blank-quiz-title').value.trim() || "Untitled Quiz";
+            const title = document.getElementById('blank-quiz-title').value.trim() || 'Untitled Quiz';
             let subject = document.getElementById('blank-quiz-subject').value;
             if (subject === '__custom__') {
-                subject = document.getElementById('blank-quiz-custom-subject').value.trim() || "General";
+                subject = document.getElementById('blank-quiz-custom-subject').value.trim() || 'General';
             }
             window.location.href = `/create_blank?title=${encodeURIComponent(title)}&subject=${encodeURIComponent(subject)}`;
         }
@@ -1442,7 +1446,7 @@
             const id = document.getElementById('move-quiz-id').value;
             let subject = document.getElementById('move-quiz-subject').value;
             if (subject === '__custom__') {
-                subject = document.getElementById('move-quiz-custom-subject').value.trim() || "General";
+                subject = document.getElementById('move-quiz-custom-subject').value.trim() || 'General';
             }
 
             try {
@@ -1455,10 +1459,10 @@
                 if (data.success) {
                     location.reload(); // Refresh to show in new folder
                 } else {
-                    alert("Move failed: " + data.error);
+                    alert('Move failed: ' + data.error);
                 }
             } catch (e) {
-                alert("Error moving quiz.");
+                alert('Error moving quiz.');
             }
         }
 
@@ -1512,7 +1516,7 @@
             const newTitle = prompt('Enter a title for the newly merged worksheet:', 'Merged Worksheet');
             if(!newTitle) return;
 
-            document.getElementById('mergeCount').innerText = "MERGING...";
+            document.getElementById('mergeCount').innerText = 'MERGING...';
             
             try {
                 const res = await fetch('/merge', {
@@ -1527,23 +1531,23 @@
                     alert('Merge failed: ' + data.error);
                 }
             } catch(err) {
-                alert("An error occurred during merge.");
+                alert('An error occurred during merge.');
             }
         }
     </script>
 
     <!-- FIREBASE LOGOUT LOGIC -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
         const firebaseConfig = {
-            apiKey: "AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc",
-            authDomain: "quizmoko-51920.firebaseapp.com",
-            projectId: "quizmoko-51920",
-            storageBucket: "quizmoko-51920.firebasestorage.app",
-            messagingSenderId: "399313723605",
-            appId: "1:399313723605:web:85769dd5aa7edebc13025c"
+            apiKey: 'AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc',
+            authDomain: 'quizmoko-51920.firebaseapp.com',
+            projectId: 'quizmoko-51920',
+            storageBucket: 'quizmoko-51920.firebasestorage.app',
+            messagingSenderId: '399313723605',
+            appId: '1:399313723605:web:85769dd5aa7edebc13025c'
         };
 
         const app = initializeApp(firebaseConfig);
@@ -1554,11 +1558,11 @@
                 await signOut(auth);
                 // Clear Flask Session
                 await fetch('/logout');
-                document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                window.location.href = "/login";
+                document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                window.location.href = '/login';
             } catch (error) {
-                console.error("Error signing out: ", error);
-                alert("Failed to log out: " + error.message);
+                console.error('Error signing out: ', error);
+                alert('Failed to log out: ' + error.message);
             }
         });
     </script>

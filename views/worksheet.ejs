@@ -143,7 +143,7 @@
             page-break-inside: avoid;
         }
         
-        .editable-area[contenteditable="true"] { outline: none; }
+        .editable-area[contenteditable="true'] { outline: none; }
         
         /* --- Dashboard Controls Section --- */
         .controls {
@@ -197,7 +197,7 @@
                 padding: 0.8in 0.8in !important; 
             }
             
-            .editable-area[contenteditable="true"]:hover { background: transparent !important; }
+            .editable-area[contenteditable='true']:hover { background: transparent !important; }
             
             .resizable-image-wrapper {
                 resize: none !important;
@@ -245,20 +245,20 @@
             <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8;"><i data-lucide="moon"></i></button>
         </div>
         <div class="button-group">
-            <button class="btn" onclick="window.print()'><i data-lucide="printer" class="icon-sm"></i>️ PRINT / SAVE AS PDF</button>
-            <button class='btn" onclick="toggleLayout()" title="Cycle between 1, 2, or 4 columns'><i data-lucide="ruler" class="icon-sm"></i> TOGGLE LAYOUT</button>
-            <button class='btn" onclick="exportHTMLToWord('worksheet-content', '<%= typeof quiz.title !== 'undefined' ? quiz.title : '' %>')'><i data-lucide="file-text" class="icon-sm"></i> SAVE AS WORD</button>
+            <button class="btn" onclick="window.print()"><i data-lucide="printer" class="icon-sm"></i>️ PRINT / SAVE AS PDF</button>
+            <button class="btn" onclick="toggleLayout()" title="Cycle between 1, 2, or 4 columns"><i data-lucide="ruler" class="icon-sm"></i> TOGGLE LAYOUT</button>
+            <button class="btn" onclick="exportHTMLToWord('worksheet-content', '<%= typeof quiz.title !== 'undefined' ? quiz.title : '' %>')"><i data-lucide="file-text" class="icon-sm"></i> SAVE AS WORD</button>
         </div>
         
-        <div class='style-controls">
+        <div class="style-controls">
             <!-- Paper Size Options -->
             <div class="control-group">
                 <label class="control-label">PAPER:</label>
                 <select id="paperSize" class="control-select" onchange="updatePageLayout()">
-                    <option value="8.5in 11in" data-width="816px" data-height="1056px" selected>Short (8.5 x 11")</option>
-                    <option value="8.5in 13in" data-width="816px" data-height="1248px">Long (8.5 x 13")</option>
-                    <option value="8.5in 14in" data-width="816px" data-height="1344px">Legal (8.5 x 14")</option>
-                    <option value="210mm 297mm" data-width="794px" data-height="1123px">A4</option>
+                    <option value="8.5in 11in" data-width='816px' data-height='1056px' selected>Short (8.5 x 11')</option>
+                    <option value="8.5in 13in" data-width='816px' data-height='1248px'>Long (8.5 x 13')</option>
+                    <option value="8.5in 14in" data-width='816px' data-height='1344px'>Legal (8.5 x 14')</option>
+                    <option value="210mm 297mm" data-width='794px' data-height='1123px'>A4</option>
                 </select>
             </div>
             
@@ -275,10 +275,10 @@
             <div class="control-group">
                 <label class="control-label">FONT:</label>
                 <select id="fontStyle" class="control-select" onchange="updateTypography()">
-                    <option value="'Times New Roman', Times, serif" selected>Times New Roman</option>
+                    <option value=''Times New Roman', Times, serif' selected>Times New Roman</option>
                     <option value="Arial, Helvetica, sans-serif">Arial</option>
                     <option value="Georgia, serif">Georgia</option>
-                    <option value="'Courier New', Courier, monospace">Courier New</option>
+                    <option value=''Courier New', Courier, monospace'>Courier New</option>
                     <option value="Verdana, Geneva, sans-serif">Verdana</option>
                 </select>
             </div>
@@ -297,13 +297,13 @@
             <!-- Column Slider -->
             <div class="control-group" id="sliderContainer" style="display: flex; min-width: 200px;">
                 <label class="control-label" title="Drag to adjust where the 2nd column starts">ADJUST COL 2:</label>
-                <input type="range" id="colSlider" class="slider" min="20" max="80" value="45" oninput="updateColumnSpacing()">
+                <input type="range" id="colSlider" class="slider" min='20' max='80' value="45" oninput="updateColumnSpacing()">
             </div>
         </div>
     </div>
     
     <!-- THE PHYSICAL PAPER (Stays White) -->
-    <div id="worksheet-content" class="page-container editable-area" contenteditable="true" spellcheck="false">
+    <div id="worksheet-content" class="page-container editable-area" contenteditable='true' spellcheck='false'>
         <div class="header">
             <h1><%= typeof quiz.title !== 'undefined' ? quiz.title : '' %></h1>
         </div>
@@ -520,9 +520,8 @@
             let currentFont = document.getElementById('fontStyle').value.replace(/'/g, ""); 
             let currentSize = document.getElementById('fontSize').value;
             
-            var preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Worksheet</title></head><body style='font-family: ${currentFont}; font-size: ${currentSize}; color: black;'>`;
-            var postHtml = "    <script>lucide.createIcons();</script>
-</body></html>";
+            var preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Worksheet</title></head><body style="font-family: ${currentFont}; font-size: ${currentSize}; color: black;">`;
+            var postHtml = '    <script>lucide.createIcons();<\/script><\/body><\/html>';
             
             var html = preHtml + clone.innerHTML + postHtml;
 

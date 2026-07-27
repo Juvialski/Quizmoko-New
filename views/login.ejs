@@ -28,7 +28,7 @@
             --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
         
-        [data-theme="light"] {
+        [data-theme='light'] {
             --canvas: #fafafa;
             --surface-card: #ffffff;
             --surface-elevated: #f4f4f5;
@@ -150,7 +150,7 @@
             <div style="margin-top: 20px; text-align: center; border-top: 1px solid var(--hairline); padding-top: 20px;">
                 <p style="margin-top: 0; margin-bottom: 12px; font-weight: 600; font-size: 11px; letter-spacing: 1px;">OR CONTINUE WITH</p>
                 <button type="button" id="google-btn" class="btn-secondary" style="width: 100%; margin-top: 10px; background: white; color: black; border-color: #ddd;">
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="Google">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width='18' height='18' alt='Google'>
                     GOOGLE ACCOUNT
                 </button>
             </div>
@@ -179,17 +179,17 @@
 
     <!-- Firebase JS SDK -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
         // Your Firebase config
         const firebaseConfig = {
-            apiKey: "AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc",
-            authDomain: "quizmoko-51920.firebaseapp.com",
-            projectId: "quizmoko-51920",
-            storageBucket: "quizmoko-51920.firebasestorage.app",
-            messagingSenderId: "399313723605",
-            appId: "1:399313723605:web:85769dd5aa7edebc13025c"
+            apiKey: 'AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc',
+            authDomain: 'quizmoko-51920.firebaseapp.com',
+            projectId: 'quizmoko-51920',
+            storageBucket: 'quizmoko-51920.firebasestorage.app',
+            messagingSenderId: '399313723605',
+            appId: '1:399313723605:web:85769dd5aa7edebc13025c'
         };
 
         const app = initializeApp(firebaseConfig);
@@ -203,8 +203,8 @@
             const errorDiv = document.getElementById('error');
             const submitBtn = document.getElementById('submit-btn');
             
-            errorDiv.textContent = "";
-            submitBtn.textContent = "AUTHENTICATING...";
+            errorDiv.textContent = '';
+            submitBtn.textContent = 'AUTHENTICATING...';
             submitBtn.disabled = true;
 
             try {
@@ -215,7 +215,7 @@
                     localStorage.setItem('hide_auth_disclaimer', 'true');
                 }
 
-                submitBtn.textContent = "ESTABLISHING SESSION...";
+                submitBtn.textContent = 'ESTABLISHING SESSION...';
 
                 // Get ID Token and establish Flask Session
                 const token = await user.getIdToken();
@@ -227,21 +227,21 @@
                     body: JSON.stringify({ token: token, remember_me: rememberMe })
                 });
 
-                if (!sessionRes.ok) throw new Error("Failed to establish session");
+                if (!sessionRes.ok) throw new Error('Failed to establish session');
 
                 // Legacy cookie for safety (optional, but keeping it for now)
                 const maxAge = rememberMe ? 2592000 : 3600;
                 document.cookie = `token=${token}; path=/; max-age=${maxAge}; samesite=strict`;
 
                 // Redirect to dashboard
-                window.location.href = "/";
+                window.location.href = '/';
             } catch (error) {
                 if(error.code === 'auth/invalid-credential') {
-                    errorDiv.textContent = "INCORRECT EMAIL OR PASSWORD.";
+                    errorDiv.textContent = 'INCORRECT EMAIL OR PASSWORD.';
                 } else {
                     errorDiv.textContent = error.message;
                 }
-                submitBtn.textContent = "LOG IN";
+                submitBtn.textContent = 'LOG IN';
                 submitBtn.disabled = false;
             }
         });
@@ -252,9 +252,9 @@
             const errorDiv = document.getElementById('error');
             const submitBtn = document.getElementById('submit-btn');
 
-            errorDiv.textContent = "";
+            errorDiv.textContent = '';
             googleBtn.disabled = true;
-            googleBtn.textContent = "AUTHENTICATING...";
+            googleBtn.textContent = 'AUTHENTICATING...';
 
             try {
                 const result = await signInWithPopup(auth, provider);
@@ -264,7 +264,7 @@
                     localStorage.setItem('hide_auth_disclaimer', 'true');
                 }
 
-                googleBtn.textContent = "ESTABLISHING SESSION...";
+                googleBtn.textContent = 'ESTABLISHING SESSION...';
 
                 // Get ID Token
                 const token = await user.getIdToken();
@@ -276,17 +276,17 @@
                     body: JSON.stringify({ token: token, remember_me: rememberMe })
                 });
 
-                if (!sessionRes.ok) throw new Error("Failed to establish session");
+                if (!sessionRes.ok) throw new Error('Failed to establish session');
 
                 const maxAge = rememberMe ? 2592000 : 3600;
                 document.cookie = `token=${token}; path=/; max-age=${maxAge}; samesite=strict`;
 
-                window.location.href = "/";
+                window.location.href = '/';
             } catch (error) {
                 errorDiv.textContent = error.message;
                 googleBtn.disabled = false;
                 googleBtn.innerHTML = `
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="Google">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width='18' height='18' alt='Google">
                     GOOGLE ACCOUNT
                 `;
             }

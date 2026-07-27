@@ -250,6 +250,132 @@
         textarea { height: 60px; resize: vertical; } 
         label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
+        /* Redesigned Top Bar Styles */
+        .quiz-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface-card);
+            border-bottom: 1px solid var(--hairline);
+            padding: 10px 18px;
+            margin-bottom: 24px;
+            border-radius: var(--radius-sm);
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .topbar-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: nowrap;
+        }
+        .topbar-brand {
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            color: var(--on-dark);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .topbar-pill {
+            background: var(--surface-soft);
+            border: 1px solid var(--hairline);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--on-dark);
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+        .topbar-score-pill {
+            background: rgba(52, 211, 153, 0.1);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+            color: var(--success);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+        .topbar-btn {
+            background: var(--surface-soft);
+            border: 1px solid var(--hairline);
+            color: var(--on-dark);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .topbar-btn:hover {
+            border-color: var(--primary);
+            background: var(--surface-elevated);
+        }
+        .topbar-btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+        .topbar-btn-primary:hover {
+            opacity: 0.9;
+        }
+        .topbar-btn-danger {
+            background: rgba(251, 113, 133, 0.1);
+            color: var(--m-red);
+            border: 1px solid rgba(251, 113, 133, 0.2);
+        }
+        .topbar-btn-danger:hover {
+            background: rgba(251, 113, 133, 0.2);
+            border-color: var(--m-red);
+        }
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            background: var(--surface-soft);
+            border: 1px solid var(--hairline);
+            border-radius: 8px;
+            padding: 2px;
+            gap: 2px;
+        }
+        .toolbar-item {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--body);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            width: 30px;
+            height: 30px;
+            transition: all 0.2s ease;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .toolbar-item:hover {
+            background: var(--surface-elevated);
+            color: var(--on-dark);
+        }
+        .toolbar-divider {
+            width: 1px;
+            height: 16px;
+            background: var(--hairline);
+        }
+
         /* Responsive Mobile Quiz Overrides */
         @media (max-width: 768px) {
             body {
@@ -262,10 +388,11 @@
                 padding: 20px 16px !important;
                 margin-bottom: 20px !important;
             }
-            .top-bar {
-                flex-wrap: wrap !important;
-                gap: 12px !important;
-                margin-bottom: 20px !important;
+            .quiz-topbar {
+                justify-content: center !important;
+                gap: 10px !important;
+                padding: 8px 12px !important;
+                margin-bottom: 16px !important;
             }
             #timer {
                 font-size: 32px !important;
@@ -306,40 +433,47 @@
         <div class="left-panel" id="left-panel">
             <div class="quiz-container">
                 
-<div class="top-bar" style="display:flex; justify-content:space-between; align-items:center; padding: 12px 24px; background: var(--surface-card); border-bottom: 1px solid var(--hairline);">
-    <div class="header-left" style="display:flex; align-items:center; gap: 16px;">
-        <span style="font-weight: 800; display:flex; align-items:center; gap:8px;">
+<div class="quiz-topbar">
+    <div class="topbar-group">
+        <span class="topbar-brand">
             <i data-lucide="rocket" class="icon-sm"></i> QUIZMOKO
         </span>
         <div id="connection-dot" style="width:8px; height:8px; border-radius:50%; background:var(--success);" title="Online"></div>
-        <span id="q-tracker" style="display:none; background:var(--surface-elevated); padding: 6px 12px; border-radius: var(--radius-sm); font-size:13px; font-weight:600;">
+        <span id="q-tracker" class="topbar-pill" style="display:none;">
             Question <span id="q-num">1</span> of <%= (quiz.questions || []).length %>
+        </span>
+        <span id="score-tracker" class="topbar-score-pill" style="display:none;">
+            Score: <span id="live-score">0.00</span>
         </span>
     </div>
     
-    <div class="header-center" style="display:flex; align-items:center;">
-        <span id="score-tracker" style="display:none; background:rgba(52, 211, 153, 0.1); color:var(--success); padding: 6px 12px; border-radius: var(--radius-sm); margin-right: 16px; font-weight:800; font-size:13px;">
-            Score: <span id="live-score">0.00</span>
-        </span>
-        <button id="math-retry-btn" onclick="renderMath()" style="display:none; background:var(--surface-soft); border:none; border-radius:var(--radius-sm); padding:6px 12px; font-size:12px; color:var(--body); cursor:pointer; margin-right:16px;">
+    <div class="topbar-group">
+        <!-- Retry Math Button -->
+        <button id="math-retry-btn" onclick="renderMath()" class="topbar-btn" style="display:none;">
             <i data-lucide="refresh-cw" class="icon-sm"></i> Retry Math
         </button>
-        <button id="btn-end-early" onclick="submitQuiz('early')" style="display:none; background: rgba(251, 113, 133, 0.1); color: var(--m-red); border: none; padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; font-weight: bold; transition:0.2s;">
-            <i data-lucide="log-out" class="icon-sm"></i> End Quiz
-        </button>
-    </div>
 
-    <div class="header-right font-controls" style="display:flex; gap:8px; align-items:center;">
-        <button onclick="toggleTheme()" style="background:transparent; border:none; cursor:pointer; color:var(--body); padding:8px;">
-            <i data-lucide="moon"></i>
-        </button>
-        <button id="center-toggle" onclick="toggleQuestionCentering()" style="background:transparent; border:none; cursor:pointer; color:var(--body); padding:8px;" title="Toggle Alignment">
-            <i data-lucide="align-center"></i>
-        </button>
-        <button class="font-btn" onclick="adjustFontSize(-0.1)">A-</button>
-        <button class="font-btn" onclick="adjustFontSize(0.1)">A+</button>
-        <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" style="display:none; background:var(--primary); color:#fff; border:none; border-radius:var(--radius-sm); padding:6px 12px; font-size:12px; cursor:pointer; font-weight:700; transition:0.2s;">
+        <!-- Compact Interactive Toolbar -->
+        <div class="toolbar-group">
+            <button onclick="toggleTheme()" class="toolbar-item" title="Toggle Theme">
+                <i data-lucide="moon" style="width: 15px; height: 15px;"></i>
+            </button>
+            <div class="toolbar-divider"></div>
+            <button id="center-toggle" onclick="toggleQuestionCentering()" class="toolbar-item" title="Toggle Alignment">
+                <i data-lucide="align-center" style="width: 15px; height: 15px;"></i>
+            </button>
+            <div class="toolbar-divider"></div>
+            <button class="toolbar-item" onclick="adjustFontSize(-0.1)" title="Decrease Font">A-</button>
+            <div class="toolbar-divider"></div>
+            <button class="toolbar-item" onclick="adjustFontSize(0.1)" title="Increase Font">A+</button>
+        </div>
+
+        <!-- Call to Action Buttons -->
+        <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" class="topbar-btn topbar-btn-primary" style="display:none;">
             <i data-lucide="pen-tool" class="icon-sm"></i> Whiteboard
+        </button>
+        <button id="btn-end-early" onclick="submitQuiz('early')" class="topbar-btn topbar-btn-danger" style="display:none;">
+            <i data-lucide="log-out" class="icon-sm"></i> End Quiz
         </button>
     </div>
 </div>
@@ -1003,6 +1137,61 @@
                     });
                 }
                 renderMath();
+
+                // RESTORE GRADED STATE (IF SEQUENTIAL MODE AND ALREADY GRADED)
+                if (quizData.quiz_mode !== 'back_and_forth' && progressiveResults[currentIndex] !== null) {
+                    const result = progressiveResults[currentIndex];
+                    const btnConfirm = document.getElementById('btn-confirm');
+                    if (btnConfirm) btnConfirm.style.display = 'none';
+
+                    const feedbackCont = document.getElementById('instant-feedback');
+                    const statusElem = document.getElementById('feedback-status');
+                    const textElem = document.getElementById('feedback-text');
+                    const retryBtn = document.getElementById('btn-retry-grading');
+
+                    if (feedbackCont && statusElem && textElem) {
+                        feedbackCont.style.display = 'block';
+                        feedbackCont.classList.remove('feedback-correct', 'feedback-wrong');
+
+                        if (result.is_correct) {
+                            feedbackCont.classList.add('feedback-correct');
+                            statusElem.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> CORRECT!';
+                            if (retryBtn) retryBtn.style.display = 'none';
+                        } else {
+                            feedbackCont.classList.add('feedback-wrong');
+                            statusElem.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> INCORRECT';
+                            
+                            if (retryBtn && (result.correct_answer === 'Grading Error' || (result.ai_feedback && result.ai_feedback.toLowerCase().includes('error')))) {
+                                retryBtn.style.display = 'block';
+                            } else if (retryBtn) {
+                                retryBtn.style.display = 'none';
+                            }
+                        }
+
+                        let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(result.correct_answer)}</div>`;
+                        if (result.ai_feedback && result.ai_feedback.trim()) {
+                            feedbackHtml += `<br><br><i data-lucide="bot" class="icon-sm"></i> <em>${formatText(result.ai_feedback)}</em>`;
+                        }
+                        textElem.innerHTML = feedbackHtml;
+                        renderMath('instant-feedback');
+                        if (window.lucide) lucide.createIcons();
+
+                        // Disable options / input elements
+                        const inputs = document.getElementById('options-container').querySelectorAll('button, input, textarea');
+                        inputs.forEach(el => {
+                            el.disabled = true;
+                            el.style.opacity = '0.6';
+                            el.style.pointerEvents = 'none';
+                        });
+
+                        // Handle Final Question Navigation
+                        const isLast = currentIndex >= quizData.questions.length - 1;
+                        if (isLast) {
+                            const nextBtn = feedbackCont.querySelector('.btn-next-question');
+                            if (nextBtn) nextBtn.innerHTML = '<i data-lucide="flag" class="icon-sm"></i> FINISH QUIZ';
+                        }
+                    }
+                }
             } catch (err) {
                 console.error('Critical error loading question:', err);
                 currentIndex++;
@@ -1231,7 +1420,8 @@
                 } else {
                     // Sequential Mode: Show Instant Evaluation
                     sendPing('Evaluating');
-                    if (btn) btn.style.display = 'none';
+                    const btnConfirm = document.getElementById('btn-confirm');
+                    if (btnConfirm) btnConfirm.style.display = 'none';
                     const feedbackCont = document.getElementById('instant-feedback');
                     const statusElem = document.getElementById('feedback-status');
                     const textElem = document.getElementById('feedback-text');

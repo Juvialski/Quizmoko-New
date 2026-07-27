@@ -701,7 +701,7 @@
                 }
 
                 const targetText = q.question || q.raw_text || '';
-                const imgMatch = targetText.match(/<div class="resizable-image-wrapper">.*?src="([^"]+)'.*?<\/div>\s*<\/div>/is);
+                const imgMatch = targetText.match(/<div class="resizable-image-wrapper">.*?src="([^"]+)".*?<\/div>\s*<\/div>/is);
                 const hasScreenshot = !!imgMatch;
 
                 const item = document.createElement('div');

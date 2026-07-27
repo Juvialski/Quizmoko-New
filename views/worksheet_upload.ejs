@@ -736,7 +736,7 @@
                 typeSelectorHtml += `</select>`;
 
                 // Check for captured screenshot in raw_text
-                const imgMatch = q.raw_text.match(/<div class="resizable-image-wrapper">.*?src="([^"]+)'.*?<\/div>\s*<\/div>/is);
+                const imgMatch = q.raw_text.match(/<div class="resizable-image-wrapper">.*?src="([^"]+)".*?<\/div>\s*<\/div>/is);
                 const hasScreenshot = !!imgMatch;
 
                 item.innerHTML = `

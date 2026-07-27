@@ -562,20 +562,20 @@ function safeParseJSON(rawText: string): any {
     cleaned = cleaned.substring(start, end + 1);
   }
 
-  // Attempt 1: Direct JSON.parse
+  // Attempt 1: Fix unescaped backslashes in strings (LaTeX backslashes) first!
   try {
-    return JSON.parse(cleaned);
+    const fixed = fixJsonLatexEscapes(cleaned);
+    return JSON.parse(fixed);
   } catch (e1) {
-    // Attempt 2: Fix unescaped backslashes in strings (LaTeX backslashes)
+    // Attempt 2: Escape literal linebreaks inside quotes
     try {
-      const fixed = fixJsonLatexEscapes(cleaned);
+      const lineFixed = cleaned.replace(/\r?\n/g, '\\n');
+      const fixed = fixJsonLatexEscapes(lineFixed);
       return JSON.parse(fixed);
     } catch (e2) {
-      // Attempt 3: Escape literal linebreaks inside quotes
+      // Attempt 3: Direct JSON.parse (last resort)
       try {
-        const lineFixed = cleaned.replace(/\r?\n/g, '\\n');
-        const fixed = fixJsonLatexEscapes(lineFixed);
-        return JSON.parse(fixed);
+        return JSON.parse(cleaned);
       } catch (e3) {
         console.warn('safeParseJSON failed after all repair attempts:', e3, '\nRaw text sample:', rawText.substring(0, 300));
         return null;

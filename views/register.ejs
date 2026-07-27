@@ -9,33 +9,52 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --canvas: #000000;
-            --surface-card: #1a1a1a;
-            --surface-elevated: #262626;
-            --surface-soft: #0d0d0d;
-            --on-dark: #ffffff;
-            --body: #bbbbbb;
-            --body-strong: #e6e6e6;
-            --hairline: #3c3c3c;
-            --m-blue-light: #0066b1;
-            --m-blue-dark: #1c69d4;
-            --m-red: #e22718;
-            --success: #0fa336;
-            --warning: #f4b400;
+            --canvas: #090d16;
+            --surface-card: #131927;
+            --surface-elevated: #1c2436;
+            --surface-soft: #1e293b;
+            --on-dark: #f8fafc;
+            --body: #94a3b8;
+            --body-strong: #e2e8f0;
+            --hairline: rgba(255, 255, 255, 0.05);
+            --primary: #818cf8;
+            --m-blue-light: #6366f1;
+            --m-blue-dark: #4f46e5;
+            --m-red: #fb7185;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --radius-md: 16px;
+            --radius-sm: 8px;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
         
         [data-theme="light"] {
-            --canvas: #f8fafc;
+            --canvas: #fafafa;
             --surface-card: #ffffff;
-            --surface-elevated: #f1f5f9;
-            --surface-soft: #e2e8f0;
+            --surface-elevated: #f4f4f5;
+            --surface-soft: #f4f4f5;
             --on-dark: #0f172a;
-            --body: #475569;
-            --body-strong: #1e293b;
-            --hairline: #cbd5e1;
+            --body: #52525b;
+            --body-strong: #18181b;
+            --hairline: rgba(0, 0, 0, 0.05);
+            --primary: #6366f1;
+            --m-blue-light: #4f46e5;
+            --m-blue-dark: #4338ca;
+            --m-red: #e11d48;
+            --success: #10b981;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
-        body { font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--canvas); color: var(--body-strong); margin: 0; padding: 20px; transition: background-color 0.3s ease, color 0.3s ease;}
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            color: var(--body-strong); 
+            background-color: var(--canvas);
+            font-weight: 400;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
         .auth-container { background: var(--surface-card); padding: 40px; border-radius: 0px; border: 1px solid var(--hairline); width: 100%; max-width: 400px; text-align: left; box-sizing: border-box;}
         
         .auth-container h2 { margin-top: 0; margin-bottom: 8px; color: var(--on-dark); text-transform: uppercase; letter-spacing: -0.5px; font-weight: 700; font-size: 28px;}
@@ -60,24 +79,48 @@
         p { color: var(--body); font-size: 12px; margin-top: 24px; text-align: center; text-transform: uppercase; letter-spacing: 1px;}
         a { color: var(--on-dark); font-weight: 700; text-decoration: none; border-bottom: 1px solid var(--on-dark); padding-bottom: 2px;}
         a:hover { color: var(--m-blue-light); border-color: var(--m-blue-light); }
+    
+        
+        /* Unified Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+        
+        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        
+        /* Unified Inputs */
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+
     </style>
     
     <script>
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="auth-container">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <h2 style="margin-top: 0; margin-bottom: 8px; color: var(--on-dark); text-transform: uppercase; letter-spacing: -0.5px; font-weight: 700; font-size: 28px;">Create Account</h2>
-            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s; padding: 0;">🌓</button>
+            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s; padding: 0;"><i data-lucide="moon"></i></button>
         </div>
-        <div class="m-stripe-divider"></div>
+        
         
             <div id="error" class="error-msg"></div>
             <form id="register-form">
-                <input type="email" id="email" placeholder="EMAIL ADDRESS" required>
+                <input type="email" id="email" placeholder="Email address" required>
                 <input type="password" id="password" placeholder="PASSWORD (MIN 6 CHARS)" required minlength="6">
 
                 <!-- MANDATORY LEGAL DISCLAIMER -->
@@ -90,11 +133,11 @@
                 </label>
             </div>
 
-            <button type="submit" id="submit-btn">CREATE ACCOUNT</button>
+            <button type="submit" class="btn-primary" id="submit-btn">CREATE ACCOUNT</button>
 
             <div style="margin-top: 20px; text-align: center; border-top: 1px solid var(--hairline); padding-top: 20px;">
                 <p style="margin-top: 0; margin-bottom: 12px; font-weight: 700; font-size: 11px; letter-spacing: 1px;">OR CONTINUE WITH</p>
-                <button type="button" id="google-btn" style="background: #fff; color: #444; border: 1px solid #ddd; margin-top: 0; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 4px;">
+                <button type="button" id="google-btn" class="btn-secondary" style="width: 100%; margin-top: 10px; background: white; color: black; border-color: #ddd;">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="Google">
                     GOOGLE ACCOUNT
                 </button>
@@ -215,5 +258,6 @@
             }
         });
     </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

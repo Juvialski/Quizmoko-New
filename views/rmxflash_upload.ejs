@@ -12,21 +12,52 @@
     <style>
         * { box-sizing: border-box; }
         :root {
-            --canvas: #0f172a; --surface-card: #1e293b; --surface-elevated: #334155; --surface-soft: #0f172a;
-            --on-dark: #f8fafc; --body: #94a3b8; --body-strong: #e2e8f0; --hairline: #334155;
-            --primary: #6366f1; --m-blue-light: #818cf8; --m-blue-dark: #4f46e5; --m-red: #fb7185;
-            --success: #34d399; --warning: #fbbf24; --radius-md: 12px; --radius-sm: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --canvas: #090d16;
+            --surface-card: #131927;
+            --surface-elevated: #1c2436;
+            --surface-soft: #1e293b;
+            --on-dark: #f8fafc;
+            --body: #94a3b8;
+            --body-strong: #e2e8f0;
+            --hairline: rgba(255, 255, 255, 0.05);
+            --primary: #818cf8;
+            --m-blue-light: #6366f1;
+            --m-blue-dark: #4f46e5;
+            --m-red: #fb7185;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --radius-md: 16px;
+            --radius-sm: 8px;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
+        
         [data-theme="light"] {
-            --canvas: #f8fafc; --surface-card: #ffffff; --surface-elevated: #f1f5f9; --surface-soft: #e2e8f0;
-            --on-dark: #0f172a; --body: #64748b; --body-strong: #334155; --hairline: #cbd5e1;
-            --primary: #4f46e5; --m-blue-light: #6366f1; --m-blue-dark: #4338ca; --m-red: #f43f5e;
+            --canvas: #fafafa;
+            --surface-card: #ffffff;
+            --surface-elevated: #f4f4f5;
+            --surface-soft: #f4f4f5;
+            --on-dark: #0f172a;
+            --body: #52525b;
+            --body-strong: #18181b;
+            --hairline: rgba(0, 0, 0, 0.05);
+            --primary: #6366f1;
+            --m-blue-light: #4f46e5;
+            --m-blue-dark: #4338ca;
+            --m-red: #e11d48;
             --success: #10b981;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 40px 20px; color: var(--body-strong); background-color: var(--canvas); transition: 0.3s; }
-        .container { max-width: 1800px; margin: auto; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            color: var(--body-strong); 
+            background-color: var(--canvas);
+            font-weight: 400;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .container { max-width: 1440px; margin: auto; }
         .dashboard-container { display: grid; grid-template-columns: 1fr; gap: 32px; align-items: start; }
         @media (min-width: 1024px) { .dashboard-container { grid-template-columns: 450px 1fr; } .sticky-col { position: sticky; top: 24px; } }
 
@@ -35,7 +66,7 @@
         .mode-tab:hover { background: var(--surface-elevated); color: var(--on-dark); }
         .mode-tab.active { background: var(--primary); color: white; }
 
-        .card { background: var(--surface-card); padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); margin-bottom: 24px; }
+        .card { background: var(--surface-card); padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); margin-bottom: 24px; }
         h1, h2, h3 { color: var(--on-dark); margin-top: 0; }
         .m-stripe { height: 4px; width: 60px; background: var(--primary); border-radius: 2px; margin-bottom: 24px; }
 
@@ -64,7 +95,31 @@
         .meta-row { display: flex; gap: 16px; margin-bottom: 12px; }
         .meta-item { font-size: 11px; color: var(--body); font-weight: 700; text-transform: uppercase; }
         .meta-item b { color: var(--on-dark); }
+    
+        
+        /* Unified Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+        
+        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        
+        /* Unified Inputs */
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+
     </style>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container">
@@ -73,43 +128,43 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 DASHBOARD
             </a>
-            <button onclick="toggleTheme()" style="background: transparent; border: none; font-size: 24px; cursor: pointer;">🌙</button>
+            <button onclick="toggleTheme()" style="background: transparent; border: none; font-size: 24px; cursor: pointer;"><i data-lucide="moon"></i></button>
         </div>
 
         <div class="dashboard-container">
             <div class="sticky-col">
                 <div class="mode-tabs">
-                    <a href="/" class="mode-tab"><span>🤖</span>AI GEN</a>
-                    <a href="/worksheet" class="mode-tab"><span>📄</span>WORKSHEET</a>
-                    <a href="/worksheet_answers" class="mode-tab"><span>🔑</span>ANSWERS</a>
-                    <a href="/rmxflash" class="mode-tab active"><span>⚡</span>RMXFLASH</a>
+                    <a href="/" class="mode-tab'><span><i data-lucide="bot" class="icon-sm"></i></span>AI GEN</a>
+                    <a href='/worksheet" class="mode-tab'><span><i data-lucide="file-text" class="icon-sm"></i></span>WORKSHEET</a>
+                    <a href='/worksheet_answers" class="mode-tab'><span><i data-lucide="key" class="icon-sm"></i></span>ANSWERS</a>
+                    <a href='/rmxflash" class="mode-tab active'><span><i data-lucide="zap" class="icon-sm"></i></span>RMXFLASH</a>
                 </div>
-                <div class="card" style="border-radius: 0 0 var(--radius-md) var(--radius-md);">
-                    <h1>⚡ RMXFlash Mode</h1>
-                    <div class="m-stripe"></div>
+                <div class='card" style="border-radius: 0 0 var(--radius-md) var(--radius-md);'>
+                    <h1><i data-lucide="zap" class="icon-sm"></i> RMXFlash Mode</h1>
+                    <div class='m-stripe"></div>
 
                     <form id="rmx-form" onsubmit="handleExtract(event)">
                         <label>1. Worksheet (Questions)</label>
-                        <div class="dropzone">
-                            <span>📄 Upload Files</span>
-                            <input type="file" id="ws-input" multiple accept="image/*,.pdf" onchange="updateFiles('ws')">
+                        <div class="dropzone'>
+                            <span><i data-lucide="file-text" class="icon-sm"></i> Upload Files</span>
+                            <input type='file" id="ws-input" multiple accept="image/*,.pdf" onchange="updateFiles('ws')">
                         </div>
                         <div id="ws-list" style="margin-bottom: 16px; font-size: 11px;"></div>
 
                         <label>2. Answer Key (Optional)</label>
-                        <div class="dropzone">
-                            <span>🔑 Upload Key</span>
-                            <input type="file" id="ans-input" multiple accept="image/*,.pdf" onchange="updateFiles('ans')">
+                        <div class="dropzone'>
+                            <span><i data-lucide="key" class="icon-sm"></i> Upload Key</span>
+                            <input type='file" id="ans-input" multiple accept="image/*,.pdf" onchange="updateFiles('ans')">
                         </div>
                         <div id="ans-list" style="margin-bottom: 16px; font-size: 11px;"></div>
 
                         <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline); margin-bottom: 16px;">
                             <input type="checkbox" id="use_screenshots" style="width: 18px; height: 18px; cursor: pointer;">
-                            <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; font-size: 13px; color: var(--on-dark);">📸 Capture Diagrams</label>
+                            <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; font-size: 13px; color: var(--on-dark);'><i data-lucide="camera" class="icon-sm"></i> Capture Diagrams</label>
                         </div>
 
                         <label>Model</label>
-                        <select id="model_select">
+                        <select id='model_select">
                             <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
                             <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
                             <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite</option>
@@ -121,23 +176,23 @@
                         <input type="text" id="test_name" placeholder="Test Name">
                         <input type="text" id="contest" placeholder="Contest">
 
-                        <button type="submit" class="btn btn-primary" id="extract-btn">🔍 EXTRACT & PROCESS</button>
+                        <button type="submit" class="btn btn-primary" id="extract-btn'><i data-lucide="search" class="icon-sm"></i> EXTRACT & PROCESS</button>
                     </form>
                 </div>
             </div>
 
-            <div id="preview-col">
+            <div id='preview-col">
                 <div id="empty-state" class="card" style="text-align: center; padding: 80px;">
-                    <span style="font-size: 48px;">⚡</span>
-                    <h3 style="color: var(--body);">Extraction results will appear here</h3>
+                    <span style="font-size: 48px;'><i data-lucide="zap" class="icon-sm"></i></span>
+                    <h3 style='color: var(--body);">Extraction results will appear here</h3>
                 </div>
 
                 <div id="results-card" class="card" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                        <h2>👀 Preview</h2>
-                        <button onclick="exportToExcel()" class="btn btn-primary" style="width: auto;">📥 Export to Excel</button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;'>
+                        <h2><i data-lucide="eye" class="icon-sm"></i> Preview</h2>
+                        <button onclick='exportToExcel()" class="btn btn-primary" style="width: auto;'><i data-lucide="download" class="icon-sm"></i> Export to Excel</button>
                     </div>
-                    <div id="questions-list"></div>
+                    <div id='questions-list"></div>
                 </div>
             </div>
         </div>
@@ -151,13 +206,13 @@
     <!-- Cropper Modal -->
     <div id="cropper-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; padding: 40px; box-sizing: border-box;">
         <div style="background: var(--surface-card); padding: 24px; border-radius: var(--radius-md); width: 100%; max-width: 900px; max-height: 80vh; display: flex; flex-direction: column;">
-            <h2 style="margin-bottom: 8px;">✂️ Refine Screenshot</h2>
-            <div style="flex: 1; overflow: hidden; background: #000; border-radius: var(--radius-sm); margin-bottom: 24px;">
+            <h2 style="margin-bottom: 8px;'><i data-lucide="scissors" class="icon-sm"></i>️ Refine Screenshot</h2>
+            <div style='flex: 1; overflow: hidden; background: #000; border-radius: var(--radius-sm); margin-bottom: 24px;">
                 <img id="cropper-image" src="" alt="Cropping Preview" style="max-width: 100%; display: block;">
             </div>
             <div style="display: flex; gap: 12px;">
-                <button class="btn btn-primary" onclick="saveCroppedImage()" style="margin: 0; width: auto;">✅ Save Crop</button>
-                <button class="btn btn-secondary" onclick="closeCropperModal()" style="margin: 0; width: auto;">❌ Cancel</button>
+                <button class="btn btn-primary" onclick="saveCroppedImage()" style="margin: 0; width: auto;'><i data-lucide="check-circle" class="icon-sm"></i> Save Crop</button>
+                <button class='btn btn-secondary" onclick="closeCropperModal()" style="margin: 0; width: auto;'><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
             </div>
         </div>
     </div>
@@ -189,7 +244,7 @@
             const apiKey = localStorage.getItem('gemini_api_key');
             if (!apiKey) return alert('API Key missing. Set it on the Dashboard.');
 
-            const sessionId = "rmx_" + Math.random().toString(36).substring(7);
+            const sessionId = 'rmx_" + Math.random().toString(36).substring(7);
             document.getElementById('progress-overlay').style.display = 'flex';
 
             const poll = setInterval(async () => {
@@ -245,9 +300,9 @@
                         <div class="meta-item">ID: <b>${q.identifier}</b></div>
                         <div class="meta-item">Q#: <b>${q.original_index}</b></div>
                         <div style="flex-grow: 1;"></div>
-                        ${hasImg ? `<button onclick="openCropRefiner(${i})" class="btn-secondary" style="font-size: 10px; padding: 4px 8px; width: auto; border-color: var(--warning); color: var(--warning); margin: 0;">✂️ REFINE CROP</button>` : ''}
+                        ${hasImg ? `<button onclick="openCropRefiner(${i})" class="btn-secondary" style="font-size: 10px; padding: 4px 8px; width: auto; border-color: var(--warning); color: var(--warning); margin: 0;'><i data-lucide="scissors" class="icon-sm"></i>️ REFINE CROP</button>` : ''}
                     </div>
-                    <div style="margin-bottom: 12px; white-space: pre-wrap;">${statementText.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim()}</div>
+                    <div style='margin-bottom: 12px; white-space: pre-wrap;">${statementText.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim()}</div>
                     ${hasImg ? `<div style="margin-top: 12px; padding: 12px; background: var(--canvas); border-radius: var(--radius-sm); border: 1px solid var(--hairline); text-align: center;">${imgMatch[0].includes('data:image') ? `<img src="${imgMatch[1]}" style="max-width: 100%; height: auto;">` : ''}</div>` : ''}
                     ${q.choices && q.choices.length > 0 ? `<div style="font-size: 12px; color: var(--body); margin-bottom: 8px;">Options: ${q.choices.join(' | ')}</div>` : ''}
                     <div style="color: var(--success); font-weight: 700;">Answer: ${q.answer}</div>
@@ -342,10 +397,11 @@
             } catch (err) {
                 alert("Error during export: " + err.message);
             } finally {
-                btn.innerText = "📥 Export to Excel";
+                btn.innerHTML = '<i data-lucide="download" class="icon-sm"></i> Export to Excel';
                 btn.disabled = false;
             }
         }
     </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

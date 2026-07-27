@@ -22,12 +22,40 @@
         * { box-sizing: border-box; }
 
         :root {
-            --canvas: #f8fafc; --surface-card: #ffffff; --surface-elevated: #f1f5f9; --surface-soft: #e2e8f0;
-            --on-dark: #0f172a; --body: #475569; --body-strong: #1e293b; --hairline: #cbd5e1;
-            --primary: #4f46e5; --m-blue-light: #6366f1; --m-blue-dark: #4338ca; --m-red: #f43f5e;
-            --success: #10b981; --warning: #fbbf24; --radius-md: 12px; --radius-sm: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --wb-height: 350px;
+            --canvas: #090d16;
+            --surface-card: #131927;
+            --surface-elevated: #1c2436;
+            --surface-soft: #1e293b;
+            --on-dark: #f8fafc;
+            --body: #94a3b8;
+            --body-strong: #e2e8f0;
+            --hairline: rgba(255, 255, 255, 0.05);
+            --primary: #818cf8;
+            --m-blue-light: #6366f1;
+            --m-blue-dark: #4f46e5;
+            --m-red: #fb7185;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --radius-md: 16px;
+            --radius-sm: 8px;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+        
+        [data-theme="light"] {
+            --canvas: #fafafa;
+            --surface-card: #ffffff;
+            --surface-elevated: #f4f4f5;
+            --surface-soft: #f4f4f5;
+            --on-dark: #0f172a;
+            --body: #52525b;
+            --body-strong: #18181b;
+            --hairline: rgba(0, 0, 0, 0.05);
+            --primary: #6366f1;
+            --m-blue-light: #4f46e5;
+            --m-blue-dark: #4338ca;
+            --m-red: #e11d48;
+            --success: #10b981;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
         [data-theme="dark"] {
@@ -37,17 +65,25 @@
             --success: #34d399; --warning: #fbbf24;
         }
 
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 40px 20px; color: var(--body-strong); background-color: var(--canvas); line-height: 1.6; transition: 0.3s; overflow-x: hidden;}
-        .container { max-width: 900px; margin: auto; width: 100%; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            color: var(--body-strong); 
+            background-color: var(--canvas);
+            font-weight: 400;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .container { max-width: 1440px; margin: auto; }
 
-        .header-card { background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); text-align: center; margin-bottom: 40px; }
+        .header-card { background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); text-align: center; margin-bottom: 40px; }
         h1 { color: var(--on-dark); font-weight: 800; letter-spacing: -1px; margin-top: 0; font-size: 32px; }
         .m-stripe-divider { height: 4px; width: 80px; background: var(--primary); border-radius: 2px; margin: 20px auto; }
 
         .score-display { font-size: 48px; font-weight: 800; color: var(--success); margin: 20px 0; font-family: monospace; }
         .student-info { font-size: 18px; color: var(--body); }
 
-        .solution-card { background: var(--surface-card); padding: 32px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); margin-bottom: 32px; }
+        .solution-card { background: var(--surface-card); padding: 32px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); margin-bottom: 32px; }
         .question-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 16px; margin-bottom: 24px; }
         .q-num { font-weight: 800; color: var(--primary); font-size: 20px; }
         .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
@@ -57,9 +93,9 @@
 
         .question-text { font-size: 19px; color: var(--on-dark); margin-bottom: 24px; padding: 24px; background: var(--surface-elevated); border: 1px solid var(--hairline); border-radius: var(--radius-md); font-weight: 500; white-space: pre-wrap; }
         .workings-title { font-weight: 700; color: var(--on-dark); margin-top: 32px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-        .workings-img { width: 100%; max-width: 100%; height: auto; max-height: var(--wb-height); border: 1px solid var(--hairline); border-radius: var(--radius-sm); margin-bottom: 16px; box-shadow: var(--shadow); background: white; display: block; object-fit: contain;}
+        .workings-img { width: 100%; max-width: 100%; height: auto; max-height: var(--wb-height); border: 1px solid var(--hairline); border-radius: var(--radius-sm); margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); background: white; display: block; object-fit: contain;}
         .resizable-image-wrapper { display: flex; justify-content: center; margin: 24px auto; width: 100%; }
-        .image-content-box { background: white; padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow); display: inline-block; max-width: 200%; }
+        .image-content-box { background: white; padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); display: inline-block; max-width: 200%; }
         .resizable-image-wrapper img { width: 100%; height: auto; display: block; margin: 0 auto; border-radius: var(--radius-sm); }
 
         .answer-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; padding: 24px; background: var(--surface-elevated); border-radius: var(--radius-md); border: 1px solid var(--hairline); }
@@ -74,13 +110,13 @@
 
         .footer { text-align: center; color: var(--body); font-size: 14px; margin-top: 60px; padding-bottom: 40px; }
 
-        .theme-toggle { position: fixed; bottom: 30px; right: 30px; width: 50px; height: 50px; border-radius: 25px; background: var(--primary); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: var(--shadow); z-index: 100; transition: 0.2s; }
+        .theme-toggle { position: fixed; bottom: 30px; right: 30px; width: 50px; height: 50px; border-radius: 25px; background: var(--primary); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); z-index: 100; transition: 0.2s; }
         .theme-toggle:hover { transform: scale(1.1); }
 
-        .pdf-btn { position: fixed; bottom: 30px; right: 100px; padding: 0 20px; height: 50px; border-radius: 25px; background: var(--success); color: white; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; box-shadow: var(--shadow); z-index: 100; transition: 0.2s; }
+        .pdf-btn { position: fixed; bottom: 30px; right: 100px; padding: 0 20px; height: 50px; border-radius: 25px; background: var(--success); color: white; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); z-index: 100; transition: 0.2s; }
         .pdf-btn:hover { transform: scale(1.05); background: #059669; }
 
-        .height-control-panel { position: fixed; bottom: 100px; right: 30px; background: var(--surface-card); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); z-index: 100; display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
+        .height-control-panel { position: fixed; bottom: 100px; right: 30px; background: var(--surface-card); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); z-index: 100; display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
         .height-control-panel label { font-size: 11px; font-weight: 800; color: var(--body); text-transform: uppercase; letter-spacing: 0.5px; }
         .height-slider { width: 100%; cursor: pointer; accent-color: var(--primary); }
         .height-value { font-size: 14px; font-weight: 700; color: var(--on-dark); }
@@ -110,7 +146,31 @@
             .workings-img { page-break-inside: avoid; max-width: 100%; max-height: var(--wb-height); height: auto; display: block; margin: 10px auto; border: 1px solid #ccc; object-fit: contain; }
             .workings-title { margin-top: 15px; margin-bottom: 5px; font-size: 14px; }
         }
+    
+        
+        /* Unified Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+        
+        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        
+        /* Unified Inputs */
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+
     </style>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="height-control-panel">
@@ -118,13 +178,13 @@
         <input type="range" min="100" max="800" value="350" class="height-slider" id="height-slider" oninput="updateWbHeight(this.value)">
         <div class="height-value" id="height-val-label">350px</div>
     </div>
-    <button class="pdf-btn" id="main-pdf-btn" onclick="downloadThisPageAsPDF()">📄 Save as PDF</button>
-    <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+    <button class="pdf-btn" id="main-pdf-btn" onclick="downloadThisPageAsPDF()'><i data-lucide="file-text" class="icon-sm"></i> Save as PDF</button>
+    <button class='theme-toggle" onclick="toggleTheme()"><i data-lucide="moon"></i></button>
 
     <div class="container">
         <div class="header-card">
             <h1><%= typeof title !== 'undefined' ? title : '' %></h1>
-            <div class="m-stripe-divider"></div>
+            
             <div class="student-info">
                 Student Name: <strong id="student-name-header"><%= typeof result.student_name !== 'undefined' ? result.student_name : '' %></strong><br>
                 Date: <span id="timestamp-header"><%= typeof result.timestamp !== 'undefined' ? result.timestamp : '' %></span>
@@ -133,19 +193,19 @@
             <div id="grading-status" style="display:none; color: var(--warning); font-weight: 700; font-size: 14px; margin-top: 10px;">⏳ Grading in progress...</div>
 
             <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
-                <button id="force-sync-btn" onclick="forceSyncResults()" style="background: var(--surface-soft); color: var(--warning); border: 1px solid var(--warning); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s;">⚡ FORCE SYNC & REPAIR</button>
+                <button id="force-sync-btn" onclick="forceSyncResults()" style="background: var(--surface-soft); color: var(--warning); border: 1px solid var(--warning); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s;'><i data-lucide="zap" class="icon-sm"></i> FORCE SYNC & REPAIR</button>
             </div>
         </div>
 
-        <div id="solutions-container">
+        <div id='solutions-container">
             <% (result && result.details ? result.details : (quiz && quiz.questions ? quiz.questions : [])).forEach((item, itemIdx) => { %>
             <div class="solution-card" id="card-<%= itemIdx %>">
                 <div class="question-header">
                     <span class="q-num">Question <%= itemIdx + 1 %></span>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <span style="font-size: 13px; font-weight: 800; color: var(--body); background: var(--surface-soft); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--hairline);">Points: <%= (item.score_fraction !== undefined ? item.score_fraction : (item.is_correct ? 1 : 0)).toFixed(2) %> / 1.0</span>
-                        <span class="status-badge <% if (item.is_correct) { %>status-correct<% } else if (item.correct_answer == 'Finalizing...') { %>status-grading<% } else { %>status-wrong<% } %>" id="status-<%= itemIdx %>">
-                            <% if (item.correct_answer == 'Finalizing...') { %>⏳ Finalizing...<% } else if (item.is_correct) { %>✓ Correct<% } else { %>✗ Incorrect<% } %>
+                        <span class="status-badge <% if (item.is_correct) { %>status-correct<% } else if (item.correct_answer == 'Finalizing...') { %>status-grading<% } else { %>status-wrong<% } %>" id="status-<%= itemIdx %>'>
+                            <% if (item.correct_answer == 'Finalizing...') { %>⏳ Finalizing...<% } else if (item.is_correct) { %><i data-lucide="check" class="icon-sm"></i> Correct<% } else { %><i data-lucide='x" class="icon-sm"></i> Incorrect<% } %>
                         </span>
                     </div>
                 </div>
@@ -157,9 +217,9 @@
                 <% let snapshots = (result && result.solution_snapshots) ? result.solution_snapshots[itemIdx] : null; %>
                 <div id="snapshots-container-<%= itemIdx %>">
                     <% if (snapshots && snapshots.length > 0) { %>
-                        <div class="workings-title">📝 Workings / Whiteboard Solutions:</div>
+                        <div class="workings-title'><i data-lucide="edit-3" class="icon-sm"></i> Workings / Whiteboard Solutions:</div>
                         <% for (let img of snapshots) { %>
-                            <img src="<%= img %>" class="workings-img" alt="Student Workings">
+                            <img src='<%= img %>" class="workings-img" alt="Student Workings">
                         <% } %>
                     <% } %>
                 </div>
@@ -176,20 +236,20 @@
                             <span class="ans-label" style="margin-bottom: 0;">Correct Answer</span>
                             <% if (typeof session !== 'undefined' && session.user) { %>
                             <div style="display: flex; gap: 8px; align-items: center;">
-                                <button class="edit-btn" onclick="recheckAnswer(<%= itemIdx %>, this)" style="background: transparent; border: none; color: var(--warning); font-size: 11px; cursor: pointer; font-weight: 800;">🔄 RE-CHECK</button>
+                                <button class="edit-btn" onclick="recheckAnswer(<%= itemIdx %>, this)" style="background: transparent; border: none; color: var(--warning); font-size: 11px; cursor: pointer; font-weight: 800;'><i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK</button>
                             </div>
                             <% } %>
                         </div>
-                        <div class="ans-value" id="correct-ans-<%= itemIdx %>">
+                        <div class='ans-value" id="correct-ans-<%= itemIdx %>">
                             <%= typeof item.correct_answer !== 'undefined' ? item.correct_answer : '' %>
                         </div>
                     </div>
                 </div>
 
                 <% const qType = item.type || (typeof quiz !== 'undefined' && quiz && quiz.questions && quiz.questions[itemIdx] ? quiz.questions[itemIdx].type : ''); %>
-                <div class="ai-feedback" id="feedback-<%= itemIdx %>" style="display:<% if ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback && item.ai_feedback.trim()) { %>block<% } else { %>none<% } %>;">
-                    <strong>🤖 AI Tutor Feedback:</strong><br>
-                    <span class="feedback-text"><%= ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback) ? item.ai_feedback : '' %></span>
+                <div class="ai-feedback" id="feedback-<%= itemIdx %>" style="display:<% if ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback && item.ai_feedback.trim()) { %>block<% } else { %>none<% } %>;'>
+                    <strong><i data-lucide="bot" class="icon-sm"></i> AI Tutor Feedback:</strong><br>
+                    <span class='feedback-text"><%= ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback) ? item.ai_feedback : '' %></span>
                 </div>
 
                 <% if (typeof session === 'undefined' || !session.user) { %>
@@ -197,10 +257,10 @@
                 <div id="student-help-<%= itemIdx %>">
                     <button class="wb-btn" style="margin-top: 15px; width: 100%; border-color: var(--primary); color: var(--primary);"
                         onclick="explainMistakeResults(this)"
-                        data-q-idx="<%= itemIdx %>">
-                        🤖 AI Tutor: Explain My Mistake
+                        data-q-idx="<%= itemIdx %>'>
+                        <i data-lucide="bot" class="icon-sm"></i> AI Tutor: Explain My Mistake
                     </button>
-                    <div class="explanation-box" style="display:none;" id="explanation-<%= itemIdx %>"></div>
+                    <div class='explanation-box" style="display:none;" id="explanation-<%= itemIdx %>"></div>
                 </div>
                 <% } %>
                 <% } %>
@@ -229,7 +289,7 @@
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    quiz_id: "<%= typeof result.quiz_id !== 'undefined' ? result.quiz_id : '' %>",
+                    quiz_id: "<%= typeof result.quiz_id !== 'undefined' ? result.quiz_id : '' %>',
                     question: item.question,
                     user_answer: item.user_answer,
                     correct_answer: item.correct_answer,
@@ -241,13 +301,13 @@
                 const box = document.getElementById(`explanation-${qIdx}`);
                 if (box) {
                     box.style.display = 'block';
-                    box.innerHTML = `<strong>🤖 AI TUTOR:</strong><br><br>` + formatDisplay(data.explanation || "No explanation returned.");
+                    box.innerHTML = `<strong><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + formatDisplay(data.explanation || 'No explanation returned.');
                     if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([box]);
                 }
             }).catch(err => {
-                btn.innerText = "🤖 AI Tutor: Explain My Mistake";
+                btn.innerHTML = '<i data-lucide="bot" class="icon-sm"></i> AI Tutor: Explain My Mistake';
                 btn.disabled = false;
-                alert("Failed to generate explanation. Please try again.");
+                alert('Failed to generate explanation. Please try again.");
             });
         }
 
@@ -327,11 +387,11 @@
         }
 
         async function recheckAnswer(index, btn = null) {
-            const targetBtn = btn || document.querySelector(`#card-${index} .edit-btn[onclick*="recheckAnswer"]`);
-            const originalText = targetBtn ? targetBtn.innerText : "🔄 RE-CHECK";
+            const targetBtn = btn || document.querySelector(`#card-${index} .edit-btn[onclick*="recheckAnswer']`);
+            const originalText = targetBtn ? targetBtn.innerText : '<i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK';
 
             if (targetBtn) {
-                targetBtn.innerText = "⌛ RE-CHECKING...";
+                targetBtn.innerText = '⌛ RE-CHECKING...';
                 targetBtn.disabled = true;
             }
 
@@ -347,7 +407,7 @@
                     // 1. Update Status Badge
                     const statusBadge = document.getElementById(`status-${index}`);
                     statusBadge.className = `status-badge ${data.is_correct ? 'status-correct' : 'status-wrong'}`;
-                    statusBadge.innerText = data.is_correct ? '✓ Correct' : '✗ Incorrect';
+                    statusBadge.innerText = data.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide='x" class="icon-sm"></i> Incorrect';
 
                     // Update Point display in parent
                     const pointBox = statusBadge.parentElement.querySelector('span[style*="background: var(--surface-soft)"]');
@@ -480,7 +540,7 @@
             // Use the same logic as the Quiz/Edit pages: split by image blocks and replace \n with <br>
             const parts = str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi);
             return parts.map(part => {
-                if (part.startsWith('<div class="resizable-image-wrapper"')) return part;
+                if (part.startsWith('<div class="resizable-image-wrapper'')) return part;
 
                 // Process bullets and line breaks in the text parts
                 // Use a regex to catch both Windows (\r\n) and Unix (\n) line endings
@@ -498,7 +558,7 @@
         async function forceSyncResults() {
             const btn = document.getElementById('force-sync-btn');
             const originalText = btn.innerText;
-            btn.innerText = "⚡ REPAIRING...";
+            btn.innerHTML = '<i data-lucide="zap" class="icon-sm"></i> REPAIRING...';
             btn.disabled = true;
 
             try {
@@ -510,14 +570,14 @@
                 await new Promise(r => setTimeout(r, 1000));
 
                 if (!isComplete) {
-                    alert("Sync completed, but some items might still be grading. Try again in a few seconds.");
+                    alert('Sync completed, but some items might still be grading. Try again in a few seconds.");
                 } else {
                     btn.style.borderColor = "var(--success)";
-                    btn.style.color = "var(--success)";
-                    btn.innerText = "✅ REPAIRED";
+                    btn.style.color = "var(--success)';
+                    btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> REPAIRED';
                 }
             } catch (err) {
-                console.error("Force sync failed:", err);
+                console.error('Force sync failed:", err);
                 alert("Failed to sync: " + err.message);
             } finally {
                 setTimeout(() => {
@@ -556,9 +616,9 @@
                     // Update snapshots if any
                     const snaps = (data.solution_snapshots && data.solution_snapshots[String(i)]) ? data.solution_snapshots[String(i)] : null;
                     if (snaps && snaps.length > 0) {
-                        let snapHtml = '<div class="workings-title">📝 Workings / Whiteboard Solutions:</div>';
+                        let snapHtml = '<div class="workings-title'><i data-lucide="edit-3" class="icon-sm"></i> Workings / Whiteboard Solutions:</div>';
                         snaps.forEach(img => {
-                            snapHtml += `<img src="${img}" class="workings-img" alt="Student Workings">`;
+                            snapHtml += `<img src='${img}" class="workings-img" alt="Student Workings">`;
                         });
                         // Only update if changed to avoid unnecessary re-renders
                         if (snapContainer.innerHTML.trim() !== snapHtml.trim()) {
@@ -568,11 +628,11 @@
 
                     if (item.correct_answer === 'Finalizing...') {
                         stillGrading = true;
-                        correctAnsBox.innerHTML = "⏳ Finalizing...";
+                        correctAnsBox.innerHTML = "⏳ Finalizing...';
                     } else {
                         // Update Status
                         statusBadge.className = `status-badge ${item.is_correct ? 'status-correct' : 'status-wrong'}`;
-                        statusBadge.innerText = item.is_correct ? '✓ Correct' : '✗ Incorrect';
+                        statusBadge.innerText = item.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide='x" class="icon-sm"></i> Incorrect';
 
                         // Update Correct Answer
                         correctAnsBox.innerHTML = formatDisplay(item.correct_answer);
@@ -662,5 +722,6 @@
             }
         }
     </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

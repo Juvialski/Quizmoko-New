@@ -11,42 +11,44 @@
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
 
     <style>
+        
+        
         /* --- EDUCATIONAL UI THEME --- */
         :root {
-            --canvas: #0f172a; /* Slate 900 */
-            --surface-card: #1e293b; /* Slate 800 */
-            --surface-elevated: #334155;
-            --surface-soft: #0f172a;
+            --canvas: #090d16;
+            --surface-card: #131927;
+            --surface-elevated: #1c2436;
+            --surface-soft: #1e293b;
             --on-dark: #f8fafc;
             --body: #94a3b8;
             --body-strong: #e2e8f0;
-            --hairline: #334155;
-            --primary: #6366f1; /* Friendly Indigo */
-            --m-blue-light: #818cf8; 
+            --hairline: rgba(255, 255, 255, 0.05);
+            --primary: #818cf8;
+            --m-blue-light: #6366f1;
             --m-blue-dark: #4f46e5;
-            --m-red: #fb7185; /* Soft Rose */
-            --success: #34d399; /* Emerald */
+            --m-red: #fb7185;
+            --success: #34d399;
             --warning: #fbbf24;
-            --radius-md: 12px;
+            --radius-md: 16px;
             --radius-sm: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
         
         [data-theme="light"] {
-            --canvas: #f8fafc;
+            --canvas: #fafafa;
             --surface-card: #ffffff;
-            --surface-elevated: #f1f5f9;
-            --surface-soft: #e2e8f0;
+            --surface-elevated: #f4f4f5;
+            --surface-soft: #f4f4f5;
             --on-dark: #0f172a;
-            --body: #64748b;
-            --body-strong: #334155;
-            --hairline: #cbd5e1;
-            --primary: #4f46e5;
-            --m-blue-light: #6366f1;
+            --body: #52525b;
+            --body-strong: #18181b;
+            --hairline: rgba(0, 0, 0, 0.05);
+            --primary: #6366f1;
+            --m-blue-light: #4f46e5;
             --m-blue-dark: #4338ca;
-            --m-red: #f43f5e;
+            --m-red: #e11d48;
             --success: #10b981;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
         body { 
@@ -59,7 +61,7 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
         
-        .container { max-width: 1200px; margin: auto; }
+        .container { max-width: 1440px; margin: auto; }
         .dashboard-container {
             width: 100%;
             max-width: 1800px;
@@ -118,7 +120,7 @@
             padding: 24px; 
             border-radius: var(--radius-md); 
             border: 1px solid var(--hairline); 
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline);
         }
         
         h2, h3 { 
@@ -166,12 +168,12 @@
         .folder-content { display: none; padding-top: 15px; }
         .folder-content.open { display: block; }
 
-        .quiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+        .quiz-grid { display: flex; flex-direction: column; gap: 12px; }
 
-        .quiz-item { background: var(--surface-card); border: 1px solid var(--hairline); padding: 20px; border-radius: var(--radius-md); transition: all 0.3s ease; display: flex; flex-direction: column; position: relative; box-shadow: var(--shadow);}
+        .quiz-item { background: var(--surface-card); border: 1px solid var(--hairline); padding: 20px; border-radius: var(--radius-md); transition: all 0.3s ease; display: flex; flex-direction: column; position: relative; box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline);}
         .quiz-item:hover { border-color: var(--primary); transform: translateY(-2px);}
         
-        .quiz-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--on-dark); line-height: 1.3;}
+        .quiz-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--on-dark); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .quiz-meta { font-size: 12px; color: var(--body); margin-bottom: 16px; font-weight: 400; display: flex; align-items: center; gap: 5px;}
         
         .link-display { background: var(--surface-soft); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--hairline); font-size: 12px; color: var(--primary); font-family: monospace; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;}
@@ -200,6 +202,79 @@
         .modal-card {
             background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); width: 100%; max-width: 450px; border: 1px solid var(--hairline); box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
+    
+        /* --- Refined AI Generator & Accodions --- */
+        .accordion-item { border-bottom: 1px solid var(--hairline); margin-bottom: 8px; }
+        .accordion-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 12px 16px; background: var(--surface-elevated); 
+            border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 14px;
+            color: var(--on-dark); transition: background 0.2s;
+        }
+        .accordion-header:hover { background: var(--surface-soft); }
+        .accordion-body { padding: 12px 4px; display: none; }
+        .accordion-body.open { display: block; }
+        .icon-sm { width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+        
+        .quiz-card-horizontal {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--surface-card); padding: 16px 20px;
+            border-radius: var(--radius-md); margin-bottom: 12px;
+            box-shadow: var(--shadow); transition: transform 0.2s;
+        }
+        .quiz-card-horizontal:hover { transform: translateY(-2px); }
+        .quiz-info { flex-grow: 1; min-width: 0; }
+        .quiz-actions-menu { position: relative; }
+        .quiz-actions-dropdown {
+            position: absolute; right: 0; top: 32px; background: var(--surface-elevated);
+            border-radius: var(--radius-sm); box-shadow: var(--shadow); display: none;
+            z-index: 100; min-width: 150px; overflow: hidden;
+        }
+        .quiz-actions-dropdown.show { display: block; }
+        .quiz-actions-dropdown form, .quiz-actions-dropdown a { display: block; }
+        .quiz-actions-dropdown button, .quiz-actions-dropdown a {
+            width: 100%; text-align: left; background: none; border: none;
+            padding: 10px 16px; color: var(--body-strong); font-size: 13px;
+            cursor: pointer; transition: background 0.2s; text-decoration: none;
+        }
+        .quiz-actions-dropdown button:hover, .quiz-actions-dropdown a:hover {
+            background: var(--primary); color: #fff;
+        }
+        .primary-action-btn {
+            background: var(--primary); color: #fff; border: none; padding: 8px 16px;
+            border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;
+            margin-right: 12px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center;
+        }
+        
+        /* Stepper for Distribution */
+        .stepper-group { display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--surface-elevated); padding: 8px 4px; border-radius: var(--radius-sm); gap: 4px; }
+        .stepper-group > div { display: flex; align-items: center; justify-content: center; }
+        .stepper-btn { background: none; border: none; color: var(--primary); font-size: 16px; cursor: pointer; padding: 0 6px; font-weight: bold; }
+        .stepper-input { width: 32px; padding: 0 !important; text-align: center; background: transparent !important; border: none !important; color: var(--on-dark) !important; font-weight: bold; font-size: 14px !important; pointer-events: none; box-shadow: none !important; -moz-appearance: textfield; }
+        .stepper-input::-webkit-outer-spin-button, .stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    
+        
+        /* Unified Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+        
+        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        
+        /* Unified Inputs */
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+
     </style>
     
     <!-- Load Theme Before Body to Prevent FOUC (Flash of Unstyled Content) -->
@@ -207,229 +282,240 @@
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     
     <div style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
         <div>
             <h1 style="margin: 0; color: var(--on-dark); font-weight: 700; font-size: 36px; letter-spacing: -0.5px;" id="dashboard-header">
-                🚀 QuizMoKo <span style="font-size:16px; color:var(--body); font-weight:400; letter-spacing: 0; vertical-align: middle;">Teacher</span>
+                <i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> QuizMoKo <span style="font-size:16px; color:var(--body); font-weight:400; letter-spacing: 0; vertical-align: middle;">Teacher</span>
             </h1>
-            <div class="m-stripe-divider"></div>
+            
         </div>
         <div style="display: flex; gap: 16px; align-items: center;">
             <% if (is_admin) { %>
-            <a href="/admin" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">🛡️ Admin Panel</a>
+            <a href="/admin" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 8px;'><i data-lucide="shield" class="icon-sm"></i>️ Admin Panel</a>
             <% } %>
-            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;">🌙</button>
-            <button id="logout-btn" class="btn-logout">🚪 Logout</button>
+            <button onclick='toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;"><i data-lucide="moon"></i></button>
+            <button id="logout-btn" class="btn-logout'><i data-lucide="log-out" class="icon-sm"></i> Logout</button>
         </div>
     </div>
 
     <!-- Layout logic: Center form for students, grid for teachers -->
-    <div class="dashboard-container teacher-view">
+    <div class='dashboard-container teacher-view">
         
         <div class="sticky-col" id="ai-generator-card">
             <div class="mode-tabs">
-                <a href="/" class="mode-tab active">
-                    <span>🤖</span>
+                <a href="/" class="mode-tab active'>
+                    <span><i data-lucide="bot" class="icon-sm"></i></span>
                     AI GEN
                 </a>
-                <a href="/worksheet" class="mode-tab">
-                    <span>📄</span>
+                <a href='/worksheet" class="mode-tab'>
+                    <span><i data-lucide="file-text" class="icon-sm"></i></span>
                     WORKSHEET
                 </a>
-                <a href="/worksheet_answers" class="mode-tab">
-                    <span>🔑</span>
+                <a href='/worksheet_answers" class="mode-tab'>
+                    <span><i data-lucide="key" class="icon-sm"></i></span>
                     ANSWERS
                 </a>
                 <% if (is_rmx_authorized) { %>
-                <a href="/rmxflash" class="mode-tab">
-                    <span>⚡</span>
+                <a href='/rmxflash" class="mode-tab'>
+                    <span><i data-lucide="zap" class="icon-sm"></i></span>
                     RMXFLASH
                 </a>
                 <% } %>
             </div>
-            <div class="card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
+            <div class='card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 16px; margin-bottom: 20px;">
                     <h3 style="margin:0; font-size: 18px; text-transform: none;">
-                        🤖 AI Generator
+                        <i data-lucide="sparkles" style="display:inline-block; vertical-align:middle; margin-right:8px; width:20px;"></i> AI Generator
                     </h3>
-                    <button type="button" onclick="openApiKeyModal()" class="btn-secondary" id="api-key-btn">🔑 API Key</button>
+                    <button type="button" onclick="openApiKeyModal()" class="btn-secondary" id="api-key-btn"><i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key</button>
                 </div>
 
-                <form action="/generate_ai" method="POST" onsubmit="return handleAILoading(event, this)">
-
-                    <!-- HIDDEN API KEY INPUT -->
-                    <input type="hidden" name="api_key" id="hidden_api_key" required>
-                    <input type="hidden" name="ollama_url" id="hidden_ollama_url" value="http://127.0.0.1:11434">
-                    
-                    <label style="margin-top:0;">Select AI Model</label>
-                    <div style="display: grid; grid-template-columns: 1fr 140px; gap: 10px; align-items: center; margin-bottom: 16px;">
-                        <select name="model_name" id="model_select" style="margin-bottom: 0;" onchange="updateCounterUI()">
-                            <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
-                            <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
-                            <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite (Best limits)</option>
-                            <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-                            <option value="gemini-3.0-flash">Gemini 3.0 Flash</option>
-                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-                            <optgroup label="Local Models (Ollama)">
-                                <option value="ollama:llama3">Llama 3 (Local)</option>
-                                <option value="ollama:mistral">Mistral (Local)</option>
-                                <option value="__install_ollama__">📥 Install Local Models...</option>
-                            </optgroup>
-                        </select>
-                        
-                        <div id="api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px 12px; border: 1px solid var(--hairline); font-weight: 700; white-space: nowrap; font-size: 11px; text-align: center; text-transform: uppercase;">
-                            Loading...
+                
+<form action="/generate_ai" method="POST" onsubmit="return handleAILoading(event, this)">
+    <input type="hidden" name="api_key" id="hidden_api_key" required>
+    <input type="hidden" name="ollama_url" id="hidden_ollama_url" value="http://127.0.0.1:11434">
+    
+    <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion('acc-basic')'>
+            <span><i data-lucide="settings" class="icon-sm"></i> Basic Setup</span>
+            <i data-lucide='chevron-down" class="icon-sm"></i>
+        </div>
+        <div class="accordion-body open" id="acc-basic">
+            <label style="margin-top:0;">Select AI Model</label>
+            <div style="display: grid; grid-template-columns: 1fr 140px; gap: 10px; align-items: center; margin-bottom: 16px;">
+                <select name="model_name" id="model_select" style="margin-bottom: 0;" onchange="updateCounterUI()">
+                    <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+                    <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                    <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite</option>
+                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+                    <option value="gemini-3.0-flash">Gemini 3.0 Flash</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                    <optgroup label="Local Models (Ollama)">
+                        <option value="ollama:llama3">Llama 3 (Local)</option>
+                        <option value="ollama:mistral">Mistral (Local)</option>
+                        <option value="__install_ollama__'><i data-lucide="download" class="icon-sm"></i> Install Local Models...</option>
+                    </optgroup>
+                </select>
+                <div id='api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px 12px; border-radius: var(--radius-sm); font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase;">
+                    Loading...
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div>
+                    <label style="margin-top:0;">Quiz Topic</label>
+                    <input type="text" name="topic" placeholder="e.g. Linear Equations" required id="topic-input" style="margin-bottom: 0;">
+                </div>
+                <div>
+                    <label style="margin-top:0;">Subject / Folder</label>
+                    <select name="subject" onchange="toggleCustomSubject(this)" required style="margin-bottom: 0;">
+                        <% for (let s of (all_subjects || [])) { %>
+                            <option value="<%= typeof s !== 'undefined' ? s : '' %>" <% if (s == 'General') { %>selected<% } %>><%= typeof s !== 'undefined' ? s : '' %></option>
+                        <% } %>
+                        <option value="__custom__'><i data-lucide="plus-circle" class="icon-sm"></i> Custom...</option>
+                    </select>
+                    <input type='text" name="custom_subject" class="custom-subject-input" style="display:none; margin-top:5px; box-sizing: border-box;" placeholder="Enter folder name">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion('acc-types')'>
+            <span><i data-lucide="layers" class="icon-sm"></i> Question Types & Limits</span>
+            <i data-lucide='chevron-down" class="icon-sm"></i>
+        </div>
+        <div class="accordion-body" id="acc-types">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                <div>
+                    <label style="margin-top:0;">Question Style</label>
+                    <select name="question_style" required style="margin-bottom: 0;">
+                        <option value="Simple / Direct">Simple / Direct</option>
+                        <option value="Word Problems">Word Problems</option>
+                        <option value="Mixed" selected>Mixed</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="margin-top:0;">Test Type</label>
+                    <select name="test_type" id="test_type_select" required onchange="toggleTypeDistribution()" style="margin-bottom: 0;">
+                        <option value="Multiple Choice">Multiple Choice</option>
+                        <option value="True/False">True/False</option>
+                        <option value="Identification">Identification</option>
+                        <option value="Open Ended">Open Ended</option>
+                        <option value="Graphing">Graphing / Drawing</option>
+                        <option value="Mixed" selected>Mixed (All)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="mixed-distribution-group" style="margin-bottom: 12px;">
+                <label style="margin-top:0;">Mixed Distribution <span id="type-total" class="limit-status-green" style="font-size:10px; margin-left:5px;">(Total: 10)</span></label>
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
+                    <div class="stepper-group">
+                        <span style="font-size:9px; font-weight:bold; color:var(--primary);">MC</span>
+                        <div>
+                            <button type="button" class="stepper-btn" onclick="stepVal('mc_count', -1)">-</button>
+                            <input type="number" name="mc_count" id="mc_count" value="2" oninput="updateTypeTotal()" required min="0" class="stepper-input">
+                            <button type="button" class="stepper-btn" onclick="stepVal('mc_count', 1)">+</button>
                         </div>
                     </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                    <div class="stepper-group">
+                        <span style="font-size:9px; font-weight:bold; color:var(--primary);">T/F</span>
                         <div>
-                            <label style="margin-top:0;">Quiz Topic</label>
-                            <input type="text" name="topic" placeholder="e.g. Linear Equations" required id="topic-input" style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label style="margin-top:0;">Subject / Folder</label>
-                            <select name="subject" onchange="toggleCustomSubject(this)" required style="margin-bottom: 0;">
-                                <% for (let s of (all_subjects || [])) { %>
-                                    <option value="<%= typeof s !== 'undefined' ? s : '' %>" <% if (s == 'General') { %>selected<% } %>><%= typeof s !== 'undefined' ? s : '' %></option>
-                                <% } %>
-                                <option value="__custom__">➕ Custom...</option>
-                            </select>
-                            <input type="text" name="custom_subject" class="custom-subject-input" style="display:none; margin-top:5px; box-sizing: border-box;" placeholder="Enter folder name">
+                            <button type="button" class="stepper-btn" onclick="stepVal('tf_count', -1)">-</button>
+                            <input type="number" name="tf_count" id="tf_count" value="2" oninput="updateTypeTotal()" required min="0" class="stepper-input">
+                            <button type="button" class="stepper-btn" onclick="stepVal('tf_count', 1)">+</button>
                         </div>
                     </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                    <div class="stepper-group">
+                        <span style="font-size:9px; font-weight:bold; color:var(--primary);">ID</span>
                         <div>
-                            <label style="margin-top:0;">Question Style</label>
-                            <select name="question_style" required style="margin-bottom: 0;">
-                                <option value="Simple / Direct">Simple / Direct</option>
-                                <option value="Word Problems">Word Problems</option>
-                                <option value="Mixed" selected>Mixed</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="margin-top:0;">Test Type</label>
-                            <select name="test_type" id="test_type_select" required onchange="toggleTypeDistribution()" style="margin-bottom: 0;">
-                                <option value="Multiple Choice">Multiple Choice Only</option>
-                                <option value="True/False">True/False Only</option>
-                                <option value="Identification">Identification Only</option>
-                                <option value="Open Ended">Open Ended Only</option>
-                                <option value="Graphing">Graphing / Drawing Only</option>
-                                <option value="Mixed" selected>Mixed (All Types)</option>
-                            </select>
+                            <button type="button" class="stepper-btn" onclick="stepVal('id_count', -1)">-</button>
+                            <input type="number" name="id_count" id="id_count" value="2" oninput="updateTypeTotal()" required min="0" class="stepper-input">
+                            <button type="button" class="stepper-btn" onclick="stepVal('id_count', 1)">+</button>
                         </div>
                     </div>
-
-                    <!-- Granular Mixed Distribution -->
-                    <div id="mixed-distribution-group" style="margin-bottom: 12px;">
-                        <label style="margin-top:0;">
-                            Mixed Distribution <span id="type-total" class="limit-status-green" style="font-size:10px; margin-left:5px; text-transform:none;">(Total: 10)</span>
-                        </label>
-                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
-                            <div>
-                                <label style="margin-top:0; color:var(--primary); font-size:9px;">MC</label>
-                                <input type="number" name="mc_count" value="2" oninput="updateTypeTotal()" required min="0" style="margin-bottom: 0; padding: 8px;">
-                            </div>
-                            <div>
-                                <label style="margin-top:0; color:var(--primary); font-size:9px;">T/F</label>
-                                <input type="number" name="tf_count" value="2" oninput="updateTypeTotal()" required min="0" style="margin-bottom: 0; padding: 8px;">
-                            </div>
-                            <div>
-                                <label style="margin-top:0; color:var(--primary); font-size:9px;">ID</label>
-                                <input type="number" name="id_count" value="2" oninput="updateTypeTotal()" required min="0" style="margin-bottom: 0; padding: 8px;">
-                            </div>
-                            <div>
-                                <label style="margin-top:0; color:var(--primary); font-size:9px;">OE</label>
-                                <input type="number" name="oe_count" value="2" oninput="updateTypeTotal()" required min="0" style="margin-bottom: 0; padding: 8px;">
-                            </div>
-                            <div>
-                                <label style="margin-top:0; color:var(--primary); font-size:9px;">GR</label>
-                                <input type="number" name="gr_count" value="2" oninput="updateTypeTotal()" required min="0" style="margin-bottom: 0; padding: 8px;">
-                            </div>
+                    <div class="stepper-group">
+                        <span style="font-size:9px; font-weight:bold; color:var(--primary);">OE</span>
+                        <div>
+                            <button type="button" class="stepper-btn" onclick="stepVal('oe_count', -1)">-</button>
+                            <input type="number" name="oe_count" id="oe_count" value="2" oninput="updateTypeTotal()" required min="0" class="stepper-input">
+                            <button type="button" class="stepper-btn" onclick="stepVal('oe_count', 1)">+</button>
                         </div>
                     </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;" id="limits-group">
+                    <div class="stepper-group">
+                        <span style="font-size:9px; font-weight:bold; color:var(--primary);">GR</span>
                         <div>
-                            <label style="margin-top:0;">Total Qs</label>
-                            <input type="number" name="num_items" value="10" required style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label style="margin-top:0;">Total Sec</label>
-                            <input type="number" name="time_limit" value="200" required style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label style="margin-top:0;">Images</label>
-                            <input type="number" name="images_count" value="0" min="0" required style="margin-bottom: 0;">
-                        </div>
-                        <div>
-                            <label style="margin-top:0;">Batch</label>
-                            <input type="number" name="batch_size" value="3" min="1" max="10" required style="margin-bottom: 0;">
+                            <button type="button" class="stepper-btn" onclick="stepVal('gr_count', -1)">-</button>
+                            <input type="number" name="gr_count" id="gr_count" value="2" oninput="updateTypeTotal()" required min="0" class="stepper-input">
+                            <button type="button" class="stepper-btn" onclick="stepVal('gr_count', 1)">+</button>
                         </div>
                     </div>
-
-                    <div style="margin-bottom: 12px;">
-                        <label style="margin-top:0;">Quiz Mode</label>
-                        <select name="quiz_mode" style="margin-bottom: 0;">
-                            <option value="sequential">Sequential (Standard)</option>
-                            <option value="back_and_forth" selected>Back-and-Forth (Unified Timer)</option>
-                        </select>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
-                        <div>
-                            <label style="margin-top:0;">Difficulty <span id="pct-total" class="limit-status-green" style="font-size:10px; margin-left:5px; text-transform:none;">(Total: 100%)</span></label>
-                            <div class="difficulty-grid" style="margin-bottom: 0;">
-                                <div>
-                                    <label style="margin-top:0; color:var(--success); font-size:10px;">Easy</label>
-                                    <input type="number" name="easy_pct" value="50" oninput="updateTotal()" required style="margin-bottom: 0;">
-                                </div>
-                                <div>
-                                    <label style="margin-top:0; color:var(--warning); font-size:10px;">Avg</label>
-                                    <input type="number" name="avg_pct" value="25" oninput="updateTotal()" required style="margin-bottom: 0;">
-                                </div>
-                                <div>
-                                    <label style="margin-top:0; color:var(--m-red); font-size:10px;">Hard</label>
-                                    <input type="number" name="hard_pct" value="25" oninput="updateTotal()" required style="margin-bottom: 0;">
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <label style="margin-top:0;">Instructions (Optional)</label>
-                            <textarea name="special_instructions" placeholder="e.g. 'Coordinate grid'" style="margin-bottom: 0; height: 58px;"></textarea>
-                        </div>
-                    </div>
-
-                    <!-- AI Inaccuracy Warning Box (Removable) -->
-                    <div id="aiDisclaimer" style="position: relative; margin-bottom: 12px; padding: 10px; background: var(--surface-soft); border: 1px solid var(--warning); font-size: 11px; color: var(--body-strong); line-height: 1.4;">
-                        <button type="button" onclick="closeDisclaimer()" style="position: absolute; right: 8px; top: 8px; background: transparent; border: none; font-size: 14px; color: var(--warning); cursor: pointer; padding: 4px; line-height: 1;">✕</button>
-                        <strong style="color: var(--warning);">WARNING:</strong> Review before assigning.
-                    </div>
-
-                    <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 10px; background: var(--surface-soft); padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm);">
-                        <input type="checkbox" name="require_solution" id="require_solution" style="width: 18px; height: 18px; cursor: pointer;">
-                        <label for="require_solution" style="margin: 0; cursor: pointer; font-size: 14px;">📝 Require Solution for All Questions</label>
-                    </div>
-
-                    <button type="submit" class="btn-primary" id="ai-btn">
-                        ✨ GENERATE QUIZ
-                    </button>
-                </form>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;" id="limits-group">
+                <div><label>Total Qs</label><input type="number" name="num_items" value="10" required></div>
+                <div><label>Time(s)</label><input type="number" name="time_limit" value="200" required></div>
+                <div><label>Images</label><input type="number" name="images_count" value="0" min="0" required></div>
+                <div><label>Batch</label><input type="number" name="batch_size" value="3" min="1" max="10" required></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion('acc-diff')'>
+            <span><i data-lucide="bar-chart" class="icon-sm"></i> Difficulty & Mode</span>
+            <i data-lucide='chevron-down" class="icon-sm"></i>
+        </div>
+        <div class="accordion-body" id="acc-diff">
+            <div style="margin-bottom: 12px;">
+                <label style="margin-top:0;">Quiz Mode</label>
+                <select name="quiz_mode" style="margin-bottom: 0;">
+                    <option value="sequential">Sequential</option>
+                    <option value="back_and_forth" selected>Back-and-Forth</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <label style="margin-top:0;">Difficulty <span id="pct-total" class="limit-status-green" style="font-size:10px; margin-left:5px;">(Total: 100%)</span></label>
+                <div class="difficulty-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+                    <div><label style="font-size:10px; color:var(--success);">Easy</label><input type="number" name="easy_pct" value="50" oninput="updateTotal()" required></div>
+                    <div><label style="font-size:10px; color:var(--warning);">Avg</label><input type="number" name="avg_pct" value="25" oninput="updateTotal()" required></div>
+                    <div><label style="font-size:10px; color:var(--m-red);">Hard</label><input type="number" name="hard_pct" value="25" oninput="updateTotal()" required></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 16px;">
+        <button type="submit" class="btn-primary" id="generate-btn" style="padding: 14px; font-size: 16px; font-weight: 700; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px;">
+            <i data-lucide="zap"></i> Generate Quiz
+        </button>
+        <button type="button" class="btn-danger" id="cancel-generate-btn" style="display:none; padding: 14px; font-size: 16px; font-weight: 700; width: 100%; justify-content: center; align-items: center; gap: 8px;" onclick="cancelGeneration()">
+            <i data-lucide="x-circle"></i> Cancel Generation
+        </button>
+    </div>
+    <div id="loading-overlay" style="display:none; margin-top: 10px; text-align: center; color: var(--body);">
+        <i data-lucide="loader-2" class="spin-icon"></i> Generating... Please wait.
+    </div>
+</form>
+    
             </div>
 
             <!-- API USAGE DASHBOARD (Isolated) -->
             <div class="card" id="api-usage-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 12px; margin-bottom: 15px;">
-                    <h3 style="margin:0; font-size: 16px; text-transform: none;">📊 API Usage Tracker</h3>
-                    <button onclick="syncUsageHistory()" class="btn-secondary" style="font-size: 10px; padding: 4px 8px;" id="sync-history-btn">🔄 Sync History</button>
+                    <h3 style="margin:0; font-size: 16px; text-transform: none;'><i data-lucide="bar-chart-2" class="icon-sm"></i> API Usage Tracker</h3>
+                    <button onclick='syncUsageHistory()" class="btn-secondary" style="font-size: 10px; padding: 4px 8px;" id="sync-history-btn'><i data-lucide="refresh-cw" class="icon-sm"></i> Sync History</button>
                 </div>
 
-                <div id="usage-summary" style="font-size: 13px; color: var(--body); line-height: 1.6;">
+                <div id='usage-summary" style="font-size: 13px; color: var(--body); line-height: 1.6;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                         <span>Today's Total Calls:</span>
                         <b id="today-total-calls" style="color: var(--on-dark);">0</b>
@@ -456,30 +542,30 @@
                     </table>
                 </div>
 
-                <button onclick="toggleUsageDetails()" id="usage-toggle-btn" class="btn-secondary" style="width: 100%; margin-top: 15px; font-size: 11px; padding: 10px;">📉 Show Detailed Breakdown</button>
+                <button onclick="toggleUsageDetails()" id="usage-toggle-btn" class="btn-secondary" style="width: 100%; margin-top: 15px; font-size: 11px; padding: 10px;'><i data-lucide="trending-down" class="icon-sm"></i> Show Detailed Breakdown</button>
             </div>
         </div>
 
-        <div class="card" id="saved-quizzes-card" style="background: transparent; border: none; padding: 0;">
+        <div class='card" id="saved-quizzes-card" style="background: transparent; border: none; padding: 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h2 style="font-size: 28px; margin: 0;">📚 Library</h2>
-                <button onclick="openCreateBlankModal()" class="btn-primary" style="width: auto; margin: 0; padding: 10px 20px; font-size: 14px;">➕ New Blank Quiz</button>
+                <h2 style="font-size: 28px; margin: 0;'><i data-lucide="book-open" class="icon-sm"></i> Library</h2>
+                <button onclick='openCreateBlankModal()" class="btn-primary" style="width: auto; margin: 0; padding: 10px 20px; font-size: 14px;'><i data-lucide="plus-circle" class="icon-sm"></i> New Blank Quiz</button>
             </div>
             
             <% if (grouped_quizzes) { %>
-                <div style="display: flex; gap: 12px; margin-bottom: 32px;" id="search-merge-bar">
-                    <input type="text" id="searchInput" onkeyup="filterQuizzes()" placeholder="🔍 Search quizzes..." class="search-bar" style="border-radius: var(--radius-sm);">
-                    <button id="mergeModeBtn" onclick="toggleMergeMode()" class="btn-primary" style="width: auto; margin-top: 0; white-space: nowrap; padding: 14px 24px;">🔗 Merge Mode</button>
+                <div style='display: flex; gap: 12px; margin-bottom: 32px;" id="search-merge-bar">
+                    <input type="text" id="searchInput" onkeyup="filterQuizzes()" placeholder="Search quizzes..." class="search-bar" style="border-radius: var(--radius-sm);">
+                    <button id="mergeModeBtn" onclick="toggleMergeMode()" class="btn-primary" style="width: auto; margin-top: 0; white-space: nowrap; padding: 14px 24px;'><i data-lucide="link" class="icon-sm"></i> Merge Mode</button>
                 </div>
                 
-                <div id="quiz-list-container">
+                <div id='quiz-list-container">
                     <% let groupIdx = 0; for (let [subject, quizzes] of Object.entries(grouped_quizzes || {})) { groupIdx++; %>
                         <div class="subject-group" data-subject="<%= typeof subject !== 'undefined' && subject ? subject : '' %>">
                             
                             <div class="subject-header" onclick="toggleFolder(this)">
-                                <h3 class="subject-title">
-                                    📁 <%= typeof subject !== 'undefined' ? subject : '' %> 
-                                    <span class="subject-badge"><%= (quizzes || []).length %></span>
+                                <h3 class="subject-title'>
+                                    <i data-lucide="folder" class="icon-sm"></i> <%= typeof subject !== 'undefined' ? subject : '' %> 
+                                    <span class='subject-badge"><%= (quizzes || []).length %></span>
                                 </h3>
                                 <svg class="chevron <% if (groupIdx == 1) { %>open<% } %>" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </div>
@@ -487,27 +573,40 @@
                             <div class="folder-content <% if (groupIdx == 1) { %>open<% } %>">
                                 <div class="quiz-grid">
                                     <% for (let sq of (quizzes || [])) { %>
-                                        <div class="quiz-item" data-title="<%= typeof sq.title !== 'undefined' && sq.title ? sq.title : '' %>" data-id="<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
-                                            <div class="quiz-title">📄 <%= typeof sq.title !== 'undefined' ? sq.title : '' %></div>
-                                            <div class="quiz-meta">
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                                <%= typeof sq.time_limit !== 'undefined' ? sq.time_limit : '' %>s / question
-                                            </div>
-                                            
-                                            <div class="link-display" id="url-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')" title="Click to copy link!">Generating link...</div>
-                                            
-                                            <div class="actions">
-                                                <button onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')" class="btn-action btn-copy">📋 Copy</button>
-                                                <button onclick="openMoveModal('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>', '<%= typeof sq.subject !== 'undefined' ? sq.subject : '' %>')" class="btn-action">📁 Move</button>
-                                                <a href="/live/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="btn-action btn-live">📡 Live</a>
-                                                <a href="/results/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="btn-action btn-results">📊 Results</a>
-                                                <a href="/edit/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="btn-action btn-edit">✏️ Edit</a>
-                                                <form class="inline-form" action="/delete/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this quiz?');">
-                                                    <button type="submit" class="btn-action btn-delete">🗑️ Delete</button>
-                                                </form>
-                                            </div>
-                                            <script>document.getElementById("url-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>").innerText = window.location.origin + "/quiz/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>";</script>
-                                        </div>
+                                        <div class="quiz-card-horizontal" data-title="<%= typeof sq.title !== 'undefined' && sq.title ? sq.title : '' %>" data-id="<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
+    <div class="quiz-info">
+        <div style="font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 4px; text-transform: uppercase;">
+            <i data-lucide="book-open" class="icon-sm" style="width: 12px; margin-right: 4px;"></i> <%= typeof sq.subject !== 'undefined' ? sq.subject : 'Quiz' %>
+        </div>
+        <div class="quiz-title" style="margin-bottom: 4px;">
+            <%= typeof sq.title !== 'undefined' ? sq.title : '' %>
+        </div>
+        <div class="quiz-meta" style="margin-bottom: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <i data-lucide="clock" style="width: 12px; margin-right:4px;"></i> <%= typeof sq.time_limit !== 'undefined' ? sq.time_limit : '' %>s / Q • 
+            <span class="link-display" style="border:none; background:transparent; padding:0; margin-left:8px; cursor:pointer; min-width: 0;" id="url-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"></span>
+        </div>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+        <a href="/live/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="primary-action-btn"><i data-lucide="radio" class="icon-sm" style="color:white;"></i> Launch</a>
+        <a href="/edit/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="primary-action-btn" style="background: var(--surface-soft); color: var(--on-dark);'><i data-lucide="edit-3" class="icon-sm"></i> Edit</a>
+        
+        <div class='quiz-actions-menu">
+            <button type="button" onclick="toggleQuizDropdown('dropdown-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')" style="background:none; border:none; color:var(--body); cursor:pointer; padding: 8px;">
+                <i data-lucide="more-vertical"></i>
+            </button>
+            <div class="quiz-actions-dropdown" id="dropdown-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
+                <button type="button" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')'><i data-lucide="copy" class="icon-sm"></i> Copy Link</button>
+                <button type='button" onclick="openMoveModal('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>', '<%= typeof sq.subject !== 'undefined' ? sq.subject : '' %>')'><i data-lucide="folder-output" class="icon-sm"></i> Move</button>
+                <a href='/results/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>'><i data-lucide="bar-chart-2" class="icon-sm"></i> Results</a>
+                <form action='/delete/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" method="POST" onsubmit="return confirm('Delete this quiz?');">
+                    <button type="submit" style="color: var(--m-red);'><i data-lucide="trash-2" class="icon-sm"></i> Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>document.getElementById('url-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>").innerText = window.location.origin + "/quiz/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>";</script>
+</div>
                                     <% } %>
                                 </div>
                             </div>
@@ -520,8 +619,8 @@
                     <p style="color: var(--on-dark); font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin:0;">NO QUIZZES FOUND</p>
                     <p style="color: var(--body); font-size: 14px; margin-top: 8px; margin-bottom: 24px;">Use the generator to start or upload a worksheet.</p>
                     <div style="display: flex; gap: 12px; justify-content: center;">
-                        <a href="/worksheet" class="btn-primary" style="width: auto; text-decoration: none;">📄 Worksheet (Auto-Solve)</a>
-                        <a href="/worksheet_answers" class="btn-secondary" style="width: auto; text-decoration: none;">🔑 Worksheet + Answer Key</a>
+                        <a href="/worksheet" class="btn-primary" style="width: auto; text-decoration: none;'><i data-lucide="file-text" class="icon-sm"></i> Worksheet (Auto-Solve)</a>
+                        <a href='/worksheet_answers" class="btn-secondary" style="width: auto; text-decoration: none;'><i data-lucide="key" class="icon-sm"></i> Worksheet + Answer Key</a>
                     </div>
                 </div>
             <% } %>
@@ -529,17 +628,17 @@
     </div>
     
     <!-- Merge Floating Action Bar -->
-    <div id="mergeActionBar" style="display:none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--surface-elevated); border: 1px solid var(--hairline); color: var(--on-dark); padding: 16px 32px; border-radius: var(--radius-md); box-shadow: var(--shadow); z-index: 1000; align-items: center; gap: 24px;">
+    <div id='mergeActionBar" style="display:none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--surface-elevated); border: 1px solid var(--hairline); color: var(--on-dark); padding: 16px 32px; border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); z-index: 1000; align-items: center; gap: 24px;">
         <span id="mergeCount" style="font-weight: 600; font-size: 14px;">0 Selected</span>
-        <button onclick="executeMerge()" style="background: var(--primary); color: #fff; border: none; padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;">✅ Confirm Merge</button>
-        <button onclick="toggleMergeMode()" style="background: transparent; border: 1px solid var(--hairline); color: var(--on-dark); padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;">❌ Cancel</button>
+        <button onclick="executeMerge()" style="background: var(--primary); color: #fff; border: none; padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;'><i data-lucide="check-circle" class="icon-sm"></i> Confirm Merge</button>
+        <button onclick='toggleMergeMode()" style="background: transparent; border: 1px solid var(--hairline); color: var(--on-dark); padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;'><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
     </div>
 
     <!-- API KEY MODAL -->
-    <div id="apiKeyModal" class="modal-overlay">
+    <div id='apiKeyModal" class="modal-overlay">
         <div class="modal-card">
-            <h2 id="api-key-modal-title" style="margin-bottom: 16px; font-size: 24px; text-transform: none;">🔑 API Key Setup</h2>
-            <div class="m-stripe-divider" style="width: 40px; margin-top: 0;"></div>
+            <h2 id="api-key-modal-title" style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key Setup</h2>
+            
             <p id="api-key-modal-desc" style="color: var(--body); font-size: 14px; margin-bottom: 24px; line-height: 1.5;">To generate quizzes, you need to provide a Google Gemini API Key.</p>
             
             <div id="gemini_key_container">
@@ -563,21 +662,21 @@
                 <input type="text" id="modal_ollama_url_input" placeholder="e.g. https://1234-abcd.ngrok-free.app" autocomplete="off" style="margin-bottom: 20px;">
             </div>
 
-            <button onclick="saveApiKey()" class="btn-primary" style="margin-top: 0;">💾 Save Settings</button>
-            <button onclick="closeApiKeyModal()" class="btn-secondary" id="modal-cancel-btn" style="width: 100%; margin-top: 12px; padding: 14px; display: none;">❌ Cancel</button>
-            <button type="button" id="modal-skip-btn" onclick="useLocalOnly()" style="background: transparent; color: var(--body); border: none; font-size: 12px; margin-top: 16px; cursor: pointer; text-decoration: underline; width: 100%;">Skip (I will only use local models)</button>
+            <button onclick="saveApiKey()" class="btn-primary" style="margin-top: 0;'><i data-lucide="save" class="icon-sm"></i> Save Settings</button>
+            <button onclick='closeApiKeyModal()" class="btn-secondary" id="modal-cancel-btn" style="width: 100%; margin-top: 12px; padding: 14px; display: none;'><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
+            <button type='button" id="modal-skip-btn" onclick="useLocalOnly()" style="background: transparent; color: var(--body); border: none; font-size: 12px; margin-top: 16px; cursor: pointer; text-decoration: underline; width: 100%;">Skip (I will only use local models)</button>
         </div>
     </div>
 
     <!-- OLLAMA INSTRUCTIONS MODAL -->
     <div id="ollamaModal" class="modal-overlay">
         <div class="modal-card">
-            <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;">🦙 Setup Local AI</h2>
-            <div class="m-stripe-divider" style="width: 40px; margin-top: 0;"></div>
-            <p style="color: var(--body); font-size: 14px; margin-bottom: 16px;">Run AI completely on your own hardware. Free and private.</p>
+            <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;'><i data-lucide="box" class="icon-sm"></i> Setup Local AI</h2>
+            
+            <p style='color: var(--body); font-size: 14px; margin-bottom: 16px;">Run AI completely on your own hardware. Free and private.</p>
 
             <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 12px; color: var(--warning); line-height: 1.4;">
-                <strong>Cloud Users:</strong> Make sure you have linked your Ngrok URL in the <b>🔑 API Key</b> settings before scanning or downloading models!
+                <strong>Cloud Users:</strong> Make sure you have linked your Ngrok URL in the <b><i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key</b> settings before scanning or downloading models!
             </div>
 
             <label style="margin-top:0;">1. Install Ollama</label>
@@ -592,31 +691,31 @@
                     <option value="qwen2.5:7b">Qwen 2.5 (Fast, 7B)</option>
                     <option value="llama3">Llama 3 (Older, 8B)</option>
                 </select>
-                <button onclick="autoInstallModel(document.getElementById('install_model_select').value)" class="btn-secondary" id="btn-auto-install" style="white-space: nowrap; padding: 14px; background: var(--surface-soft); border: 1px solid var(--primary); color: var(--on-dark); font-weight: 700; transition: all 0.2s ease; margin-top: 0;">📥 Install</button>
+                <button onclick="autoInstallModel(document.getElementById('install_model_select').value)" class="btn-secondary" id="btn-auto-install" style="white-space: nowrap; padding: 14px; background: var(--surface-soft); border: 1px solid var(--primary); color: var(--on-dark); font-weight: 700; transition: all 0.2s ease; margin-top: 0;'><i data-lucide="download" class="icon-sm"></i> Install</button>
             </div>
 
-            <button onclick="scanOllama()" class="btn-primary" id="btn-scan-ollama" style="margin-top: 0;">🔍 Scan for Local Models</button>
-            <button onclick="closeOllamaModal()" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 14px;">❌ Close</button>
+            <button onclick='scanOllama()" class="btn-primary" id="btn-scan-ollama" style="margin-top: 0;'><i data-lucide="search" class="icon-sm"></i> Scan for Local Models</button>
+            <button onclick='closeOllamaModal()" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 14px;'><i data-lucide="x-circle" class="icon-sm"></i> Close</button>
         </div>
     </div>
 
     <!-- CREATE BLANK MODAL -->
-    <div id="createBlankModal" class="modal-overlay">
+    <div id='createBlankModal" class="modal-overlay">
         <div class="modal-card">
-            <h2 style="margin-bottom: 16px; font-size: 24px;">➕ New Blank Quiz</h2>
-            <div class="m-stripe-divider" style="width: 40px; margin-top: 0;"></div>
+            <h2 style="margin-bottom: 16px; font-size: 24px;'><i data-lucide="plus-circle" class="icon-sm"></i> New Blank Quiz</h2>
+            
 
             <label>Quiz Title</label>
-            <input type="text" id="blank-quiz-title" placeholder="e.g. My Custom Test">
+            <input type='text" id="blank-quiz-title" placeholder="e.g. My Custom Test">
 
             <label>Subject / Folder</label>
             <select id="blank-quiz-subject" onchange="toggleCustomBlankSubject(this)">
                 <% for (let s of (all_subjects || [])) { %>
                     <option value="<%= typeof s !== 'undefined' ? s : '' %>" <% if (s == 'General') { %>selected<% } %>><%= typeof s !== 'undefined' ? s : '' %></option>
                 <% } %>
-                <option value="__custom__">➕ New Folder...</option>
+                <option value="__custom__'><i data-lucide="plus-circle" class="icon-sm"></i> New Folder...</option>
             </select>
-            <input type="text" id="blank-quiz-custom-subject" placeholder="Enter folder name" style="display:none; margin-top: 8px;">
+            <input type='text" id="blank-quiz-custom-subject" placeholder="Enter folder name" style="display:none; margin-top: 8px;">
 
             <div style="display: flex; gap: 12px; margin-top: 24px;">
                 <button onclick="executeCreateBlank()" class="btn-primary" style="margin-top: 0; flex: 1;">Create Quiz</button>
@@ -628,22 +727,22 @@
     <!-- MOVE QUIZ MODAL -->
     <div id="moveModal" class="modal-overlay">
         <div class="modal-card">
-            <h2 style="margin-bottom: 16px; font-size: 24px;">📁 Move to Folder</h2>
-            <div class="m-stripe-divider" style="width: 40px; margin-top: 0;"></div>
+            <h2 style="margin-bottom: 16px; font-size: 24px;'><i data-lucide="folder-output" class="icon-sm"></i> Move to Folder</h2>
+            
 
-            <input type="hidden" id="move-quiz-id">
+            <input type='hidden" id="move-quiz-id">
             <label>Select Destination Folder</label>
             <select id="move-quiz-subject" onchange="toggleCustomMoveSubject(this)">
                 <% for (let s of (all_subjects || [])) { %>
                     <option value="<%= typeof s !== 'undefined' ? s : '' %>"><%= typeof s !== 'undefined' ? s : '' %></option>
                 <% } %>
-                <option value="__custom__">➕ New Folder...</option>
+                <option value="__custom__'><i data-lucide="plus-circle" class="icon-sm"></i> New Folder...</option>
             </select>
-            <input type="text" id="move-quiz-custom-subject" placeholder="Enter folder name" style="display:none; margin-top: 8px;">
+            <input type='text" id="move-quiz-custom-subject" placeholder="Enter folder name" style="display:none; margin-top: 8px;">
 
             <div style="display: flex; gap: 12px; margin-top: 24px;">
                 <button onclick="executeMove()" class="btn-primary" style="margin-top: 0; flex: 1;">Move Quiz</button>
-                <button onclick="closeMoveModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
+                <button onclick="closeMoveModal()" class="btn-secondary" style="flex: 1;'>Cancel</button>
             </div>
         </div>
     </div>
@@ -684,9 +783,9 @@
             if (isLocal) {
                 document.getElementById('gemini_key_container').style.display = 'none';
                 document.getElementById('ollama_url_container').style.display = 'block';
-                modalTitle.innerText = '🌐 Local AI Setup';
+                modalTitle.innerHTML = '<i data-lucide="globe" class="icon-sm"></i> Local AI Setup';
                 modalDesc.innerHTML = `
-                    <strong style="color: var(--on-dark);">How to connect your device:</strong><br>
+                    <strong style='color: var(--on-dark);">How to connect your device:</strong><br>
                     <ol style="margin-top: 8px; padding-left: 20px; color: var(--body-strong); line-height: 1.6;">
                         <li>Install & run <a href="https://ollama.com" target="_blank" style="color: var(--primary);">Ollama</a>.</li>
                         <li>Install <a href="https://ngrok.com/download" target="_blank" style="color: var(--primary);">Ngrok</a>.</li>
@@ -698,7 +797,7 @@
             } else {
                 document.getElementById('gemini_key_container').style.display = 'block';
                 document.getElementById('ollama_url_container').style.display = 'none';
-                modalTitle.innerText = '🔑 API Key Setup';
+                modalTitle.innerHTML = '<i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key Setup';
                 modalDesc.innerHTML = 'To generate quizzes, you need to provide a Google Gemini API Key.';
                 if (skipBtn) skipBtn.style.display = 'block';
             }
@@ -748,7 +847,7 @@
 
         async function scanOllama() {
             const btn = document.getElementById('btn-scan-ollama');
-            if (btn) { btn.innerText = "Scanning..."; btn.disabled = true; }
+            if (btn) { btn.innerText = "Scanning...'; btn.disabled = true; }
             
             try {
                 const oUrl = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
@@ -757,27 +856,27 @@
                 
                 if (data.installed && data.models.length > 0) {
                     populateLocalModels(data.models);
-                    if (btn) { btn.innerText = `✅ Found ${data.models.length} models!`; btn.style.background = 'var(--success)'; }
+                    if (btn) { btn.innerHTML = `<i data-lucide="check-circle" class="icon-sm"></i> Found ${data.models.length} models!`; btn.style.background = 'var(--success)'; }
                     document.getElementById('model_select').value = 'ollama:' + data.models[0];
                     updateCounterUI();
                     
                     setTimeout(() => {
                         closeOllamaModal();
                         closeApiKeyModal();
-                        if (btn) { btn.innerText = "🔍 Scan for Local Models"; btn.style.background = 'var(--primary)'; btn.disabled = false; }
+                        if (btn) { btn.innerHTML = '<i data-lucide='search" class="icon-sm'></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false; }
                     }, 1500);
                 } else {
-                    if (btn) { btn.innerText = "❌ No models found yet"; btn.style.background = 'var(--m-red)'; }
-                    setTimeout(() => { if(btn) { btn.innerText = "🔍 Scan for Local Models"; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
+                    if (btn) { btn.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> No models found yet'; btn.style.background = 'var(--m-red)'; }
+                    setTimeout(() => { if(btn) { btn.innerHTML = '<i data-lucide='search" class="icon-sm'></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
                 }
             } catch (e) {
-                if (btn) { btn.innerText = "❌ Ollama not running"; btn.style.background = 'var(--m-red)'; }
-                setTimeout(() => { if(btn) { btn.innerText = "🔍 Scan for Local Models"; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
+                if (btn) { btn.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> Ollama not running'; btn.style.background = 'var(--m-red)'; }
+                setTimeout(() => { if(btn) { btn.innerHTML = '<i data-lucide='search" class="icon-sm"></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
             }
         }
 
         function populateLocalModels(models) {
-            const localOptGroup = document.querySelector('optgroup[label="Local Models (Ollama)"]');
+            const localOptGroup = document.querySelector('optgroup[label="Local Models (Ollama)']');
             localOptGroup.innerHTML = '';
             models.forEach(model => {
                 const opt = document.createElement('option');
@@ -787,14 +886,14 @@
             });
             const installOpt = document.createElement('option');
             installOpt.value = '__install_ollama__';
-            installOpt.innerText = '📥 Install More Models...';
+            installOpt.innerHTML = '<i data-lucide="download" class="icon-sm"></i> Install More Models...';
             localOptGroup.appendChild(installOpt);
         }
 
         async function autoInstallModel(model) {
             const btn = document.getElementById('btn-auto-install');
             btn.disabled = true;
-            btn.innerText = "⏳ Initiating download...";
+            btn.innerText = '⏳ Initiating download...";
             
             try {
                 const oUrl = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
@@ -806,7 +905,7 @@
                 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
-                let buffer = "";
+                let buffer = "';
                 
                 while (true) {
                     const {value, done} = await reader.read();
@@ -833,13 +932,13 @@
                     }
                 }
                 
-                btn.innerText = "✅ Model Ready! Scanning...";
-                btn.style.background = "var(--success)";
-                btn.style.color = "#fff";
+                btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> Model Ready! Scanning...';
+                btn.style.background = 'var(--success)";
+                btn.style.color = "#fff';
                 setTimeout(() => scanOllama(), 1500);
                 
             } catch (e) {
-                btn.innerText = "❌ Install Failed. Make sure Ollama is running.";
+                btn.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> Install Failed. Make sure Ollama is running.';
                 btn.disabled = false;
             }
         }
@@ -854,7 +953,7 @@
             const isLocal = model.startsWith('ollama:');
 
             if (!isLocal && !key1) {
-                alert("Please enter at least a Primary Gemini API Key.");
+                alert('Please enter at least a Primary Gemini API Key.");
                 return; 
             }
             if (isLocal && !oUrl) {
@@ -1032,7 +1131,7 @@
                         <td style="padding: 10px 0; color: var(--body);">${date}</td>
                         <td style="padding: 10px 0; color: var(--on-dark);">${model}</td>
                         <td style="padding: 10px 0; text-align: center;">${modelCount}</td>
-                        <td style="padding: 10px 0; text-align: center; color: var(--body);">${API_LIMITS[model] || '∞'}</td>
+                        <td style="padding: 10px 0; text-align: center; color: var(--body);'>${API_LIMITS[model] || '∞'}</td>
                     `;
                     tableBody.appendChild(row);
                 }
@@ -1047,10 +1146,10 @@
             const btn = document.getElementById('usage-toggle-btn');
             if (details.style.display === 'none') {
                 details.style.display = 'block';
-                btn.innerText = '📈 Hide Detailed Breakdown';
+                btn.innerHTML = '<i data-lucide="trending-up" class="icon-sm"></i> Hide Detailed Breakdown';
             } else {
                 details.style.display = 'none';
-                btn.innerText = '📉 Show Detailed Breakdown';
+                btn.innerHTML = '<i data-lucide='trending-down" class="icon-sm"></i> Show Detailed Breakdown';
             }
         }
 
@@ -1172,7 +1271,7 @@
                 }
 
                 if (!selectedKey) {
-                    alert(`⚠️ Daily Rate Limit Reached for all keys on ${model}!\n\nYou need ${estimatedRequests} requests, but none of your keys have enough quota left today.`);
+                    alert(`Daily Rate Limit Reached for all keys on ${model}!\n\nYou need ${estimatedRequests} requests, but none of your keys have enough quota left today.`);
                     event.preventDefault();
                     return false;
                 }
@@ -1463,5 +1562,35 @@
             }
         });
     </script>
+    <script>lucide.createIcons();
+    function toggleAccordion(id) {
+        document.querySelectorAll('.accordion-body').forEach(el => {
+            if(el.id !== id) el.classList.remove('open');
+        });
+        document.getElementById(id).classList.toggle('open');
+    }
+    
+    function toggleQuizDropdown(id) {
+        document.querySelectorAll('.quiz-actions-dropdown').forEach(el => {
+            if(el.id !== id) el.classList.remove('show');
+        });
+        document.getElementById(id).classList.toggle('show');
+    }
+    
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.quiz-actions-menu')) {
+            document.querySelectorAll('.quiz-actions-dropdown').forEach(el => el.classList.remove('show'));
+        }
+    });
+
+    function stepVal(inputId, delta) {
+        const el = document.getElementById(inputId);
+        let val = parseInt(el.value) + delta;
+        if(val < 0) val = 0;
+        el.value = val;
+        updateTypeTotal();
+    }
+
+</script>
 </body>
 </html>

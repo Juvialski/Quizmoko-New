@@ -7,37 +7,59 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --canvas: #0f172a;
-            --surface-card: #1e293b;
-            --surface-elevated: #334155;
-            --surface-soft: #0f172a;
+            --canvas: #090d16;
+            --surface-card: #131927;
+            --surface-elevated: #1c2436;
+            --surface-soft: #1e293b;
             --on-dark: #f8fafc;
             --body: #94a3b8;
             --body-strong: #e2e8f0;
-            --hairline: #334155;
-            --primary: #6366f1;
-            --success: #34d399;
+            --hairline: rgba(255, 255, 255, 0.05);
+            --primary: #818cf8;
+            --m-blue-light: #6366f1;
+            --m-blue-dark: #4f46e5;
             --m-red: #fb7185;
-            --radius-md: 12px;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --radius-md: 16px;
             --radius-sm: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+        
+        [data-theme="light"] {
+            --canvas: #fafafa;
+            --surface-card: #ffffff;
+            --surface-elevated: #f4f4f5;
+            --surface-soft: #f4f4f5;
+            --on-dark: #0f172a;
+            --body: #52525b;
+            --body-strong: #18181b;
+            --hairline: rgba(0, 0, 0, 0.05);
+            --primary: #6366f1;
+            --m-blue-light: #4f46e5;
+            --m-blue-dark: #4338ca;
+            --m-red: #e11d48;
+            --success: #10b981;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 40px 20px;
-            color: var(--body-strong);
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            color: var(--body-strong); 
             background-color: var(--canvas);
+            font-weight: 400;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        .container { max-width: 1200px; margin: auto; }
+        .container { max-width: 1440px; margin: auto; }
         .card {
             background: var(--surface-card);
             padding: 24px;
             border-radius: var(--radius-md);
             border: 1px solid var(--hairline);
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline);
             margin-bottom: 24px;
         }
 
@@ -97,14 +119,38 @@
             font-weight: 600;
         }
         .back-link:hover { color: var(--on-dark); }
+    
+        
+        /* Unified Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+        
+        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        
+        /* Unified Inputs */
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+
     </style>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container">
         <a href="/" class="back-link">← Back to Dashboard</a>
-        <div class="card">
-            <h1>🛡️ Admin Dashboard</h1>
-            <p style="color: var(--body);">Manage registered users and monitor application usage.</p>
+        <div class="card'>
+            <h1><i data-lucide="shield" class="icon-sm"></i>️ Admin Dashboard</h1>
+            <p style='color: var(--body);">Manage registered users and monitor application usage.</p>
         </div>
 
         <div class="card">
@@ -195,5 +241,6 @@
 
         window.onload = fetchUsers;
     </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

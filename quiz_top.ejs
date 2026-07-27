@@ -1,0 +1,71 @@
+
+            socket.on('terminate', (data) => {
+                if (data.terminated && !isSubmitting) {
+                    console.log("[WS] Teacher terminated the session.");
+                    submitQuiz("terminated");
+                }
+            });
+
+            socket.on('update_session', (payload) => {
+                // Only listen to updates for OUR session_id
+                if (payload.session_id === sessionId) {
+                    whiteboardDisabledByTeacher = !!payload.data.whiteboard_disabled;
+                    updateWhiteboardLayout(); // FORCE UPDATE LAYOUT
+
+                    // Sync time with server authority
+                    if (payload.time_remaining !== undefined && payload.time_remaining > 0) {
+                        const diff = Math.abs(timeRemaining - payload.time_remaining);
+                        if (diff > 5) {
+                            console.log(`[WS] Time Sync: ${timeRemaining} -> ${payload.time_remaining}`);
+                            timeRemaining = payload.time_remaining;
+                        }
+                    }
+                }
+            });
+        } catch (e) {
+            console.error("[WS] Initialization error:", e);
+            useWS = false;
+        }
+
+        let sessionId = "sess_" + Math.random().toString(36).substr(2, 9);
+        let currentIndex = 0, timeRemaining = 0, timerInterval, answers = {}, solutionSnapshots = {}, studentName = "Anonymous", currentSelectedOption = null, isPaused = false, pingInterval, isSubmitting = false;
+        let whiteboardDisabledByTeacher = false;
+        let studentWhiteboardPreference = true; // DEFAULT TO SHOWN
+        let isWhiteboardDirty = false; // TRACK IF WHITEBOARD WAS CHANGED
+
+        // Performance metrics
+        let quizStartTime = null;
+        let totalPausedTime = 0; // seconds
+        let pauseStartTime = null;
+
+        function getCurrentTimeMetrics() {
+            const now = Date.now();
+            const totalDuration = quizStartTime ? Math.round((now - quizStartTime) / 1000) : 0;
+            let finalPausedTime = totalPausedTime;
+            if (pauseStartTime) {
+                finalPausedTime += Math.round((now - pauseStartTime) / 1000);
+            }
+            const timeActive = Math.max(0, totalDuration - finalPausedTime);
+            const accuracyPct = quizData.questions.length > 0 ? (totalScore / quizData.questions.length) * 100 : 0;
+            return { timeActive, finalPausedTime, totalDuration, accuracyPct };
+        }
+
+        let currentPageIndex = 0, questionPages = {};
+        let canvas, ctx, isDrawing = false, startX, startY, currentTool = 'draw', currentStroke = null;
+        let isDraggingText = false, isResizingText = false;
+        let whiteboardInitialized = false; // FLAG TO PREVENT MULTIPLE INITS
+        let progressiveResults = [];
+        let totalScore = 0;
+        let isGrading = false; // Guard for confirm button
+        let pendingGradings = 0; // TRACK BACKGROUND GRADING
+        let resultId = null;
+
+        const STORAGE_KEY = `quiz_state_${quizId}`;
+
+        function saveQuizState() {
+            if (isSubmitting) return;
+            const state = {
+                studentName: studentName || "Anonymous",
+                currentIndex: parseInt(currentIndex) || 0,
+                answers, questionPages,
+                totalScore: parseFloat(totalScore) || 0,

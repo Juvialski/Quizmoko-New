@@ -1,0 +1,61 @@
+
+        async function fetchWithTimeout(resource, options = {}) {
+            const { timeout = 120000 } = options; // Default 120s
+
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            const response = await fetch(resource, {
+                ...options,
+                signal: controller.signal
+            });
+            clearTimeout(id);
+            return response;
+        }
+
+        window.addEventListener('DOMContentLoaded', fetchUsageStats);
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        document.getElementById('share-link').value = window.location.origin + "/quiz/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>";
+        const quizData = <%- JSON.stringify(quiz) %>;
+        document.getElementById('quiz-title').value = quizData.title;
+        document.getElementById('quiz-time').value = quizData.time_limit;
+        document.getElementById('quiz-mode').value = quizData.quiz_mode || 'back_and_forth';
+        document.getElementById('require-solution').checked = !!quizData.require_solution;
+        const container = document.getElementById('questions-container');
+
+        function toggleWorksheetSource() {
+            const content = document.getElementById('worksheet-source-content');
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        }
+
+        if (quizData.worksheet_source && quizData.worksheet_source.extracted_questions) {
+            document.getElementById('worksheet-source-card').style.display = 'block';
+            const sourceContent = document.getElementById('worksheet-source-content');
+            quizData.worksheet_source.extracted_questions.forEach((q, i) => {
+                const item = document.createElement('div');
+                item.style.padding = '12px';
+                item.style.borderBottom = '1px solid var(--hairline)';
+                item.style.fontSize = '13px';
+                item.innerHTML = `
+                    <div style="font-weight:700; color:var(--primary);">[Source Q${i + 1}]</div>
+                    <div>${q.raw_text}</div>
+                    ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;">🖼️ ${q.image_description}</div>` : ''}
+                `;
+                sourceContent.appendChild(item);
+            });
+        }
+
+        function markQuestionChanged(index) {
+            const saveBtn = document.getElementById(`save-btn-${index}`);
+            if (saveBtn) {
+                saveBtn.style.display = 'inline-block';
+            }
+        }
+
+        function renderMath(element) {

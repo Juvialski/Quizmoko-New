@@ -17,52 +17,52 @@
 
     <style>
         :root {
-            --canvas: #0f172a; 
-            --surface-card: #1e293b; 
-            --surface-elevated: #334155;
-            --surface-soft: #0f172a;
+            --canvas: #090d16;
+            --surface-card: #131927;
+            --surface-elevated: #1c2436;
+            --surface-soft: #1e293b;
             --on-dark: #f8fafc;
             --body: #94a3b8;
             --body-strong: #e2e8f0;
-            --hairline: #334155;
-            --primary: #6366f1; 
-            --m-blue-light: #818cf8; 
+            --hairline: rgba(255, 255, 255, 0.05);
+            --primary: #818cf8;
+            --m-blue-light: #6366f1;
             --m-blue-dark: #4f46e5;
-            --m-red: #fb7185; 
-            --success: #34d399; 
+            --m-red: #fb7185;
+            --success: #34d399;
             --warning: #fbbf24;
-            --radius-md: 12px;
+            --radius-md: 16px;
             --radius-sm: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
         
         [data-theme="light"] {
-            --canvas: #f8fafc;
+            --canvas: #fafafa;
             --surface-card: #ffffff;
-            --surface-elevated: #f1f5f9;
-            --surface-soft: #e2e8f0;
+            --surface-elevated: #f4f4f5;
+            --surface-soft: #f4f4f5;
             --on-dark: #0f172a;
-            --body: #64748b;
-            --body-strong: #334155;
-            --hairline: #cbd5e1;
-            --primary: #4f46e5;
-            --m-blue-light: #6366f1;
+            --body: #52525b;
+            --body-strong: #18181b;
+            --hairline: rgba(0, 0, 0, 0.05);
+            --primary: #6366f1;
+            --m-blue-light: #4f46e5;
             --m-blue-dark: #4338ca;
-            --m-red: #f43f5e;
+            --m-red: #e11d48;
             --success: #10b981;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: var(--canvas); 
             margin: 0; 
-            padding: 64px 20px; 
+            padding: 40px 20px; 
             color: var(--body-strong); 
+            background-color: var(--canvas);
             font-weight: 400;
             transition: background-color 0.3s ease, color 0.3s ease;
         }
-        .container { max-width: 1440px; width: 100%; margin: auto; }
+        .container { max-width: 1440px; margin: auto; }
         
         .card { 
             background: var(--surface-card); 
@@ -70,7 +70,7 @@
             border-radius: var(--radius-md); 
             margin-bottom: 24px; 
             border: 1px solid var(--hairline); 
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline);
         }
         
         /* Typography */
@@ -125,7 +125,7 @@
         .btn-export:hover { background-color: var(--primary); color: #ffffff; }
         
         /* Question Layout */
-        .question-block { border: 1px solid var(--hairline); padding: 32px; border-radius: var(--radius-md); background: var(--surface-card); margin-bottom: 32px; box-shadow: var(--shadow);}
+        .question-block { border: 1px solid var(--hairline); padding: 32px; border-radius: var(--radius-md); background: var(--surface-card); margin-bottom: 32px; box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline);}
         .options-container { margin-left: 10px; padding-left: 16px; border-left: 4px solid var(--primary);}
         
         .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--hairline); padding-bottom: 16px;}
@@ -140,7 +140,7 @@
         .live-preview { background: var(--canvas); padding: 24px; border: 1px solid var(--hairline); border-radius: var(--radius-md); height: 100%; color: var(--body-strong); box-sizing: border-box; font-size: 16px; line-height: 1.6;}
         
         .resizable-image-wrapper { display: flex; justify-content: center; margin: 24px auto; width: 100%; }
-        .image-content-box { background: white; padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow); display: inline-block; position: relative; max-width: 200%; }
+        .image-content-box { background: white; padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); display: inline-block; position: relative; max-width: 200%; }
         .live-preview img { width: 100%; height: auto; display: block; margin: 0 auto; border-radius: var(--radius-sm); }
 
         .image-control-panel { background: var(--surface-soft); padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); margin-bottom: 16px; display: flex; align-items: center; gap: 15px; }
@@ -191,45 +191,88 @@
         .import-question-item:hover { border-color: var(--primary); }
         .import-question-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; margin-top: 4px; }
         .import-question-text { font-size: 13px; color: var(--on-dark); flex: 1; pointer-events: none; }
+    
+        /* Live Preview Styling */
+        .live-preview {
+            background: var(--surface-card); border: 1px solid var(--hairline);
+            border-radius: var(--radius-md); padding: 24px; box-shadow: var(--shadow);
+            position: sticky; top: 20px; font-size: 18px; color: var(--on-dark);
+        }
+        .live-preview button {
+            background: var(--surface-elevated); color: var(--on-dark);
+            border: 1px solid var(--hairline); padding: 12px 16px; margin-top: 8px;
+            border-radius: var(--radius-md); text-align: left;
+            display: flex; align-items: center; pointer-events: none; width: 100%; font-size: 16px;
+        }
+        .live-preview button.correct {
+            background: rgba(52,211,153,0.1); border-color: var(--success);
+        }
+
+    
+        
+        /* Unified Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+        
+        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        
+        /* Unified Inputs */
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+
     </style>
     
     <script>
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
             <div style="display: flex; gap: 12px; align-items: center;">
-                <a href="/" class="back-link" style="margin-bottom: 0;">🔙 Back to Dashboard</a>
-                <form action="/delete/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" method="POST" onsubmit="return confirm('Discard this quiz? This will delete it permanently.');" style="display: inline;">
-                    <button type="submit" class="btn btn-danger" style="font-size: 11px; padding: 6px 12px;">🗑️ DISCARD QUIZ</button>
+                <a href="/" class="back-link" style="margin-bottom: 0;'><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>
+                <form action='/delete/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" method="POST" onsubmit="return confirm('Discard this quiz? This will delete it permanently.');" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" style="font-size: 11px; padding: 6px 12px;'><i data-lucide="trash-2" class="icon-sm"></i> Discard</button>
                 </form>
                 <% if (quiz.golden_reference || quiz.worksheet_source) { %>
-                <button class="btn" onclick="toggleGoldenSidebar()" style="background: var(--warning); color: black; border: none; font-size: 11px; padding: 6px 12px;">🛡️ VIEW REFERENCE</button>
+                <button class='btn" onclick="toggleGoldenSidebar()" style="background: var(--warning); color: black; border: none; font-size: 11px; padding: 6px 12px;'><i data-lucide="shield" class="icon-sm"></i> Reference</button>
                 <% } %>
             </div>
-            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;">🌓</button>
+            <button onclick='toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;"><i data-lucide="moon"></i></button>
         </div>
         
         <div class="card share-card">
-            <label class="share-label">🔗 Student Share Link</label>
-            <input type="text" id="share-link" class="share-input" readonly onclick="this.select(); document.execCommand('copy'); alert('Copied!');">
+            <label class="share-label'><i data-lucide="link" class="icon-sm"></i> Student Share Link</label>
+            <input type='text" id="share-link" class="share-input" readonly onclick="this.select(); document.execCommand('copy'); alert('Copied!');">
         </div>
 
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h2 style="margin: 0;">✏️ Edit Details</h2>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-secondary" onclick="openImportModal()" title="Import multiple questions from other quizzes" style="background: var(--primary); color: white; border: none;">🚀 IMPORT QUESTIONS</button>
-                    <button class="btn btn-secondary" onclick="shuffleQuestions()" title="Randomize question order">🔄 Shuffle Questions</button>
-                    <button class="btn btn-secondary" onclick="shuffleChoices()" title="Randomize choices for Multiple Choice questions">🔀 Shuffle Choices (MC Only)</button>
-                    <button class="btn btn-secondary" onclick="manualPolish()" id="manual-polish-btn" title="Exhaustively fix LaTeX math formatting and fractions">✨ Polish Math (AI)</button>
-                    <button class="btn btn-secondary" onclick="recheckAllAnswers()" id="recheck-ans-btn" title="Check for missing or incorrect answers using AI Judge" style="border-color: var(--warning); color: var(--warning); background: transparent;">🔍 Re-Check Answers</button>
-                </div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                <h2 style="margin: 0;'><i data-lucide="edit-2" class="icon-sm"></i>️ Edit Details</h2>
+                
+<div style='display: flex; gap: 8px; flex-wrap: wrap;">
+    <button class="btn btn-secondary" onclick="openImportModal()" style="background: var(--primary); color: white; border: none; font-size: 13px;'><i data-lucide="download" class="icon-sm"></i> Import Qs</button>
+    <button class='btn btn-secondary" onclick="shuffleQuestions()" style="font-size: 13px;'><i data-lucide="shuffle" class="icon-sm"></i> Shuffle Qs</button>
+    <button class='btn btn-secondary" onclick="shuffleChoices()" style="font-size: 13px;'><i data-lucide="shuffle" class="icon-sm"></i> Shuffle Choices</button>
+    <button class='btn btn-secondary" onclick="manualPolish()" id="manual-polish-btn" style="font-size: 13px;'><i data-lucide="wand-2" class="icon-sm"></i> Polish Math</button>
+    <button class='btn btn-secondary" onclick="recheckAllAnswers()" id="recheck-ans-btn" style="font-size: 13px; border-color: var(--warning); color: var(--warning); background: transparent;'><i data-lucide="check-circle" class="icon-sm"></i> Re-Check</button>
+</div>
+</div>
+<div style='display: grid;
+ grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 24px;">
                 <div><label>Quiz Title</label><input type="text" id="quiz-title"></div>
                 <div><label>Time Limit (Seconds)</label><input type="number" id="quiz-time"></div>
                 <div>
@@ -243,31 +286,31 @@
 
             <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-soft); padding: 16px; border: 1px solid var(--hairline); border-radius: var(--radius-sm);">
                 <input type="checkbox" id="require-solution" style="width: 20px; height: 20px; cursor: pointer;">
-                <label for="require-solution" style="margin: 0; cursor: pointer; font-size: 15px; color: var(--on-dark); text-transform: none; letter-spacing: normal;">📝 Require Solution for All Questions (Split-screen Whiteboard)</label>
+                <label for="require-solution" style="margin: 0; cursor: pointer; font-size: 15px; color: var(--on-dark); text-transform: none; letter-spacing: normal;'><i data-lucide="edit-3" class="icon-sm"></i> Require Solution for All Questions (Split-screen Whiteboard)</label>
             </div>
         </div>
 
-        <div class="card" id="worksheet-source-card" style="display: none;">
+        <div class='card" id="worksheet-source-card" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0;">📦 Original Worksheet Source</h3>
-                <button class="btn btn-secondary" onclick="toggleWorksheetSource()" style="font-size: 11px;">SHOW / HIDE</button>
+                <h3 style="margin: 0;'><i data-lucide="package" class="icon-sm"></i> Original Worksheet Source</h3>
+                <button class='btn btn-secondary" onclick="toggleWorksheetSource()" style="font-size: 11px;">SHOW / HIDE</button>
             </div>
             <div id="worksheet-source-content" style="display: none; max-height: 400px; overflow-y: auto; border-top: 1px solid var(--hairline); padding-top: 16px;"></div>
         </div>
 
         <div id="questions-container"></div>
         
-        <button id="add-q-btn" class="btn btn-save" onclick="addAIQuestion()" style="background-color: transparent; border: 1px dashed var(--body); color: var(--body-strong);">➕ GENERATE NEW QUESTION HERE</button>
+        <button id="add-q-btn" class="btn btn-save" onclick="addAIQuestion()" style="background-color: transparent; border: 1px dashed var(--body); color: var(--body-strong);'><i data-lucide="plus-circle" class="icon-sm"></i> Generate Question</button>
 
-        <button class="btn btn-save" onclick="saveQuiz()">💾 Save All Changes</button>
-        <a href="/export/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" target="_blank" class="btn-export">📄 Export to Word / PDF</a>
+        <button class='btn btn-save" onclick="saveQuiz()'><i data-lucide="save" class="icon-sm"></i> Save Changes</button>
+        <a href='/export/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" target="_blank" class="btn-export'><i data-lucide="file-down" class="icon-sm"></i> Export</a>
     </div>
 
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleGoldenSidebar()"></div>
+    <div class='sidebar-overlay" id="sidebar-overlay" onclick="toggleGoldenSidebar()"></div>
     <div class="golden-sidebar" id="golden-sidebar">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h2 style="margin: 0; color: var(--warning);">🛡️ Reference Panel</h2>
-            <button onclick="toggleGoldenSidebar()" style="background: transparent; border: none; font-size: 20px; color: var(--body); cursor: pointer;">×</button>
+            <h2 style="margin: 0; color: var(--warning);'><i data-lucide="shield" class="icon-sm"></i>️ Reference Panel</h2>
+            <button onclick='toggleGoldenSidebar()" style="background: transparent; border: none; font-size: 20px; color: var(--body); cursor: pointer;">×</button>
         </div>
         <p style="font-size: 12px; color: var(--body); margin-bottom: 20px;">Use this reference to manually verify question accuracy against your original files.</p>
         <div id="golden-sidebar-content"></div>
@@ -276,10 +319,10 @@
     <!-- Transfer Question Modal -->
     <div id="transferModal" class="modal-overlay">
         <div class="modal-card">
-            <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;">🚀 Transfer Question</h2>
+            <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Transfer Question</h2>
             <p style="color: var(--body); font-size: 14px; margin-bottom: 20px;">Select a target quiz to copy this question into.</p>
 
-            <input type="text" id="transfer-search" placeholder="🔍 Search quizzes..." onkeyup="filterTransferQuizzes()" style="margin-bottom: 16px; padding: 12px; font-size: 13px;">
+            <input type="text" id="transfer-search" placeholder="Search quizzes..." onkeyup="filterTransferQuizzes()" style="margin-bottom: 16px; padding: 12px; font-size: 13px;">
 
             <div id="transfer-quiz-list" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;">
                 <!-- Quizzes will be loaded here -->
@@ -297,9 +340,9 @@
     <div id="importModal" class="modal-overlay">
         <div class="modal-card" style="max-width: 700px;">
             <div id="import-step-1">
-                <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;">🚀 Import Questions</h2>
+                <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Import Questions</h2>
                 <p style="color: var(--body); font-size: 14px; margin-bottom: 20px;">Select a source quiz to import questions from.</p>
-                <input type="text" id="import-search" placeholder="🔍 Search quizzes..." onkeyup="filterImportQuizzes()" style="margin-bottom: 16px; padding: 12px; font-size: 13px;">
+                <input type="text" id="import-search" placeholder="Search quizzes..." onkeyup="filterImportQuizzes()" style="margin-bottom: 16px; padding: 12px; font-size: 13px;">
                 <div id="import-quiz-list" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;"></div>
                 <button class="btn btn-secondary" style="width: 100%;" onclick="closeImportModal()">Cancel</button>
             </div>
@@ -412,7 +455,7 @@
                 item.innerHTML = `
                     <div style="font-weight:700; color:var(--primary);">[Source Q${i + 1}]</div>
                     <div>${q.raw_text}</div>
-                    ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;">🖼️ ${q.image_description}</div>` : ''}
+                    ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;'><i data-lucide="image" class="icon-sm"></i>️ ${q.image_description}</div>` : ''}
                 `;
                 sourceContent.appendChild(item);
             });
@@ -438,7 +481,7 @@
         }
 
         function processTikzToImageJS(text) {
-            if (!text) return "";
+            if (!text) return '";
             return text.replace(/\[TIKZ\]([\s\S]*?)\[\/TIKZ\]/gi, (match, code) => {
                 const cleanCode = code.replace(/```tikz/g, "").replace(/```/g, "").trim();
 
@@ -523,8 +566,8 @@
             if (q.answer) {
                 html += `
                     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--hairline); text-align: left;">
-                        <div style="font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">✅ Answer Key Preview:</div>
-                        <div style="font-size: 15px; color: var(--on-dark); font-weight: 600; background: rgba(99, 102, 241, 0.05); padding: 12px; border-radius: 8px;">${formatText(q.answer)}</div>
+                        <div style="font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;'><i data-lucide="check-circle" class="icon-sm"></i> Answer Key Preview:</div>
+                        <div style='font-size: 15px; color: var(--on-dark); font-weight: 600; background: rgba(99, 102, 241, 0.05); padding: 12px; border-radius: 8px;">${formatText(q.answer)}</div>
                     </div>
                 `;
             }
@@ -696,7 +739,7 @@
             }
 
             const originalText = btn.innerHTML;
-            btn.innerHTML = "⌛...";
+            btn.innerHTML = "⌛...';
             btn.disabled = true;
 
             try {
@@ -721,11 +764,11 @@
 
                     q.answer = data.formatted;
                     document.getElementById(`ans-input-${index}`).value = data.formatted;
-                    btn.innerHTML = "✅";
+                    btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i>';
                     markQuestionChanged(index); // Ensure save button appears after reformat
                     setTimeout(() => { btn.innerHTML = originalText; btn.disabled = false; }, 2000);
                 } else {
-                    alert("Re-format failed: " + data.error);
+                    alert('Re-format failed: " + data.error);
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 }
@@ -859,11 +902,11 @@
                         </div>
                     </div>
                     <div class="header-buttons">
-                        <button id="save-btn-${qIndex}" class="btn" onclick="saveQuiz(false, this, ${qIndex})" style="background: var(--success); color: white; border: none; font-size: 11px; padding: 6px 12px; display: none;">💾 SAVE QUESTION</button>
-                        <button class="btn btn-secondary" onclick="resolveQuestionSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--success); color: var(--success); background: transparent;">💡 RE-SOLVE</button>
-                        <button class="btn btn-secondary" onclick="manualPolishSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--primary); color: var(--primary); background: transparent;">✨ POLISH MATH</button>
-                        <button id="regen-btn-${qIndex}" class="btn btn-regen" onclick="regenerateQuestion(${qIndex})">🔄 REGENERATE</button>
-                        <button class="btn btn-danger" onclick="removeQuestion(${qIndex})">🗑️ REMOVE</button>
+                        <button id="save-btn-${qIndex}" class="btn" onclick="saveQuiz(false, this, ${qIndex})" style="background: var(--success); color: white; border: none; font-size: 11px; padding: 6px 12px; display: none;'><i data-lucide="save" class="icon-sm"></i> Save</button>
+                        <button class='btn btn-secondary" onclick="resolveQuestionSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--success); color: var(--success); background: transparent;'><i data-lucide="lightbulb" class="icon-sm"></i> Re-solve</button>
+                        <button class='btn btn-secondary" onclick="manualPolishSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--primary); color: var(--primary); background: transparent;'><i data-lucide="sparkles" class="icon-sm"></i> Polish</button>
+                        <button id='regen-btn-${qIndex}" class="btn btn-regen" onclick="regenerateQuestion(${qIndex})'><i data-lucide="refresh-cw" class="icon-sm"></i> Regenerate</button>
+                        <button class='btn btn-danger" onclick="removeQuestion(${qIndex})'><i data-lucide="trash-2" class="icon-sm"></i>️ Remove</button>
                     </div>`;
                 block.appendChild(header);
 
@@ -879,9 +922,9 @@
                 qTextLabel.style.alignItems = 'center';
                 qTextLabel.innerHTML = `
                     <span>QUESTION TEXT</span>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn" onclick="triggerImageUpload(${qIndex})" style="background: var(--surface-elevated); font-size: 10px; padding: 4px 8px; border: 1px solid var(--hairline);">🖼️ ATTACH IMAGE</button>
-                        ${extractedData.imagePart ? `<button class="btn" onclick="removeAttachedImage(${qIndex})" style="background: var(--m-red); color: white; font-size: 10px; padding: 4px 8px; border: none;">🗑️ REMOVE</button>` : ''}
+                    <div style='display: flex; gap: 8px;">
+                        <button class="btn" onclick="triggerImageUpload(${qIndex})" style="background: var(--surface-elevated); font-size: 10px; padding: 4px 8px; border: 1px solid var(--hairline);'><i data-lucide="image" class="icon-sm"></i>️ ATTACH IMAGE</button>
+                        ${extractedData.imagePart ? `<button class='btn" onclick="removeAttachedImage(${qIndex})" style="background: var(--m-red); color: white; font-size: 10px; padding: 4px 8px; border: none;'><i data-lucide="trash-2" class="icon-sm"></i>️ Remove</button>` : ''}
                     </div>
                 `;
                 leftCol.appendChild(qTextLabel);
@@ -891,7 +934,7 @@
                 qTextInput.dataset.imagePart = extractedData.imagePart; 
                 qTextInput.oninput = (e) => {
                     const hiddenImage = e.target.dataset.imagePart;
-                    quizData.questions[qIndex].question = e.target.value + (hiddenImage ? "\n" + hiddenImage : "");
+                    quizData.questions[qIndex].question = e.target.value + (hiddenImage ? '\n" + hiddenImage : "");
                     updatePreview(qIndex, qPreviewBox);
                     markQuestionChanged(qIndex);
                 };
@@ -908,7 +951,7 @@
 
                 optsLabel.innerHTML = `
                     <span>${optsLabelText}</span>
-                    ${q.type !== 'identification' && q.type !== 'true_false' ? `<button class="btn" onclick="addOption(${qIndex})" style="background: var(--surface-soft); color: var(--primary); font-size: 10px; padding: 4px 8px; border: 1px solid var(--primary); font-weight: 800;">➕ ADD CHOICE</button>` : ''}
+                    ${q.type !== 'identification' && q.type !== 'true_false' ? `<button class="btn" onclick="addOption(${qIndex})" style="background: var(--surface-soft); color: var(--primary); font-size: 10px; padding: 4px 8px; border: 1px solid var(--primary); font-weight: 800;'><i data-lucide="plus-circle" class="icon-sm"></i> ADD CHOICE</button>` : ''}
                 `;
                 leftCol.appendChild(optsLabel);
 
@@ -947,7 +990,7 @@
                         optsContainer.appendChild(optWrapper);
                     });
                 } else if (q.type === 'identification') {
-                    optsContainer.innerHTML = '<p style="font-size: 12px; color: var(--body);">Student will see a text box to type their answer.</p>';
+                    optsContainer.innerHTML = '<p style='font-size: 12px; color: var(--body);">Student will see a text box to type their answer.</p>';
                 }
                 leftCol.appendChild(optsContainer);
 
@@ -961,7 +1004,7 @@
 
                 ansLabel.innerHTML = `
                     <span>${ansLabelText}</span>
-                    <button class="btn" onclick="reformatSingleAnswer(${qIndex}, this)" style="background: var(--surface-soft); color: var(--success); font-size: 10px; padding: 4px 8px; border: 1px solid var(--success); font-weight: 800;">🪄 RE-FORMAT</button>
+                    <button class="btn" onclick="reformatSingleAnswer(${qIndex}, this)" style="background: var(--surface-soft); color: var(--success); font-size: 10px; padding: 4px 8px; border: 1px solid var(--success); font-weight: 800;'>🪄 RE-FORMAT</button>
                 `;
                 leftCol.appendChild(ansLabel);
 
@@ -981,7 +1024,7 @@
                 previewLabel.style.display = 'flex';
                 previewLabel.style.justifyContent = 'space-between';
                 previewLabel.style.alignItems = 'center';
-                previewLabel.innerHTML = `<span>LIVE PREVIEW</span>`;
+                previewLabel.innerHTML = `<span><i data-lucide="eye" class="icon-sm"></i> LIVE PREVIEW</span>`;
                 rightCol.appendChild(previewLabel);
 
                 if (extractedData.imagePart) {
@@ -990,7 +1033,7 @@
 
                     // Initial width extraction from the HTML if it exists, otherwise 100%
                     const widthMatch = extractedData.imagePart.match(/width:\s*(\d+)%/);
-                    const currentWidth = widthMatch ? widthMatch[1] : "100";
+                    const currentWidth = widthMatch ? widthMatch[1] : '100";
 
                     controlPanel.innerHTML = `
                         <label>IMAGE SIZE:</label>
@@ -1113,11 +1156,11 @@
 
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);
-            if (!apiKey) { alert("No API keys with remaining quota found today."); return; }
+            if (!apiKey) { alert("No API keys with remaining quota found today.'); return; }
 
             const btn = document.getElementById(`regen-btn-${qIndex}`);
-            const originalText = btn ? btn.innerHTML : "🔄";
-            btn.innerHTML = "REFORMATTING...";
+            const originalText = btn ? btn.innerHTML : '<i data-lucide="refresh-cw" class="icon-sm"></i>';
+            btn.innerHTML = 'REFORMATTING...";
             btn.disabled = true;
 
             // Get source context if available
@@ -1286,7 +1329,7 @@
                 if (data.success) {
                     quizData.questions = data.questions;
                     renderQuestions();
-                    alert("✨ Math formatting polished successfully!");
+                    alert("Math formatting polished successfully!");
                 } else {
                     alert("Polishing failed: " + data.error);
                 }
@@ -1294,7 +1337,7 @@
                 if (e.name === 'AbortError') {
                     alert("Polishing timed out. The server is taking too long to respond.");
                 } else {
-                    alert("Error during polishing: " + e.message);
+                    alert("Error during polishing: ' + e.message);
                 }
             } finally {
                 btn.innerText = originalText;
@@ -1315,11 +1358,11 @@
                 // --- Part A: Golden Reference Key ---
                 if (quizData.golden_reference && Object.keys(quizData.golden_reference).length > 0) {
                     const header = document.createElement('h3');
-                    header.innerHTML = "✅ Original Answer Key";
-                    header.style.fontSize = "14px";
+                    header.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> Original Answer Key';
+                    header.style.fontSize = '14px";
                     header.style.color = "var(--success)";
                     header.style.marginBottom = "12px";
-                    header.style.marginTop = "0";
+                    header.style.marginTop = "0';
                     content.appendChild(header);
 
                     const parseIndex = (idxStr) => {
@@ -1353,8 +1396,8 @@
                 // --- Part B: Worksheet Source (Extra context) ---
                 if (quizData.worksheet_source && quizData.worksheet_source.extracted_questions) {
                     const header = document.createElement('h3');
-                    header.innerHTML = "📦 Source Worksheet Text";
-                    header.style.fontSize = "14px";
+                    header.innerHTML = '<i data-lucide="package" class="icon-sm"></i> Source Worksheet Text';
+                    header.style.fontSize = '14px";
                     header.style.color = "var(--primary)";
                     header.style.marginBottom = "12px";
                     header.style.marginTop = "24px";
@@ -1369,14 +1412,14 @@
                         item.innerHTML = `
                             <div style="font-weight:700; color:var(--primary); margin-bottom:4px;">[Source Q${i + 1}]</div>
                             <div>${q.raw_text}</div>
-                            ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;">🖼️ ${q.image_description}</div>` : ''}
+                            ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;'><i data-lucide="image" class="icon-sm"></i>️ ${q.image_description}</div>` : ''}
                         `;
                         content.appendChild(item);
                     });
                 }
 
                 if (content.innerHTML === '') {
-                    content.innerHTML = '<p style="font-size: 13px; color: var(--body);">No reference data available for this quiz.</p>';
+                    content.innerHTML = '<p style='font-size: 13px; color: var(--body);">No reference data available for this quiz.</p>';
                 } else {
                     renderMath(content);
                 }
@@ -1412,7 +1455,7 @@
                 if (data.success) {
                     quizData.questions = data.questions;
                     renderQuestions();
-                    alert("✨ Answer integrity verified and fixed!");
+                    alert("Answer integrity verified and fixed!");
                 } else { alert("Re-check failed: " + data.error); }
             } catch (e) {
                 if (e.name === 'AbortError') {
@@ -1547,14 +1590,14 @@
                                 <div style="font-weight: 700; color: var(--on-dark);">${quiz.title}</div>
                                 <div style="font-size: 11px; color: var(--body);">${quiz.subject}</div>
                             </div>
-                            <span style="font-size: 18px; color: var(--primary);">➡️</span>
+                            <span style="font-size: 18px; color: var(--primary);'><i data-lucide="arrow-right" class="icon-sm"></i>️</span>
                         `;
                         item.onclick = () => loadQuestionsForImport(quiz.id, quiz.title);
                         listContainer.appendChild(item);
                     });
                 }
             } catch (e) {
-                listContainer.innerHTML = '<p style="text-align: center; color: var(--m-red);">Error loading quizzes.</p>';
+                listContainer.innerHTML = '<p style='text-align: center; color: var(--m-red);">Error loading quizzes.</p>';
             }
         }
 
@@ -1655,16 +1698,16 @@
                 const cleanAns = String(q.answer || "").trim();
                 const cleanText = String(q.question || "").trim();
 
-                if (!cleanText || !cleanAns || cleanAns.toLowerCase() === "no answer provided") {
+                if (!cleanText || !cleanAns || cleanAns.toLowerCase() === "no answer provided') {
                     invalidQuestions.push(idx + 1);
                 }
             });
 
             if (invalidQuestions.length > 0 && singleIndex === null) {
-                const proceed = confirm(`⚠️ WARNING: Questions ${invalidQuestions.join(", ")} appear to have empty text or answers.\n\nStudents will not be able to be graded properly on these.\n\nSave anyway?`);
+                const proceed = confirm(`<i data-lucide="alert-triangle" class="icon-sm"></i>️ WARNING: Questions ${invalidQuestions.join(', ")} appear to have empty text or answers.\n\nStudents will not be able to be graded properly on these.\n\nSave anyway?`);
                 if (!proceed) return;
             } else if (invalidQuestions.length > 0 && singleIndex !== null) {
-                alert(`⚠️ Cannot save: Question ${singleIndex + 1} has empty text or answer.`);
+                alert(`Cannot save: Question ${singleIndex + 1} has empty text or answer.`);
                 return;
             }
 
@@ -1672,7 +1715,7 @@
             let originalBtnText = "";
             if (btn) {
                 originalBtnText = btn.innerHTML;
-                btn.innerHTML = "⌛...";
+                btn.innerHTML = "⌛...';
                 btn.disabled = true;
             }
 
@@ -1702,8 +1745,8 @@
                         if (titleInput) titleInput.value = data.quiz.title;
                     }
                     if (btn) {
-                        btn.innerHTML = "✅ SAVED";
-                        btn.style.background = "var(--success)";
+                        btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> SAVED';
+                        btn.style.background = 'var(--success)";
                         setTimeout(() => {
                             btn.style.display = "none";
                             btn.innerHTML = originalBtnText;
@@ -1718,5 +1761,6 @@
         }
         renderQuestions();
     </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

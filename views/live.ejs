@@ -15,46 +15,54 @@
 
     <style>
         :root {
-            --canvas: #0f172a; 
-            --surface-card: #1e293b; 
-            --surface-elevated: #334155;
-            --surface-soft: #0f172a;
+            --canvas: #090d16;
+            --surface-card: #131927;
+            --surface-elevated: #1c2436;
+            --surface-soft: #1e293b;
             --on-dark: #f8fafc;
             --body: #94a3b8;
             --body-strong: #e2e8f0;
-            --hairline: #334155;
-            --primary: #6366f1; 
-            --m-blue-light: #818cf8; 
+            --hairline: rgba(255, 255, 255, 0.05);
+            --primary: #818cf8;
+            --m-blue-light: #6366f1;
             --m-blue-dark: #4f46e5;
-            --m-red: #fb7185; 
-            --success: #34d399; 
+            --m-red: #fb7185;
+            --success: #34d399;
             --warning: #fbbf24;
-            --radius-md: 12px;
+            --radius-md: 16px;
             --radius-sm: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
         
         [data-theme="light"] {
-            --canvas: #f8fafc;
+            --canvas: #fafafa;
             --surface-card: #ffffff;
-            --surface-elevated: #f1f5f9;
-            --surface-soft: #e2e8f0;
+            --surface-elevated: #f4f4f5;
+            --surface-soft: #f4f4f5;
             --on-dark: #0f172a;
-            --body: #64748b;
-            --body-strong: #334155;
-            --hairline: #cbd5e1;
-            --primary: #4f46e5;
-            --m-blue-light: #6366f1;
+            --body: #52525b;
+            --body-strong: #18181b;
+            --hairline: rgba(0, 0, 0, 0.05);
+            --primary: #6366f1;
+            --m-blue-light: #4f46e5;
             --m-blue-dark: #4338ca;
-            --m-red: #f43f5e;
+            --m-red: #e11d48;
             --success: #10b981;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
-        body { font-family: 'Inter', sans-serif; background-color: var(--canvas); margin: 0; padding: 64px 20px; color: var(--body-strong); font-weight: 400; transition: background-color 0.3s ease, color 0.3s ease;}
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            color: var(--body-strong); 
+            background-color: var(--canvas);
+            font-weight: 400;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
         .container { max-width: 1440px; margin: auto; }
         
-        .card { background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); }
+        .card { background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); }
         
         h1 { margin-top: 0; font-size: 32px; color: var(--on-dark); font-weight: 700; letter-spacing: -0.5px; display: flex; align-items: center;}
         .m-stripe-divider { height: 4px; width: 60px; background: var(--primary); border-radius: 2px; margin-bottom: 24px; }
@@ -88,7 +96,7 @@
         summary.question-preview::-webkit-details-marker { display: none; }
         summary.question-preview:hover { border-color: var(--primary); }
         
-        .full-question-box { background: var(--surface-card); border: 1px solid var(--hairline); padding: 16px; border-radius: var(--radius-sm); margin-top: 8px; font-size: 13px; white-space: normal; color: var(--on-dark); box-shadow: var(--shadow); font-family: 'Inter', sans-serif;}
+        .full-question-box { background: var(--surface-card); border: 1px solid var(--hairline); padding: 16px; border-radius: var(--radius-sm); margin-top: 8px; font-size: 13px; white-space: normal; color: var(--on-dark); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); font-family: 'Inter', sans-serif;}
         .full-question-box .resizable-image-wrapper { margin: 10px 0; display: flex; justify-content: flex-start;}
         .full-question-box img { max-width: 100%; height: auto; background: white; padding: 5px; border-radius: 4px; }
 
@@ -97,27 +105,51 @@
             70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(226, 39, 24, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(226, 39, 24, 0); }
         }
+    
+        
+        /* Unified Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+        
+        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        
+        /* Unified Inputs */
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+
     </style>
     <script>
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-            <a href="/" class="back-link" style="margin-bottom: 0;">🔙 Back to Dashboard</a>
-            <div style="display: flex; gap: 16px; align-items: center;">
+            <a href="/" class="back-link" style="margin-bottom: 0;'><i data-lucide="arrow-left" class="icon-sm"></i> Back to Dashboard</a>
+            <div style='display: flex; gap: 16px; align-items: center;">
                 <button id="pause-btn" onclick="togglePause()" class="score-badge" style="background-color: var(--warning); color: var(--canvas); border: none; cursor: pointer; padding: 8px 16px;">⏸️ Pause Timers</button>
-                <button id="terminate-btn" onclick="terminateQuiz()" class="score-badge" style="background-color: var(--m-red); color: white; border: none; cursor: pointer; padding: 8px 16px;">🛑 Terminate Quiz</button>
-                <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8;">🌓</button>
+                <button id="terminate-btn" onclick="terminateQuiz()" class="score-badge" style="background-color: var(--m-red); color: white; border: none; cursor: pointer; padding: 8px 16px;'><i data-lucide="stop-circle" class="icon-sm"></i> Terminate Quiz</button>
+                <button onclick='toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8;"><i data-lucide="moon"></i></button>
             </div>
         </div>
         
         <div class="card">
-            <h1><span class="pulse"></span> 📡 LIVE: <%= typeof title !== 'undefined' ? title : '' %></h1>
-            <div class="m-stripe-divider"></div>
-            <p style="color: var(--body); font-size: 12px; margin-top: -5px; text-transform: uppercase; letter-spacing: 1.5px;">TABLE UPDATES AUTOMATICALLY EVERY 2 SECONDS.</p>
+            <h1><span class="pulse'></span> <i data-lucide="radio" class="icon-sm"></i> LIVE: <%= typeof title !== 'undefined' ? title : '' %></h1>
+            
+            <p style='color: var(--body); font-size: 12px; margin-top: -5px; text-transform: uppercase; letter-spacing: 1.5px;">TABLE UPDATES AUTOMATICALLY EVERY 2 SECONDS.</p>
             
             <table id="live-table">
                 <thead>
@@ -310,11 +342,11 @@
 
                 let snippetDiv = document.createElement('div');
                 snippetDiv.innerHTML = rawQuestionHTML;
-                let cleanText = snippetDiv.innerText || snippetDiv.textContent || "";
+                let cleanText = snippetDiv.innerText || snippetDiv.textContent || "';
                 let snippet = cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText;
 
-                if (statusText.includes('Completed')) snippet = "🎉 Student has finished the quiz!";
-                else if (statusText.includes('Abandoned')) snippet = "❌ Student left the quiz early.";
+                if (statusText.includes('Completed')) snippet = '<i data-lucide="party-popper" class="icon-sm"></i> Student has finished the quiz!';
+                else if (statusText.includes('Abandoned')) snippet = '<i data-lucide='x-circle" class="icon-sm"></i> Student left the quiz early.';
 
                 let detailsHtml = '';
                 if (!statusText.includes('Completed') && quizQuestions[qIndex]) {
@@ -331,11 +363,11 @@
                         </details>
                     `;
                 } else {
-                    detailsHtml = `<div class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap;" title="${cleanText}">${snippet}</div>`;
+                    detailsHtml = `<div class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap;" title="${cleanText}'>${snippet}</div>`;
                 }
 
                 const wbDisabled = info.whiteboard_disabled || false;
-                const wbBtnText = wbDisabled ? "✅ Enable WB" : "🚫 Disable WB";
+                const wbBtnText = wbDisabled ? '<i data-lucide="check-circle" class="icon-sm"></i> Enable WB' : '<i data-lucide='slash" class="icon-sm"></i> Disable WB';
                 const wbBtnColor = wbDisabled ? "var(--success)" : "var(--m-red)";
                 const wbStatusHtml = `
                     <button onclick="toggleWhiteboard('${sid}')" class="score-badge" style="background: ${wbBtnColor}; color: white; border: none; cursor: pointer; padding: 4px 8px; font-size: 11px;">
@@ -383,5 +415,6 @@
             }
         }, 2000);
     </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

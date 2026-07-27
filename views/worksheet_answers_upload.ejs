@@ -22,20 +22,43 @@
     <style>
         * { box-sizing: border-box; }
         :root {
-            --canvas: #0f172a; --surface-card: #1e293b; --surface-elevated: #334155; --surface-soft: #0f172a;
-            --on-dark: #f8fafc; --body: #94a3b8; --body-strong: #e2e8f0; --hairline: #334155;
-            --primary: #6366f1; --m-blue-light: #818cf8; --m-blue-dark: #4f46e5; --m-red: #fb7185;
-            --success: #34d399; --warning: #fbbf24; --radius-md: 12px; --radius-sm: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --canvas: #090d16;
+            --surface-card: #131927;
+            --surface-elevated: #1c2436;
+            --surface-soft: #1e293b;
+            --on-dark: #f8fafc;
+            --body: #94a3b8;
+            --body-strong: #e2e8f0;
+            --hairline: rgba(255, 255, 255, 0.05);
+            --primary: #818cf8;
+            --m-blue-light: #6366f1;
+            --m-blue-dark: #4f46e5;
+            --m-red: #fb7185;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --radius-md: 16px;
+            --radius-sm: 8px;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
+        
         [data-theme="light"] {
-            --canvas: #f8fafc; --surface-card: #ffffff; --surface-elevated: #f1f5f9; --surface-soft: #e2e8f0;
-            --on-dark: #0f172a; --body: #64748b; --body-strong: #334155; --hairline: #cbd5e1;
-            --primary: #4f46e5; --m-blue-light: #6366f1; --m-blue-dark: #4338ca; --m-red: #f43f5e;
+            --canvas: #fafafa;
+            --surface-card: #ffffff;
+            --surface-elevated: #f4f4f5;
+            --surface-soft: #f4f4f5;
+            --on-dark: #0f172a;
+            --body: #52525b;
+            --body-strong: #18181b;
+            --hairline: rgba(0, 0, 0, 0.05);
+            --primary: #6366f1;
+            --m-blue-light: #4f46e5;
+            --m-blue-dark: #4338ca;
+            --m-red: #e11d48;
             --success: #10b981;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
-        .container { max-width: 1200px; margin: auto; }
+        .container { max-width: 1440px; margin: auto; }
         .dashboard-container {
             width: 100%;
             max-width: 1800px;
@@ -80,8 +103,16 @@
         .mode-tab.active { background: var(--primary); color: white; }
         .mode-tab i { font-size: 16px; margin-bottom: 2px; }
 
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 40px 20px; color: var(--body-strong); background-color: var(--canvas); transition: 0.3s; }
-        .card { background: var(--surface-card); padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); margin-bottom: 24px; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            color: var(--body-strong); 
+            background-color: var(--canvas);
+            font-weight: 400;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .card { background: var(--surface-card); padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); margin-bottom: 24px; }
 
         h1, h2, h3 { color: var(--on-dark); margin-top: 0; }
         .m-stripe { height: 4px; width: 60px; background: var(--primary); border-radius: 2px; margin-bottom: 24px; }
@@ -154,7 +185,31 @@
         .cropper-container-box { background: var(--surface-card); padding: 24px; border-radius: var(--radius-md); width: 100%; max-width: 900px; max-height: 80vh; display: flex; flex-direction: column; }
         .cropper-image-wrapper { flex: 1; overflow: hidden; background: #000; border-radius: var(--radius-sm); margin-bottom: 24px; }
         #cropper-image { max-width: 100%; display: block; }
+    
+        
+        /* Unified Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+        
+        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        
+        /* Unified Inputs */
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+
     </style>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container" style="max-width: 1800px;">
@@ -163,32 +218,32 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 DASHBOARD
             </a>
-            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;">🌙</button>
+            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8; transition: 0.2s;"><i data-lucide="moon"></i></button>
         </div>
 
         <div class="dashboard-container teacher-view">
             <div class="sticky-col">
                 <div class="mode-tabs">
-                    <a href="/" class="mode-tab">
-                        <span>🤖</span>
+                    <a href="/" class="mode-tab'>
+                        <span><i data-lucide="bot" class="icon-sm"></i></span>
                         AI GEN
                     </a>
-                    <a href="/worksheet" class="mode-tab">
-                        <span>📄</span>
+                    <a href='/worksheet" class="mode-tab'>
+                        <span><i data-lucide="file-text" class="icon-sm"></i></span>
                         WORKSHEET
                     </a>
-                    <a href="/worksheet_answers" class="mode-tab active">
-                        <span>🔑</span>
+                    <a href='/worksheet_answers" class="mode-tab active'>
+                        <span><i data-lucide="key" class="icon-sm"></i></span>
                         ANSWERS
                     </a>
-                    <a href="/rmxflash" class="mode-tab">
-                        <span>⚡</span>
+                    <a href='/rmxflash" class="mode-tab'>
+                        <span><i data-lucide="zap" class="icon-sm"></i></span>
                         RMXFLASH
                     </a>
                 </div>
-                <div class="card" id="upload-card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
-                    <h1>📝 Worksheet + Answer Key</h1>
-                    <div class="m-stripe"></div>
+                <div class='card" id="upload-card" style="border-top-left-radius: 0; border-top-right-radius: 0;'>
+                    <h1><i data-lucide="edit-3" class="icon-sm"></i> Worksheet + Answer Key</h1>
+                    <div class='m-stripe"></div>
                     <p style="color: var(--body); margin-bottom: 32px;">Extract questions and answers from your files. The AI will strictly follow the answers provided in your key.</p>
 
                     <form id="worksheet-form" onsubmit="handleExtract(event)">
@@ -196,8 +251,8 @@
                             <div>
                                 <label>1. Worksheet Files (Questions)</label>
                                 <div class="dropzone" id="worksheet-dropzone" style="min-height: 100px; padding: 20px;">
-                                    <div style="font-size: 30px; margin-bottom: 8px;">📄</div>
-                                    <div style="font-weight: 700; font-size: 13px;">Upload Questions</div>
+                                    <div style="font-size: 30px; margin-bottom: 8px;'><i data-lucide="file-text" class="icon-sm"></i></div>
+                                    <div style='font-weight: 700; font-size: 13px;">Upload Questions</div>
                                     <input type="file" id="worksheet-input" name="worksheet_files" multiple accept="image/*,.pdf" onchange="updateFileList('worksheet')">
                                     <div class="file-list" id="worksheet-file-list"></div>
                                 </div>
@@ -205,8 +260,8 @@
                             <div style="margin-top: 16px;">
                                 <label>2. Answer Key Files (Optional)</label>
                                 <div class="dropzone" id="answer-dropzone" style="min-height: 100px; padding: 20px;">
-                                    <div style="font-size: 30px; margin-bottom: 8px;">🔑</div>
-                                    <div style="font-weight: 700; font-size: 13px;">Upload Answer Key</div>
+                                    <div style="font-size: 30px; margin-bottom: 8px;'><i data-lucide="key" class="icon-sm"></i></div>
+                                    <div style='font-weight: 700; font-size: 13px;">Upload Answer Key</div>
                                     <input type="file" id="answer-input" name="answer_files" multiple accept="image/*,.pdf" onchange="updateFileList('answer')">
                                     <div class="file-list" id="answer-file-list"></div>
                                 </div>
@@ -216,11 +271,11 @@
                         <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr; gap: 16px;">
                             <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline);">
                                 <input type="checkbox" id="use_screenshots" style="width: 18px; height: 18px; cursor: pointer;">
-                                <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--on-dark);">📸 Capture real screenshots of diagrams (Gemini 2.5+ recommended)</label>
+                                <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--on-dark);'><i data-lucide="camera" class="icon-sm"></i> Capture real screenshots of diagrams (Gemini 2.5+ recommended)</label>
                             </div>
                             <div>
                                 <label>AI Model</label>
-                                <div style="display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center;">
+                                <div style='display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center;">
                                     <select id="model_select" onchange="updateCounterUI()">
                                         <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
                                         <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
@@ -241,32 +296,32 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary" id="extract-btn" style="margin-top: 16px;">🔍 EXTRACT & MATCH</button>
+                        <button type="submit" class="btn btn-primary" id="extract-btn" style="margin-top: 16px;'><i data-lucide="search" class="icon-sm"></i> EXTRACT & MATCH</button>
                     </form>
                 </div>
             </div>
 
-            <div id="right-col">
+            <div id='right-col">
                 <div id="extraction-preview" class="card" style="margin-top: 0; display: none;">
 
                     <div class="card golden-key-card" id="golden-key-card" style="display: none;">
-                        <h3 style="margin-bottom: 8px; color: var(--warning); display: flex; align-items: center; gap: 8px;">🛡️ Golden Reference Key <span style="font-size: 10px; background: var(--warning); color: black; padding: 2px 6px; border-radius: 4px;">EXTRACTED</span></h3>
+                        <h3 style="margin-bottom: 8px; color: var(--warning); display: flex; align-items: center; gap: 8px;'><i data-lucide="shield" class="icon-sm"></i>️ Golden Reference Key <span style='font-size: 10px; background: var(--warning); color: black; padding: 2px 6px; border-radius: 4px;">EXTRACTED</span></h3>
                         <p style="font-size: 11px; color: var(--body);">This is the master answer key AI found in your files. Matched questions will strictly follow these.</p>
-                        <div class="golden-key-grid" id="golden-key-grid"></div>
+                        <div class="golden-key-grid" id="golden-key-grid'></div>
                     </div>
 
-                    <h2>👀 Preview Matched Questions</h2>
-                    <div class="m-stripe"></div>
+                    <h2><i data-lucide="eye" class="icon-sm"></i> Preview Matched Questions</h2>
+                    <div class='m-stripe"></div>
                     <p style="font-size: 14px; color: var(--body); margin-bottom: 24px;">The AI has matched questions and answers. Review them below before generating the final quiz.</p>
 
                     <div id="questions-list"></div>
 
-                    <div id="missing-alert" style="display: none; background: rgba(251, 113, 133, 0.1); border: 1px solid var(--m-red); border-radius: var(--radius-sm); padding: 12px; margin-top: 16px; color: var(--m-red); font-size: 13px; display: flex; align-items: center; justify-content: space-between;">
-                        <span>⚠️ Missing or Incomplete (Null Answers) detected: <b id="missing-indices-text"></b></span>
-                        <button onclick="handleTargetedRetry()" class="btn-secondary" id="retry-recovery-btn" style="padding: 6px 12px; font-size: 11px; margin: 0; border-color: var(--m-red); color: var(--m-red);">🔍 Targeted Recovery</button>
+                    <div id="missing-alert" style="display: none; background: rgba(251, 113, 133, 0.1); border: 1px solid var(--m-red); border-radius: var(--radius-sm); padding: 12px; margin-top: 16px; color: var(--m-red); font-size: 13px; display: flex; align-items: center; justify-content: space-between;'>
+                        <span><i data-lucide="alert-triangle" class="icon-sm"></i>️ Missing or Incomplete (Null Answers) detected: <b id='missing-indices-text"></b></span>
+                        <button onclick="handleTargetedRetry()" class="btn-secondary" id="retry-recovery-btn" style="padding: 6px 12px; font-size: 11px; margin: 0; border-color: var(--m-red); color: var(--m-red);'><i data-lucide="search" class="icon-sm"></i> Targeted Recovery</button>
                     </div>
 
-                    <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--hairline);">
+                    <div style='margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--hairline);">
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px;">
                             <div>
                                 <label>Subject Folder</label>
@@ -289,14 +344,14 @@
                             </div>
                         </div>
 
-                        <button onclick="handleGenerate()" class="btn btn-primary" id="generate-btn">✨ CREATE QUIZ</button>
+                        <button onclick="handleGenerate()" class="btn btn-primary" id="generate-btn'><i data-lucide="sparkles" class="icon-sm"></i> CREATE QUIZ</button>
                     </div>
                 </div>
 
                 <!-- Empty State for Right Column -->
-                <div id="empty-preview" class="card" style="margin-top: 0; text-align: center; padding: 100px 40px;">
-                    <div style="font-size: 64px; margin-bottom: 24px; opacity: 0.3;">🔑</div>
-                    <h3 style="color: var(--body);">Questions & Answers will appear here</h3>
+                <div id='empty-preview" class="card" style="margin-top: 0; text-align: center; padding: 100px 40px;">
+                    <div style="font-size: 64px; margin-bottom: 24px; opacity: 0.3;'><i data-lucide="key" class="icon-sm"></i></div>
+                    <h3 style='color: var(--body);">Questions & Answers will appear here</h3>
                     <p style="color: var(--body); font-size: 14px;">Upload your worksheet and key on the left to begin.</p>
                 </div>
             </div>
@@ -314,14 +369,14 @@
     <!-- Cropper Modal -->
     <div id="cropper-modal">
         <div class="cropper-container-box">
-            <h2 style="margin-bottom: 8px;">✂️ Refine Screenshot</h2>
-            <p style="color: var(--body); font-size: 13px; margin-bottom: 20px;">Adjust the crop to remove extra text or whitespace around the diagram.</p>
+            <h2 style="margin-bottom: 8px;'><i data-lucide="scissors" class="icon-sm"></i>️ Refine Screenshot</h2>
+            <p style='color: var(--body); font-size: 13px; margin-bottom: 20px;">Adjust the crop to remove extra text or whitespace around the diagram.</p>
             <div class="cropper-image-wrapper">
                 <img id="cropper-image" src="" alt="Cropping Preview">
             </div>
             <div style="display: flex; gap: 12px;">
-                <button class="btn btn-primary" onclick="saveCroppedImage()" style="margin: 0;">✅ Save Crop</button>
-                <button class="btn btn-secondary" onclick="closeCropperModal()" style="margin: 0;">❌ Cancel</button>
+                <button class="btn btn-primary" onclick="saveCroppedImage()" style="margin: 0;'><i data-lucide="check-circle" class="icon-sm"></i> Save Crop</button>
+                <button class='btn btn-secondary" onclick="closeCropperModal()" style="margin: 0;'><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
             </div>
         </div>
     </div>
@@ -335,7 +390,7 @@
 
         // --- RATE LIMIT TRACKER ---
         const API_LIMITS = {
-            "gemini-3.6-flash": 20,
+            'gemini-3.6-flash": 20,
             "gemini-3.5-flash": 20,
             "gemini-3.5-flash-lite": 500,
             "gemini-3.1-flash-lite": 500,
@@ -436,8 +491,8 @@
             const apiKey = await getUsableKey(model, 1);
             if (!apiKey) return alert('No API keys found.');
 
-            const sessionId = "ws_ans_" + Math.random().toString(36).substring(2, 15);
-            progressText.innerText = "🔍 Extracting & Matching...";
+            const sessionId = "ws_ans_' + Math.random().toString(36).substring(2, 15);
+            progressText.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Extracting & Matching...';
             overlay.style.display = 'flex';
             progressBar.style.width = '10%';
 
@@ -508,9 +563,9 @@
         async function handleTargetedRetry() {
             const model = document.getElementById('model_select').value;
             const apiKey = await getUsableKey(model, 2);
-            if (!apiKey) return alert("No API key found.");
+            if (!apiKey) return alert('No API key found.');
 
-            progressText.innerText = `🔍 Recovering questions ${missingIndices.join(', ')}...`;
+            progressText.innerHTML = `<i data-lucide="search" class="icon-sm"></i> Recovering questions ${missingIndices.join(', ')}...`;
             overlay.style.display = 'flex';
 
             const formData = new FormData();
@@ -559,7 +614,7 @@
                     });
 
                     const extractedNums = extractedQuestions.filter(q => {
-                        const ans = String(q.answer || "").toLowerCase();
+                        const ans = String(q.answer || '").toLowerCase();
                         return ans && ans !== "null" && !ans.includes("missing");
                     }).map(q => {
                         const parsed = parseIndex(q.original_index);
@@ -653,10 +708,10 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <div style="font-weight: 800; color: var(--on-dark); font-size: 13px;">Question ${i + 1}</div>
                         <div style="display: flex; gap: 8px;">
-                            ${hasScreenshot ? `<button onclick="openCropRefiner(${i})" class="btn-secondary" style="font-size: 10px; padding: 4px 8px; border-color: var(--warning); color: var(--warning);">✂️ REFINE CROP</button>` : ''}
+                            ${hasScreenshot ? `<button onclick="openCropRefiner(${i})" class="btn-secondary" style="font-size: 10px; padding: 4px 8px; border-color: var(--warning); color: var(--warning);'><i data-lucide="scissors" class="icon-sm"></i>️ REFINE CROP</button>` : ''}
                         </div>
                     </div>
-                    <div contenteditable="true" onblur="updateQuestionText(${i}, this.innerText)" style="padding: 10px; border: 1px solid var(--hairline); border-radius: 4px; background: var(--canvas); color: var(--on-dark); font-size: 14px;">${targetText.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim()}</div>
+                    <div contenteditable='true" onblur="updateQuestionText(${i}, this.innerText)" style="padding: 10px; border: 1px solid var(--hairline); border-radius: 4px; background: var(--canvas); color: var(--on-dark); font-size: 14px;">${targetText.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim()}</div>
 
                     ${hasScreenshot ? `<div style="margin-top: 12px; padding: 12px; background: var(--canvas); border-radius: var(--radius-sm); border: 1px solid var(--hairline); text-align: center;">${imgMatch[0]}</div>` : ''}
 
@@ -765,8 +820,8 @@
             const apiKey = await getUsableKey(model, 1);
             if (!apiKey) return alert("No API Key.");
 
-            const sessionId = "gen_ans_" + Math.random().toString(36).substring(2, 15);
-            progressText.innerText = "✨ Finalizing Quiz...";
+            const sessionId = "gen_ans_' + Math.random().toString(36).substring(2, 15);
+            progressText.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> Finalizing Quiz...';
             overlay.style.display = 'flex';
             progressBar.style.width = '5%';
 
@@ -791,7 +846,7 @@
                     body: JSON.stringify({
                         questions: extractedQuestions,
                         golden_reference: goldenReference,
-                        topic: document.getElementById('topic_hint').value || "Matched Quiz",
+                        topic: document.getElementById('topic_hint').value || 'Matched Quiz",
                         subject: document.getElementById('subject_select').value,
                         time_limit: document.getElementById('time_limit').value,
                         quiz_mode: document.getElementById('quiz_mode').value,
@@ -808,5 +863,6 @@
             finally { overlay.style.display = 'none'; }
         }
     </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

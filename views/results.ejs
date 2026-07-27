@@ -18,26 +18,56 @@
 
     <style>
         :root {
-            --canvas: #0f172a; --surface-card: #1e293b; --surface-elevated: #334155; --surface-soft: #0f172a;
-            --on-dark: #f8fafc; --body: #94a3b8; --body-strong: #e2e8f0; --hairline: #334155;
-            --primary: #6366f1; --m-blue-light: #818cf8; --m-blue-dark: #4f46e5; --m-red: #fb7185;
-            --success: #34d399; --warning: #fbbf24; --radius-md: 12px; --radius-sm: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --canvas: #090d16;
+            --surface-card: #131927;
+            --surface-elevated: #1c2436;
+            --surface-soft: #1e293b;
+            --on-dark: #f8fafc;
+            --body: #94a3b8;
+            --body-strong: #e2e8f0;
+            --hairline: rgba(255, 255, 255, 0.05);
+            --primary: #818cf8;
+            --m-blue-light: #6366f1;
+            --m-blue-dark: #4f46e5;
+            --m-red: #fb7185;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --radius-md: 16px;
+            --radius-sm: 8px;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
         
         [data-theme="light"] {
-            --canvas: #f8fafc; --surface-card: #ffffff; --surface-elevated: #f1f5f9; --surface-soft: #e2e8f0;
-            --on-dark: #0f172a; --body: #64748b; --body-strong: #334155; --hairline: #cbd5e1;
-            --primary: #4f46e5; --m-blue-light: #6366f1; --m-blue-dark: #4338ca; --m-red: #f43f5e;
+            --canvas: #fafafa;
+            --surface-card: #ffffff;
+            --surface-elevated: #f4f4f5;
+            --surface-soft: #f4f4f5;
+            --on-dark: #0f172a;
+            --body: #52525b;
+            --body-strong: #18181b;
+            --hairline: rgba(0, 0, 0, 0.05);
+            --primary: #6366f1;
+            --m-blue-light: #4f46e5;
+            --m-blue-dark: #4338ca;
+            --m-red: #e11d48;
             --success: #10b981;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
-        body { font-family: 'Inter', sans-serif; margin: 0; padding: 40px 5%; color: var(--body-strong); background-color: var(--canvas); transition: 0.3s;}
-        .container { max-width: 1400px; margin: auto; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            color: var(--body-strong); 
+            background-color: var(--canvas);
+            font-weight: 400;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .container { max-width: 1440px; margin: auto; }
         .back-link { text-decoration: none; color: var(--primary); font-weight: 700; font-size: 14px; margin-bottom: 32px; display: inline-block; transition: 0.2s;}
         .back-link:hover { opacity: 0.8; }
         
-        .card { background: var(--surface-card); padding: 32px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); }
+        .card { background: var(--surface-card); padding: 32px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); }
         h1 { color: var(--on-dark); font-weight: 800; letter-spacing: -1px; margin-top: 0; }
         .m-stripe-divider { height: 4px; width: 80px; background: var(--primary); border-radius: 2px; margin-bottom: 32px; margin-top: 10px; }
         
@@ -46,7 +76,7 @@
         td { padding: 20px 16px; border-bottom: 1px solid var(--hairline); }
         
         .score-badge { background: var(--surface-soft); padding: 6px 12px; border-radius: 6px; font-weight: 800; color: var(--success); font-family: monospace; border: 1px solid var(--hairline); }
-        .toggle-btn { background: transparent; border: 1px solid var(--hairline); color: var(--on-dark); padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s;}
+        .toggle-btn { background: var(--surface-elevated); border: 1px solid var(--hairline); color: var(--on-dark); padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
         .toggle-btn:hover { border-color: var(--primary); color: var(--primary); }
 
         .details-row { display: none; background: var(--surface-soft); }
@@ -60,36 +90,131 @@
 
         /* Bulk Actions Styles */
         .bulk-actions { margin-bottom: 20px; display: none; align-items: center; gap: 12px; }
-        .btn-delete-bulk { background: var(--m-red); color: white; border: none; padding: 10px 20px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 13px; }
-        .btn-delete-bulk:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-delete-bulk { background: var(--surface-elevated); color: var(--m-red); border: 1px solid var(--m-red); padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-delete-bulk:hover { background: var(--m-red); color: white; opacity: 0.9; transform: translateY(-1px); }
         .checkbox-cell { width: 40px; text-align: center; }
         .custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+    
+        /* Enhanced AI Tutor Feedback */
+        .review-block { padding: 16px; border: 1px solid var(--hairline); border-radius: var(--radius-md); margin-bottom: 12px; background: var(--surface-soft); }
+        .review-correct { border-left: 4px solid var(--success); }
+        .review-wrong { border-left: 4px solid var(--m-red); }
+        .ai-feedback-box {
+            margin-top: 12px; padding: 16px; background: var(--surface-elevated);
+            border-radius: var(--radius-sm); border: 1px solid rgba(99,102,241,0.2);
+            font-size: 14px; line-height: 1.5; color: var(--body-strong);
+        }
+        .ai-feedback-box strong { color: var(--primary); }
+
+    
+        
+        /* Unified Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+        
+        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        
+        /* Unified Inputs */
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+
     </style>
     <script>
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <a href="/" class="back-link">← BACK TO DASHBOARD</a>
-            <button onclick="toggleTheme()" style="background:transparent; border:none; font-size:24px; cursor:pointer;">🌓</button>
+            <button onclick="toggleTheme()" style="background:transparent; border:none; font-size:24px; cursor:pointer;"><i data-lucide="moon"></i></button>
         </div>
 
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
-                    <h1>📊 Results: <%= typeof title !== 'undefined' ? title : '' %></h1>
-                    <div class="m-stripe-divider"></div>
-                </div>
-                <div id="bulk-actions-bar" class="bulk-actions">
-                    <span id="selection-count" style="font-size: 13px; color: var(--body); font-weight: 600;">0 selected</span>
-                    <button class="btn-delete-bulk" onclick="deleteSelectedResults()">🗑️ DELETE SELECTED</button>
-                </div>
-            </div>
-            
-            <table>
+        
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+    <div>
+        <h1 style="margin: 0; font-size: 28px;"><i data-lucide="bar-chart-2" style="display:inline-block; vertical-align:middle; width:28px;"></i> Results: <%= typeof title !== 'undefined' ? title : '' %></h1>
+    </div>
+    <div id="bulk-actions-bar" class="bulk-actions">
+        <span id="selection-count" style="font-size: 13px; color: var(--body); font-weight: 600;">0 selected</span>
+        <button class="btn-delete-bulk" onclick="deleteSelectedResults()'><i data-lucide="trash-2" class="icon-sm"></i> DELETE</button>
+    </div>
+</div>
+
+<% 
+// Compute Analytics
+let classAvg = 0, completionRate = 0, avgTime = 0, hardestQ = 'N/A";
+if (results && results.length > 0) {
+    let totalScore = 0, totalQuestions = 0;
+    let completedCount = 0;
+    let totalActiveTime = 0;
+    let qMisses = {};
+    
+    results.forEach(r => {
+        totalScore += r.score || 0;
+        totalQuestions += r.total || 0;
+        if (r.completion_note !== "Left without finishing") completedCount++;
+        totalActiveTime += r.time_active_seconds || 0;
+        
+        if (r.details) {
+            r.details.forEach((item, idx) => {
+                if (!item.is_correct) {
+                    qMisses[idx] = (qMisses[idx] || 0) + 1;
+                }
+            });
+        }
+    });
+    
+    if (totalQuestions > 0) classAvg = Math.round((totalScore / totalQuestions) * 100);
+    completionRate = Math.round((completedCount / results.length) * 100);
+    avgTime = Math.round(totalActiveTime / results.length);
+    
+    let maxMisses = -1;
+    let maxMissIdx = -1;
+    for (let idx in qMisses) {
+        if (qMisses[idx] > maxMisses) {
+            maxMisses = qMisses[idx];
+            maxMissIdx = parseInt(idx);
+        }
+    }
+    if (maxMissIdx !== -1) hardestQ = "Q" + (maxMissIdx + 1);
+}
+%>
+
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+    <div class="card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--body); text-transform: uppercase;">Class Avg</div>
+        <div style="font-size: 32px; font-weight: 800; color: var(--primary);"><%= classAvg %>%</div>
+    </div>
+    <div class="card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--body); text-transform: uppercase;">Completion</div>
+        <div style="font-size: 32px; font-weight: 800; color: var(--success);"><%= completionRate %>%</div>
+    </div>
+    <div class="card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--body); text-transform: uppercase;">Avg Time</div>
+        <div style="font-size: 32px; font-weight: 800; color: var(--on-dark);"><%= Math.floor(avgTime/60) %>m <%= avgTime%60 %>s</div>
+    </div>
+    <div class="card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
+        <div style="font-size: 12px; font-weight: 700; color: var(--body); text-transform: uppercase;">Hardest</div>
+        <div style="font-size: 32px; font-weight: 800; color: var(--warning);"><%= hardestQ %></div>
+    </div>
+</div>
+
+<div class="card">
+<table>
                 <thead>
                     <tr>
                         <th class="checkbox-cell"><input type="checkbox" id="select-all-checkbox" class="custom-checkbox" onclick="toggleSelectAll()"></th>
@@ -116,14 +241,14 @@
                         <td style="font-weight: 700; color: var(--on-dark);">
                             <%= typeof r.student_name !== 'undefined' ? r.student_name : '' %>
                             <% if (r.completion_note == "Left without finishing") { %>
-                                <br><span style="font-size: 10px; color: var(--warning);">⚠️ ABANDONED</span>
+                                <br><span style="font-size: 10px; color: var(--warning);'><i data-lucide="alert-triangle" class="icon-sm"></i>️ ABANDONED</span>
                             <% } %>
                         </td>
                         <td>
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div style='display: flex; flex-direction: column; gap: 4px;">
                                 <span class="score-badge"><%= typeof r.score !== 'undefined' && r.score ? r.score : '' %> / <%= typeof r.total !== 'undefined' && r.total ? r.total : '' %></span>
-                                <span style="font-size: 11px; font-weight: 700; color: var(--primary);">🎯 <%= typeof r.accuracy_pct !== 'undefined' && r.accuracy_pct ? r.accuracy_pct : '' %>% Accuracy</span>
-                                <span style="font-size: 10px; color: var(--body); font-weight: 600; margin-top: 2px;">
+                                <span style="font-size: 11px; font-weight: 700; color: var(--primary);'><i data-lucide="target" class="icon-sm"></i> <%= typeof r.accuracy_pct !== 'undefined' && r.accuracy_pct ? r.accuracy_pct : '' %>% Accuracy</span>
+                                <span style='font-size: 10px; color: var(--body); font-weight: 600; margin-top: 2px;">
                                     <% 
                                       let incorrect_indices = [];
                                       if (r.details) {
@@ -134,11 +259,11 @@
                                     %>
 
                                     <% if (incorrect_indices.length > 0) { %>
-                                        <span style="color: var(--m-red);">❌ Incorrect: Q<%= incorrect_indices.join(', ') %></span>
+                                        <span style="color: var(--m-red);'><i data-lucide="x-circle" class="icon-sm"></i> Incorrect: Q<%= incorrect_indices.join(', ') %></span>
                                     <% } else if (r.score == r.total && r.total > 0) { %>
-                                        <span style="color: var(--success);">✅ Perfect Score</span>
+                                        <span style='color: var(--success);'><i data-lucide="check-circle" class="icon-sm"></i> Perfect Score</span>
                                     <% } else { %>
-                                        <span style="color: var(--body);">⏳ In Progress...</span>
+                                        <span style='color: var(--body);">⏳ In Progress...</span>
                                     <% } %>
                                 </span>
                             </div>
@@ -146,8 +271,8 @@
                         <td>
                             <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--body);">
                                 <span>⏱️ <b>Active:</b> <span id="active-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
-                                <span>⏸️ <b>Paused:</b> <span id="paused-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
-                                <span>🏁 <b>Total:</b> <span id="total-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
+                                <span>⏸️ <b>Paused:</b> <span id="paused-<%= typeof r.id !== 'undefined' ? r.id : '' %>'></span></span>
+                                <span><i data-lucide="flag" class="icon-sm"></i> <b>Total:</b> <span id='total-<%= typeof r.id !== 'undefined' ? r.id : '' %>"></span></span>
                             </div>
                             <script>
                                 (function() {
@@ -165,14 +290,14 @@
                         <td style="color: var(--body); font-size: 14px;"><%= typeof r.timestamp !== 'undefined' ? r.timestamp : '' %></td>
                         <td>
                             <% if (r.details) { %>
-                                <button class="toggle-btn" onclick="toggleDetails('<%= typeof r.id !== 'undefined' ? r.id : '' %>')">🔍 Mistakes ▼</button>
+                                <button class="toggle-btn" onclick="toggleDetails('<%= typeof r.id !== 'undefined' ? r.id : '' %>')'><i data-lucide="search" class="icon-sm"></i> Mistakes</button>
                             <% } %>
-                            <button class="toggle-btn" onclick="downloadTeacherPDF('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; background: var(--primary); color: white;">📥 Solutions PDF</button>
-                            <button class="toggle-btn" onclick="copySolutionsLink('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; border-color: var(--success); color: var(--success);">🔗 Share Link</button>
+                            <button class='toggle-btn" onclick="downloadTeacherPDF('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; background: var(--primary); color: white;'><i data-lucide="download" class="icon-sm"></i> Solutions</button>
+                            <button class='toggle-btn" onclick="copySolutionsLink('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; border-color: var(--success); color: var(--success);'><i data-lucide="link" class="icon-sm"></i> Share</button>
                         </td>
                     </tr>
                     <% if (r.details) { %>
-                    <tr id="details-<%= typeof r.id !== 'undefined' ? r.id : '' %>" class="details-row">
+                    <tr id='details-<%= typeof r.id !== 'undefined' ? r.id : '' %>" class="details-row">
                         <td colspan="6">
                             <div class="details-container">
                                 <% (r.details || []).forEach((item, itemIdx) => { %>
@@ -193,14 +318,14 @@
                                         <% } %>
                                         <% const qType = item.type || (typeof quiz !== 'undefined' && quiz && quiz.questions && quiz.questions[itemIdx] ? quiz.questions[itemIdx].type : ''); %>
                                         <% if ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback && item.ai_feedback.trim()) { %>
-                                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--hairline);">🤖 <%= typeof item.ai_feedback !== 'undefined' ? item.ai_feedback : '' %></div>
+                                            <div class="ai-feedback-box"><i data-lucide="sparkles" class="icon-sm" style="color:var(--primary);"></i> <strong>AI Tutor:</strong><br> <%= typeof item.ai_feedback !== 'undefined' ? item.ai_feedback : '' %></div>
                                         <% } %>
                                     </div>
                                     <% if (!item.is_correct) { %>
-                                        <button class="btn-explain" onclick="explainMistake(this, <%= itemIdx %>, 0)">
-                                            🤖 AI Tutor Explanation
+                                        <button class="btn-explain" onclick="explainMistake(this, <%= itemIdx %>, 0)'>
+                                            <i data-lucide="bot" class="icon-sm"></i> AI Tutor Explanation
                                         </button>
-                                        <div class="explanation-box"></div>
+                                        <div class='explanation-box"></div>
                                     <% } %>
                                 </div>
                                 <% }); %>
@@ -248,7 +373,7 @@
             const result = resultsData[resIdx];
             const item = result.details[qIdx];
 
-            btn.innerText = "GENERATING..."; btn.disabled = true;
+            btn.innerText = "GENERATING...'; btn.disabled = true;
             fetch('/api/explain', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -262,7 +387,7 @@
             })
             .then(res => res.json()).then(data => {
                 btn.style.display = 'none'; const box = btn.nextElementSibling; box.style.display = 'block';
-                box.innerHTML = `<strong>🤖 AI TUTOR:</strong><br><br>` + data.explanation;
+                box.innerHTML = `<strong><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + data.explanation;
                 MathJax.typesetPromise([box]);
             });
         }
@@ -287,7 +412,7 @@
                 bar.style.display = 'none';
             }
 
-            // Sync "Select All" checkbox state
+            // Sync 'Select All" checkbox state
             const allCheckboxes = document.querySelectorAll('.result-checkbox');
             document.getElementById('select-all-checkbox').checked = (count === allCheckboxes.length && allCheckboxes.length > 0);
         }
@@ -329,5 +454,6 @@
             }
         }
     </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

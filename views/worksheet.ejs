@@ -20,67 +20,50 @@
     
     <style>
         :root {
-            --canvas: #0f172a; /* Match Dashboard Slate 900 */
-            --surface-card: #1e293b; /* Match Dashboard Slate 800 */
-            --surface-elevated: #334155;
-            --surface-soft: #0f172a;
+            --canvas: #090d16;
+            --surface-card: #131927;
+            --surface-elevated: #1c2436;
+            --surface-soft: #1e293b;
             --on-dark: #f8fafc;
             --body: #94a3b8;
             --body-strong: #e2e8f0;
-            --hairline: #334155;
-            --primary: #6366f1; /* Match Dashboard Indigo */
-            --m-blue-light: #818cf8;
+            --hairline: rgba(255, 255, 255, 0.05);
+            --primary: #818cf8;
+            --m-blue-light: #6366f1;
             --m-blue-dark: #4f46e5;
             --m-red: #fb7185;
             --success: #34d399;
-            --radius-md: 12px;
+            --warning: #fbbf24;
+            --radius-md: 16px;
             --radius-sm: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
         
         [data-theme="light"] {
-            --canvas: #f8fafc;
+            --canvas: #fafafa;
             --surface-card: #ffffff;
-            --surface-elevated: #f1f5f9;
-            --surface-soft: #e2e8f0;
+            --surface-elevated: #f4f4f5;
+            --surface-soft: #f4f4f5;
             --on-dark: #0f172a;
-            --body: #64748b;
-            --body-strong: #334155;
-            --hairline: #cbd5e1;
-            --primary: #4f46e5;
-            --m-blue-light: #6366f1;
+            --body: #52525b;
+            --body-strong: #18181b;
+            --hairline: rgba(0, 0, 0, 0.05);
+            --primary: #6366f1;
+            --m-blue-light: #4f46e5;
             --m-blue-dark: #4338ca;
-            --m-red: #f43f5e;
+            --m-red: #e11d48;
             --success: #10b981;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
         }
 
         body { 
             font-family: 'Inter', sans-serif; 
             margin: 0; 
-            padding: 40px 20px;
+            padding: 40px 20px; 
             color: var(--body-strong); 
-            line-height: 1.6; 
-            background: var(--canvas);
+            background-color: var(--canvas);
+            font-weight: 400;
             transition: background-color 0.3s ease, color 0.3s ease;
-        }
-        
-        /* The main visual "Paper" on screen - MUST STAY WHITE FOR PRINTING */
-        .page-container {
-            box-sizing: border-box;    
-            background: white !important;
-            color: black !important;
-            padding: 0.8in 0.8in;
-            margin: auto;
-            border: 1px solid var(--hairline);
-            border-radius: 4px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 16px; 
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 1056px; 
-            max-width: 100%;
         }
         
         .header { text-align: center; margin-bottom: 40px; border-bottom: 3px solid var(--primary); padding-bottom: 20px;}
@@ -166,7 +149,7 @@
         .controls {
             max-width: 1000px; margin: 0 auto 32px auto; background: var(--surface-card); padding: 32px; 
             border: 1px solid var(--hairline); display: flex; gap: 24px; flex-direction: column;
-            border-radius: var(--radius-md); box-shadow: var(--shadow);
+            border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline);
         }
         
         .controls-header { display: flex; align-items: center; margin-bottom: 0px;}
@@ -221,11 +204,35 @@
                 border: 1px solid #ccc !important;
             }
         }
+    
+        
+        /* Unified Buttons */
+        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
+        
+        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
+        
+        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        
+        /* Unified Inputs */
+        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
+        textarea { height: 60px; resize: vertical; } 
+        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
+
     </style>
     <script>
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     
@@ -233,17 +240,17 @@
         <div class="controls-header" style="justify-content: space-between; width: 100%;">
             <div style="display: flex; align-items: center;">
                 <h3>DOCUMENT CONTROLS</h3>
-                <div class="m-stripe-divider"></div>
+                
             </div>
-            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8;">🌓</button>
+            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8;"><i data-lucide="moon"></i></button>
         </div>
         <div class="button-group">
-            <button class="btn" onclick="window.print()">🖨️ PRINT / SAVE AS PDF</button>
-            <button class="btn" onclick="toggleLayout()" title="Cycle between 1, 2, or 4 columns">📐 TOGGLE LAYOUT</button>
-            <button class="btn" onclick="exportHTMLToWord('worksheet-content', '<%= typeof quiz.title !== 'undefined' ? quiz.title : '' %>')">📄 SAVE AS WORD</button>
+            <button class="btn" onclick="window.print()'><i data-lucide="printer" class="icon-sm"></i>️ PRINT / SAVE AS PDF</button>
+            <button class='btn" onclick="toggleLayout()" title="Cycle between 1, 2, or 4 columns'><i data-lucide="ruler" class="icon-sm"></i> TOGGLE LAYOUT</button>
+            <button class='btn" onclick="exportHTMLToWord('worksheet-content', '<%= typeof quiz.title !== 'undefined' ? quiz.title : '' %>')'><i data-lucide="file-text" class="icon-sm"></i> SAVE AS WORD</button>
         </div>
         
-        <div class="style-controls">
+        <div class='style-controls">
             <!-- Paper Size Options -->
             <div class="control-group">
                 <label class="control-label">PAPER:</label>
@@ -514,7 +521,8 @@
             let currentSize = document.getElementById('fontSize').value;
             
             var preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Worksheet</title></head><body style='font-family: ${currentFont}; font-size: ${currentSize}; color: black;'>`;
-            var postHtml = "</body></html>";
+            var postHtml = "    <script>lucide.createIcons();</script>
+</body></html>";
             
             var html = preHtml + clone.innerHTML + postHtml;
 

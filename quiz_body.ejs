@@ -1,0 +1,81 @@
+            transition: 0.2s;
+        }
+        .btn-next-question:hover { opacity: 0.9; transform: scale(1.01); }
+    </style>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.263.1"></script>
+</head>
+<body>
+    <div class="quiz-wrapper">
+        <div class="left-panel" id="left-panel">
+            <div class="quiz-container">
+                <div class="top-bar">
+                    <div class="header-info">
+                        <span style="font-weight: 800;"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> QUIZMOKO</span>
+                        <div id="connection-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--success); margin-left:10px;" title="Online"></div>
+                        <button id="math-retry-btn" onclick="renderMath()" style="display:none; background:transparent; border:1px solid var(--hairline); border-radius:4px; padding:2px 8px; font-size:10px; color:var(--body); cursor:pointer; margin-left:10px;">📐 RETRY MATH</button>
+                        <span id="q-tracker" style="display:none; background:var(--surface-elevated); padding: 6px 12px; border-radius: 12px; margin-left: 10px;">Q <span id="q-num">1</span> / <%= (quiz.questions || []).length %></span>
+                        <span id="score-tracker" style="display:none; background:rgba(52, 211, 153, 0.1); color:var(--success); padding: 6px 12px; border-radius: 12px; margin-left: 10px; font-weight:800;">Score: <span id="live-score">0.00</span></span>
+                        <button id="btn-end-early" onclick="submitQuiz('early')" style="display:none; background: var(--m-red); color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 11px; margin-left: 15px; cursor: pointer; font-weight: bold; opacity: 0.8;">END QUIZ EARLY</button>
+                    </div>
+                    <div class="font-controls" style="display:flex; gap:8px;">
+                        <button onclick="toggleTheme()" style="background:transparent; border:none; font-size:20px; cursor:pointer;">🌓</button>
+                        <button id="center-toggle" onclick="toggleQuestionCentering()" style="background:transparent; border:1px solid var(--hairline); border-radius:4px; width:32px; height:32px; cursor:pointer; color:var(--on-dark);">↔️</button>
+                        <button class="font-btn" onclick="adjustFontSize(-0.1)">A-</button>
+                        <button class="font-btn" onclick="adjustFontSize(0.1)">A+</button>
+                        <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" style="display:none; background:var(--surface-elevated); color:var(--on-dark); border:1px solid var(--hairline); border-radius:6px; padding:0 12px; font-size:11px; cursor:pointer; font-weight:700; transition:0.2s;">SHOW WHITEBOARD</button>
+                    </div>
+                </div>
+                <div id="start-screen">
+                    <h1 style="margin:0; font-size: 40px; color: var(--on-dark); letter-spacing: -0.5px; font-weight: 700;">📝 <%= typeof quiz.title !== 'undefined' ? quiz.title : '' %></h1>
+                    <div style="height:4px; width:60px; background:var(--primary); margin:20px auto;"></div>
+                    <p style="color: var(--body); font-size: 16px;">Time limit: <strong><%= typeof quiz.time_limit !== 'undefined' ? quiz.time_limit : '' %> seconds</strong> per question.</p>
+                    <input type="text" id="student-name" placeholder="Enter your full name" required>
+                    <button class="btn-start" onclick="beginQuiz()"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Start Quiz</button>
+                </div>
+                <div id="quiz-screen" style="display:none;">
+                    <div id="timer"></div>
+                    <div id="question-text"></div>
+                    <div id="options-container"></div>
+
+                    <!-- Instant Evaluation Container -->
+                    <div id="instant-feedback" class="feedback-container" style="z-index: 100; position: relative;">
+                        <div class="feedback-header" id="feedback-status"></div>
+                        <div class="feedback-body" id="feedback-text" style="margin-bottom: 20px;"></div>
+
+                        <!-- NEW: Retry Grading Button -->
+                        <button id="btn-retry-grading" onclick="retryGrading()" class="btn-next-question" style="display:none; background: var(--surface-elevated); margin-bottom: 10px; border: 1px solid var(--hairline);">🔄 RETRY GRADING</button>
+
+                        <button class="btn-next-question" onclick="advanceQuestion()">CONTINUE TO NEXT QUESTION ➡️</button>
+                    </div>
+
+                    <button id="btn-confirm" class="btn-confirm" onclick="confirmSelection()">CONFIRM ANSWER</button>
+
+                    <!-- NEW: Back-and-Forth Navigation Controls -->
+                    <div id="bf-nav-controls" style="display:none; margin-top: 30px; display: flex; gap: 20px;">
+                        <button id="btn-prev" class="btn-nav" onclick="prevQuestion()" style="flex: 1; padding: 18px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--hairline); background: var(--surface-elevated); color: var(--on-dark); transition: 0.2s; font-size: 14px;">⬅️ PREVIOUS</button>
+                        <button id="btn-next" class="btn-nav" onclick="nextQuestion()" style="flex: 2; padding: 18px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: white; transition: 0.2s; font-size: 14px;">NEXT / CONFIRM ➡️</button>
+                    </div>
+                </div>
+                <div id="result-screen" style="display:none;">
+                    <h2 style="font-size: 36px; margin:0; color:var(--on-dark); letter-spacing: -0.5px;">🎉 Quiz Complete</h2>
+                    <div style="height:4px; width:60px; background:var(--primary); margin:20px auto;"></div>
+                    <h1 id="score-text">Grading...</h1>
+                    <p id="save-status-msg" style="color: var(--body); font-size: 16px;">Score successfully submitted.</p>
+                    <button class="btn-confirm" id="pdf-btn" onclick="openSharedSolutions()" style="display:block; background: var(--m-blue-dark); margin-bottom: 40px;">📥 VIEW & DOWNLOAD SOLUTIONS</button>
+                    <hr style="border: 1px solid var(--hairline); margin: 64px 0;">
+                    <h3 style="text-align: left; font-size: 24px; color: var(--on-dark); margin-bottom: 24px;">🔍 Detailed Review</h3>
+                    <div id="review-container"></div>
+                </div>
+            </div>
+        </div>
+        <div class="right-panel" id="right-panel">
+            <div class="wb-toolbar">
+                <button class="wb-btn active" data-tool="draw" onclick="setTool('draw')">✏️ Draw</button>
+                <button class="wb-btn" data-tool="erase" onclick="setTool('erase')">🧽 Eraser</button>
+                <button class="wb-btn" data-tool="line" onclick="setTool('line')">📏 Line</button>
+                <button class="wb-btn" data-tool="rect" onclick="setTool('rect')">⬜ Rect</button>
+                <button class="wb-btn" data-tool="circle" onclick="setTool('circle')">⭕ Circle</button>
+                <button class="wb-btn" onclick="addText()">文本 Text</button>
+                <button class="wb-btn" id="wb-grid-toggle" onclick="toggleWBGrid()">⬛ Grid: Off</button>
+                <button class="wb-btn" onclick="clearCanvas()">🗑️ Clear</button>

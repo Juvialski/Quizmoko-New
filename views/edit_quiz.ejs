@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Edit Quiz - QuizMoKo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -230,6 +232,25 @@
         textarea { height: 60px; resize: vertical; } 
         label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
+        /* Responsive Mobile Styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px 12px !important;
+            }
+            .card {
+                padding: 16px !important;
+            }
+            .live-preview {
+                position: relative !important;
+                top: 0 !important;
+                padding: 16px !important;
+            }
+            .modal-card {
+                padding: 16px !important;
+                width: 92vw !important;
+                box-sizing: border-box !important;
+            }
+        }
     </style>
     
     <script>

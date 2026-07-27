@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title><%= typeof quiz.title !== 'undefined' ? quiz.title : '' %></title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     
@@ -231,6 +233,53 @@
         textarea { height: 60px; resize: vertical; } 
         label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
+        /* Responsive Mobile Quiz Overrides */
+        @media (max-width: 768px) {
+            body {
+                padding: 0 !important;
+            }
+            .left-panel {
+                padding: 16px 10px !important;
+            }
+            .quiz-container {
+                padding: 20px 16px !important;
+                margin-bottom: 20px !important;
+            }
+            .top-bar {
+                flex-wrap: wrap !important;
+                gap: 12px !important;
+                margin-bottom: 20px !important;
+            }
+            #timer {
+                font-size: 32px !important;
+            }
+            #question-text {
+                font-size: 18px !important;
+                margin-bottom: 20px !important;
+            }
+            .option-btn {
+                padding: 14px 16px !important;
+                font-size: 15px !important;
+                min-height: 48px !important;
+            }
+            .nav-controls {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
+            .btn-nav {
+                width: 100% !important;
+                padding: 14px !important;
+            }
+            .answer-comparison {
+                grid-template-columns: 1fr !important;
+                padding: 12px !important;
+            }
+            .wb-toolbar {
+                width: 92% !important;
+                overflow-x: auto !important;
+                justify-content: flex-start !important;
+            }
+        }
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>

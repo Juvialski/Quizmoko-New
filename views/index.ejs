@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>QuizMoKo - Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -275,6 +277,68 @@
         textarea { height: 60px; resize: vertical; } 
         label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
+        /* Responsive Mobile Styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px 12px !important;
+            }
+            .top-header-bar {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+                margin-bottom: 20px !important;
+            }
+            .top-header-bar h1 {
+                font-size: 26px !important;
+            }
+            .header-nav-actions {
+                width: 100% !important;
+                justify-content: space-between !important;
+                flex-wrap: wrap !important;
+            }
+            .dashboard-container.teacher-view {
+                grid-template-columns: 1fr !important;
+            }
+            .mode-tabs {
+                flex-wrap: wrap !important;
+            }
+            .mode-tab {
+                min-width: 70px;
+                padding: 8px 4px !important;
+                font-size: 10px !important;
+            }
+            .quiz-card-horizontal {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+            }
+            .primary-action-btn {
+                width: 100% !important;
+                margin-right: 0 !important;
+                justify-content: center !important;
+                box-sizing: border-box !important;
+            }
+            .actions {
+                grid-template-columns: 1fr !important;
+            }
+            .btn-delete {
+                grid-column: span 1 !important;
+            }
+            .card {
+                padding: 16px !important;
+            }
+            .modal-card {
+                padding: 20px !important;
+                width: 92vw !important;
+                box-sizing: border-box !important;
+            }
+            #mergeActionBar {
+                width: 90vw !important;
+                padding: 12px 16px !important;
+                flex-direction: column !important;
+                gap: 12px !important;
+            }
+        }
     </style>
     
     <!-- Load Theme Before Body to Prevent FOUC (Flash of Unstyled Content) -->
@@ -287,14 +351,14 @@
 </head>
 <body>
     
-    <div style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
+    <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
         <div>
             <h1 style="margin: 0; color: var(--on-dark); font-weight: 700; font-size: 36px; letter-spacing: -0.5px;" id="dashboard-header">
                 <i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> QuizMoKo <span style="font-size:16px; color:var(--body); font-weight:400; letter-spacing: 0; vertical-align: middle;">Teacher</span>
             </h1>
             
         </div>
-        <div style="display: flex; gap: 16px; align-items: center;">
+        <div class="header-nav-actions" style="display: flex; gap: 16px; align-items: center;">
             <% if (is_admin) { %>
             <a href="/admin" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield" class="icon-sm"></i>️ Admin Panel</a>
             <% } %>

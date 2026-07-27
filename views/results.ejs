@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>QuizMoKo - Results</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -128,6 +130,27 @@
         textarea { height: 60px; resize: vertical; } 
         label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
+        /* Responsive Mobile Styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px 12px !important;
+            }
+            .card {
+                padding: 16px !important;
+            }
+            .table-responsive-wrapper {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            table {
+                min-width: 600px;
+            }
+            .toggle-btn {
+                padding: 6px 10px !important;
+                font-size: 11px !important;
+            }
+        }
     </style>
     <script>
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -214,7 +237,8 @@ if (results && results.length > 0) {
 </div>
 
 <div class="card">
-<table>
+    <div class="table-responsive-wrapper">
+        <table>
                 <thead>
                     <tr>
                         <th class="checkbox-cell"><input type="checkbox" id="select-all-checkbox" class="custom-checkbox" onclick="toggleSelectAll()"></th>

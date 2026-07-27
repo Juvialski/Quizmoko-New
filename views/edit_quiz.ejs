@@ -1203,6 +1203,9 @@
                 
                 updatePreview(qIndex, qPreviewBox);
             });
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                lucide.createIcons();
+            }
         }
 
         function removeQuestion(index) {

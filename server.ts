@@ -1142,9 +1142,80 @@ app.post('/api/reformat_answer', (req, res) => {
   res.json({ success: true, formatted_answer: (answer || '').trim() });
 });
 
-app.post('/api/reprocess_question', async (req, res) => {
-  const { question } = req.body;
-  res.json({ success: true, question: question || {} });
+app.post('/api/resolve_question', async (req, res) => {
+  const { question_data, source_context, api_key, subject = 'General', topic = 'Quiz', model_name = 'gemini-3.5-flash-lite' } = req.body;
+  if (!question_data) return res.status(400).json({ success: false, error: 'No question data' });
+
+  try {
+    const ai = getGeminiClient(api_key);
+    if (!ai) return res.status(400).json({ success: false, error: 'No valid API key provided' });
+
+    const isNonMath = ['English', 'History', 'Biology', 'Social Studies'].includes(subject);
+    const solverPromptTemplate = isNonMath ? WORKSHEET_SOLVER_PROMPT_NON_MATH : WORKSHEET_SOLVER_PROMPT;
+    const selectedModel = getRealModelName(model_name);
+
+    // Merge source_context text with question_data
+    const inputQuestion = {
+        ...question_data,
+        raw_text: source_context && source_context.raw_text ? source_context.raw_text : question_data.question,
+    };
+
+    const prompt = solverPromptTemplate
+      .replace('{subject}', subject)
+      .replace('{topic}', topic)
+      .replace('{questions_json}', JSON.stringify([inputQuestion]))
+      .replace('{latex_rules}', SHARED_LATEX_RULES);
+
+    const contents: any[] = [prompt];
+    
+    if (source_context && source_context.crop_data_url) {
+        const b64 = source_context.crop_data_url.split(',')[1];
+        if (b64) {
+            contents.push({
+                inlineData: {
+                    data: b64,
+                    mimeType: 'image/png'
+                }
+            });
+        }
+    } else if (question_data.image_url) {
+        const b64 = question_data.image_url.split(',')[1];
+        if (b64) {
+             contents.push({
+                inlineData: {
+                    data: b64,
+                    mimeType: 'image/png'
+                }
+            });
+        }
+    }
+
+    const response = await ai.models.generateContent({
+      model: selectedModel,
+      contents,
+      config: { responseMimeType: 'application/json' }
+    });
+
+    const text = response.text || '';
+    const parsed = safeParseJSON(text);
+    
+    let resolvedData = null;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+        resolvedData = parsed[0];
+    } else if (parsed && typeof parsed === 'object') {
+        resolvedData = parsed;
+    }
+
+    if (resolvedData) {
+        return res.json({ success: true, question: resolvedData });
+    } else {
+        return res.status(500).json({ success: false, error: 'Failed to parse model output' });
+    }
+
+  } catch (err: any) {
+      console.error('Resolve question error:', err);
+      res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.post('/api/transfer_question', (req, res) => {

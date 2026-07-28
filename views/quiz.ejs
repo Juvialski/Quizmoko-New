@@ -251,129 +251,179 @@
         label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
         /* Redesigned Top Bar Styles */
-        .quiz-topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .quiz-topbar-wrapper {
             background: var(--surface-card);
             border-bottom: 1px solid var(--hairline);
-            padding: 10px 18px;
+            padding: 16px 20px;
             margin-bottom: 24px;
             border-radius: var(--radius-sm);
-            flex-wrap: wrap;
-            gap: 12px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             width: 100%;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
-        .topbar-group {
+        .quiz-brand-row {
             display: flex;
             align-items: center;
-            gap: 10px;
-            flex-wrap: nowrap;
+            justify-content: flex-start;
+            gap: 12px;
+            width: 100%;
+            border-bottom: 1px solid var(--hairline);
+            padding-bottom: 12px;
         }
-        .topbar-brand {
+        .quiz-brand-title {
             font-weight: 800;
-            font-size: 14px;
+            font-size: 16px;
             letter-spacing: 0.5px;
             color: var(--on-dark);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             white-space: nowrap;
         }
-        .topbar-pill {
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.2);
+            flex-shrink: 0;
+        }
+        .quiz-stats-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto; /* Push stats to the far right of the top row */
+        }
+        .stat-badge {
             background: var(--surface-soft);
             border: 1px solid var(--hairline);
-            padding: 5px 10px;
-            border-radius: 8px;
-            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
             font-weight: 600;
             color: var(--on-dark);
             display: inline-flex;
             align-items: center;
             white-space: nowrap;
         }
-        .topbar-score-pill {
+        .stat-score {
             background: rgba(52, 211, 153, 0.1);
             border: 1px solid rgba(52, 211, 153, 0.2);
             color: var(--success);
-            padding: 5px 10px;
-            border-radius: 8px;
-            font-size: 12px;
             font-weight: 800;
-            display: inline-flex;
+        }
+        
+        .quiz-tools-row {
+            display: flex;
             align-items: center;
-            white-space: nowrap;
+            justify-content: space-between;
+            width: 100%;
+            gap: 16px;
+            flex-wrap: wrap;
         }
-        .topbar-btn {
-            background: var(--surface-soft);
-            border: 1px solid var(--hairline);
-            color: var(--on-dark);
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
+        .tools-left-group {
+            display: flex;
             align-items: center;
-            gap: 6px;
-            white-space: nowrap;
+            gap: 12px;
+            flex-wrap: wrap;
         }
-        .topbar-btn:hover {
-            border-color: var(--primary);
-            background: var(--surface-elevated);
+        .tools-right-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: auto;
         }
-        .topbar-btn-primary {
-            background: var(--primary);
-            color: white;
-            border: none;
-        }
-        .topbar-btn-primary:hover {
-            opacity: 0.9;
-        }
-        .topbar-btn-danger {
-            background: rgba(251, 113, 133, 0.1);
-            color: var(--m-red);
-            border: 1px solid rgba(251, 113, 133, 0.2);
-        }
-        .topbar-btn-danger:hover {
-            background: rgba(251, 113, 133, 0.2);
-            border-color: var(--m-red);
-        }
-        .toolbar-group {
+        
+        .expanded-toolbar {
             display: flex;
             align-items: center;
             background: var(--surface-soft);
             border: 1px solid var(--hairline);
-            border-radius: 8px;
-            padding: 2px;
-            gap: 2px;
+            border-radius: var(--radius-sm);
+            padding: 3px;
+            gap: 4px;
         }
-        .toolbar-item {
+        .tool-btn {
             background: transparent;
             border: none;
             cursor: pointer;
             color: var(--body);
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 6px;
+            padding: 6px 12px;
             border-radius: 6px;
-            width: 30px;
-            height: 30px;
             transition: all 0.2s ease;
-            font-size: 11px;
-            font-weight: 700;
+            font-size: 13px;
+            font-weight: 600;
+            height: 32px;
+            box-sizing: border-box;
         }
-        .toolbar-item:hover {
+        .tool-btn i, .tool-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        .tool-btn:hover {
             background: var(--surface-elevated);
             color: var(--on-dark);
         }
-        .toolbar-divider {
+        .tool-separator {
             width: 1px;
-            height: 16px;
+            height: 18px;
             background: var(--hairline);
+        }
+        
+        .action-btn {
+            background: var(--surface-soft);
+            border: 1px solid var(--hairline);
+            color: var(--on-dark);
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            height: 38px;
+            box-sizing: border-box;
+        }
+        .action-btn:hover {
+            border-color: var(--primary);
+            background: var(--surface-elevated);
+        }
+        .action-btn i, .action-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover, var(--primary));
+            opacity: 0.95;
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.15);
+        }
+        .btn-secondary {
+            background: var(--surface-soft);
+            color: var(--on-dark);
+            border: 1px solid var(--hairline);
+        }
+        .btn-danger {
+            background: rgba(251, 113, 133, 0.1);
+            color: var(--m-red);
+            border: 1px solid rgba(251, 113, 133, 0.2);
+        }
+        .btn-danger:hover {
+            background: rgba(251, 113, 133, 0.2);
+            border-color: var(--m-red);
         }
 
         /* Responsive Mobile Quiz Overrides */
@@ -388,11 +438,37 @@
                 padding: 20px 16px !important;
                 margin-bottom: 20px !important;
             }
-            .quiz-topbar {
+            .quiz-topbar-wrapper {
+                padding: 12px !important;
+                gap: 12px !important;
+            }
+            .quiz-brand-row {
+                flex-wrap: wrap;
+                padding-bottom: 8px;
                 justify-content: center !important;
+            }
+            .quiz-stats-group {
+                margin-left: 0 !important;
+                width: 100%;
+                justify-content: center;
+            }
+            .quiz-tools-row {
+                flex-direction: column !important;
+                align-items: stretch !important;
                 gap: 10px !important;
-                padding: 8px 12px !important;
-                margin-bottom: 16px !important;
+            }
+            .tools-left-group, .tools-right-group {
+                justify-content: center !important;
+                margin-left: 0 !important;
+                width: 100%;
+            }
+            .expanded-toolbar {
+                width: 100%;
+                justify-content: space-around;
+            }
+            .action-btn {
+                flex: 1;
+                justify-content: center;
             }
             #timer {
                 font-size: 32px !important;
@@ -433,48 +509,63 @@
         <div class="left-panel" id="left-panel">
             <div class="quiz-container">
                 
-<div class="quiz-topbar">
-    <div class="topbar-group">
-        <span class="topbar-brand">
-            <i data-lucide="rocket" class="icon-sm"></i> QUIZMOKO
+<div class="quiz-topbar-wrapper">
+    <!-- Top Row: Branding, Connectivity, and Progress Stats -->
+    <div class="quiz-brand-row">
+        <span class="quiz-brand-title">
+            <i data-lucide="rocket"></i> QUIZMOKO
         </span>
-        <div id="connection-dot" style="width:8px; height:8px; border-radius:50%; background:var(--success);" title="Online"></div>
-        <span id="q-tracker" class="topbar-pill" style="display:none;">
-            Question <span id="q-num">1</span> of <%= (quiz.questions || []).length %>
-        </span>
-        <span id="score-tracker" class="topbar-score-pill" style="display:none;">
-            Score: <span id="live-score">0.00</span>
-        </span>
+        <div id="connection-dot" class="status-dot" title="Online"></div>
+        
+        <div class="quiz-stats-group">
+            <span id="q-tracker" class="stat-badge" style="display:none;">
+                Question <span id="q-num">1</span> of <%= (quiz.questions || []).length %>
+            </span>
+            <span id="score-tracker" class="stat-badge stat-score" style="display:none;">
+                Score: <span id="live-score">0.00</span>
+            </span>
+        </div>
     </div>
     
-    <div class="topbar-group">
-        <!-- Retry Math Button -->
-        <button id="math-retry-btn" onclick="renderMath()" class="topbar-btn" style="display:none;">
-            <i data-lucide="refresh-cw" class="icon-sm"></i> Retry Math
-        </button>
+    <!-- Bottom Row: Interactive Tools and Action Buttons (Expanded & Balanced) -->
+    <div class="quiz-tools-row">
+        <!-- Left Side: Custom Tools & Utilities -->
+        <div class="tools-left-group">
+            <div class="expanded-toolbar">
+                <button onclick="toggleTheme()" class="tool-btn" title="Toggle Theme">
+                    <i data-lucide="moon"></i>
+                    <span>Theme</span>
+                </button>
+                <div class="tool-separator"></div>
+                <button id="center-toggle" onclick="toggleQuestionCentering()" class="tool-btn" title="Toggle Alignment">
+                    <i data-lucide="align-center"></i>
+                    <span>Align</span>
+                </button>
+                <div class="tool-separator"></div>
+                <button class="tool-btn" onclick="adjustFontSize(-0.1)" title="Decrease Font">
+                    <span>A-</span>
+                </button>
+                <div class="tool-separator"></div>
+                <button class="tool-btn" onclick="adjustFontSize(0.1)" title="Increase Font">
+                    <span>A+</span>
+                </button>
+            </div>
 
-        <!-- Compact Interactive Toolbar -->
-        <div class="toolbar-group">
-            <button onclick="toggleTheme()" class="toolbar-item" title="Toggle Theme">
-                <i data-lucide="moon" style="width: 15px; height: 15px;"></i>
+            <!-- Retry Math Button -->
+            <button id="math-retry-btn" onclick="renderMath()" class="action-btn btn-secondary" style="display:none;">
+                <i data-lucide="refresh-cw"></i> Retry Math
             </button>
-            <div class="toolbar-divider"></div>
-            <button id="center-toggle" onclick="toggleQuestionCentering()" class="toolbar-item" title="Toggle Alignment">
-                <i data-lucide="align-center" style="width: 15px; height: 15px;"></i>
-            </button>
-            <div class="toolbar-divider"></div>
-            <button class="toolbar-item" onclick="adjustFontSize(-0.1)" title="Decrease Font">A-</button>
-            <div class="toolbar-divider"></div>
-            <button class="toolbar-item" onclick="adjustFontSize(0.1)" title="Increase Font">A+</button>
         </div>
 
-        <!-- Call to Action Buttons -->
-        <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" class="topbar-btn topbar-btn-primary" style="display:none;">
-            <i data-lucide="pen-tool" class="icon-sm"></i> Whiteboard
-        </button>
-        <button id="btn-end-early" onclick="submitQuiz('early')" class="topbar-btn topbar-btn-danger" style="display:none;">
-            <i data-lucide="log-out" class="icon-sm"></i> End Quiz
-        </button>
+        <!-- Right Side: Navigation & Core Actions -->
+        <div class="tools-right-group">
+            <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" class="action-btn btn-primary" style="display:none;">
+                <i data-lucide="pen-tool"></i> Whiteboard
+            </button>
+            <button id="btn-end-early" onclick="submitQuiz('early')" class="action-btn btn-danger" style="display:none;">
+                <i data-lucide="log-out"></i> End Quiz
+            </button>
+        </div>
     </div>
 </div>
 

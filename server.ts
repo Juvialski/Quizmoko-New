@@ -887,7 +887,7 @@ Student's Response: "${actual}"
 
 Evaluate if the student's response is correct or mathematically/semantically equivalent based on the answer key.
 If it is correct, set "is_correct" to true, and optionally provide brief encouraging feedback.
-If it is incorrect, set "is_correct" to false, and provide a brief 1-2 sentence explanation of why.
+If it is incorrect, set "is_correct" to false, and provide a brief 1-2 sentence explanation of why. CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, and fractions inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$). Do NOT use asterisks for math.
 Return your response STRICTLY as a JSON object in the format: {"is_correct": boolean, "feedback": "string"}`;
 
           let parts: any[] = [{ text: prompt }];
@@ -1016,7 +1016,9 @@ app.post('/api/explain', async (req, res) => {
       const prompt = `Explain clearly and concisely in 2-3 sentences why the student's answer was incorrect for this quiz question and how to solve or get the correct answer.
 Question: "${question}"
 Student's Answer: "${user_answer}"
-Correct Answer: "${correct_answer}"`;
+Correct Answer: "${correct_answer}"
+
+CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, and fractions inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$). Do NOT use asterisks for math.`;
 
       const response = await ai.models.generateContent({
         model: getRealModelName('gemini-2.5-flash'),
@@ -1139,7 +1141,7 @@ app.get('/api/get_quiz_details/:id', (req, res) => {
 
 app.post('/api/reformat_answer', (req, res) => {
   const { answer } = req.body;
-  res.json({ success: true, formatted_answer: (answer || '').trim() });
+  res.json({ success: true, formatted: (answer || '').trim() });
 });
 
 app.post('/api/resolve_question', async (req, res) => {
@@ -1157,7 +1159,7 @@ app.post('/api/resolve_question', async (req, res) => {
     // Merge source_context text with question_data
     const inputQuestion = {
         ...question_data,
-        raw_text: source_context && source_context.raw_text ? source_context.raw_text : question_data.question,
+        raw_text: question_data.question || (source_context ? source_context.raw_text : ''),
     };
 
     const prompt = solverPromptTemplate
@@ -1207,7 +1209,12 @@ app.post('/api/resolve_question', async (req, res) => {
     }
 
     if (resolvedData) {
-        return res.json({ success: true, question: resolvedData });
+        const finalResolvedQuestion = {
+            ...question_data, // Keep original data including the question text and source_index
+            ...resolvedData, // Apply new answer, options, type
+            question: question_data.question // Enforce that the question text remains the same
+        };
+        return res.json({ success: true, question: finalResolvedQuestion });
     } else {
         return res.status(500).json({ success: false, error: 'Failed to parse model output' });
     }

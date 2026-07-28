@@ -6,16 +6,17 @@ MATH & LATEX RULES:
    - CORRECT: $x - 13 = 20$, $8n + 2 = 90$, $\\dfrac{32}{y} = 2$
    - INCORRECT: $x$ - $13$ = $20$, $8n$ + $2$ = $90$, $\\dfrac{$32$}{$y$} = $2$
 2. NO NESTING: NEVER put dollar signs inside other dollar signs.
-3. STANDALONE NUMBERS: For numbers in word problems (e.g., "3 miles"), wrap the number in '$' tags (e.g., "$3$ miles"). ONLY do this if the number is NOT already part of a larger equation or formula.
-4. INCLUDE OPERATORS: Signs like +, -, *, /, and = MUST be inside the '$' tags.
-5. MULTIPLICATION SYMBOL: Always use \\times for multiplication (e.g., $8 \\times 9 = 72$). NEVER use asterisks (*) or the letter 'x'.
-6. PROFESSIONAL FRACTIONS: Always use \\dfrac{n}{d} for EVERY fraction or division expression (e.g., $\\dfrac{1}{2}$, $\\dfrac{8}{4}$). NEVER use slashes ('/') or dashes ('-').
-7. DIVISION SYMBOL: For simple division in text, use \\div (e.g., $10 \\div 2 = 5$). NEVER use slashes like '10/2'.
-8. VISUAL SCALING: Use \\left( and \\right) for any math expressions inside parentheses.
-9. CENTERED MATH: If a formula is standalone or a complex table/array exists, wrap it in double dollar signs $$ ... $$.
-10. COMPARISON PLACEHOLDERS: For questions asking to compare two values, use \\bigcirc inside the LaTeX expression. Example: $5 \\bigcirc 10$.
-11. NO CURRENCY SYMBOL IN MATH: Never use '$' as a currency symbol prefix (e.g., $5.00) inside or near math. Use the LaTeX rule above for numbers.
-12. NO TEXT BOLDING: Never use ** or __ for bolding or italics.
+3. ONLY WRAP MATH: DO NOT wrap plain text words, labels, sentences, or categories (e.g., 'Right', 'Isosceles', 'Triangle', 'No', 'Yes', 'True', 'False') in '$' tags. If text and math are mixed (e.g., 'No, 48 > 45'), ONLY wrap the math part (e.g., 'No, $48 > 45$'). DO NOT wrap full sentences.
+4. STANDALONE NUMBERS: For numbers in word problems (e.g., "3 miles"), wrap the number in '$' tags (e.g., "$3$ miles"). ONLY do this if the number is NOT already part of a larger equation or formula.
+5. INCLUDE OPERATORS: Signs like +, -, *, /, and = MUST be inside the '$' tags.
+6. MULTIPLICATION SYMBOL: Always use \\times for multiplication (e.g., $8 \\times 9 = 72$). NEVER use asterisks (*) or the letter 'x'.
+7. PROFESSIONAL FRACTIONS: Always use \\dfrac{n}{d} for EVERY fraction or division expression (e.g., $\\dfrac{1}{2}$, $\\dfrac{8}{4}$). NEVER use slashes ('/') or dashes ('-').
+8. DIVISION SYMBOL: For simple division in text, use \\div (e.g., $10 \\div 2 = 5$). NEVER use slashes like '10/2'.
+9. VISUAL SCALING: Use \\left( and \\right) for any math expressions inside parentheses.
+10. CENTERED MATH: If a formula is standalone or a complex table/array exists, wrap it in double dollar signs $$ ... $$.
+11. COMPARISON PLACEHOLDERS: For questions asking to compare two values, use \\bigcirc inside the LaTeX expression. Example: $5 \\bigcirc 10$.
+12. NO CURRENCY SYMBOL IN MATH: Never use '$' as a currency symbol prefix (e.g., $5.00) inside or near math. Use the LaTeX rule above for numbers.
+13. NO TEXT BOLDING: Never use ** or __ for bolding or italics.
 13. PRESERVE HTML: If you see tags like <div class="resizable-image-wrapper">, you MUST preserve them exactly.
 14. IDENTIFICATION EXCEPTION: For Identification answer keys ONLY, DO NOT use LaTeX enclosure or dollar signs. Keep them as plain text or numbers.
 15. STRICT ENCLOSURE: For all other question types and ALL answer options, you MUST follow the math enclosure rules for ALL numbers and expressions.
@@ -180,10 +181,11 @@ CRITICAL RULES:
 9. CLASSIFICATION: Carefully determine 'type':
    - 'multiple_choice': If the question has options A) B) C) D) and implies exactly ONE correct answer.
    - 'multiple_choice_multi': If the question has options and explicitly asks to 'Select all that apply', 'Which of these...', 'Choose multiple', or context implies more than one correct answer.
-   - 'identification': If it has NO options and requires exactly ONE integer, ONE word, or ONE symbol as the answer. This is the DEFAULT for single-value answers.
+   - 'identification': If it has NO options and requires exactly ONE number (integer, decimal, e.g. 0.75), ONE word, or ONE symbol as the answer. (DO NOT use for fractions, fractions are open_ended). This is the DEFAULT for single-value answers.
    - 'open_ended': If it has NO options and requires a descriptive response, a multi-part list (e.g., '70, 105, 140'), a fraction, or a sentence.
 10. DIAGRAM / IMAGE BOUNDING BOX DETECTION (CRITICAL): ONLY set "bounding_box" if the question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. If the question consists purely of text or mathematical equations with NO associated diagram/illustration, "bounding_box" MUST be set to an empty array []. When a diagram IS present, provide a bounding box [ymin, xmin, ymax, xmax] (0 to 1000) that wraps the diagram with a slight 5-10% extra margin to ensure the visual is fully enclosed. Do not output boxes for plain text.
 11. COMPLETE EXTRACTION: You MUST extract 100% of all questions found on the page from the first to the very last. Do not omit or summarize any questions.
+12. CLEAN SPACING (CRITICAL): OCR often breaks large numbers with newlines and commas (e.g., '226\\n,\\n000'). You MUST reconstruct these into a single clean number (e.g., '226,000'). Remove all unnatural newlines, spaces, and line breaks within sentences, numbers, or words.
 
 OUTPUT STRUCTURE SPECIFICATION (MANDATORY):
 You MUST output a valid JSON array of objects. Each object represents one question and MUST strictly contain these exact keys:
@@ -250,13 +252,13 @@ CRITICAL RULES:
 3. {latex_rules}
 4. MULTI-ANSWER RULE: For questions classified as 'multiple_choice_multi', the 'answer' field MUST be a comma-separated list of ALL correct letters (e.g., "A, C" or "A, B, D").
 5. DYNAMIC TYPE CLASSIFICATION (CRITICAL):
-   - 'identification': ONLY if the answer is a single **integer** (positive or negative) OR a single comparison symbol (<, >, or =).
-   - 'open_ended': If the question requires a descriptive sentence, a multi-part list, a fraction, or a decimal.
+   - 'identification': ONLY if the answer is a single **number** (integer, decimal, e.g. 0.75) OR a single comparison symbol (<, >, or =). (DO NOT use for fractions, fractions are open_ended).
+   - 'open_ended': If the question requires a descriptive sentence, a multi-part list, or a fraction.
 6. CONCISE ANSWERS: For 'identification' questions, DO NOT include explanations, steps, or labels like "Answer is..." in the 'answer' field. Output ONLY the raw final value.
 7. Accuracy: Solve step-by-step in [THINKING] tags first.
 8. IDENTIFICATION EXCEPTION: For Identification questions ONLY, keep the 'answer' field as a plain number or word (no dollar signs).
-9. PROFESSIONAL ANSWERS: For all other types (Multiple Choice, Open Ended), you MUST use proper LaTeX enclosure ($) and formatting (e.g. \\dfrac for fractions) in the 'answer' and 'options' fields.
-10. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using \\n in the 'answer' field. Example: a. $38$\\nb. Commutative Property\\nc. $42$.
+9. PROFESSIONAL ANSWERS: For all other types (Multiple Choice, Open Ended), you MUST use proper LaTeX enclosure ($) and formatting (e.g. \dfrac for fractions) in the 'answer' and 'options' fields. (CRITICAL: Adhere strictly to the 'ONLY WRAP MATH' rule—do NOT wrap plain text words in options or answers. e.g. 'A) $45$ apples', NOT '$A) 45 apples$').
+10. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using a real newline in the 'answer' field.
 11. Return ONLY a JSON array of objects with: 'options', 'answer', 'type', 'source_index'.
 `;
 
@@ -276,11 +278,11 @@ CRITICAL RULES:
 3. NO LATEX: NEVER use '$' or '$$' tags in the 'options', or 'answer' fields, EXCEPT for centered LaTeX array tables wrapped in $$ ... $$.
 4. MULTI-ANSWER RULE: For questions classified as 'multiple_choice_multi', the 'answer' field MUST be a comma-separated list of ALL correct letters (e.g., "A, C" or "A, B, D").
 5. DYNAMIC TYPE CLASSIFICATION (CRITICAL):
-   - 'identification': If the answer is exactly ONE word, short phrase, or number. You MUST classify single-value answers as 'identification'.
+   - 'identification': If the answer is exactly ONE word, short phrase, or number (excluding fractions). You MUST classify single-value answers as 'identification'.
    - 'open_ended': ONLY if the question requires a descriptive response, a sentence, or an essay-style answer.
 6. CONCISE ANSWERS: For 'identification' questions, DO NOT include explanations or sentences in the 'answer' field. Output ONLY the raw final word/number.
 7. Accuracy: Verify facts step-by-step in [THINKING] tags first.
-8. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using \\n in the 'answer' field. Example: a. Nouns\\nb. Verbs\\nc. Adjectives.
+8. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using a real newline in the 'answer' field.
 9. Return ONLY a JSON array of objects with: 'options', 'answer', 'type', 'source_index'.
 `;
 
@@ -312,10 +314,10 @@ CRITICAL RULES:
    - INCORRECT: $x$ - $13$ = $20$, $3w$ = $36$, $5x$ + $5$ = $20$, $8n$ + $2$ = $90$, \\dfrac{$32$}{$y$} = $2$
 2. NO NESTING: NEVER put dollar signs inside other dollar signs.
 3. STANDALONE NUMBERS: For numbers in word problems (e.g., "3 miles"), you MUST still wrap the number in '$' tags (e.g., "$3$ miles"). ONLY do this if the number is NOT already part of a larger equation.
-4. INCLUDE OPERATORS: Signs like +, -, *, /, and = MUST be inside the dollar signs.
-5. MULTIPLICATION SYMBOL: Always use \\times for multiplication (e.g., $8 \\times 9 = 72$). NEVER use asterisks (*) or the letter 'x'.
-6. PROFESSIONAL FRACTIONS: Always use \\dfrac{n}{d} for EVERY fraction or division expression.
-7. DIVISION SYMBOL: For simple division, use \\div.
+5. INCLUDE OPERATORS: Signs like +, -, *, /, and = MUST be inside the dollar signs.
+6. MULTIPLICATION SYMBOL: Always use \\times for multiplication (e.g., $8 \\times 9 = 72$). NEVER use asterisks (*) or the letter 'x'.
+7. PROFESSIONAL FRACTIONS: Always use \\dfrac{n}{d} for EVERY fraction or division expression.
+8. DIVISION SYMBOL: For simple division, use \\div.
 7. CENTERED MATH & TABLES: If a formula is standalone or a table exists, convert to a clean LaTeX array or expression enclosed in double dollar signs $$ ... $$.
 8. EXHAUSTIVE: Apply this to ALL question text, options, and answers.
    - EXCEPTION: For 'identification' type questions, DO NOT apply LaTeX enclosure to the 'answer' field. Keep it plain.
@@ -334,7 +336,8 @@ Your ONLY goal is to extract the literal text of the questions and format them. 
 CRITICAL RULES:
 1. NO SKIPPING: Scan the entire segment and extract every item.
 2. LITERAL EXTRACTION: Do NOT summarize. Extract the EXACT text of the question.
-3. LATEX FORMATTING: Wrap ENTIRE math expressions, numbers, and variables in SINGLE '$' tags. NEVER wrap components individually. Use \\dfrac{n}{d} for fractions.
+3. LATEX FORMATTING: Wrap ENTIRE math expressions, numbers, and variables in SINGLE '$' tags.
+3. LATEX FORMATTING: Wrap ENTIRE math expressions, numbers, and variables in SINGLE '
 4. NO NESTING: NEVER put dollar signs inside other dollar signs.
 5. MULTIPLE CHOICE DETECTION:
    - If the question is Multiple Choice, extract the text of all options into the 'choices' array.

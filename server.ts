@@ -477,7 +477,14 @@ function tokenRequired(req: any, res: any, next: any) {
 function getGeminiClient(customApiKey?: string) {
   const apiKey = customApiKey || process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build'
+      }
+    }
+  });
 }
 
 function getRealModelName(modelName?: string): string {
@@ -528,6 +535,12 @@ function fixJsonLatexEscapes(jsonStr: string): string {
         // Double the backslash so standard JSON.parse receives \\ for LaTeX commands
         result += '\\\\';
       }
+    } else if (inString && char === '\n') {
+      result += '\\n';
+    } else if (inString && char === '\r') {
+      result += '\\r';
+    } else if (inString && char === '\t') {
+      result += '\\t';
     } else {
       result += char;
     }
@@ -856,14 +869,22 @@ app.post('/api/grade_individual', tokenRequired, async (req: any, res) => {
       const actualLetter = actualLower.replace(/[^a-d]/gi, '')[0];
       isCorrect = expectedLetter && actualLetter ? expectedLetter === actualLetter : expectedLower === actualLower;
     } else {
-      const cleanExpected = expectedLower.replace(/[^a-z0-9]/gi, '');
-      const cleanActual = actualLower.replace(/[^a-z0-9]/gi, '');
+      const cleanExpected = expectedLower.replace(/[^a-z0-9.-]/gi, '');
+      const cleanActual = actualLower.replace(/[^a-z0-9.-]/gi, '');
       if (cleanExpected === cleanActual) {
         isCorrect = true;
       } else {
-        const numExpected = expectedLower.replace(/[^0-9.]/g, '');
-        const numActual = actualLower.replace(/[^0-9.]/g, '');
-        isCorrect = !!(numExpected && numActual && numExpected === numActual);
+        const numExpected = expectedLower.replace(/[^0-9.-]/g, '');
+        const numActual = actualLower.replace(/[^0-9.-]/g, '');
+        if (numExpected && numActual) {
+          const floatE = parseFloat(numExpected);
+          const floatA = parseFloat(numActual);
+          if (!isNaN(floatE) && !isNaN(floatA) && floatE === floatA) {
+            isCorrect = true;
+          } else {
+            isCorrect = (numExpected === numActual);
+          }
+        }
       }
     }
   } else {
@@ -921,15 +942,25 @@ Return your response STRICTLY as a JSON object in the format: {"is_correct": boo
           aiFeedback = parsed.feedback || '';
         } catch (err) {
           console.error("AI individual grading error:", err);
-          const numExpected = expectedLower.replace(/[^0-9.]/g, '');
-          const numActual = actualLower.replace(/[^0-9.]/g, '');
+          const numExpected = expectedLower.replace(/[^0-9.-]/g, '');
+          const numActual = actualLower.replace(/[^0-9.-]/g, '');
           isCorrect = !!(numExpected && numActual && numExpected === numActual) || expectedLower === actualLower;
           aiFeedback = isCorrect ? '' : 'Incorrect based on simple match (AI grading failed).';
         }
       } else {
-        const numExpected = expectedLower.replace(/[^0-9.]/g, '');
-        const numActual = actualLower.replace(/[^0-9.]/g, '');
-        isCorrect = !!(numExpected && numActual && numExpected === numActual) || expectedLower === actualLower;
+        const numExpected = expectedLower.replace(/[^0-9.-]/g, '');
+        const numActual = actualLower.replace(/[^0-9.-]/g, '');
+        if (numExpected && numActual) {
+          const floatE = parseFloat(numExpected);
+          const floatA = parseFloat(numActual);
+          if (!isNaN(floatE) && !isNaN(floatA) && floatE === floatA) {
+            isCorrect = true;
+          } else {
+            isCorrect = (numExpected === numActual) || expectedLower === actualLower;
+          }
+        } else {
+          isCorrect = expectedLower === actualLower;
+        }
         aiFeedback = isCorrect ? '' : 'Incorrect. (Note: AI grading is currently unavailable due to missing API key).';
       }
     }
@@ -1154,11 +1185,28 @@ app.post('/api/polish_questions', async (req, res) => {
     const ai = getGeminiClient(api_key);
     if (!ai) return res.status(400).json({ success: false, error: 'No valid API key provided' });
 
-    const prompt = `${LATEX_POLISH_PROMPT}\n\nHere are the questions to polish. Output ONLY the JSON array containing the polished questions matching the exact schema.\n\n${JSON.stringify(questions)}`;
-    
+    const contents: any[] = [];
+    const cleanQuestions = questions.map((q: any) => {
+        let cleanRawText = q.raw_text || q.question || '';
+        const imgMatches = [...cleanRawText.matchAll(/src="data:([^;]+);base64,([^"]+)"/g)];
+        for (const match of imgMatches) {
+            contents.push({
+                inlineData: {
+                    mimeType: match[1] || 'image/png',
+                    data: match[2]
+                }
+            });
+        }
+        cleanRawText = cleanRawText.replace(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi, '[IMAGE_PROVIDED_IN_VISION_CONTEXT]').replace(/<br\s*\/?>/gi, '\n').trim();
+        return { ...q, raw_text: cleanRawText, question: cleanRawText };
+    });
+
+    const prompt = `${LATEX_POLISH_PROMPT}\n\nHere are the questions to polish. Output ONLY the JSON array containing the polished questions matching the exact schema.\n\n${JSON.stringify(cleanQuestions)}`;
+    contents.unshift(prompt);
+
     const response = await ai.models.generateContent({
       model: getRealModelName(model_name),
-      contents: [prompt],
+      contents: contents,
       config: { responseMimeType: 'application/json' }
     });
     
@@ -1168,9 +1216,23 @@ app.post('/api/polish_questions', async (req, res) => {
     if (Array.isArray(parsed) && parsed.length > 0) {
       // Merge to ensure we don't drop fields
       const merged = parsed.map((polishedQ: any, i: number) => {
+          // Re-attach images if they existed in the original
+          let finalQuestion = polishedQ.question || questions[i].question;
+          const origText = questions[i].question || questions[i].raw_text || '';
+          const imgMatches = origText.match(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi);
+          if (imgMatches && finalQuestion) {
+              finalQuestion = finalQuestion.replace(/\[IMAGE_PROVIDED_IN_VISION_CONTEXT\]/gi, '');
+              imgMatches.forEach(img => {
+                  if (!finalQuestion.includes(img)) {
+                      finalQuestion += '\n' + '<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;">' + img + '</div></div>';
+                  }
+              });
+          }
+
           return {
               ...questions[i],
               ...polishedQ,
+              question: finalQuestion,
               // Never let the AI accidentally clear out the question text if it messed up
               question: polishedQ.question || questions[i].question
           };
@@ -1197,10 +1259,26 @@ app.post('/api/resolve_question', async (req, res) => {
     const solverPromptTemplate = isNonMath ? WORKSHEET_SOLVER_PROMPT_NON_MATH : WORKSHEET_SOLVER_PROMPT;
     const selectedModel = getRealModelName(model_name);
 
+    // Extract base64 image from the question text if it exists
+    let extractedMime = null;
+    let extractedB64 = null;
+    const rawTextToSearch = question_data.question || (source_context ? source_context.raw_text : '');
+    const imgMatch = rawTextToSearch.match(/src="data:([^;]+);base64,([^"]+)"/);
+    if (imgMatch) {
+        extractedMime = imgMatch[1];
+        extractedB64 = imgMatch[2];
+    }
+    
+    const cleanRawText = rawTextToSearch.replace(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi, '[IMAGE_PROVIDED_IN_VISION_CONTEXT]').replace(/<br\s*\/?>/gi, '\n').trim();
+
     // Merge source_context text with question_data
     const inputQuestion = {
         ...question_data,
-        raw_text: question_data.question || (source_context ? source_context.raw_text : ''),
+        answer: "", // Clear answer so AI re-solves it
+        options: [], // Clear options so AI regenerates them if needed
+        correct_answer_letter: "",
+        question: cleanRawText, // Use clean text in the JSON payload to avoid bloating prompt
+        raw_text: cleanRawText,
     };
 
     const prompt = solverPromptTemplate
@@ -1211,7 +1289,14 @@ app.post('/api/resolve_question', async (req, res) => {
 
     const contents: any[] = [prompt];
     
-    if (source_context && source_context.crop_data_url) {
+    if (extractedB64) {
+        contents.push({
+            inlineData: {
+                data: extractedB64,
+                mimeType: extractedMime || 'image/png'
+            }
+        });
+    } else if (source_context && source_context.crop_data_url) {
         const b64 = source_context.crop_data_url.split(',')[1];
         if (b64) {
             contents.push({
@@ -1250,10 +1335,22 @@ app.post('/api/resolve_question', async (req, res) => {
     }
 
     if (resolvedData) {
+        let finalQuestion = resolvedData.question || question_data.question || question_data.raw_text || '';
+        const origText = question_data.question || question_data.raw_text || '';
+        const imgMatches = origText.match(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi);
+        if (imgMatches && finalQuestion) {
+            finalQuestion = finalQuestion.replace(/\[IMAGE_PROVIDED_IN_VISION_CONTEXT\]/gi, '');
+            imgMatches.forEach(img => {
+                if (!finalQuestion.includes(img)) {
+                    finalQuestion += '\n' + '<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;">' + img + '</div></div>';
+                }
+            });
+        }
+        
         const finalResolvedQuestion = {
-            ...question_data, // Keep original data including the question text and source_index
-            ...resolvedData, // Apply new answer, options, type
-            question: question_data.question // Enforce that the question text remains the same
+            ...question_data,
+            ...resolvedData, 
+            question: finalQuestion
         };
         return res.json({ success: true, question: finalResolvedQuestion });
     } else {
@@ -1733,7 +1830,11 @@ app.post('/api/extract_worksheet', tokenRequired, upload.any(), async (req: any,
     const missingIndices: number[] = [];
     if (extractedIndices.length > 0) {
       const maxIdx = Math.max(...extractedIndices);
-      for (let i = 1; i <= maxIdx; i++) {
+      let minIdx = Math.min(...extractedIndices);
+      // If the minimum is close to 1 (e.g. 2 or 3), assume we started at 1
+      if (minIdx <= 3) minIdx = 1;
+      
+      for (let i = minIdx; i <= maxIdx; i++) {
         if (!extractedIndices.includes(i)) {
           missingIndices.push(i);
         }
@@ -1789,22 +1890,58 @@ app.post('/api/solve_worksheet', tokenRequired, async (req: any, res) => {
 
         if (ai) {
           try {
+            const contents: any[] = [];
+            const cleanBatch = batch.map((q: any) => {
+                let cleanRawText = q.raw_text || q.question || '';
+                const imgMatches = [...cleanRawText.matchAll(/src="data:([^;]+);base64,([^"]+)"/g)];
+                for (const match of imgMatches) {
+                    contents.push({
+                        inlineData: {
+                            mimeType: match[1] || 'image/png',
+                            data: match[2]
+                        }
+                    });
+                }
+                cleanRawText = cleanRawText.replace(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi, '[IMAGE_PROVIDED_IN_VISION_CONTEXT]').replace(/<br\s*\/?>/gi, '\n').trim();
+                return { ...q, raw_text: cleanRawText, question: cleanRawText };
+            });
+
             const prompt = solverPromptTemplate
               .replace('{subject}', subject)
               .replace('{topic}', topic)
-              .replace('{questions_json}', JSON.stringify(batch))
+              .replace('{questions_json}', JSON.stringify(cleanBatch))
               .replace('{latex_rules}', SHARED_LATEX_RULES);
+            
+            contents.unshift(prompt);
 
             const response = await ai.models.generateContent({
               model: selectedModel,
-              contents: [prompt],
+              contents: contents,
               config: { responseMimeType: 'application/json' }
             });
-
             const text = response.text || '';
             const batchSolved = safeParseJSON(text);
+
             if (Array.isArray(batchSolved)) {
-              solvedResults.push(...batchSolved);
+              const restoredBatch = batchSolved.map((solvedItem, index) => {
+                  let finalQuestion = solvedItem.question || batch[index].question || batch[index].raw_text || '';
+                  const origText = batch[index].question || batch[index].raw_text || '';
+                  const imgMatches = origText.match(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi);
+                  if (imgMatches && finalQuestion) {
+                      finalQuestion = finalQuestion.replace(/\[IMAGE_PROVIDED_IN_VISION_CONTEXT\]/gi, '');
+                      imgMatches.forEach(img => {
+                          if (!finalQuestion.includes(img)) {
+                              finalQuestion += '\n' + '<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;">' + img + '</div></div>';
+                          }
+                      });
+                  }
+                  return {
+                      ...solvedItem,
+                      question: finalQuestion,
+                      raw_text: batch[index].raw_text
+                  };
+              });
+              solvedResults.push(...restoredBatch);
             }
           } catch (e) {
             console.warn(`Error solving batch starting at index ${i}:`, e);
@@ -2302,7 +2439,11 @@ Return ONLY a valid JSON object map like {"1": "A", "2": "B", "3": "42"}.`;
     const missingIndices: number[] = [];
     if (extractedIndices.length > 0) {
       const maxIdx = Math.max(...extractedIndices);
-      for (let i = 1; i <= maxIdx; i++) {
+      let minIdx = Math.min(...extractedIndices);
+      // If the minimum is close to 1 (e.g. 2 or 3), assume we started at 1
+      if (minIdx <= 3) minIdx = 1;
+      
+      for (let i = minIdx; i <= maxIdx; i++) {
         if (!extractedIndices.includes(i)) {
           missingIndices.push(i);
         }
@@ -2349,10 +2490,24 @@ app.post('/api/recover_questions', tokenRequired, upload.any(), async (req: any,
           }
         ];
 
+        const extractionSchema = {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              raw_text: { type: Type.STRING, description: "The literal text transcript of the question." },
+              options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Choices if multiple choice." },
+              type: { type: Type.STRING, description: "The type: 'multiple_choice', 'multiple_choice_multi', 'identification', 'open_ended', 'graphing', 'true_false'." },
+              original_index: { type: Type.STRING, description: "The question number/index on the worksheet." },
+              bounding_box: { type: Type.ARRAY, items: { type: Type.INTEGER }, description: "Four normalized integers [ymin, xmin, ymax, xmax] (0 to 1000) of any diagram. Empty array [] if no diagram." }
+            },
+            required: ["raw_text", "options", "type", "original_index"]
+          }
+        };
         const response = await ai.models.generateContent({
           model: selectedModel,
           contents,
-          config: { responseMimeType: 'application/json' }
+          config: { responseMimeType: 'application/json', responseSchema: extractionSchema, maxOutputTokens: 8192 }
         });
 
         const text = response.text || '';
@@ -2423,21 +2578,55 @@ app.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: any, re
     if (ai && questions.length > 0) {
       try {
         sessionProgress.set(session_id, { message: '📐 Re-checking equations & answer key consistency...', percentage: 65, status: 'processing' });
-        const prompt = RECHECK_ANSWERS_PROMPT
-          .replace('{golden_reference}', JSON.stringify(golden_reference))
-          .replace('{batch_json}', JSON.stringify(questions));
-
-        const selectedModel = getRealModelName(model_name);
-        const response = await ai.models.generateContent({
-          model: selectedModel,
-          contents: [prompt],
-          config: { responseMimeType: 'application/json' }
+        const contents: any[] = [];
+        const cleanQuestions = questions.map((q: any) => {
+            let cleanRawText = q.raw_text || q.question || '';
+            const imgMatches = [...cleanRawText.matchAll(/src="data:([^;]+);base64,([^"]+)"/g)];
+            for (const match of imgMatches) {
+                contents.push({
+                    inlineData: {
+                        mimeType: match[1] || 'image/png',
+                        data: match[2]
+                    }
+                });
+            }
+            cleanRawText = cleanRawText.replace(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi, '[IMAGE_PROVIDED_IN_VISION_CONTEXT]').replace(/<br\s*\/?>/gi, '\n').trim();
+            return { ...q, raw_text: cleanRawText, question: cleanRawText };
         });
 
+        const prompt = RECHECK_ANSWERS_PROMPT
+          .replace('{golden_reference}', JSON.stringify(golden_reference))
+          .replace('{batch_json}', JSON.stringify(cleanQuestions));
+        
+        const selectedModel = getRealModelName(model_name);
+        contents.unshift(prompt);
+
+        const response = await ai.models.generateContent({
+          model: selectedModel,
+          contents: contents,
+          config: { responseMimeType: 'application/json' }
+        });
         const text = response.text || '';
         const parsed = safeParseJSON(text);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          finalQuestions = parsed;
+          finalQuestions = parsed.map((solvedItem: any, index: number) => {
+              let finalQuestion = solvedItem.question || questions[index].question || questions[index].raw_text || '';
+              const origText = questions[index].question || questions[index].raw_text || '';
+              const imgMatches = origText.match(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi);
+              if (imgMatches && finalQuestion) {
+                  finalQuestion = finalQuestion.replace(/\[IMAGE_PROVIDED_IN_VISION_CONTEXT\]/gi, '');
+                  imgMatches.forEach(img => {
+                      if (!finalQuestion.includes(img)) {
+                          finalQuestion += '\n' + '<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;">' + img + '</div></div>';
+                      }
+                  });
+              }
+              return {
+                  ...solvedItem,
+                  question: finalQuestion,
+                  raw_text: questions[index].raw_text
+              };
+          });
         }
       } catch (e) {
         console.warn('AI polish fallback:', e);

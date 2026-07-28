@@ -842,7 +842,7 @@
             modalApiInput3.value = keys[2] || '';
 
             document.getElementById('modal_ollama_url_input').value = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
-            cancelBtn.style.display = (modalApiInput.value || localStorage.getItem('ollama_url')) ? 'block' : 'none';
+            cancelBtn.style.display = (modalApiInput.value || localStorage.getItem('ollama_url')) ? 'inline-flex' : 'none';
             
             const model = document.getElementById('model_select').value;
             const isLocal = model.startsWith('ollama:');
@@ -1643,14 +1643,27 @@
     
     function toggleQuizDropdown(id) {
         document.querySelectorAll('.quiz-actions-dropdown').forEach(el => {
-            if(el.id !== id) el.classList.remove('show');
+            if(el.id !== id) {
+                el.classList.remove('show');
+                const card = el.closest('.quiz-card-horizontal');
+                if(card) card.style.zIndex = '';
+            }
         });
-        document.getElementById(id).classList.toggle('show');
+        const dropdown = document.getElementById(id);
+        if (dropdown) {
+            const isShowing = dropdown.classList.toggle('show');
+            const card = dropdown.closest('.quiz-card-horizontal');
+            if(card) card.style.zIndex = isShowing ? '50' : '';
+        }
     }
     
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.quiz-actions-menu')) {
-            document.querySelectorAll('.quiz-actions-dropdown').forEach(el => el.classList.remove('show'));
+            document.querySelectorAll('.quiz-actions-dropdown').forEach(el => {
+                el.classList.remove('show');
+                const card = el.closest('.quiz-card-horizontal');
+                if(card) card.style.zIndex = '';
+            });
         }
     });
 

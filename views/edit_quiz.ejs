@@ -499,6 +499,21 @@
 
         document.getElementById('share-link').value = window.location.origin + '/quiz/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>';
         const quizData = <%- JSON.stringify(quiz).replace(/</g, "\\u003c") %>;
+
+        // Clean up legacy AI outputs where newline was literal \n
+        if (quizData && quizData.questions) {
+            quizData.questions.forEach(q => {
+                if (typeof q.answer === 'string') {
+                    q.answer = q.answer.replace(/\\n/g, '\n');
+                }
+                if (typeof q.question === 'string') {
+                    q.question = q.question.replace(/\\n/g, '\n');
+                }
+                if (Array.isArray(q.options)) {
+                    q.options = q.options.map(opt => typeof opt === 'string' ? opt.replace(/\\n/g, '\n') : opt);
+                }
+            });
+        }
         document.getElementById('quiz-title').value = quizData.title;
         document.getElementById('quiz-time').value = quizData.time_limit;
         document.getElementById('quiz-mode').value = quizData.quiz_mode || 'back_and_forth';
@@ -530,7 +545,7 @@
         function markQuestionChanged(index) {
             const saveBtn = document.getElementById(`save-btn-${index}`);
             if (saveBtn) {
-                saveBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'inline-flex';
             }
         }
 

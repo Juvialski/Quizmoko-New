@@ -1144,6 +1144,47 @@ app.post('/api/reformat_answer', (req, res) => {
   res.json({ success: true, formatted: (answer || '').trim() });
 });
 
+app.post('/api/polish_questions', async (req, res) => {
+  const { questions, api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
+  if (!questions || !Array.isArray(questions)) {
+    return res.status(400).json({ success: false, error: 'No questions provided' });
+  }
+  
+  try {
+    const ai = getGeminiClient(api_key);
+    if (!ai) return res.status(400).json({ success: false, error: 'No valid API key provided' });
+
+    const prompt = `${LATEX_POLISH_PROMPT}\n\nHere are the questions to polish. Output ONLY the JSON array containing the polished questions matching the exact schema.\n\n${JSON.stringify(questions)}`;
+    
+    const response = await ai.models.generateContent({
+      model: getRealModelName(model_name),
+      contents: [prompt],
+      config: { responseMimeType: 'application/json' }
+    });
+    
+    const text = response.text || '';
+    const parsed = safeParseJSON(text);
+    
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      // Merge to ensure we don't drop fields
+      const merged = parsed.map((polishedQ: any, i: number) => {
+          return {
+              ...questions[i],
+              ...polishedQ,
+              // Never let the AI accidentally clear out the question text if it messed up
+              question: polishedQ.question || questions[i].question
+          };
+      });
+      return res.json({ success: true, questions: merged });
+    } else {
+      return res.status(500).json({ success: false, error: 'Failed to parse model output as array' });
+    }
+  } catch (err: any) {
+    console.error('Polish questions error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post('/api/resolve_question', async (req, res) => {
   const { question_data, source_context, api_key, subject = 'General', topic = 'Quiz', model_name = 'gemini-3.5-flash-lite' } = req.body;
   if (!question_data) return res.status(400).json({ success: false, error: 'No question data' });

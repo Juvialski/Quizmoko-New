@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, setLogLevel } from 'firebase/firestore';
-import { User, Quiz, QuizResult, LiveSessionState } from '../types.ts';
+import type { User, Quiz, QuizResult, LiveSessionState } from '../types.ts';
 
 // In-Memory Stores
 export const users = new Map<string, User>();

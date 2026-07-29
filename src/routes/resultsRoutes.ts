@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import { Type } from '@google/genai';
 import { optionalAuth, tokenRequired } from '../middleware/auth.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
+import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
 import {
   quizzes,
   results,
@@ -210,12 +212,12 @@ router.post('/api/results/:result_id/edit_answer', tokenRequired, async (req: Au
   return res.json({ success: true, result: withResultAliases(result, req.params.result_id) });
 });
 
-router.post('/api/results/:result_id/recheck', tokenRequired, async (req: AuthRequest, res) => {
+router.post('/api/results/:result_id/recheck', optionalAuth, async (req: AuthRequest, res) => {
   const result = results.get(req.params.result_id) as any;
   if (!result) {
     return res.status(404).json({ success: false, error: 'Result not found' });
   }
-  if (!canManageResult(req.user, result)) {
+  if (!hasResultAccess(req, result, req.params.result_id)) {
     return res.status(403).json({ success: false, error: 'You do not have access to this result' });
   }
 
@@ -236,11 +238,90 @@ router.post('/api/results/:result_id/recheck', tokenRequired, async (req: AuthRe
   };
   const grade = gradeQuestionLocally(gradingQuestion, detail.user_answer);
 
-  if (grade.requiresSemanticGrading) {
-    return res.status(422).json({
-      success: false,
-      error: 'This answer requires semantic AI grading and cannot be honestly rechecked with exact matching.'
-    });
+  const customApiKey = typeof req.body?.api_key === 'string' ? req.body.api_key.trim() : '';
+  const ai = getGeminiClient(customApiKey) || getGeminiClient();
+
+  if (ai) {
+    try {
+      const quiz = quizzes.get(result.quiz_id);
+      const qText = gradingQuestion.question || gradingQuestion.raw_text || gradingQuestion.statement || '';
+      const imageParts: any[] = [];
+      const visionText = qText.replace(
+        /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-z0-9.+-]+);base64,([^"']+)["'][^>]*>/gi,
+        (_match: string, mimeType: string, data: string) => {
+          if (imageParts.length < 5 && data.length <= 12 * 1024 * 1024) {
+            imageParts.push({ inlineData: { data, mimeType } });
+          }
+          return '[IMAGE_PROVIDED_IN_VISION_CONTEXT]';
+        }
+      );
+      const qType = canonicalQuestionType(gradingQuestion);
+
+      const prompt = `You are an expert teacher grading a quiz.
+Question Type: ${qType}
+Question: ${JSON.stringify(visionText)}
+Correct Answer Key: ${JSON.stringify(gradingQuestion.answer)}
+Student's Response: ${JSON.stringify(detail.user_answer)}
+
+Evaluate if the student's response is correct or mathematically/semantically equivalent based on the answer key.
+If it is correct, set "is_correct" to true, and optionally provide brief encouraging feedback.
+If it is incorrect, set "is_correct" to false, and provide a brief 1-2 sentence explanation of why.
+CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\$$40). Do NOT use asterisks for math.
+Do NOT wrap plain English words or labels in LaTeX tags.
+Return your response STRICTLY as a JSON object in the format: {"is_correct": boolean, "feedback": "string"}`;
+
+      const parts: any[] = [{ text: prompt }, ...imageParts];
+
+      const primaryModel = getRealModelName((quiz as any)?.model_name || 'gemini-3.5-flash-lite');
+      const fallbackCandidates = [
+        'gemini-3.6-flash',
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite',
+        'gemini-2.5-flash'
+      ];
+      const modelsToTry = [primaryModel, ...fallbackCandidates.filter(m => m !== primaryModel)];
+
+      let gradeSuccess = false;
+      for (const modelName of modelsToTry) {
+        try {
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: [{ role: 'user', parts }],
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  is_correct: { type: Type.BOOLEAN },
+                  feedback: { type: Type.STRING }
+                },
+                required: ['is_correct', 'feedback']
+              }
+            }
+          });
+
+          const parsed = safeParseJSON(response.text ? response.text.trim() : '{}');
+          if (parsed && typeof parsed.is_correct === 'boolean') {
+            grade.isCorrect = parsed.is_correct;
+            grade.scoreFraction = parsed.is_correct ? 1 : 0;
+            if (typeof parsed.feedback === 'string') {
+              detail.ai_feedback = parsed.feedback;
+            }
+            gradeSuccess = true;
+            break;
+          }
+        } catch (modelErr) {
+          console.warn(`Recheck AI grading failed with model ${modelName}, trying fallback:`, modelErr);
+        }
+      }
+
+      if (!gradeSuccess && grade.requiresSemanticGrading) {
+        detail.ai_feedback = grade.isCorrect ? '' : 'AI semantic grading was temporarily unavailable across models; exact-match grading was used.';
+      }
+    } catch (e) {
+      console.error('Recheck AI grading error:', e);
+    }
   }
 
   detail.is_correct = grade.isCorrect;

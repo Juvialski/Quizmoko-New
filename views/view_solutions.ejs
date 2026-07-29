@@ -237,11 +237,9 @@
                     <div class="ans-box">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span class="ans-label" style="margin-bottom: 0;">Correct Answer</span>
-                            <% if (typeof session !== 'undefined' && session.user) { %>
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <button class="edit-btn" onclick='recheckAnswer(<%= itemIdx %>, this)' style="background: transparent; border: none; color: var(--warning); font-size: 11px; cursor: pointer; font-weight: 800;"><i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK</button>
                             </div>
-                            <% } %>
                         </div>
                         <div class="ans-value" id="correct-ans-<%= itemIdx %>">
                             <%= typeof item.correct_answer !== 'undefined' ? item.correct_answer : '' %>
@@ -250,9 +248,9 @@
                 </div>
 
                 <% const qType = item.type || (typeof quiz !== 'undefined' && quiz && quiz.questions && quiz.questions[itemIdx] ? quiz.questions[itemIdx].type : ''); %>
-                <div class="ai-feedback" id="feedback-<%= itemIdx %>" style="display:<% if ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback && item.ai_feedback.trim()) { %>block<% } else { %>none<% } %>;">
+                <div class="ai-feedback" id="feedback-<%= itemIdx %>" style="display:<% if (item.ai_feedback && item.ai_feedback.trim()) { %>block<% } else { %>none<% } %>;">
                     <strong><i data-lucide="bot" class="icon-sm"></i> AI Tutor Feedback:</strong><br>
-                    <span class="feedback-text"><%= ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback) ? item.ai_feedback : '' %></span>
+                    <span class="feedback-text"><%= item.ai_feedback ? item.ai_feedback : '' %></span>
                 </div>
 
                 <% if (typeof session === 'undefined' || !session.user) { %>

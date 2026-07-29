@@ -258,7 +258,7 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
     let ai: ReturnType<typeof getGeminiClient> = null;
     if (semanticSlot) {
       try {
-        ai = getGeminiClient(api_key);
+        ai = getGeminiClient(api_key) || getGeminiClient();
       } catch (error) {
         console.error('AI grader initialization error:', error);
       }
@@ -275,7 +275,7 @@ Student's Response: ${JSON.stringify(actual)}
 Evaluate if the student's response is correct or mathematically/semantically equivalent based on the answer key.
 If it is correct, set "is_correct" to true, and optionally provide brief encouraging feedback.
 If it is incorrect, set "is_correct" to false, and provide a brief 1-2 sentence explanation of why.
-CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\$$40). Do NOT use asterisks for math.
+CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\$$40). Do NOT use asterisks for math.
 Do NOT wrap plain English words or labels in LaTeX tags.
 Return your response STRICTLY as a JSON object in the format: {"is_correct": boolean, "feedback": "string"}`;
 
@@ -297,32 +297,54 @@ Return your response STRICTLY as a JSON object in the format: {"is_correct": boo
           }
         }
 
-        const response = await ai.models.generateContent({
-          model: getRealModelName((quiz as any).model_name || 'gemini-3.5-flash-lite'),
-          contents: [{ role: 'user', parts }],
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                is_correct: { type: Type.BOOLEAN },
-                feedback: { type: Type.STRING }
-              },
-              required: ['is_correct', 'feedback']
-            }
-          }
-        });
+        const primaryModel = getRealModelName((quiz as any).model_name || 'gemini-3.5-flash-lite');
+        const fallbackCandidates = [
+          'gemini-3.6-flash',
+          'gemini-3.5-flash',
+          'gemini-3.5-flash-lite',
+          'gemini-3.1-flash-lite',
+          'gemini-2.5-flash'
+        ];
+        const modelsToTry = [primaryModel, ...fallbackCandidates.filter(m => m !== primaryModel)];
 
-        const parsed = safeParseJSON(response.text ? response.text.trim() : '{}');
-        if (!parsed || typeof parsed.is_correct !== 'boolean') {
-          throw new Error('AI grader returned an invalid response');
+        let gradeSuccess = false;
+        for (const modelName of modelsToTry) {
+          try {
+            const response = await ai.models.generateContent({
+              model: modelName,
+              contents: [{ role: 'user', parts }],
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: {
+                  type: Type.OBJECT,
+                  properties: {
+                    is_correct: { type: Type.BOOLEAN },
+                    feedback: { type: Type.STRING }
+                  },
+                  required: ['is_correct', 'feedback']
+                }
+              }
+            });
+
+            const parsed = safeParseJSON(response.text ? response.text.trim() : '{}');
+            if (parsed && typeof parsed.is_correct === 'boolean') {
+              isCorrect = parsed.is_correct;
+              scoreFraction = isCorrect ? 1 : 0;
+              aiFeedback = typeof parsed.feedback === 'string' ? parsed.feedback : '';
+              gradeSuccess = true;
+              break;
+            }
+          } catch (modelErr) {
+            console.warn(`AI grading model ${modelName} failed, trying fallback:`, modelErr);
+          }
         }
-        isCorrect = parsed.is_correct;
-        scoreFraction = isCorrect ? 1 : 0;
-        aiFeedback = typeof parsed.feedback === 'string' ? parsed.feedback : '';
+
+        if (!gradeSuccess) {
+          aiFeedback = isCorrect ? '' : 'AI semantic grading was temporarily unavailable across models; exact-match grading was used.';
+        }
       } catch (err) {
         console.error('AI individual grading error:', err);
-        aiFeedback = isCorrect ? '' : 'The answer could not be semantically rechecked, so exact-match grading was used.';
+        aiFeedback = isCorrect ? '' : 'AI semantic grading failed; exact-match grading was used.';
       } finally {
         semanticSlot.release();
       }

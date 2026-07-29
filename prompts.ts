@@ -7,7 +7,7 @@ MATH & LATEX RULES:
    - INCORRECT: $x$ - $13$ = $20$, $8n$ + $2$ = $90$, $\\dfrac{$32$}{$y$} = $2$
 2. NO NESTING: NEVER put dollar signs inside other dollar signs.
 3. ONLY WRAP MATH: DO NOT wrap plain text words, labels, sentences, or categories (e.g., 'Right', 'Isosceles', 'Triangle', 'No', 'Yes', 'True', 'False') in '$' tags. If text and math are mixed (e.g., 'No, 48 > 45'), ONLY wrap the math part (e.g., 'No, $48 > 45$'). DO NOT wrap full sentences.
-4. STANDALONE NUMBERS: For numbers in word problems (e.g., "3 miles"), wrap the number in '$' tags (e.g., "$3$ miles"). ONLY do this if the number is NOT already part of a larger equation or formula.
+4. STANDALONE NUMBERS & MONETARY AMOUNTS: Do NOT wrap plain standalone numbers (like '3 miles' or '3000') or monetary amounts (like '$3,000' or '$540') in LaTeX '$' tags unless they are part of a mathematical equation or formula. Keep currency amounts as plain text e.g., '$3,000' or '$540'.
 5. INCLUDE OPERATORS: Signs like +, -, *, /, and = MUST be inside the '$' tags.
 6. MULTIPLICATION SYMBOL: Always use \\times for multiplication (e.g., $8 \\times 9 = 72$). NEVER use asterisks (*) or the letter 'x'.
 7. PROFESSIONAL FRACTIONS: Always use \\dfrac{n}{d} for EVERY fraction or division expression (e.g., $\\dfrac{1}{2}$, $\\dfrac{8}{4}$). NEVER use slashes ('/') or dashes ('-').
@@ -15,11 +15,11 @@ MATH & LATEX RULES:
 9. VISUAL SCALING: Use \\left( and \\right) for any math expressions inside parentheses.
 10. CENTERED MATH: If a formula is standalone or a complex table/array exists, wrap it in double dollar signs $$ ... $$.
 11. COMPARISON PLACEHOLDERS: For questions asking to compare two values, use \\bigcirc inside the LaTeX expression. Example: $5 \\bigcirc 10$.
-12. NO CURRENCY SYMBOL IN MATH: Never use '$' as a currency symbol prefix (e.g., $5.00) inside or near math. Use the LaTeX rule above for numbers.
+12. CURRENCY FORMATTING: Format monetary values as plain text (e.g., '$3,000', '$540') or inside LaTeX text blocks (e.g., $\\text{\\$3,000}$). NEVER output double dollar signs like '$$540$' or '$\\$3000$' or '$\\$3000$'.
 13. NO TEXT BOLDING: Never use ** or __ for bolding or italics.
-13. PRESERVE HTML: If you see tags like <div class="resizable-image-wrapper">, you MUST preserve them exactly.
-14. IDENTIFICATION EXCEPTION: For Identification answer keys ONLY, DO NOT use LaTeX enclosure or dollar signs. Keep them as plain text or numbers.
-15. STRICT ENCLOSURE: For all other question types and ALL answer options, you MUST follow the math enclosure rules for ALL numbers and expressions.
+14. PRESERVE HTML: If you see tags like <div class="resizable-image-wrapper">, you MUST preserve them exactly.
+15. IDENTIFICATION EXCEPTION: For Identification answer keys ONLY, DO NOT use LaTeX enclosure or dollar signs. Keep them as plain text or numbers.
+16. STRICT ENCLOSURE: For all other question types and ALL answer options, you MUST follow the math enclosure rules for ALL equations and expressions.
 `;
 
 export const NON_MATH_RULES = `
@@ -425,7 +425,7 @@ CRITICAL RULES:
    - CORRECT: $8n + 2 = 90$, \\dfrac{32}{y} = 2
    - INCORRECT: $8n$ + $2$ = $90$, \\dfrac{$32$}{$y$} = $2$
 4. MULTIPLICATION SYMBOL: Always use \\times for multiplication. NEVER use asterisks (*) or 'x'.
-5. LATEX FORMATTING: Apply perfect LaTeX enclosure ($) to all numbers and fractions. Use \\dfrac for fractions.
+5. LATEX FORMATTING: Apply LaTeX enclosure ($) to equations, algebraic expressions, and fractions (using \\dfrac). DO NOT wrap standalone plain numbers or currency amounts (e.g. '$3,000' or '$540') in LaTeX dollar signs.
    - EXCEPTION: For Identification questions, DO NOT use dollar signs or LaTeX in the 'answer' field.
 6. PRESERVE HTML & IMAGES: If you see any HTML tags (like <div> or <img>) in the 'question' or 'raw_text', you MUST preserve them exactly.
    - DO NOT modify any tag starting with <div class="resizable-image-wrapper">. Keep them UNTOUCHED.

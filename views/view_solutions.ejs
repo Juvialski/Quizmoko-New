@@ -199,6 +199,7 @@
 
         <div id="solutions-container">
             <% (result && result.details ? result.details : (quiz && quiz.questions ? quiz.questions : [])).forEach((item, itemIdx) => { %>
+            <% if (item) { %>
             <div class="solution-card" id="card-<%= itemIdx %>">
                 <div class="question-header">
                     <span class="q-num">Question <%= itemIdx + 1 %></span>
@@ -265,6 +266,17 @@
                 <% } %>
                 <% } %>
             </div>
+            <% } else { %>
+            <div class="solution-card" id="card-<%= itemIdx %>">
+                <div class="question-header">
+                    <span class="q-num">Question <%= itemIdx + 1 %></span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 13px; font-weight: 800; color: var(--body); background: var(--surface-soft); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--hairline);">Points: 0.00 / 1.0</span>
+                        <span class="status-badge status-grading" id="status-<%= itemIdx %>">⏳ Not yet answered</span>
+                    </div>
+                </div>
+            </div>
+            <% } %>
             <% }); %>
         </div>
 
@@ -470,6 +482,7 @@
                 if (data.success) {
                     // Update the local data and UI
                     data.details.forEach((item, i) => {
+                        if (!item) return;
                         currentAnswersData[i] = item.correct_answer;
                         const box = document.getElementById(`correct-ans-${i}`);
                         if (box) box.innerHTML = formatDisplay(item.correct_answer);
@@ -599,6 +612,7 @@
 
                 let stillGrading = false;
                 data.details.forEach((item, i) => {
+                    if (!item) return;
                     const statusBadge = document.getElementById(`status-${i}`);
                     const qTextBox = document.getElementById(`question-text-${i}`);
                     const userAnsBox = document.getElementById(`user-ans-${i}`);

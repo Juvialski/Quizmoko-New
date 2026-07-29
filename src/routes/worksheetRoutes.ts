@@ -1381,8 +1381,12 @@ router.get('/worksheet_answers', tokenRequired, (req, res) => {
   res.render('worksheet_answers_upload');
 });
 
-router.get('/worksheet_upload', tokenRequired, (req, res) => {
+router.get(['/worksheet', '/worksheet_upload'], tokenRequired, (req, res) => {
   res.render('worksheet_upload');
+});
+
+router.get('/rmxflash', tokenRequired, (req, res) => {
+  res.render('rmxflash_upload');
 });
 
 router.get('/worksheet/:quiz_id', tokenRequired, (req: AuthRequest, res) => {

@@ -204,7 +204,7 @@
                 <div class="question-header">
                     <span class="q-num">Question <%= itemIdx + 1 %></span>
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <span style="font-size: 13px; font-weight: 800; color: var(--body); background: var(--surface-soft); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--hairline);">Points: <%= (item.score_fraction !== undefined ? item.score_fraction : (item.is_correct ? 1 : 0)).toFixed(2) %> / 1.0</span>
+                        <span style="font-size: 13px; font-weight: 800; color: var(--body); background: var(--surface-soft); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--hairline);">Points: <%= Number(item.score_fraction !== undefined ? item.score_fraction : (item.is_correct ? 1 : 0)).toFixed(2) %> / 1.0</span>
                         <span class='status-badge <% if (item.is_correct) { %>status-correct<% } else if (item.correct_answer == 'Finalizing...') { %>status-grading<% } else { %>status-wrong<% } %>" id="status-<%= itemIdx %>">
                             <% if (item.correct_answer == 'Finalizing...') { %>⏳ Finalizing...<% } else if (item.is_correct) { %><i data-lucide="check" class="icon-sm"></i> Correct<% } else { %><i data-lucide="x" class="icon-sm"></i> Incorrect<% } %>
                         </span>
@@ -220,7 +220,9 @@
                     <% if (snapshots && snapshots.length > 0) { %>
                         <div class="workings-title"><i data-lucide="edit-3" class="icon-sm"></i> Workings / Whiteboard Solutions:</div>
                         <% for (let img of snapshots) { %>
-                            <img src='<%= img %>" class="workings-img" alt='Student Workings'>
+                            <% if (typeof img === 'string' && img.length <= 12000000 && /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(img)) { %>
+                                <img src="<%= img %>" class="workings-img" alt="Student Workings">
+                            <% } %>
                         <% } %>
                     <% } %>
                 </div>
@@ -291,6 +293,71 @@
         let isEditing = false;
         let currentAnswersData = {}; // Store raw values for editing
 
+        function isSafeDisplayImageSource(value) {
+            if (typeof value !== 'string' || value.length > 12000000) return false;
+            return /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(value)
+                || /^https:\/\/kroki\.io\/tikz\/svg\/[a-z0-9_-]+$/i.test(value);
+        }
+
+        function sanitizeDisplayHtml(value) {
+            const template = document.createElement('template');
+            template.innerHTML = String(value ?? '');
+            const allowedTags = new Set([
+                'BR', 'UL', 'OL', 'LI', 'STRONG', 'B', 'EM', 'I', 'SPAN',
+                'DIV', 'P', 'SUB', 'SUP', 'CODE', 'PRE', 'IMG'
+            ]);
+            const allowedClasses = new Set([
+                'resizable-image-wrapper', 'image-content-box', 'workings-img'
+            ]);
+
+            function cleanNode(node) {
+                if (node.nodeType === Node.COMMENT_NODE) {
+                    node.remove();
+                    return;
+                }
+                if (node.nodeType !== Node.ELEMENT_NODE) return;
+                const element = node;
+                if (!allowedTags.has(element.tagName)) {
+                    element.replaceWith(document.createTextNode(element.textContent || ''));
+                    return;
+                }
+
+                const originalClass = element.getAttribute('class') || '';
+                const originalWidth = element.style && element.style.width ? element.style.width : '';
+                const originalSrc = element.getAttribute('src') || '';
+                const originalAlt = element.getAttribute('alt') || '';
+                for (const attribute of [...element.attributes]) {
+                    element.removeAttribute(attribute.name);
+                }
+
+                const safeClasses = originalClass
+                    .split(/\s+/)
+                    .filter(className => allowedClasses.has(className));
+                if (safeClasses.length) element.setAttribute('class', safeClasses.join(' '));
+                if (
+                    element.tagName === 'DIV'
+                    && /^(?:100|[1-9]?\d)(?:%|px)$/.test(originalWidth)
+                ) {
+                    element.style.width = originalWidth;
+                }
+
+                if (element.tagName === 'IMG') {
+                    if (!isSafeDisplayImageSource(originalSrc)) {
+                        element.remove();
+                        return;
+                    }
+                    element.setAttribute('src', originalSrc);
+                    element.setAttribute('alt', originalAlt.slice(0, 200));
+                    element.setAttribute('loading', 'lazy');
+                    element.setAttribute('decoding', 'async');
+                }
+                for (const child of [...element.childNodes]) cleanNode(child);
+            }
+
+            for (const child of [...template.content.childNodes]) cleanNode(child);
+            return template.innerHTML;
+        }
+
         function explainMistakeResults(btn) {
             const qIdx = btn.getAttribute('data-q-idx');
             const item = initialDetails[qIdx];
@@ -302,6 +369,8 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     quiz_id: '<%= typeof result.quiz_id !== 'undefined' ? result.quiz_id : '' %>',
+                    q_index: Number(qIdx),
+                    grade_proof: item.grade_proof,
                     question: item.question,
                     user_answer: item.user_answer,
                     correct_answer: item.correct_answer,
@@ -419,7 +488,7 @@
                     // 1. Update Status Badge
                     const statusBadge = document.getElementById(`status-${index}`);
                     statusBadge.className = `status-badge ${data.is_correct ? 'status-correct' : 'status-wrong'}`;
-                    statusBadge.innerText = data.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide="x" class="icon-sm"></i> Incorrect';
+                    statusBadge.innerHTML = data.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide="x" class="icon-sm"></i> Incorrect';
 
                     // Update Point display in parent
                     const pointBox = statusBadge.parentElement.querySelector("span[style*='background: var(--surface-soft)']");
@@ -481,7 +550,7 @@
                 const data = await res.json();
                 if (data.success) {
                     // Update the local data and UI
-                    data.details.forEach((item, i) => {
+                    (Array.isArray(data.details) ? data.details : []).forEach((item, i) => {
                         if (!item) return;
                         currentAnswersData[i] = item.correct_answer;
                         const box = document.getElementById(`correct-ans-${i}`);
@@ -519,7 +588,7 @@
         document.documentElement.setAttribute('data-theme', savedTheme);
 
         function formatDisplay(val) {
-            if (!val) return '';
+            if (val === null || val === undefined) return '';
 
             // 1. Unpack JSON Objects/Lists (if any)
             let data = val;
@@ -532,15 +601,15 @@
 
             if (typeof data === 'object' && data !== null) {
                 if (Array.isArray(data)) {
-                    return '<ul style="margin: 5px 0; padding-left: 20px;">' +
+                    return sanitizeDisplayHtml('<ul>' +
                            data.map(v => `<li>${formatDisplay(v)}</li>`).join('') +
-                           '</ul>';
+                           '</ul>');
                 }
-                let html = '<ul style="margin: 5px 0; padding-left: 20px;">';
+                let html = '<ul>';
                 for (const [k, v] of Object.entries(data)) {
                     html += `<li><strong>${k.charAt(0).toUpperCase() + k.slice(1)}:</strong> ${formatDisplay(v)}</li>`;
                 }
-                return html + '</ul>';
+                return sanitizeDisplayHtml(html + '</ul>');
             }
 
             // 2. Pure Standard Mode with Identical Line Break Logic to Edit/Quiz Page
@@ -551,7 +620,7 @@
 
             // Use the same logic as the Quiz/Edit pages: split by image blocks and replace \n with <br>
             const parts = str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi);
-            return parts.map(part => {
+            const formatted = parts.map(part => {
                 if (part.startsWith('<div class="resizable-image-wrapper">')) return part;
 
                 // Process bullets and line breaks in the text parts
@@ -565,6 +634,7 @@
                     return line;
                 }).join('<br>');
             }).join('');
+            return sanitizeDisplayHtml(formatted);
         }
 
         async function forceSyncResults() {
@@ -606,12 +676,13 @@
             try {
                 const res = await fetch(`/api/get_result/${resultId}`);
                 const data = await res.json();
-                if (data.error) return;
+                if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
 
                 document.getElementById('total-score-display').innerText = `${data.score} / ${data.total}`;
 
                 let stillGrading = false;
-                data.details.forEach((item, i) => {
+                const details = Array.isArray(data.details) ? data.details : [];
+                details.forEach((item, i) => {
                     if (!item) return;
                     const statusBadge = document.getElementById(`status-${i}`);
                     const qTextBox = document.getElementById(`question-text-${i}`);
@@ -631,7 +702,9 @@
                     if (snaps && snaps.length > 0) {
                         let snapHtml = '<div class="workings-title"><i data-lucide="edit-3" class="icon-sm"></i> Workings / Whiteboard Solutions:</div>';
                         snaps.forEach(img => {
-                            snapHtml += `<img src="${img}" class="workings-img" alt='Student Workings'>`;
+                            if (isSafeDisplayImageSource(img)) {
+                                snapHtml += `<img src="${img}" class="workings-img" alt='Student Workings'>`;
+                            }
                         });
                         // Only update if changed to avoid unnecessary re-renders
                         if (snapContainer.innerHTML.trim() !== snapHtml.trim()) {
@@ -645,7 +718,7 @@
                     } else {
                         // Update Status
                         statusBadge.className = `status-badge ${item.is_correct ? 'status-correct' : 'status-wrong'}`;
-                        statusBadge.innerText = item.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide="x" class="icon-sm"></i> Incorrect';
+                        statusBadge.innerHTML = item.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide="x" class="icon-sm"></i> Incorrect';
 
                         // Update Correct Answer
                         correctAnsBox.innerHTML = formatDisplay(item.correct_answer);
@@ -681,6 +754,7 @@
         // Start polling or initial render
         const initialDetails = <%- JSON.stringify(result.details).replace(/</g, "\\u003c") %>;
         initialDetails.forEach((item, i) => {
+            if (!item) return;
             currentAnswersData[i] = item.correct_answer; // Store for edit
             const qTextBox = document.getElementById(`question-text-${i}`);
             if (qTextBox) qTextBox.innerHTML = formatDisplay(item.question);
@@ -692,7 +766,7 @@
             }
         });
 
-        if (initialDetails.some(d => d.correct_answer === 'Finalizing...')) {
+        if (initialDetails.some(d => d && d.correct_answer === 'Finalizing...')) {
             document.getElementById('grading-status').style.display = 'block';
             setTimeout(pollResults, 1000);
         } else {

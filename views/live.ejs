@@ -13,7 +13,7 @@
       };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 
     <style>
         :root {
@@ -183,7 +183,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan='5' style="text-align:center; color:var(--body); padding:40px; text-transform: uppercase; letter-spacing: 1.5px;">Waiting for students to join...</td></tr>
+                    <tr><td colspan='7' style="text-align:center; color:var(--body); padding:40px; text-transform: uppercase; letter-spacing: 1.5px;">Waiting for students to join...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -253,6 +253,70 @@
         let isPaused = false;
         let sessionsCache = {};
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function plainText(value) {
+            return String(value ?? '').replace(/<[^>]*>/g, '').trim();
+        }
+
+        function sanitizeQuizHtml(value) {
+            const template = document.createElement('template');
+            template.innerHTML = String(value ?? '');
+            const allowedTags = new Set([
+                'BR', 'UL', 'OL', 'LI', 'STRONG', 'B', 'EM', 'I', 'SPAN',
+                'DIV', 'P', 'SUB', 'SUP', 'CODE', 'PRE', 'IMG'
+            ]);
+            const allowedClasses = new Set(['resizable-image-wrapper', 'image-content-box']);
+
+            function cleanNode(node) {
+                if (node.nodeType === Node.COMMENT_NODE) {
+                    node.remove();
+                    return;
+                }
+                if (node.nodeType !== Node.ELEMENT_NODE) return;
+                const element = node;
+                if (!allowedTags.has(element.tagName)) {
+                    element.replaceWith(document.createTextNode(element.textContent || ''));
+                    return;
+                }
+                const originalClass = element.getAttribute('class') || '';
+                const originalSrc = element.getAttribute('src') || '';
+                const originalAlt = element.getAttribute('alt') || '';
+                for (const attribute of [...element.attributes]) {
+                    element.removeAttribute(attribute.name);
+                }
+                const safeClasses = originalClass
+                    .split(/\s+/)
+                    .filter(className => allowedClasses.has(className));
+                if (safeClasses.length) element.setAttribute('class', safeClasses.join(' '));
+                if (element.tagName === 'IMG') {
+                    const safeImage = originalSrc.length <= 12000000
+                        && (
+                            /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(originalSrc)
+                            || /^https:\/\/kroki\.io\/tikz\/svg\/[a-z0-9_-]+$/i.test(originalSrc)
+                        );
+                    if (!safeImage) {
+                        element.remove();
+                        return;
+                    }
+                    element.setAttribute('src', originalSrc);
+                    element.setAttribute('alt', originalAlt.slice(0, 200));
+                    element.setAttribute('loading', 'lazy');
+                }
+                for (const child of [...element.childNodes]) cleanNode(child);
+            }
+
+            for (const child of [...template.content.childNodes]) cleanNode(child);
+            return template.innerHTML;
+        }
+
         let openDropdowns = new Set();
         function toggleDropdown(sid, isOpen) {
             if (isOpen) openDropdowns.add(sid);
@@ -261,22 +325,34 @@
         
         function togglePause() {
             fetch(`/api/live/${quizId}/toggle_pause`, { method: 'POST' })
-            .then(res => res.json())
+            .then(async res => {
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Unable to change pause state');
+                return data;
+            })
             .then(data => {
                 if (data.success) {
                     isPaused = data.paused;
                     updatePauseBtn();
                 }
-            });
+            })
+            .catch(error => alert(error.message));
         }
 
         function terminateQuiz() {
             if (!confirm('Are you sure you want to TERMINATE the quiz? All students will be sent to their results page immediately. This cannot be undone.')) return;
-            fetch(`/api/live/${quizId}/terminate`, { method: 'POST' });
+            fetch(`/api/live/${quizId}/terminate`, { method: 'POST' })
+                .then(async res => {
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Unable to terminate quiz');
+                    document.getElementById('terminate-btn').disabled = true;
+                })
+                .catch(error => alert(error.message));
         }
         
         function updatePauseBtn() {
             const btn = document.getElementById('pause-btn');
+            if (!btn) return;
             if (isPaused) {
                 btn.innerHTML = '▶️ Resume Timers';
                 btn.style.backgroundColor = 'var(--success)';
@@ -289,7 +365,14 @@
         }
 
         function toggleWhiteboard(sid) {
-            fetch(`/api/live/${quizId}/whiteboard/${sid}/toggle`, { method: 'POST' });
+            fetch(`/api/live/${encodeURIComponent(quizId)}/whiteboard/${encodeURIComponent(sid)}/toggle`, { method: 'POST' })
+                .then(async res => {
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Unable to update whiteboard access');
+                    sessionsCache = data.sessions || sessionsCache;
+                    renderTable();
+                })
+                .catch(error => alert(error.message));
         }
 
         function renderTable() {
@@ -304,19 +387,18 @@
             tbody.innerHTML = '';
 
             const sessions = Object.entries(data)
+                .filter(([sid, info]) => sid !== '_meta' && info && typeof info === 'object')
                 .sort((a, b) => b[1].last_active - a[1].last_active);
 
             sessions.forEach(([sid, info]) => {
-                if (sid === '_meta') return;
-
                 // DATA INTEGRITY: Fallback across name and student_name properties
-                const studentDisplayName = (info.name || info.student_name || '').trim();
+                const studentDisplayName = String(info.name || info.student_name || '').trim();
                 if (!studentDisplayName || studentDisplayName === 'undefined') {
                     return; // Skip invalid ghost session
                 }
 
                 const tr = document.createElement('tr');
-                const statusText = info.status || 'Active';
+                const statusText = plainText(info.status || 'Active') || 'Active';
 
                 const now = Math.floor(Date.now() / 1000);
                 const lastActive = Math.floor((info.last_active || Date.now()) / 1000);
@@ -325,7 +407,7 @@
                 let signalColor = 'var(--success)';
                 let signalLabel = 'Online';
 
-                if (statusText.includes('Completed') || statusText.includes('Finished')) {
+                if (statusText.includes('Completed') || statusText.includes('Finished') || statusText.includes('Terminated')) {
                     signalLabel = 'Finished';
                     signalColor = 'var(--body)';
                 } else if (diff > 30) {
@@ -345,8 +427,8 @@
 
                 let statusColor = 'var(--warning)';
                 if (statusText.includes('Completed') || statusText.includes('Finished')) statusColor = 'var(--success)';
-                if (statusText.includes('Abandoned') || statusText.includes('Switched')) statusColor = 'var(--m-red)';
-                let statusHtml = `<span style="color: ${statusColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 12px;">${statusText}</span>`;
+                if (statusText.includes('Abandoned') || statusText.includes('Switched') || statusText.includes('Terminated')) statusColor = 'var(--m-red)';
+                let statusHtml = `<span style="color: ${statusColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 12px;">${escapeHtml(statusText)}</span>`;
 
                 const qNum = parseInt(info.current_q || info.current_question) || 1;
                 const displayedQ = Math.max(1, Math.min(qNum, totalQ || 1));
@@ -357,24 +439,26 @@
                 const currentQData = quizQuestions[qIndex] || {};
                 let rawQuestionHTML = currentQData.question || (statusText.includes('Completed') ? 'Finished' : 'Active');
                 let optionsList = currentQData.options || [];
-                let optionsHTML = Array.isArray(optionsList) ? optionsList.map(opt => `<li style="margin-bottom: 6px;">${opt}</li>`).join('') : '';
+                const safeQuestionHTML = sanitizeQuizHtml(rawQuestionHTML);
+                let optionsHTML = Array.isArray(optionsList)
+                    ? optionsList.map(opt => `<li style="margin-bottom: 6px;">${sanitizeQuizHtml(opt)}</li>`).join('')
+                    : '';
 
-                let snippetDiv = document.createElement('div');
-                snippetDiv.innerHTML = rawQuestionHTML;
-                let cleanText = snippetDiv.innerText || snippetDiv.textContent || '';
+                let cleanText = plainText(rawQuestionHTML);
                 let snippet = cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText;
+                let snippetHtml = escapeHtml(snippet);
 
-                if (statusText.includes('Completed')) snippet = '<i data-lucide="party-popper" class="icon-sm"></i> Student has finished the quiz!';
-                else if (statusText.includes('Abandoned')) snippet = '<i data-lucide="x-circle" class="icon-sm"></i> Student left the quiz early.';
+                if (statusText.includes('Completed')) snippetHtml = '<i data-lucide="party-popper" class="icon-sm"></i> Student has finished the quiz!';
+                else if (statusText.includes('Abandoned')) snippetHtml = '<i data-lucide="x-circle" class="icon-sm"></i> Student left the quiz early.';
 
                 let detailsHtml = '';
                 if (!statusText.includes('Completed') && quizQuestions[qIndex]) {
                     let isOpen = openDropdowns.has(sid) ? 'open' : '';
                     detailsHtml = `
-                        <details ${isOpen} ontoggle='toggleDropdown('${sid}', this.open)'>
-                            <summary class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="Click to expand">${snippet}</summary>
+                        <details ${isOpen}>
+                            <summary class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap; overflow: hidden; text-overflow: ellipsis; display: block;" title="Click to expand">${snippetHtml}</summary>
                             <div class="full-question-box" style="white-space: pre-wrap; margin-top: 10px; padding: 12px; background: var(--surface-soft); border-radius: 8px;">
-                                <div style="margin-bottom: 12px; font-weight: 600; line-height: 1.5;">${rawQuestionHTML}</div>
+                                <div style="margin-bottom: 12px; font-weight: 600; line-height: 1.5;">${safeQuestionHTML}</div>
                                 <ul style="margin: 0; padding-left: 20px; color: var(--body); line-height: 1.4;">
                                     ${optionsHTML}
                                 </ul>
@@ -382,20 +466,20 @@
                         </details>
                     `;
                 } else {
-                    detailsHtml = `<div class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap;" title="${cleanText}">${snippet}</div>`;
+                    detailsHtml = `<div class="question-preview" style="font-family: inherit; font-size: 14px; white-space: pre-wrap;" title="${escapeHtml(cleanText)}">${snippetHtml}</div>`;
                 }
 
                 const wbDisabled = info.whiteboard_disabled || false;
                 const wbBtnText = wbDisabled ? '<i data-lucide="check-circle" class="icon-sm"></i> Enable WB' : '<i data-lucide="slash" class="icon-sm"></i> Disable WB';
                 const wbBtnColor = wbDisabled ? 'var(--success)' : 'var(--m-red)';
                 const wbStatusHtml = `
-                    <button onclick="toggleWhiteboard('${sid}')" class="score-badge" style="background: ${wbBtnColor}; color: white; border: none; cursor: pointer; padding: 4px 8px; font-size: 11px;">
+                    <button class="score-badge wb-session-toggle" style="background: ${wbBtnColor}; color: white; border: none; cursor: pointer; padding: 4px 8px; font-size: 11px;">
                         ${wbBtnText}
                     </button>
                 `;
 
                 tr.innerHTML = `
-                    <td style="font-weight: 700; font-size: 16px; color: var(--on-dark);">${studentDisplayName}</td>
+                    <td style="font-weight: 700; font-size: 16px; color: var(--on-dark);">${escapeHtml(studentDisplayName)}</td>
                     <td>${signalHtml}</td>
                     <td style="color: var(--body); font-weight: 600;">Q ${displayedQ} of ${totalQ}</td>
                     <td style="max-width: 350px;">${detailsHtml}</td>
@@ -403,6 +487,14 @@
                     <td><span class="score-badge">${parseFloat(info.score || 0).toFixed(2)} CORRECT</span></td>
                     <td>${statusHtml}</td>
                 `;
+                const detailsElement = tr.querySelector('details');
+                if (detailsElement) {
+                    detailsElement.addEventListener('toggle', () => toggleDropdown(sid, detailsElement.open));
+                }
+                const whiteboardButton = tr.querySelector('.wb-session-toggle');
+                if (whiteboardButton) {
+                    whiteboardButton.addEventListener('click', () => toggleWhiteboard(sid));
+                }
                 tbody.appendChild(tr);
             });
 
@@ -413,7 +505,11 @@
 
         function initialFetch() {
             fetch('/api/live/' + quizId)
-            .then(res => res.json())
+            .then(async res => {
+                const response = await res.json();
+                if (!res.ok) throw new Error(response.error || 'Unable to load live sessions');
+                return response;
+            })
             .then(response => {
                 if(response.paused !== undefined) {
                     isPaused = response.paused;
@@ -421,18 +517,14 @@
                 }
                 sessionsCache = response.sessions || response;
                 renderTable();
-            });
+            })
+            .catch(error => console.warn('[LIVE] Polling failed:', error.message));
         }
         
         initialFetch();
-        // Automatic HTTP Polling Fallback if WS is down or laggy
-        // Reduced interval to 2s to match the 'TABLE UPDATES EVERY 2 SECONDS' header
-        setInterval(() => {
-            if (!useWS || (socket && !socket.connected)) {
-                console.log('[HTTP] Polling live data fallback...');
-                initialFetch();
-            }
-        }, 2000);
+        // Authenticated polling remains authoritative for the roster. Socket rooms
+        // only carry pause/termination signals and never expose the full class list.
+        setInterval(initialFetch, 2000);
     </script>
     <script>lucide.createIcons();</script>
 </body>

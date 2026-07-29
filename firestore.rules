@@ -1,8 +1,56 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        (request.auth.token.admin == true || request.auth.token.role == 'admin');
+    }
+
+    function ownsQuizData(data) {
+      return signedIn() && (
+        data.user_id == request.auth.uid ||
+        data.owner_id == request.auth.uid ||
+        data.uid == request.auth.uid
+      );
+    }
+
+    function ownsResultData(data) {
+      return signedIn() && (
+        data.user_id == request.auth.uid ||
+        data.student_id == request.auth.uid ||
+        data.uid == request.auth.uid
+      );
+    }
+
+    // Server-side Firebase Admin writes bypass these rules. Browser clients get
+    // least-privilege reads only; all mutations flow through validated routes.
+    match /quizzes/{quizId} {
+      allow read: if isAdmin() || ownsQuizData(resource.data);
+      allow create, update, delete: if false;
+    }
+
+    // Backward-compatible singular collection used by older AI Studio builds.
+    match /quiz/{quizId} {
+      allow read: if isAdmin() || ownsQuizData(resource.data);
+      allow create, update, delete: if false;
+    }
+
+    match /results/{resultId} {
+      allow read: if isAdmin() || ownsResultData(resource.data);
+      allow create, update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

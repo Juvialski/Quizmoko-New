@@ -13,7 +13,7 @@
       };
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 
@@ -124,7 +124,8 @@
         .resizable-image-wrapper { display: flex; justify-content: center; margin: 24px auto; width: 100%; }
         .image-content-box { background: white; padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); display: inline-block; max-width: 200%; }
         .resizable-image-wrapper img { width: 100%; height: auto; display: block; margin: 0 auto; border-radius: var(--radius-sm); }
-        .btn-start, .btn-confirm { background-color: var(--on-dark); color: var(--canvas); border: 1px solid transparent; padding: 20px; font-size: 18px; border-radius: var(--radius-md); font-weight: 800; cursor: pointer; width: 100%; transition: 0.2s; margin-top: 20px;}
+        .btn-start, .btn-confirm { background-color: var(--on-dark); color: var(--canvas); border: 1px solid transparent; padding: 20px; font-size: 18px; border-radius: var(--radius-md); font-weight: 800; cursor: pointer; width: 100%; transition: 0.2s; margin-top: 20px; align-items: center; justify-content: center; gap: 6px;}
+        .btn-start { display: flex; }
         .btn-confirm { background-color: var(--success); display: none; }
         .review-block { padding: 30px; margin-bottom: 24px; border-radius: var(--radius-md); text-align: left; border: 1px solid var(--hairline); background: var(--surface-soft);}
         .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; display: inline-block;}
@@ -602,7 +603,7 @@
                     <div style="height:4px; width:60px; background:var(--primary); margin:20px auto;"></div>
                     <h1 id="score-text">Grading...</h1>
                     <p id="save-status-msg" style="color: var(--body); font-size: 16px;">Score successfully submitted.</p>
-                    <button class="btn-confirm" id="pdf-btn" onclick="openSharedSolutions()" style="display:block; background: var(--m-blue-dark); margin-bottom: 40px;"><i data-lucide="download" class="icon-sm"></i> VIEW & DOWNLOAD SOLUTIONS</button>
+            <button class="btn-confirm" id="pdf-btn" onclick="openSharedSolutions()" style="display:inline-flex; background: var(--m-blue-dark); margin-bottom: 40px;"><i data-lucide="download" class="icon-sm"></i> VIEW & DOWNLOAD SOLUTIONS</button>
                     <hr style="border: 1px solid var(--hairline); margin: 64px 0;">
                     <h3 style="text-align: left; font-size: 24px; color: var(--on-dark); margin-bottom: 24px;"><i data-lucide="search" class="icon-sm"></i> Detailed Review</h3>
                     <div id="review-container"></div>
@@ -647,6 +648,19 @@
         const quizId = '<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>';
         const quizData = <%- JSON.stringify(quiz).replace(/</g, "\\u003c") %>;
 
+        function applyPauseState(paused) {
+            const nextPaused = !!paused;
+            if (nextPaused === isPaused) return;
+            isPaused = nextPaused;
+            if (isPaused && !pauseStartTime) {
+                pauseStartTime = Date.now();
+            } else if (!isPaused && pauseStartTime) {
+                totalPausedTime += Math.round((Date.now() - pauseStartTime) / 1000);
+                pauseStartTime = null;
+            }
+            updatePauseUI();
+        }
+
         // WebSocket Initialization with Polling Fallback
         let socket;
         let useWS = true;
@@ -670,29 +684,14 @@
             });
 
             socket.on('pause_state', (data) => {
-                isPaused = !!data.paused;
-                if (isPaused && !pauseStartTime) {
-                    pauseStartTime = Date.now();
-                } else if (!isPaused && pauseStartTime) {
-                    totalPausedTime += Math.round((Date.now() - pauseStartTime) / 1000);
-                    pauseStartTime = null;
-                }
-                updatePauseUI();
+                applyPauseState(data.paused);
             });
 
             socket.on('ping_ack', (data) => {
                 if (data.paused !== undefined) {
-                    const prevPaused = isPaused;
-                    isPaused = !!data.paused;
-                    if (isPaused && !pauseStartTime) {
-                        pauseStartTime = Date.now();
-                    } else if (!isPaused && pauseStartTime) {
-                        totalPausedTime += Math.round((Date.now() - pauseStartTime) / 1000);
-                        pauseStartTime = null;
-                    }
-                    if (prevPaused !== isPaused) updatePauseUI();
+                    applyPauseState(data.paused);
                 }
-                if (data.terminated && !isSubmitting) {
+                if (data.terminated && quizStartTime && !isSubmitting) {
                     console.log('[WS Ping Ack] Teacher terminated the session.');
                     submitQuiz('terminated');
                 }
@@ -703,7 +702,7 @@
             });
 
             socket.on('terminate', (data) => {
-                if (data.terminated && !isSubmitting) {
+                if (data.terminated && quizStartTime && !isSubmitting) {
                     console.log('[WS] Teacher terminated the session.');
                     submitQuiz('terminated');
                 }
@@ -730,7 +729,19 @@
             useWS = false;
         }
 
-        let sessionId = 'sess_' + Math.random().toString(36).substr(2, 9);
+        function createQuizSessionId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                return 'sess_' + window.crypto.randomUUID();
+            }
+            if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+                const bytes = new Uint8Array(16);
+                window.crypto.getRandomValues(bytes);
+                return 'sess_' + Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+            }
+            return 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 15);
+        }
+
+        let sessionId = createQuizSessionId();
         let currentIndex = 0, timeRemaining = 0, timerInterval, answers = {}, solutionSnapshots = {}, studentName = 'Anonymous', currentSelectedOption = null, isPaused = false, pingInterval, isSubmitting = false;
         let whiteboardDisabledByTeacher = false;
         let studentWhiteboardPreference = true; // DEFAULT TO SHOWN
@@ -762,6 +773,7 @@
         let isGrading = false; // Guard for confirm button
         let pendingGradings = 0; // TRACK BACKGROUND GRADING
         let resultId = null;
+        let resultAccessToken = null;
 
         const STORAGE_KEY = `quiz_state_${quizId}`;
 
@@ -772,12 +784,18 @@
                 currentIndex: parseInt(currentIndex) || 0,
                 answers, questionPages,
                 totalScore: parseFloat(totalScore) || 0,
-                progressiveResults, solutionSnapshots, sessionId,
+                progressiveResults, sessionId,
                 timeRemaining: parseInt(timeRemaining) || 0,
                 studentWhiteboardPreference, // PERSIST STUDENT PREFERENCE
                 isWhiteboardDirty, quizStartTime, totalPausedTime
             };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            try {
+                // PNG snapshots stay in memory; persisting base64 canvases regularly
+                // exceeded browser storage quotas and could abort answer submission.
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (error) {
+                console.warn('[QUIZ] Could not persist local quiz state:', error);
+            }
         }
 
         function saveProgressToServer() {
@@ -813,18 +831,26 @@
             try {
                 const state = JSON.parse(saved);
                 studentName = state.studentName || 'Anonymous';
-                currentIndex = parseInt(state.currentIndex) || 0;
+                currentIndex = Math.max(0, Math.min(parseInt(state.currentIndex) || 0, Math.max(0, quizData.questions.length - 1)));
                 answers = state.answers || {};
-                questionPages = state.questionPages || {};
                 totalScore = parseFloat(state.totalScore) || 0;
-                progressiveResults = Array.isArray(state.progressiveResults) ? state.progressiveResults : [];
-                solutionSnapshots = state.solutionSnapshots || {};
+                const restoredPages = state.questionPages && typeof state.questionPages === 'object' ? state.questionPages : {};
+                questionPages = {};
+                quizData.questions.forEach((_, index) => {
+                    const pages = restoredPages[index];
+                    questionPages[index] = Array.isArray(pages) && pages.length > 0
+                        ? pages
+                        : [{ strokes: [], texts: [] }];
+                });
+                const restoredResults = Array.isArray(state.progressiveResults) ? state.progressiveResults : [];
+                progressiveResults = quizData.questions.map((_, index) => restoredResults[index] || null);
+                solutionSnapshots = {};
                 if (state.sessionId) sessionId = state.sessionId;
                 if (state.timeRemaining !== undefined) timeRemaining = parseInt(state.timeRemaining) || 0;
                 if (state.studentWhiteboardPreference !== undefined) studentWhiteboardPreference = state.studentWhiteboardPreference;
                 if (state.isWhiteboardDirty !== undefined) isWhiteboardDirty = state.isWhiteboardDirty;
                 if (state.quizStartTime) quizStartTime = state.quizStartTime;
-                if (state.totalPausedTime) totalPausedTime = state.totalPausedTime;
+                if (state.totalPausedTime !== undefined) totalPausedTime = parseInt(state.totalPausedTime) || 0;
 
                 // RECALCULATE PENDING GRADINGS: questions answered but not yet graded
                 pendingGradings = 0;
@@ -841,7 +867,7 @@
                                 session_id: sessionId,
                                 student_name: studentName,
                                 q_index: i,
-                                student_answer: answers[i] || '',
+                                student_answer: Object.prototype.hasOwnProperty.call(answers, i) ? answers[i] : '',
                                 solution_snapshots: solutionSnapshots[i] || [],
                                 api_key: apiKey
                             })
@@ -849,11 +875,12 @@
                             if (data.success) {
                                 progressiveResults[i] = {
                                     question: quizData.questions[i].question,
-                                    user_answer: answers[i] || 'No Answer',
+                                    user_answer: Object.prototype.hasOwnProperty.call(answers, i) ? answers[i] : 'No Answer',
                                     correct_answer: data.correct_answer,
                                     is_correct: data.is_correct,
                                     ai_feedback: data.ai_feedback,
-                                    score_fraction: data.score_fraction
+                                    score_fraction: data.score_fraction,
+                                    grade_proof: data.grade_proof
                                 };
                                 // Note: totalScore will be synced on next submitQuiz or handleAnswer
                             }
@@ -902,12 +929,80 @@
         }
 
         function formatTime(secs) {
+            secs = Number.isFinite(Number(secs)) ? Math.max(0, Math.floor(Number(secs))) : 0;
             const m = Math.floor(secs / 60);
             const s = secs % 60;
             return `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
         function toggleQuestionCentering() { document.getElementById('question-text').classList.toggle('centered'); }
+
+        function isSafeDisplayImageSource(value) {
+            if (typeof value !== 'string' || value.length > 12000000) return false;
+            return /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(value)
+                || /^https:\/\/kroki\.io\/tikz\/svg\/[a-z0-9_-]+$/i.test(value);
+        }
+
+        function sanitizeDisplayHtml(value) {
+            const template = document.createElement('template');
+            template.innerHTML = String(value ?? '');
+            const allowedTags = new Set([
+                'BR', 'UL', 'OL', 'LI', 'STRONG', 'B', 'EM', 'I', 'SPAN',
+                'DIV', 'P', 'SUB', 'SUP', 'CODE', 'PRE', 'IMG'
+            ]);
+            const allowedClasses = new Set([
+                'resizable-image-wrapper', 'image-content-box', 'workings-img'
+            ]);
+
+            function cleanNode(node) {
+                if (node.nodeType === Node.COMMENT_NODE) {
+                    node.remove();
+                    return;
+                }
+                if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+                const element = node;
+                if (!allowedTags.has(element.tagName)) {
+                    element.replaceWith(document.createTextNode(element.textContent || ''));
+                    return;
+                }
+
+                const originalClass = element.getAttribute('class') || '';
+                const originalWidth = element.style && element.style.width ? element.style.width : '';
+                const originalSrc = element.getAttribute('src') || '';
+                const originalAlt = element.getAttribute('alt') || '';
+                for (const attribute of [...element.attributes]) {
+                    element.removeAttribute(attribute.name);
+                }
+
+                const safeClasses = originalClass
+                    .split(/\s+/)
+                    .filter(className => allowedClasses.has(className));
+                if (safeClasses.length) element.setAttribute('class', safeClasses.join(' '));
+                if (
+                    element.tagName === 'DIV'
+                    && /^(?:100|[1-9]?\d)(?:%|px)$/.test(originalWidth)
+                ) {
+                    element.style.width = originalWidth;
+                }
+
+                if (element.tagName === 'IMG') {
+                    if (!isSafeDisplayImageSource(originalSrc)) {
+                        element.remove();
+                        return;
+                    }
+                    element.setAttribute('src', originalSrc);
+                    element.setAttribute('alt', originalAlt.slice(0, 200));
+                    element.setAttribute('loading', 'lazy');
+                    element.setAttribute('decoding', 'async');
+                }
+
+                for (const child of [...element.childNodes]) cleanNode(child);
+            }
+
+            for (const child of [...template.content.childNodes]) cleanNode(child);
+            return template.innerHTML;
+        }
 
         function cleanNewlinesInMath(str) {
             if (!str) return "";
@@ -936,15 +1031,15 @@
 
             if (typeof data === 'object' && data !== null) {
                 if (Array.isArray(data)) {
-                    return '<ul style="margin: 5px 0; padding-left: 20px;">' +
+                    return sanitizeDisplayHtml('<ul>' +
                            data.map(v => `<li>${formatText(v)}</li>`).join('') +
-                           '</ul>';
+                           '</ul>');
                 }
-                let html = '<ul style="margin: 5px 0; padding-left: 20px;">';
+                let html = '<ul>';
                 for (const [k, v] of Object.entries(data)) {
                     html += `<li><strong>${k.charAt(0).toUpperCase() + k.slice(1)}:</strong> ${formatText(v)}</li>`;
                 }
-                return html + '</ul>';
+                return sanitizeDisplayHtml(html + '</ul>');
             }
 
             // 2. Standard Text Formatting
@@ -971,7 +1066,7 @@
                 return `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUrl}" alt='Math Diagram'></div></div>`;
             });
 
-            return str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi).map(p => {
+            const formatted = str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi).map(p => {
                 if (p.startsWith('<div')) return p;
 
                 // Process bullets and line breaks
@@ -985,9 +1080,10 @@
                     return line;
                 }).join('<br>');
             }).join('');
+            return sanitizeDisplayHtml(formatted);
         }
 
-        function renderMath(t = 'quiz-screen') {
+        function renderMath(t = 'quiz-screen', attempt = 0) {
             // Show retry button if it takes too long
             const retryBtn = document.getElementById('math-retry-btn');
             if (retryBtn) retryBtn.style.display = 'inline-flex';
@@ -998,7 +1094,7 @@
                     if (retryBtn) retryBtn.style.display = 'none'; // Hide if successful
                 }).catch(e => console.log(e));
             }
-            else setTimeout(() => renderMath(t), 50);
+            else if (attempt < 100) setTimeout(() => renderMath(t, attempt + 1), 50);
         }
 
         function sendPing(s) {
@@ -1014,7 +1110,8 @@
                 student_name: studentName,
                 current_q: (parseInt(currentIndex) || 0) + 1,
                 score: parseFloat(totalScore) || 0,
-                status: s
+                status: s,
+                time_remaining: Math.max(0, parseInt(timeRemaining) || 0)
             };
 
             if (useWS && socket && socket.connected) {
@@ -1030,10 +1127,10 @@
                 .then(r => r.json())
                 .then(d => {
                     if (d.error) return;
-                    isPaused = !!d.paused;
+                    applyPauseState(d.paused);
                     whiteboardDisabledByTeacher = !!d.whiteboard_disabled;
                     updateWhiteboardLayout(); // FORCE UPDATE LAYOUT
-                    if (!!d.terminated && !isSubmitting) submitQuiz('terminated');
+                    if (!!d.terminated && quizStartTime && !isSubmitting) submitQuiz('terminated');
                     if (d.time_remaining !== undefined && d.time_remaining > 0) {
                          const diff = Math.abs(timeRemaining - d.time_remaining);
                          if (diff > 5) timeRemaining = d.time_remaining;
@@ -1045,6 +1142,9 @@
 
         function beginQuiz() {
             try {
+                if (!Array.isArray(quizData.questions) || quizData.questions.length === 0) {
+                    return alert('This quiz has no questions yet. Please ask the teacher to add at least one question.');
+                }
                 const n = document.getElementById('student-name').value.trim();
                 if(!n) return alert('Enter name!');
                 studentName = n;
@@ -1199,7 +1299,7 @@
                     ta.oninput = e => {
                         currentSelectedOption = e.target.value;
                         if (quizData.quiz_mode !== 'back_and_forth') {
-                            btnConfirm.style.display = e.target.value.trim().length > 0 ? 'block' : 'none';
+                            btnConfirm.style.display = e.target.value.trim().length > 0 ? 'inline-flex' : 'none';
                         }
                     };
                     opts.appendChild(ta);
@@ -1218,11 +1318,11 @@
                         }
                         currentSelectedOption = e.target.value;
                         if (quizData.quiz_mode !== 'back_and_forth') {
-                            btnConfirm.style.display = e.target.value.trim() ? 'block' : 'none';
+                            btnConfirm.style.display = e.target.value.trim() ? 'inline-flex' : 'none';
                         }
                     };
                     opts.appendChild(inp);
-                    if (q.type === 'graphing' && quizData.quiz_mode !== 'back_and_forth') btnConfirm.style.display = 'block';
+                    if (q.type === 'graphing' && quizData.quiz_mode !== 'back_and_forth') btnConfirm.style.display = 'inline-flex';
                     inp.focus();
                 } else {
                     q.options.forEach((o, optIdx) => {
@@ -1249,7 +1349,7 @@
                                     .sort()
                                     .join(', ');
                                 currentSelectedOption = selected;
-                                btnConfirm.style.display = selected.length > 0 ? 'block' : 'none';
+                                btnConfirm.style.display = selected.length > 0 ? 'inline-flex' : 'none';
                                 if (quizData.quiz_mode === 'back_and_forth') {
                                     btnNext.disabled = false;
                                 }
@@ -1258,7 +1358,7 @@
                                 document.querySelectorAll('.option-btn').forEach(x => x.classList.remove('selected'));
                                 b.classList.add('selected');
                                 if (quizData.quiz_mode !== 'back_and_forth') {
-                                    btnConfirm.style.display = 'block';
+                                btnConfirm.style.display = 'inline-flex';
                                 }
                             }
                         };
@@ -1291,7 +1391,7 @@
                             statusElem.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> INCORRECT';
                             
                             if (retryBtn && (result.correct_answer === 'Grading Error' || (result.ai_feedback && result.ai_feedback.toLowerCase().includes('error')))) {
-                                retryBtn.style.display = 'block';
+                                retryBtn.style.display = 'inline-flex';
                             } else if (retryBtn) {
                                 retryBtn.style.display = 'none';
                             }
@@ -1435,7 +1535,7 @@
 
             btn.innerText = '⌛ SAVING...';
             btn.disabled = true;
-            handleAnswer(currentSelectedOption || '', direction, btn);
+            handleAnswer(currentSelectedOption ?? '', direction, btn);
         }
 
         async function handleAnswer(val, direction = 1, btn = null) {
@@ -1506,11 +1606,12 @@
                     console.log(`[QUIZ] Background Grading Complete for Q${qIndex+1}:`, data);
                     progressiveResults[qIndex] = {
                         question: q.question,
-                        user_answer: val || 'No Answer',
+                        user_answer: val ?? 'No Answer',
                         correct_answer: data.correct_answer,
                         is_correct: data.is_correct,
                         ai_feedback: data.ai_feedback,
-                        score_fraction: Number(data.score_fraction) || 0
+                        score_fraction: Number(data.score_fraction) || 0,
+                        grade_proof: data.grade_proof
                     };
 
                     // RECALCULATE TOTAL SCORE FROM ALL GRADED ITEMS
@@ -1579,7 +1680,7 @@
 
                         // Show retry button if AI error occurred
                         if (retryBtn && (result.correct_answer === 'Grading Error' || (result.ai_feedback && result.ai_feedback.toLowerCase().includes('error')))) {
-                            retryBtn.style.display = 'block';
+                            retryBtn.style.display = 'inline-flex';
                         } else if (retryBtn) {
                             retryBtn.style.display = 'none';
                         }
@@ -1634,7 +1735,7 @@
             // RESET FEEDBACK UI
             document.getElementById('instant-feedback').style.display = 'none';
             const btnConfirm = document.getElementById('btn-confirm');
-            if (btnConfirm) btnConfirm.style.display = 'block';
+            if (btnConfirm) btnConfirm.style.display = 'inline-flex';
             const retryBtn = document.getElementById('btn-retry-grading');
             if (retryBtn) retryBtn.style.display = 'none';
 
@@ -1656,7 +1757,7 @@
 
             const qIndex = currentIndex;
             const q = quizData.questions[qIndex];
-            const val = answers[qIndex] || '';
+            const val = Object.prototype.hasOwnProperty.call(answers, qIndex) ? answers[qIndex] : '';
             const snapshots = solutionSnapshots[qIndex] || [];
             const metrics = getCurrentTimeMetrics();
 
@@ -1686,11 +1787,12 @@
                 console.log(`[QUIZ] Retry Grading Complete for Q${qIndex+1}:`, data);
                 progressiveResults[qIndex] = {
                     question: q.question,
-                    user_answer: val || 'No Answer',
+                    user_answer: val ?? 'No Answer',
                     correct_answer: data.correct_answer,
                     is_correct: data.is_correct,
                     ai_feedback: data.ai_feedback,
-                    score_fraction: Number(data.score_fraction) || 0
+                    score_fraction: Number(data.score_fraction) || 0,
+                    grade_proof: data.grade_proof
                 };
 
                 // RECALCULATE TOTAL SCORE & UPDATE UI
@@ -1719,7 +1821,7 @@
                     statusElem.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> INCORRECT';
                     // Only show retry if it's still an error
                     if (data.correct_answer === 'Grading Error' || (data.ai_feedback && data.ai_feedback.toLowerCase().includes('error'))) {
-                        retryBtn.style.display = 'block';
+                        retryBtn.style.display = 'inline-flex';
                     } else {
                         retryBtn.style.display = 'none';
                     }
@@ -1727,7 +1829,7 @@
 
                 let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(data.correct_answer)}</div><br>`;
                 if (data.ai_feedback) {
-                    feedbackHtml += `<i data-lucide="bot" class="icon-sm"></i> <em>${data.ai_feedback}</em>`;
+                    feedbackHtml += `<i data-lucide="bot" class="icon-sm"></i> <em>${formatText(data.ai_feedback)}</em>`;
                 }
                 textElem.innerHTML = feedbackHtml;
                 renderMath('instant-feedback');
@@ -1745,6 +1847,7 @@
             if (isSubmitting) return;
 
             if (status === 'early' && !confirm('Are you sure you want to end the quiz early? Unanswered questions will be marked as incorrect.')) return;
+            isSubmitting = true;
 
             // SHOW LOADING STATE IMMEDIATELY
             document.getElementById('quiz-screen').style.display = 'none';
@@ -1763,70 +1866,28 @@
                 await new Promise(r => setTimeout(r, 1000));
             }
 
-            isSubmitting = true;
-            localStorage.removeItem(STORAGE_KEY);
             clearInterval(pingInterval); // Stop normal pings immediately
 
-            // Finalize results and calculate score from authoritative individual results
+            // Preserve completed server grades and leave all missing items for the
+            // authoritative submit endpoint. The student payload never contains keys.
             let finalCalculatedScore = 0;
-            progressiveResults = progressiveResults.map((r, i) => {
-                const q = quizData.questions[i];
-                const userAns = answers[i] || 'No Answer';
+            progressiveResults = quizData.questions.map((q, i) => {
+                const r = progressiveResults[i];
+                const userAns = Object.prototype.hasOwnProperty.call(answers, i) ? answers[i] : 'No Answer';
 
-                // Case 1: Already graded successfully
-                if (r && r.correct_answer !== 'Finalizing...') {
+                if (r && Number.isFinite(Number(r.score_fraction))) {
                     finalCalculatedScore += (Number(r.score_fraction) || 0);
                     return r;
                 }
 
-                // Case 2: Not graded or stuck in 'Finalizing...' - APPLY FALLBACK
-                let isCorrect = false, scoreFrac = 0;
-
-                if (q.type === 'multiple_choice' || q.type === 'true_false' || q.type === 'identification') {
-                    let normUser = String(userAns).trim().toUpperCase();
-                    if (q.type === 'multiple_choice' && normUser.length > 1 && (normUser[1] === ')' || normUser[1] === '.')) normUser = normUser[0];
-                    let normCorrect = String(q.answer).trim().toUpperCase();
-                    if (q.type === 'multiple_choice' && normCorrect.length > 1 && (normCorrect[1] === ')' || normCorrect[1] === '.')) normCorrect = normCorrect[0];
-                    
-                    if (q.type === 'true_false') {
-                        if (normUser.includes('TRUE')) normUser = 'A';
-                        else if (normUser.includes('FALSE')) normUser = 'B';
-                    }
-                    if (q.type === 'identification') {
-                        const cleanExpected = normCorrect.replace(/[^A-Z0-9]/g, '');
-                        const cleanUser = normUser.replace(/[^A-Z0-9]/g, '');
-                        if (cleanExpected === cleanUser) {
-                            isCorrect = true;
-                        } else {
-                            const numExpected = normCorrect.replace(/[^0-9.]/g, '');
-                            const numUser = normUser.replace(/[^0-9.]/g, '');
-                            isCorrect = !!(numExpected && numUser && numExpected === numUser);
-                        }
-                    } else {
-                        isCorrect = normUser === normCorrect;
-                    }
-                    scoreFrac = isCorrect ? 1 : 0;
-                } else if (q.type === 'multiple_choice_multi') {
-                    const getSet = (s) => new Set(String(s || '').replace(',', ' ').split(/\s+/).filter(x => x && x.length === 1).map(x => x.toUpperCase()));
-                    const setStudent = getSet(userAns);
-                    const setCorrect = getSet(q.answer);
-
-                    const correctHits = [...setStudent].filter(x => setCorrect.has(x)).length;
-                    const wrongHits = [...setStudent].filter(x => !setCorrect.has(x)).length;
-
-                    const raw = correctHits - (wrongHits * 0.5);
-                    scoreFrac = Math.max(0, Math.min(1, raw / setCorrect.size));
-                    isCorrect = scoreFrac > 0.95;
-                }
-                finalCalculatedScore += scoreFrac;
-
                 return {
                     question: q.question,
+                    type: q.type,
                     user_answer: userAns,
-                    correct_answer: (r && r.correct_answer) ? r.correct_answer : 'Finalizing...',
-                    is_correct: isCorrect,
-                    score_fraction: scoreFrac,
-                    ai_feedback: (r && r.ai_feedback) ? r.ai_feedback : 'Grading finalized locally.'
+                    correct_answer: null,
+                    is_correct: false,
+                    score_fraction: 0,
+                    ai_feedback: 'Pending server grading.'
                 };
             });
 
@@ -1839,11 +1900,15 @@
                 const timeActive = metrics.timeActive;
                 const finalPausedTime = metrics.finalPausedTime;
                 const totalDuration = metrics.totalDuration;
-                const accuracyPct = (finalCalculatedScore / quizData.questions.length) * 100;
+                const accuracyPct = quizData.questions.length > 0
+                    ? (finalCalculatedScore / quizData.questions.length) * 100
+                    : 0;
 
                 // 1. URGENT: SEND FINAL STATUS PING FIRST TO CLEAR LIVE DASHBOARD
                 // Use sendPing to ensure high-priority broadcast via WebSockets if available
-                const finalStatus = status === 'early' ? 'Abandoned <i data-lucide="x-circle" class="icon-sm"></i>' : 'Completed <i data-lucide="check-circle" class="icon-sm"></i>';
+                const finalStatus = status === 'early'
+                    ? 'Abandoned'
+                    : (status === 'terminated' ? 'Terminated by teacher' : 'Completed');
                 sendPing(finalStatus);
 
                 // Keep the HTTP fallback for absolute reliability
@@ -1862,7 +1927,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         quiz_id: quizId, session_id: sessionId, student_name: studentName,
+                        answers,
                         graded_details: progressiveResults, total_score: finalCalculatedScore,
+                        submission_status: status,
                         time_active_seconds: timeActive,
                         time_paused_seconds: finalPausedTime,
                         total_duration_seconds: totalDuration,
@@ -1872,12 +1939,21 @@
                 });
 
                 const data = await response.json();
-                if (!response.ok) throw new Error(data.error || `Server error ${response.status}`);
+                if (!response.ok || !data.success) throw new Error(data.error || `Server error ${response.status}`);
                 resultId = data.result_id;
+                resultAccessToken = data.result_access_token || null;
+                if (Array.isArray(data.graded_details)) {
+                    progressiveResults = data.graded_details;
+                }
+                finalCalculatedScore = Number.isFinite(Number(data.total_score))
+                    ? Number(data.total_score)
+                    : finalCalculatedScore;
+                totalScore = finalCalculatedScore;
+                localStorage.removeItem(STORAGE_KEY);
             } catch (err) {
                 console.error('Submission failed:', err);
                 if (document.getElementById('save-status-msg')) {
-                    document.getElementById('save-status-msg').innerHTML = `<span style="color:var(--m-red)"><i data-lucide="alert-triangle" class="icon-sm"></i>️ Save error: ${err.message}. Please screenshot this result.</span>`;
+                    document.getElementById('save-status-msg').innerHTML = `<span style="color:var(--m-red)"><i data-lucide="alert-triangle" class="icon-sm"></i>️ Save error: ${formatText(err.message)}. Please screenshot this result.</span>`;
                 }
             } finally {
                 // ALWAYS show the results UI regardless of save success
@@ -1893,7 +1969,7 @@
                         <div class="status-badge ${statusClass}">${statusText}</div>
                         <div style="font-weight: 800; color: var(--primary); display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
                             <span>QUESTION ${i+1}</span>
-                            <span style="font-size: 14px; background: var(--surface-card); padding: 4px 10px; border-radius: 8px;">Points: ${item.score_fraction.toFixed(2)} / 1.0</span>
+                            <span style="font-size: 14px; background: var(--surface-card); padding: 4px 10px; border-radius: 8px;">Points: ${(Number(item.score_fraction) || 0).toFixed(2)} / 1.0</span>
                         </div>
                         <div style="font-size: 18px; margin-bottom: 20px;">${formatText(item.question)}</div>
                     `;
@@ -1903,7 +1979,9 @@
                     if (snapshots && snapshots.length > 0) {
                         html += `<div class="workings-title"><i data-lucide="edit-3" class="icon-sm"></i> Your Workings:</div>`;
                         snapshots.forEach(img => {
-                            html += `<img src="${img}" class="workings-img" alt='Whiteboard Snapshot'>`;
+                            if (isSafeDisplayImageSource(img)) {
+                                html += `<img src="${img}" class="workings-img" alt='Whiteboard Snapshot'>`;
+                            }
                         });
                     }
 
@@ -1915,13 +1993,13 @@
                             </div>
                             <div class="ans-box">
                                 <span class="ans-label">Correct Answer</span>
-                                <div class="ans-value">${formatText(item.correct_answer || 'N/A')}</div>
+                                <div class="ans-value">${formatText(item.correct_answer ?? 'N/A')}</div>
                             </div>
                         </div>
                     `;
 
                     if (item.ai_feedback) {
-                        html += `<div style="margin-top: 15px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 4px; font-size: 13px;"><i data-lucide="bot" class="icon-sm"></i> ${item.ai_feedback}</div>`;
+                        html += `<div style="margin-top: 15px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 4px; font-size: 13px;"><i data-lucide="bot" class="icon-sm"></i> ${formatText(item.ai_feedback)}</div>`;
                     }
 
                     if (!item.is_correct) {
@@ -1949,7 +2027,12 @@
 
         function openSharedSolutions() {
             if (!resultId) return alert('Result still saving...');
-            window.open(`/view_solutions/${resultId}?download=true`, '_blank');
+            if (!resultAccessToken) return alert('Secure result link is unavailable. Please retry saving the quiz.');
+            const params = new URLSearchParams({
+                download: 'true',
+                access_token: resultAccessToken
+            });
+            window.open(`/view_solutions/${encodeURIComponent(resultId)}?${params.toString()}`, '_blank');
         }
 
         function explainMistakeStudent(btn, idx) {
@@ -1971,6 +2054,8 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     quiz_id: quizId,
+                    q_index: idx,
+                    grade_proof: item.grade_proof,
                     question: item.question,
                     user_answer: item.user_answer,
                     correct_answer: item.correct_answer

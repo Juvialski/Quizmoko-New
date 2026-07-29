@@ -182,15 +182,7 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
         import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
-        // Your Firebase config
-        const firebaseConfig = {
-            apiKey: 'AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc',
-            authDomain: 'quizmoko-51920.firebaseapp.com',
-            projectId: 'quizmoko-51920',
-            storageBucket: 'quizmoko-51920.firebasestorage.app',
-            messagingSenderId: '399313723605',
-            appId: '1:399313723605:web:85769dd5aa7edebc13025c'
-        };
+        const firebaseConfig = <%- firebase_config_json %>;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -228,10 +220,6 @@
                 });
 
                 if (!sessionRes.ok) throw new Error('Failed to establish session');
-
-                // Legacy cookie for safety (optional, but keeping it for now)
-                const maxAge = rememberMe ? 2592000 : 3600;
-                document.cookie = `token=${token}; path=/; max-age=${maxAge}; samesite=strict`;
 
                 // Redirect to dashboard
                 window.location.href = '/';
@@ -278,15 +266,12 @@
 
                 if (!sessionRes.ok) throw new Error('Failed to establish session');
 
-                const maxAge = rememberMe ? 2592000 : 3600;
-                document.cookie = `token=${token}; path=/; max-age=${maxAge}; samesite=strict`;
-
                 window.location.href = '/';
             } catch (error) {
                 errorDiv.textContent = error.message;
                 googleBtn.disabled = false;
                 googleBtn.innerHTML = `
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width='18' height='18' alt='Google">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="Google">
                     GOOGLE ACCOUNT
                 `;
             }

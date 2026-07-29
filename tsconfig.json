@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "types": ["node"]
+  },
+  "include": [
+    "server.ts",
+    "prompts.ts",
+    "src/**/*.ts",
+    "test/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

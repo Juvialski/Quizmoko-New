@@ -257,7 +257,7 @@ if (results && results.length > 0) {
                             </td>
                         </tr>
                     <% } else { %>
-                    <% for (let r of (results || [])) { %>
+                    <% for (let [resultIndex, r] of (results || []).entries()) { %>
                     <tr id="row-<%= typeof r.id !== 'undefined' ? r.id : '' %>">
                         <td class="checkbox-cell">
                             <input type="checkbox" class="result-checkbox custom-checkbox" value="<%= typeof r.id !== 'undefined' ? r.id : '' %>" onclick="updateBulkUI()">
@@ -270,8 +270,8 @@ if (results && results.length > 0) {
                         </td>
                         <td>
                             <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <span class="score-badge"><%= typeof r.score !== 'undefined' && r.score ? r.score : '' %> / <%= typeof r.total !== 'undefined' && r.total ? r.total : '' %></span>
-                                <span style="font-size: 11px; font-weight: 700; color: var(--primary);"><i data-lucide="target" class="icon-sm"></i> <%= typeof r.accuracy_pct !== 'undefined' && r.accuracy_pct ? r.accuracy_pct : '' %>% Accuracy</span>
+                                <span class="score-badge"><%= typeof r.score !== 'undefined' ? r.score : 0 %> / <%= typeof r.total !== 'undefined' ? r.total : 0 %></span>
+                                <span style="font-size: 11px; font-weight: 700; color: var(--primary);"><i data-lucide="target" class="icon-sm"></i> <%= typeof r.accuracy_pct !== 'undefined' ? r.accuracy_pct : 0 %>% Accuracy</span>
                                 <span style="font-size: 10px; color: var(--body); font-weight: 600; margin-top: 2px;">
                                     <% 
                                       let incorrect_indices = [];
@@ -347,7 +347,7 @@ if (results && results.length > 0) {
                                         <% } %>
                                     </div>
                                     <% if (!item.is_correct) { %>
-                                        <button class="btn-explain" onclick='explainMistake(this, <%= itemIdx %>, 0)'>
+                                        <button class="btn-explain" onclick='explainMistake(this, <%= itemIdx %>, <%= resultIndex %>)'>
                                             <i data-lucide="bot" class="icon-sm"></i> AI Tutor Explanation
                                         </button>
                                         <div class="explanation-box"></div>
@@ -385,11 +385,18 @@ if (results && results.length > 0) {
             if (row.style.display === 'table-row') MathJax.typesetPromise([row]);
         }
 
-        function copySolutionsLink(resultId) {
-            const url = window.location.origin + '/view_solutions/' + resultId;
-            navigator.clipboard.writeText(url).then(() => {
-                alert('Shareable solutions link copied to clipboard!');
-            });
+        async function copySolutionsLink(resultId) {
+            try {
+                const response = await fetch(`/api/results/${encodeURIComponent(resultId)}/share_token`, { method: 'POST' });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.error || 'Unable to create share link');
+                const url = window.location.origin + '/view_solutions/' + encodeURIComponent(resultId)
+                    + '?access_token=' + encodeURIComponent(data.result_access_token);
+                await navigator.clipboard.writeText(url);
+                alert('Secure solutions link copied to clipboard!');
+            } catch (error) {
+                alert('Could not copy solutions link: ' + error.message);
+            }
         }
 
         const resultsData = <%- JSON.stringify(results).replace(/</g, "\\u003c") %>;
@@ -400,27 +407,126 @@ if (results && results.length > 0) {
             window.open(url, '_blank');
         }
 
-        function explainMistake(btn, qIdx, resIdx) {
+        function isSafeDisplayImageSource(value) {
+            if (typeof value !== 'string' || value.length > 12000000) return false;
+            return /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(value)
+                || /^https:\/\/kroki\.io\/tikz\/svg\/[a-z0-9_-]+$/i.test(value);
+        }
+
+        function sanitizeDisplayHtml(value) {
+            const template = document.createElement('template');
+            template.innerHTML = String(value ?? '');
+            const allowedTags = new Set([
+                'BR', 'UL', 'OL', 'LI', 'STRONG', 'B', 'EM', 'I', 'SPAN',
+                'DIV', 'P', 'SUB', 'SUP', 'CODE', 'PRE', 'IMG'
+            ]);
+            const allowedClasses = new Set([
+                'resizable-image-wrapper', 'image-content-box', 'workings-img'
+            ]);
+
+            function cleanNode(node) {
+                if (node.nodeType === Node.COMMENT_NODE) {
+                    node.remove();
+                    return;
+                }
+                if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+                const element = node;
+                if (!allowedTags.has(element.tagName)) {
+                    element.replaceWith(document.createTextNode(element.textContent || ''));
+                    return;
+                }
+
+                const originalClass = element.getAttribute('class') || '';
+                const originalWidth = element.style && element.style.width ? element.style.width : '';
+                const originalSrc = element.getAttribute('src') || '';
+                const originalAlt = element.getAttribute('alt') || '';
+                for (const attribute of [...element.attributes]) {
+                    element.removeAttribute(attribute.name);
+                }
+
+                const safeClasses = originalClass
+                    .split(/\s+/)
+                    .filter(className => allowedClasses.has(className));
+                if (safeClasses.length) element.setAttribute('class', safeClasses.join(' '));
+                if (
+                    element.tagName === 'DIV'
+                    && safeClasses.includes('image-content-box')
+                    && /^(?:[1-9]\d?|1\d\d|200)%$/.test(originalWidth)
+                ) {
+                    element.style.width = originalWidth;
+                }
+
+                if (element.tagName === 'IMG') {
+                    if (!isSafeDisplayImageSource(originalSrc)) {
+                        element.remove();
+                        return;
+                    }
+                    element.setAttribute('src', originalSrc);
+                    element.setAttribute('alt', originalAlt.slice(0, 200));
+                    element.setAttribute('loading', 'lazy');
+                    element.setAttribute('decoding', 'async');
+                }
+
+                for (const child of [...element.childNodes]) cleanNode(child);
+            }
+
+            for (const child of [...template.content.childNodes]) cleanNode(child);
+            return template.innerHTML;
+        }
+
+        function formatDisplayText(value) {
+            if (value === null || value === undefined) return '';
+            if (typeof value === 'object') {
+                if (Array.isArray(value)) {
+                    return sanitizeDisplayHtml(`<ul>${value.map(item => `<li>${formatDisplayText(item)}</li>`).join('')}</ul>`);
+                }
+                let html = '<ul>';
+                for (const [key, item] of Object.entries(value)) {
+                    html += `<li><strong>${sanitizeDisplayHtml(key)}:</strong> ${formatDisplayText(item)}</li>`;
+                }
+                return sanitizeDisplayHtml(html + '</ul>');
+            }
+
+            let text = String(value).replace(/\\n/g, '\n');
+            text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, math) => `$$${math.replace(/\r?\n/g, ' ')}$$`);
+            text = text.replace(/\$([\s\S]*?)\$/g, (match, math) => `$${math.replace(/\r?\n/g, ' ')}$`);
+            return sanitizeDisplayHtml(text.split(/\r?\n/).join('<br>'));
+        }
+
+        async function explainMistake(btn, qIdx, resIdx) {
             const result = resultsData[resIdx];
             const item = result.details[qIdx];
 
             btn.innerText = 'GENERATING...'; btn.disabled = true;
-            fetch('/api/explain', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    quiz_id: result.quiz_id,
-                    question: item.question,
-                    user_answer: item.user_answer,
-                    correct_answer: item.correct_answer,
-                    q_type: item.type || ''
-                })
-            })
-            .then(res => res.json()).then(data => {
+            try {
+                const response = await fetch('/api/explain', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        quiz_id: result.quiz_id,
+                        question: item.question,
+                        user_answer: item.user_answer,
+                        correct_answer: item.correct_answer,
+                        q_type: item.type || ''
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || !data || typeof data.explanation === 'undefined') {
+                    throw new Error((data && data.error) || `Request failed (HTTP ${response.status}).`);
+                }
                 btn.style.display = 'none'; const box = btn.nextElementSibling; box.style.display = 'block';
-                box.innerHTML = `<strong><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + data.explanation;
-                MathJax.typesetPromise([box]);
-            });
+                box.innerHTML = `<strong><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + formatDisplayText(data.explanation);
+                if (window.MathJax && MathJax.typesetPromise) {
+                    MathJax.typesetPromise([box]).catch(error => console.error('MathJax rendering failed:', error));
+                }
+            } catch (error) {
+                const box = btn.nextElementSibling;
+                box.style.display = 'block';
+                box.textContent = `Unable to generate an explanation: ${error.message}`;
+                btn.innerText = 'Try AI Tutor Again';
+                btn.disabled = false;
+            }
         }
 
         function toggleSelectAll() {
@@ -492,11 +598,6 @@ if (results && results.length > 0) {
             if (!quizId) return;
             const socket = io();
             socket.emit('join_quiz', { quiz_id: quizId });
-
-            socket.on('update_session', (payload) => {
-                console.log('[WS] Live update received:', payload);
-                triggerProgressiveReload();
-            });
 
             socket.on('progressive_result_update', (payload) => {
                 console.log('[WS] Progressive result update:', payload);

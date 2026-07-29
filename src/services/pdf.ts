@@ -1,7 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-import crypto from 'crypto';
-import { execSync } from 'child_process';
 import sharp from 'sharp';
 
 export function getFilesByField(files: Express.Multer.File[] | undefined, fieldNames: string[]) {
@@ -40,7 +36,8 @@ export async function cropImageBoundingBox(fileBuffer: Buffer, bbox: any): Promi
     const [ymin, xmin, ymax, xmax] = bbox.map((n: any) => Number(n));
     if (isNaN(ymin) || isNaN(xmin) || isNaN(ymax) || isNaN(xmax)) return null;
 
-    const meta = await sharp(fileBuffer).metadata();
+    const sharpOptions = { limitInputPixels: 40_000_000 };
+    const meta = await sharp(fileBuffer, sharpOptions).metadata();
     const width = meta.width || 1000;
     const height = meta.height || 1000;
 
@@ -84,8 +81,9 @@ export async function cropImageBoundingBox(fileBuffer: Buffer, bbox: any): Promi
     cropWidth = Math.max(10, Math.min(width - left, cropWidth));
     cropHeight = Math.max(10, Math.min(height - top, cropHeight));
 
-    const croppedBuffer = await sharp(fileBuffer)
+    const croppedBuffer = await sharp(fileBuffer, sharpOptions)
       .extract({ left, top, width: cropWidth, height: cropHeight })
+      .png()
       .toBuffer();
 
     return `data:image/png;base64,${croppedBuffer.toString('base64')}`;
@@ -95,54 +93,183 @@ export async function cropImageBoundingBox(fileBuffer: Buffer, bbox: any): Promi
   }
 }
 
+async function loadPdfDocument(pdfBuffer: Buffer): Promise<any> {
+  if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {
+    throw new Error('PDF buffer is empty');
+  }
+  const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const loadingTask = getDocument({
+    data: new Uint8Array(pdfBuffer),
+    isEvalSupported: false,
+    useSystemFonts: true
+  } as any);
+  return loadingTask.promise;
+}
+
+async function renderLoadedPdfPage(pdfDocument: any, pageNumber: number): Promise<Buffer> {
+  let page: any = null;
+  try {
+    page = await pdfDocument.getPage(pageNumber);
+    const baseScale = 200 / 72;
+    const initialViewport = page.getViewport({ scale: baseScale });
+    if (
+      !Number.isFinite(initialViewport.width)
+      || !Number.isFinite(initialViewport.height)
+      || initialViewport.width <= 0
+      || initialViewport.height <= 0
+    ) {
+      throw new Error(`PDF page ${pageNumber} has invalid dimensions`);
+    }
+
+    // Keep a single RGBA canvas near 48 MB so concurrent Render requests do not
+    // exhaust a small instance while retaining more than enough OCR detail.
+    const maxPixels = 12_000_000;
+    const pixelCount = initialViewport.width * initialViewport.height;
+    const scale = pixelCount > maxPixels
+      ? baseScale * Math.sqrt(maxPixels / pixelCount)
+      : baseScale;
+    const viewport = page.getViewport({ scale });
+    const { createCanvas } = await import('@napi-rs/canvas');
+    const canvas = createCanvas(Math.max(1, Math.ceil(viewport.width)), Math.max(1, Math.ceil(viewport.height)));
+    const canvasContext = canvas.getContext('2d');
+
+    await page.render({ canvasContext, viewport, canvas }).promise;
+    return canvas.toBuffer('image/png');
+  } finally {
+    if (page) {
+      try {
+        page.cleanup();
+      } catch {
+        // Ignore cleanup errors after the rendered page result is known.
+      }
+    }
+  }
+}
+
+export interface RenderedPdfPage {
+  pageIndex: number;
+  pageNumber: number;
+  pageCount: number;
+  image: Buffer;
+}
+
+export interface PdfPageRangeOptions {
+  startPage?: number;
+  endPage?: number;
+  maxPages?: number;
+}
+
+/**
+ * Opens a PDF once, renders the requested pages sequentially, and releases each
+ * PDF.js page before moving to the next one. The callback is awaited so callers
+ * can process a page without accumulating every rendered image in memory.
+ */
+export async function renderPdfPageRange(
+  pdfBuffer: Buffer,
+  options: PdfPageRangeOptions,
+  onPage: (page: RenderedPdfPage) => void | Promise<void>
+): Promise<number> {
+  const startPage = options.startPage ?? 1;
+  const requestedEndPage = options.endPage;
+  const maxPages = options.maxPages;
+  if (
+    !Number.isInteger(startPage)
+    || startPage < 1
+    || (requestedEndPage !== undefined && (!Number.isInteger(requestedEndPage) || requestedEndPage < startPage))
+    || (maxPages !== undefined && (!Number.isInteger(maxPages) || maxPages < 1))
+  ) {
+    throw new Error('Invalid PDF page range');
+  }
+
+  let pdfDocument: any = null;
+  try {
+    pdfDocument = await loadPdfDocument(pdfBuffer);
+    const pageCount = Number(pdfDocument.numPages);
+    if (!Number.isInteger(pageCount) || pageCount < 1) {
+      throw new Error('PDF does not contain any readable pages');
+    }
+    if (maxPages !== undefined && pageCount > maxPages) {
+      throw new Error(`PDF contains ${pageCount} pages; the limit is ${maxPages}`);
+    }
+
+    const endPage = requestedEndPage ?? pageCount;
+    if (startPage > pageCount || endPage > pageCount) {
+      throw new Error(`Requested PDF page range ${startPage}-${endPage} exceeds ${pageCount} pages`);
+    }
+
+    for (let pageNumber = startPage; pageNumber <= endPage; pageNumber++) {
+      const image = await renderLoadedPdfPage(pdfDocument, pageNumber);
+      await onPage({
+        pageIndex: pageNumber - 1,
+        pageNumber,
+        pageCount,
+        image
+      });
+    }
+    return pageCount;
+  } finally {
+    if (pdfDocument) {
+      try {
+        await pdfDocument.destroy();
+      } catch {
+        // Ignore PDF.js cleanup failures after the request result is known.
+      }
+    }
+  }
+}
+
 export async function pdfPageToImage(pdfBuffer: Buffer, pageIndex: number = 0): Promise<Buffer | null> {
-  const tempIn = path.join('/tmp', `input_${crypto.randomBytes(8).toString('hex')}.pdf`);
-  const tempOut = path.join('/tmp', `output_${crypto.randomBytes(8).toString('hex')}.png`);
+  if (!Number.isInteger(pageIndex) || pageIndex < 0) return null;
+  let result: Buffer | null = null;
   try {
-    fs.writeFileSync(tempIn, pdfBuffer);
-    const pageNum = pageIndex + 1;
-    execSync(`gs -q -dNOPAUSE -dBATCH -sDEVICE=png16m -r200 -dFirstPage=${pageNum} -dLastPage=${pageNum} -sOutputFile="${tempOut}" "${tempIn}"`);
-    if (fs.existsSync(tempOut)) {
-      return fs.readFileSync(tempOut);
+    await renderPdfPageRange(
+      pdfBuffer,
+      { startPage: pageIndex + 1, endPage: pageIndex + 1 },
+      page => {
+        result = page.image;
+      }
+    );
+    return result;
+  } catch (err) {
+    console.warn(`Unable to render PDF page ${pageIndex + 1} with PDF.js:`, err);
+    return null;
+  }
+}
+
+export async function getPdfPageCount(pdfBuffer: Buffer): Promise<number> {
+  let pdfDocument: any = null;
+  try {
+    pdfDocument = await loadPdfDocument(pdfBuffer);
+    const count = Number(pdfDocument.numPages);
+    return Number.isInteger(count) && count > 0 ? count : 0;
+  } catch (err) {
+    console.warn('Unable to read PDF page count with PDF.js:', err);
+    return 0;
+  } finally {
+    if (pdfDocument) {
+      try {
+        await pdfDocument.destroy();
+      } catch {
+        // Ignore PDF.js cleanup failures after the request result is known.
+      }
     }
-  } catch (err) {
-    console.error('Error rendering PDF page to image with Ghostscript:', err);
-  } finally {
-    try { if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn); } catch (e) {}
-    try { if (fs.existsSync(tempOut)) fs.unlinkSync(tempOut); } catch (e) {}
   }
-  return null;
 }
 
-export function getPdfPageCount(pdfBuffer: Buffer): number {
-  const tempIn = path.join('/tmp', `count_${crypto.randomBytes(8).toString('hex')}.pdf`);
-  try {
-    fs.writeFileSync(tempIn, pdfBuffer);
-    const output = execSync(`gs -q -dNODISPLAY -c "(${tempIn}) (r) file runpdfbegin pdfpagecount = quit"`).toString().trim();
-    const count = parseInt(output, 10);
-    if (!isNaN(count)) return count;
-  } catch (err) {
-    console.error('Error getting PDF page count with gs:', err);
-  } finally {
-    try { if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn); } catch (e) {}
-  }
-  return 1;
-}
-
+/**
+ * Retained for compatibility with older callers. Worksheet extraction now sends
+ * rendered PNG pages to Gemini, so a PDF-splitting subprocess is no longer used.
+ */
 export async function extractPdfPages(pdfBuffer: Buffer, startPage: number, endPage: number): Promise<Buffer | null> {
-  const tempIn = path.join('/tmp', `chunk_in_${crypto.randomBytes(8).toString('hex')}.pdf`);
-  const tempOut = path.join('/tmp', `chunk_out_${crypto.randomBytes(8).toString('hex')}.pdf`);
-  try {
-    fs.writeFileSync(tempIn, pdfBuffer);
-    execSync(`gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -dFirstPage=${startPage} -dLastPage=${endPage} -sOutputFile="${tempOut}" "${tempIn}"`);
-    if (fs.existsSync(tempOut)) {
-      return fs.readFileSync(tempOut);
-    }
-  } catch (err) {
-    console.error(`Error splitting PDF pages ${startPage}-${endPage} with Ghostscript:`, err);
-  } finally {
-    try { if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn); } catch (e) {}
-    try { if (fs.existsSync(tempOut)) fs.unlinkSync(tempOut); } catch (e) {}
+  if (
+    !Number.isInteger(startPage)
+    || !Number.isInteger(endPage)
+    || startPage < 1
+    || endPage < startPage
+  ) {
+    return null;
   }
+  const pageCount = await getPdfPageCount(pdfBuffer);
+  if (pageCount === 0 || endPage > pageCount) return null;
   return null;
 }

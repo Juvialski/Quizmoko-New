@@ -394,7 +394,7 @@
                 </a>
                 <% } %>
             </div>
-                <style>.mobile-only { display: none; } @media (max-width: 1023px) { .mobile-only { display: block !important; margin-bottom: 10px; } }</style>
+                <style>.mobile-only { display: none; } @media (max-width: 1023px) { .mobile-only { display: flex !important; margin-bottom: 10px; } }</style>
                 <button type="button" class="btn-primary mobile-only" onclick="document.getElementById('saved-quizzes-card').scrollIntoView({behavior: 'smooth'})" style="width: 100%; display: none;">
                     <i data-lucide="arrow-down" class="icon-sm"></i> Jump to Library / Folders
                 </button>
@@ -407,9 +407,9 @@
                 </div>
 
                 
-<form action="/generate_ai" method="POST" onsubmit="return handleAILoading(event, this)">
-    <input type="hidden" name="api_key" id="hidden_api_key" required>
-    <input type="hidden" name="ollama_url" id="hidden_ollama_url" value="http://127.0.0.1:11434">
+<form action="/generate_ai" method="POST" onsubmit="handleAILoading(event, this); return false;">
+    <input type="hidden" name="api_key" id="hidden_api_key">
+    <input type="hidden" name="ollama_url" id="hidden_ollama_url" value="">
     
     <div class="accordion-item">
         <div class="accordion-header" onclick="toggleAccordion('acc-basic')">
@@ -424,14 +424,9 @@
                     <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
                     <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite</option>
                     <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-                    <option value="gemini-3.0-flash">Gemini 3.0 Flash</option>
                     <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                     <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-                    <optgroup label='Local Models (Ollama)'>
-                        <option value="ollama:llama3">Llama 3 (Local)</option>
-                        <option value="ollama:mistral">Mistral (Local)</option>
-                        <option value="__install_ollama__"><i data-lucide="download" class="icon-sm"></i> Install Local Models...</option>
-                    </optgroup>
+                    <optgroup id="ollama-model-group" label="Server-configured Local Models (Ollama)" disabled hidden></optgroup>
                 </select>
                 <div id="api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px 12px; border-radius: var(--radius-sm); font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase;">
                     Loading...
@@ -492,7 +487,7 @@
                         <span style="font-size:9px; font-weight:bold; color:var(--primary);">MC</span>
                         <div>
                             <button type="button" class="stepper-btn" onclick="stepVal('mc_count', -1)">-</button>
-                            <input type="number" name="mc_count" id="mc_count" value="2" oninput="updateTypeTotal()" required min='0' class="stepper-input">
+                            <input type="number" name="mc_count" id="mc_count" value="2" oninput="updateTypeTotal()" required min="0" max="50" class="stepper-input">
                             <button type="button" class="stepper-btn" onclick="stepVal('mc_count', 1)">+</button>
                         </div>
                     </div>
@@ -500,7 +495,7 @@
                         <span style="font-size:9px; font-weight:bold; color:var(--primary);">T/F</span>
                         <div>
                             <button type="button" class="stepper-btn" onclick="stepVal('tf_count', -1)">-</button>
-                            <input type="number" name="tf_count" id="tf_count" value="2" oninput="updateTypeTotal()" required min='0' class="stepper-input">
+                            <input type="number" name="tf_count" id="tf_count" value="2" oninput="updateTypeTotal()" required min="0" max="50" class="stepper-input">
                             <button type="button" class="stepper-btn" onclick="stepVal('tf_count', 1)">+</button>
                         </div>
                     </div>
@@ -508,7 +503,7 @@
                         <span style="font-size:9px; font-weight:bold; color:var(--primary);">ID</span>
                         <div>
                             <button type="button" class="stepper-btn" onclick="stepVal('id_count', -1)">-</button>
-                            <input type="number" name="id_count" id="id_count" value="2" oninput="updateTypeTotal()" required min='0' class="stepper-input">
+                            <input type="number" name="id_count" id="id_count" value="2" oninput="updateTypeTotal()" required min="0" max="50" class="stepper-input">
                             <button type="button" class="stepper-btn" onclick="stepVal('id_count', 1)">+</button>
                         </div>
                     </div>
@@ -516,7 +511,7 @@
                         <span style="font-size:9px; font-weight:bold; color:var(--primary);">OE</span>
                         <div>
                             <button type="button" class="stepper-btn" onclick="stepVal('oe_count', -1)">-</button>
-                            <input type="number" name="oe_count" id="oe_count" value="2" oninput="updateTypeTotal()" required min='0' class="stepper-input">
+                            <input type="number" name="oe_count" id="oe_count" value="2" oninput="updateTypeTotal()" required min="0" max="50" class="stepper-input">
                             <button type="button" class="stepper-btn" onclick="stepVal('oe_count', 1)">+</button>
                         </div>
                     </div>
@@ -524,7 +519,7 @@
                         <span style="font-size:9px; font-weight:bold; color:var(--primary);">GR</span>
                         <div>
                             <button type="button" class="stepper-btn" onclick="stepVal('gr_count', -1)">-</button>
-                            <input type="number" name="gr_count" id="gr_count" value="2" oninput="updateTypeTotal()" required min='0' class="stepper-input">
+                            <input type="number" name="gr_count" id="gr_count" value="2" oninput="updateTypeTotal()" required min="0" max="50" class="stepper-input">
                             <button type="button" class="stepper-btn" onclick="stepVal('gr_count', 1)">+</button>
                         </div>
                     </div>
@@ -532,7 +527,7 @@
             </div>
             
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;" id="limits-group">
-                <div><label>Total Qs</label><input type="number" name="num_items" value="10" required></div>
+                <div><label>Total Qs</label><input type="number" name="num_items" value="10" min="1" max="50" required></div>
                 <div><label>Time(s)</label><input type="number" name="time_limit" value="200" required></div>
                 <div><label>Images</label><input type="number" name="images_count" value="0" min='0' required></div>
                 <div><label>Batch</label><input type="number" name="batch_size" value="3" min='1' max='10' required></div>
@@ -728,14 +723,8 @@
                 <input type="text" id="modal_api_key_3" placeholder="Optional backup key..." autocomplete='off' spellcheck='false' style="-webkit-text-security: disc; margin-bottom: 20px;">
             </div>
             
-            <div id="ollama_url_container" style="display: none;">
-                <label style="margin-top: 0;">Ollama Public URL <span style="font-size: 10px; color: var(--body); text-transform: none;">(Requires ngrok if hosting on Render)</span></label>
-                <input type="text" id="modal_ollama_url_input" placeholder="e.g. https://1234-abcd.ngrok-free.app" autocomplete='off' style="margin-bottom: 20px;">
-            </div>
-
             <button onclick="saveApiKey()" class="btn-primary" style="margin-top: 0;"><i data-lucide="save" class="icon-sm"></i> Save Settings</button>
             <button onclick="closeApiKeyModal()" class="btn-secondary" id="modal-cancel-btn" style="width: 100%; margin-top: 12px; padding: 14px; display: none;"><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
-            <button type="button" id="modal-skip-btn" onclick="useLocalOnly()" style="background: transparent; color: var(--body); border: none; font-size: 12px; margin-top: 16px; cursor: pointer; text-decoration: underline; width: 100%;">Skip (I will only use local models)</button>
         </div>
     </div>
 
@@ -744,28 +733,13 @@
         <div class="modal-card">
             <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="box" class="icon-sm"></i> Setup Local AI</h2>
             
-            <p style="color: var(--body); font-size: 14px; margin-bottom: 16px;">Run AI completely on your own hardware. Free and private.</p>
+            <p style="color: var(--body); font-size: 14px; margin-bottom: 16px;">Local models are available only when the QuizMoKo server administrator configures an Ollama host.</p>
 
             <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 12px; color: var(--warning); line-height: 1.4;">
-                <strong>Cloud Users:</strong> Make sure you have linked your Ngrok URL in the <b><i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key</b> settings before scanning or downloading models!
+                Browser-supplied Ollama URLs and remote model installation are disabled for security. Configure the host through server environment settings.
             </div>
 
-            <label style="margin-top:0;">1. Install Ollama</label>
-            <p style="font-size: 13px; color: var(--body-strong); margin-top: 4px; margin-bottom: 16px;">Download and install from <a href="https://ollama.com/download" target='_blank' style="color: var(--primary); font-weight: bold;">ollama.com</a>. Ensure the app is running in your system tray.</p>
-
-            <label>2. Download a Model</label>
-            <p style="font-size: 13px; color: var(--body-strong); margin-top: 4px;">Select a model to download automatically.</p>
-            <div style="display: flex; gap: 8px; margin-bottom: 24px;">
-                <select id="install_model_select" style="flex: 1; border-radius: var(--radius-sm); margin-bottom: 0;">
-                    <option value="llama3.1">Llama 3.1 (Recommended, 8B)</option>
-                    <option value="mistral-nemo">Mistral Nemo (Advanced, 12B)</option>
-                    <option value="qwen2.5:7b">Qwen 2.5 (Fast, 7B)</option>
-                    <option value="llama3">Llama 3 (Older, 8B)</option>
-                </select>
-                <button onclick="autoInstallModel(document.getElementById('install_model_select').value)" class="btn-secondary" id="btn-auto-install" style="white-space: nowrap; padding: 14px; background: var(--surface-soft); border: 1px solid var(--primary); color: var(--on-dark); font-weight: 700; transition: all 0.2s ease; margin-top: 0;"><i data-lucide="download" class="icon-sm"></i> Install</button>
-            </div>
-
-            <button onclick="scanOllama()" class="btn-primary" id="btn-scan-ollama" style="margin-top: 0;"><i data-lucide="search" class="icon-sm"></i> Scan for Local Models</button>
+            <button onclick="scanOllama()" class="btn-primary" id="btn-scan-ollama" style="margin-top: 0;"><i data-lucide="search" class="icon-sm"></i> Refresh Configured Models</button>
             <button onclick="closeOllamaModal()" class="btn-secondary" style="width: 100%; margin-top: 12px; padding: 14px;"><i data-lucide="x-circle" class="icon-sm"></i> Close</button>
         </div>
     </div>
@@ -819,6 +793,50 @@
     </div>
 
     <script>
+        let serverAiConfigured = false;
+        let serverOllamaConfigured = false;
+
+        function getStoredGeminiKeys() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+                return Array.isArray(parsed)
+                    ? parsed.filter(key => typeof key === 'string' && key.trim()).map(key => key.trim())
+                    : [];
+            } catch (e) {
+                localStorage.removeItem('gemini_api_keys');
+                return [];
+            }
+        }
+
+        async function loadServerAiConfiguration() {
+            try {
+                const response = await fetch('/api/ai/config');
+                const data = response.ok ? await response.json() : null;
+                serverAiConfigured = !!(data && data.gemini_configured);
+                serverOllamaConfigured = !!(data && data.ollama_configured);
+            } catch (e) {
+                serverAiConfigured = false;
+                serverOllamaConfigured = false;
+            }
+            updateOllamaAvailability();
+            return serverAiConfigured;
+        }
+
+        function updateOllamaAvailability() {
+            const group = document.getElementById('ollama-model-group');
+            const select = document.getElementById('model_select');
+            if (!group || !select) return;
+
+            group.disabled = !serverOllamaConfigured;
+            group.hidden = !serverOllamaConfigured;
+            if (!serverOllamaConfigured) {
+                group.replaceChildren();
+                if (select.value.startsWith('ollama:')) {
+                    select.value = 'gemini-3.5-flash-lite';
+                }
+            }
+        }
+
         // --- THEME TOGGLE LOGIC ---
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme');
@@ -836,42 +854,17 @@
         const cancelBtn = document.getElementById('modal-cancel-btn');
 
         function openApiKeyModal() {
-            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+            const keys = getStoredGeminiKeys();
             modalApiInput.value = keys[0] || localStorage.getItem('gemini_api_key') || '';
             modalApiInput2.value = keys[1] || '';
             modalApiInput3.value = keys[2] || '';
+            cancelBtn.style.display = (modalApiInput.value || serverAiConfigured) ? 'inline-flex' : 'none';
 
-            document.getElementById('modal_ollama_url_input').value = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
-            cancelBtn.style.display = (modalApiInput.value || localStorage.getItem('ollama_url')) ? 'inline-flex' : 'none';
-            
-            const model = document.getElementById('model_select').value;
-            const isLocal = model.startsWith('ollama:');
-            
             const modalTitle = document.getElementById('api-key-modal-title');
             const modalDesc = document.getElementById('api-key-modal-desc');
-            const skipBtn = document.getElementById('modal-skip-btn');
-
-            if (isLocal) {
-                document.getElementById('gemini_key_container').style.display = 'none';
-                document.getElementById('ollama_url_container').style.display = 'block';
-                modalTitle.innerHTML = '<i data-lucide="globe" class="icon-sm"></i> Local AI Setup';
-                modalDesc.innerHTML = `
-                    <strong style="color: var(--on-dark);">How to connect your device:</strong><br>
-                    <ol style="margin-top: 8px; padding-left: 20px; color: var(--body-strong); line-height: 1.6;">
-                        <li>Install & run <a href="https://ollama.com" target='_blank' style="color: var(--primary);">Ollama</a>.</li>
-                        <li>Install <a href="https://ngrok.com/download" target='_blank' style="color: var(--primary);">Ngrok</a>.</li>
-                        <li>Open terminal: <code style="background: #000; color: #0f0; padding: 2px 6px; border-radius: 4px; font-size: 11px;">ngrok http 11434</code></li>
-                        <li>Paste the <b>Forwarding URL</b> (https://...) below.</li>
-                    </ol>
-                `;
-                if (skipBtn) skipBtn.style.display = 'none';
-            } else {
-                document.getElementById('gemini_key_container').style.display = 'block';
-                document.getElementById('ollama_url_container').style.display = 'none';
-                modalTitle.innerHTML = '<i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key Setup';
-                modalDesc.innerHTML = 'To generate quizzes, you need to provide a Google Gemini API Key.';
-                if (skipBtn) skipBtn.style.display = 'block';
-            }
+            document.getElementById('gemini_key_container').style.display = 'block';
+            modalTitle.innerHTML = '<i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key Setup';
+            modalDesc.innerHTML = 'To generate quizzes, provide a Google Gemini API key or use the server-configured Gemini connection.';
 
             apiKeyModal.style.display = 'flex';
         }
@@ -881,6 +874,10 @@
         }
 
         function openOllamaModal() {
+            if (!serverOllamaConfigured) {
+                alert('Local models are not configured on this QuizMoKo server.');
+                return;
+            }
             document.getElementById('apiKeyModal').style.display = 'none';
             document.getElementById('ollamaModal').style.display = 'flex';
         }
@@ -889,43 +886,23 @@
             document.getElementById('ollamaModal').style.display = 'none';
         }
 
-        async function useLocalOnly() {
-            const btn = document.querySelector('button[onclick="useLocalOnly()"]');
-            if(btn) btn.innerText = 'Scanning for Local Models...';
-
-            const oUrl = document.getElementById('modal_ollama_url_input').value.trim() || 'http://127.0.0.1:11434';
-            localStorage.setItem('ollama_url', oUrl);
-            document.getElementById('hidden_ollama_url').value = oUrl;
-
-            try {
-                const res = await fetch('/api/ollama_tags?url=' + encodeURIComponent(oUrl));
-                const data = await res.json();
-                
-                if (data.installed && data.models.length > 0) {
-                    populateLocalModels(data.models);
-                    document.getElementById('model_select').value = 'ollama:' + data.models[0];
-                    updateCounterUI();
-                    closeApiKeyModal();
-                } else {
-                    openOllamaModal();
-                }
-            } catch (e) {
-                openOllamaModal();
-            }
-            
-            if(btn) btn.innerText = 'Skip (I will only use local models)';
-        }
-
         async function scanOllama() {
             const btn = document.getElementById('btn-scan-ollama');
             if (btn) { btn.innerText = 'Scanning...'; btn.disabled = true; }
-            
+
+            if (!serverOllamaConfigured) {
+                if (btn) {
+                    btn.innerText = 'Local AI is not configured';
+                    btn.disabled = false;
+                }
+                return;
+            }
+
             try {
-                const oUrl = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
-                const res = await fetch('/api/ollama_tags?url=' + encodeURIComponent(oUrl));
+                const res = await fetch('/api/ollama_tags');
                 const data = await res.json();
-                
-                if (data.installed && data.models.length > 0) {
+
+                if (res.ok && data.success && data.installed && Array.isArray(data.models) && data.models.length > 0) {
                     populateLocalModels(data.models);
                     if (btn) { btn.innerHTML = `<i data-lucide="check-circle" class="icon-sm"></i> Found ${data.models.length} models!`; btn.style.background = 'var(--success)'; }
                     document.getElementById('model_select').value = 'ollama:' + data.models[0];
@@ -934,114 +911,56 @@
                     setTimeout(() => {
                         closeOllamaModal();
                         closeApiKeyModal();
-                        if (btn) { btn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false; }
+                        if (btn) { btn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Refresh Configured Models'; btn.style.background = 'var(--primary)'; btn.disabled = false; }
                     }, 1500);
                 } else {
                     if (btn) { btn.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> No models found yet'; btn.style.background = 'var(--m-red)'; }
-                    setTimeout(() => { if(btn) { btn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
+                    setTimeout(() => { if(btn) { btn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Refresh Configured Models'; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
                 }
             } catch (e) {
-                if (btn) { btn.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> Ollama not running'; btn.style.background = 'var(--m-red)'; }
-                setTimeout(() => { if(btn) { btn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Scan for Local Models'; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
+                if (btn) { btn.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> Configured Ollama host is unavailable'; btn.style.background = 'var(--m-red)'; }
+                setTimeout(() => { if(btn) { btn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Refresh Configured Models'; btn.style.background = 'var(--primary)'; btn.disabled = false;} }, 3000);
             }
         }
 
         function populateLocalModels(models) {
-            const localOptGroup = document.querySelector("optgroup[label='Local Models (Ollama)']");
-            localOptGroup.innerHTML = '';
-            models.forEach(model => {
+            const localOptGroup = document.getElementById('ollama-model-group');
+            if (!localOptGroup || !serverOllamaConfigured) return;
+            localOptGroup.replaceChildren();
+            const safeModels = Array.isArray(models)
+                ? models.filter(model => typeof model === 'string' && model.trim()).slice(0, 100)
+                : [];
+            safeModels.forEach(model => {
                 const opt = document.createElement('option');
-                opt.value = 'ollama:' + model;
-                opt.innerText = model + ' (Local)';
+                opt.value = 'ollama:' + model.trim();
+                opt.textContent = model.trim() + ' (Local)';
                 localOptGroup.appendChild(opt);
             });
-            const installOpt = document.createElement('option');
-            installOpt.value = '__install_ollama__';
-            installOpt.innerHTML = '<i data-lucide="download" class="icon-sm"></i> Install More Models...';
-            localOptGroup.appendChild(installOpt);
-        }
-
-        async function autoInstallModel(model) {
-            const btn = document.getElementById('btn-auto-install');
-            btn.disabled = true;
-            btn.innerText = '⏳ Initiating download...';
-            
-            try {
-                const oUrl = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
-                const response = await fetch('/api/install_model', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({model: model, url: oUrl})
-                });
-                
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
-                
-                while (true) {
-                    const {value, done} = await reader.read();
-                    if (done) break;
-                    
-                    buffer += decoder.decode(value, {stream: true});
-                    let lines = buffer.split('\n');
-                    buffer = lines.pop(); // Keep partial chunks in memory
-                    
-                    for (let line of lines) {
-                        if (line.trim() === '') continue;
-                        try {
-                            const data = JSON.parse(line);
-                            if (data.status) {
-                                if (data.total && data.completed) {
-                                    const pct = Math.round((data.completed / data.total) * 100);
-                                    btn.innerText = `⏳ Downloading ${model}: ${pct}%`;
-                                    btn.style.background = `linear-gradient(90deg, var(--primary) ${pct}%, var(--surface-soft) ${pct}%)`;
-                                } else {
-                                    btn.innerText = `⏳ ${data.status}...`;
-                                }
-                            }
-                        } catch(e) {} // Silently handle any malformed JSON streaming chunks
-                    }
-                }
-                
-                btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> Model Ready! Scanning...';
-                btn.style.background = 'var(--success)';
-                btn.style.color = '#fff';
-                setTimeout(() => scanOllama(), 1500);
-                
-            } catch (e) {
-                btn.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> Install Failed. Make sure Ollama is running.';
-                btn.disabled = false;
-            }
+            localOptGroup.disabled = safeModels.length === 0;
+            localOptGroup.hidden = safeModels.length === 0;
         }
 
         function saveApiKey() {
             const key1 = modalApiInput.value.trim();
             const key2 = modalApiInput2.value.trim();
             const key3 = modalApiInput3.value.trim();
-            const oUrl = document.getElementById('modal_ollama_url_input').value.trim() || 'http://127.0.0.1:11434';
-            
-            const model = document.getElementById('model_select').value;
-            const isLocal = model.startsWith('ollama:');
 
-            if (!isLocal && !key1) {
+            if (!key1 && !serverAiConfigured) {
                 alert('Please enter at least a Primary Gemini API Key.');
                 return; 
             }
-            if (isLocal && !oUrl) {
-                alert('Please enter a Custom Ollama URL.');
-                return;
-            }
 
-            const keys = [key1];
+            const keys = key1 ? [key1] : [];
             if (key2) keys.push(key2);
             if (key3) keys.push(key3);
 
             localStorage.setItem('gemini_api_keys', JSON.stringify(keys));
-            localStorage.setItem('gemini_api_key', key1); // Compatibility
+            if (key1) {
+                localStorage.setItem('gemini_api_key', key1); // Compatibility
+            } else {
+                localStorage.removeItem('gemini_api_key');
+            }
             hiddenApiInput.value = key1;
-
-            localStorage.setItem('ollama_url', oUrl);
-            document.getElementById('hidden_ollama_url').value = oUrl;
 
             closeApiKeyModal();
             fetchUsageStats();
@@ -1056,22 +975,23 @@
         }
 
         async function scanOllamaSilently() {
+            if (!serverOllamaConfigured) return;
             try {
-                const oUrl = localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434';
-                const res = await fetch('/api/ollama_tags?url=' + encodeURIComponent(oUrl));
+                const res = await fetch('/api/ollama_tags');
                 const data = await res.json();
-                if (data.installed && data.models.length > 0) {
+                if (res.ok && data.success && data.installed && Array.isArray(data.models) && data.models.length > 0) {
                     populateLocalModels(data.models);
                 }
             } catch (e) {
-                // Fail silently if user isn't running local host
+                // Local AI remains hidden when the configured host is unavailable.
             }
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             fetchUsageStats();
-            scanOllamaSilently();
             toggleTypeDistribution();
+            await loadServerAiConfiguration();
+            await scanOllamaSilently();
 
             // Check Disclaimer
             if(localStorage.getItem('hide_ai_disclaimer') === 'true') {
@@ -1079,7 +999,7 @@
             }
 
             // Check API Key
-            const savedKeys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+            const savedKeys = getStoredGeminiKeys();
             const savedKey = localStorage.getItem('gemini_api_key');
 
             if (savedKeys.length > 0 || savedKey) {
@@ -1089,15 +1009,11 @@
                     hiddenApiInput.value = savedKey;
                     localStorage.setItem('gemini_api_keys', JSON.stringify([savedKey]));
                 }
-                
-                const savedUrl = localStorage.getItem('ollama_url');
-                if(savedUrl) {
-                    document.getElementById('hidden_ollama_url').value = savedUrl;
-                }
-                
                 checkAndRunTour();
-            } else {
+            } else if (!serverAiConfigured) {
                 openApiKeyModal(); // Force modal on first load
+            } else {
+                checkAndRunTour();
             }
         });
 
@@ -1249,9 +1165,8 @@
 
         async function updateCounterUI() {
             let model = document.getElementById('model_select').value;
-            
-            if (model === '__install_ollama__') {
-                openOllamaModal();
+
+            if (model.startsWith('ollama:') && !serverOllamaConfigured) {
                 document.getElementById('model_select').value = 'gemini-3.5-flash-lite';
                 model = 'gemini-3.5-flash-lite';
             }
@@ -1259,7 +1174,7 @@
             const today = new Date().toISOString().split('T')[0];
             const modelStats = (GLOBAL_DAILY_STATS[today] && GLOBAL_DAILY_STATS[today][model]) || {};
 
-            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+            const keys = getStoredGeminiKeys();
             if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
 
             let totalUsed = 0;
@@ -1297,26 +1212,66 @@
 
         // --- FORM SUBMIT LOGIC ---
         async function handleAILoading(event, form) {
+            event.preventDefault();
             let model = form.model_name.value;
             let isLocal = model.startsWith('ollama:');
 
-            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
-            if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
-
-            // Verify key one last time
-            if (keys.length === 0 && !isLocal) {
-                alert('API Key is missing. Please setup your key first.');
-                openApiKeyModal();
-                event.preventDefault();
+            if (isLocal && !serverOllamaConfigured) {
+                alert('Local models are not configured on this QuizMoKo server.');
+                form.model_name.value = 'gemini-3.5-flash-lite';
+                updateCounterUI();
                 return false;
             }
 
-            let numItems = parseInt(form.num_items.value);
-            let batchSize = parseInt(form.batch_size.value);
+            const keys = getStoredGeminiKeys();
+            if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
+
+            // Verify key one last time
+            if (keys.length === 0 && !isLocal && !serverAiConfigured) {
+                alert('No browser or server Gemini API key is configured.');
+                openApiKeyModal();
+                return false;
+            }
+
+            let numItems = Number(form.num_items.value);
+            let batchSize = Number(form.batch_size.value);
+            if (form.test_type.value === 'Mixed') {
+                const mixedCounts = [
+                    Number(form.mc_count.value),
+                    Number(form.tf_count.value),
+                    Number(form.id_count.value),
+                    Number(form.oe_count.value),
+                    Number(form.gr_count.value)
+                ];
+                if (mixedCounts.some(count => !Number.isInteger(count) || count < 0 || count > 50)) {
+                    alert('Each mixed question count must be a whole number between 0 and 50.');
+                    return false;
+                }
+                numItems = mixedCounts.reduce((sum, count) => sum + count, 0);
+                form.num_items.value = String(numItems);
+            }
+            if (!Number.isInteger(numItems) || numItems < 1 || numItems > 50) {
+                alert('Total questions must be a whole number between 1 and 50.');
+                return false;
+            }
+            if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 10) {
+                alert('Batch size must be a whole number between 1 and 10.');
+                return false;
+            }
             
             // Optimization for 20+ questions: Ensure batch size is reasonable
             if (numItems >= 20 && batchSize > 5) {
                 form.batch_size.value = 5;
+                batchSize = 5;
+            }
+
+            const difficultyTotal =
+                (Number(form.easy_pct.value) || 0)
+                + (Number(form.avg_pct.value) || 0)
+                + (Number(form.hard_pct.value) || 0);
+            if (Math.abs(difficultyTotal - 100) > 0.001) {
+                alert('Difficulty percentages must total 100%.');
+                return false;
             }
 
             let estimatedRequests = Math.ceil(numItems / batchSize);
@@ -1341,22 +1296,24 @@
                     }
                 }
 
-                if (!selectedKey) {
+                if (!selectedKey && !serverAiConfigured) {
                     alert(`Daily Rate Limit Reached for all keys on ${model}!\n\nYou need ${estimatedRequests} requests, but none of your keys have enough quota left today.`);
-                    event.preventDefault();
                     return false;
                 }
-                form.api_key.value = selectedKey;
+                // Empty means the server-side GEMINI_API_KEY/API_KEY fallback.
+                form.api_key.value = selectedKey || '';
             }
 
             // Optimistically update UI (will sync for real on next page load or via fetch)
-            const kid = await getHash(selectedKey);
-            if (!GLOBAL_DAILY_STATS[today]) GLOBAL_DAILY_STATS[today] = {};
-            if (!GLOBAL_DAILY_STATS[today][model]) GLOBAL_DAILY_STATS[today][model] = {};
-            GLOBAL_DAILY_STATS[today][model][kid] = (GLOBAL_DAILY_STATS[today][model][kid] || 0) + estimatedRequests;
-            updateCounterUI();
+            if (selectedKey) {
+                const kid = await getHash(selectedKey);
+                if (!GLOBAL_DAILY_STATS[today]) GLOBAL_DAILY_STATS[today] = {};
+                if (!GLOBAL_DAILY_STATS[today][model]) GLOBAL_DAILY_STATS[today][model] = {};
+                GLOBAL_DAILY_STATS[today][model][kid] = (GLOBAL_DAILY_STATS[today][model][kid] || 0) + estimatedRequests;
+                updateCounterUI();
+            }
 
-            const btn = document.getElementById('ai-btn');
+            const btn = document.getElementById('generate-btn');
             if (isStudent) {
                 btn.innerHTML = '⏳ GENERATING & CHECKING... (PLEASE WAIT)';
             } else {
@@ -1369,8 +1326,12 @@
             btn.disabled = true; 
             form.style.opacity = '0.5';
             form.style.pointerEvents = 'none';
-            
-            return true;
+            document.getElementById('loading-overlay').style.display = 'block';
+
+            // onsubmit was cancelled synchronously above; submit only after
+            // asynchronous key selection and validation have completed.
+            HTMLFormElement.prototype.submit.call(form);
+            return false;
         }
 
         function toggleFolder(headerElement) {
@@ -1430,6 +1391,7 @@
                 updateTypeTotal();
             } else {
                 group.style.display = 'none';
+                document.getElementsByName('num_items')[0].setCustomValidity('');
             }
         }
 
@@ -1446,7 +1408,14 @@
 
             const label = document.getElementById('type-total');
             label.innerText = '(Total: ' + total + ')';
-            label.className = 'limit-status-green';
+            label.className = total >= 1 && total <= 50
+                ? 'limit-status-green'
+                : 'limit-status-red';
+            numItemsInput.setCustomValidity(
+                total >= 1 && total <= 50
+                    ? ''
+                    : 'Mixed quizzes must contain between 1 and 50 questions.'
+            );
             updateTotal();
         }
 
@@ -1608,14 +1577,9 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
         import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
-        const firebaseConfig = {
-            apiKey: 'AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc',
-            authDomain: 'quizmoko-51920.firebaseapp.com',
-            projectId: 'quizmoko-51920',
-            storageBucket: 'quizmoko-51920.firebasestorage.app',
-            messagingSenderId: '399313723605',
-            appId: '1:399313723605:web:85769dd5aa7edebc13025c'
-        };
+        const firebaseConfigResponse = await fetch('/api/firebase_config');
+        if (!firebaseConfigResponse.ok) throw new Error('Firebase configuration is unavailable');
+        const firebaseConfig = await firebaseConfigResponse.json();
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -1623,9 +1587,8 @@
         document.getElementById('logout-btn').addEventListener('click', async () => {
             try {
                 await signOut(auth);
-                // Clear Flask Session
+                // Clear the HTTP-only QuizMoKo session.
                 await fetch('/logout');
-                document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                 window.location.href = '/login';
             } catch (error) {
                 console.error('Error signing out: ', error);
@@ -1669,8 +1632,9 @@
 
     function stepVal(inputId, delta) {
         const el = document.getElementById(inputId);
-        let val = parseInt(el.value) + delta;
+        let val = (parseInt(el.value) || 0) + delta;
         if(val < 0) val = 0;
+        if(val > 50) val = 50;
         el.value = val;
         updateTypeTotal();
     }

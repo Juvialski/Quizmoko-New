@@ -4,27 +4,29 @@
   "description": "QuizMoKo - AI-powered Quiz and Worksheet Generator",
   "type": "module",
   "main": "server.ts",
+  "engines": {
+    "node": ">=22.13.0 <25"
+  },
   "scripts": {
     "dev": "tsx watch server.ts",
-    "lint": "node run_lint_and_check.cjs",
-    "test": "node run_lint_and_check.cjs",
-    "build": "echo 'No build step required'",
+    "check": "node run_lint_and_check.cjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "npm run check",
+    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts",
+    "build": "npm run check && npm run typecheck",
     "start": "tsx server.ts"
   },
   "dependencies": {
-    "@google/genai": "^0.2.0",
-    "acorn": "^8.17.0",
+    "@google/genai": "^2.13.0",
+    "@napi-rs/canvas": "^1.0.2",
     "archiver": "^8.0.0",
     "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "exceljs": "^4.4.0",
     "express": "^4.21.2",
     "firebase": "^12.16.0",
     "firebase-admin": "^14.2.0",
-    "glob": "^13.0.6",
-    "jsdom": "^29.1.1",
     "multer": "^1.4.5-lts.1",
     "pdfjs-dist": "^6.1.200",
     "sharp": "^0.35.3",
@@ -34,10 +36,13 @@
   "devDependencies": {
     "@types/archiver": "^8.0.0",
     "@types/cookie-parser": "^1.4.8",
-    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.10.2",
-    "ejs-lint": "^2.0.1"
+    "acorn": "^8.17.0",
+    "ejs-lint": "^2.0.1",
+    "glob": "^13.0.6",
+    "jsdom": "^29.1.1",
+    "typescript": "^5.9.3"
   }
 }

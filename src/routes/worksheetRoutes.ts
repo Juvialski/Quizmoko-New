@@ -16,13 +16,16 @@ import {
 } from '../store/db.ts';
 import {
   cropImageBoundingBox,
-  pdfPageToImage,
-  extractPdfPages,
-  getPdfPageCount,
+  renderPdfPageRange,
   getFilesByField,
   sortQuestionsByIndex
 } from '../services/pdf.ts';
 import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
+import {
+  acquireAiWork,
+  AiWorkLimitError,
+  type AiWorkLease
+} from '../services/aiWorkGuard.ts';
 import {
   SHARED_LATEX_RULES,
   WORKSHEET_EXTRACTION_PROMPT,
@@ -36,10 +39,471 @@ import {
   RECHECK_ANSWERS_PROMPT
 } from '../../prompts.ts';
 
-const upload = multer({ storage: multer.memoryStorage() });
+const MAX_WORKSHEET_FILES = 12;
+const MAX_WORKSHEET_FILE_BYTES = 20 * 1024 * 1024;
+const MAX_WORKSHEET_TOTAL_BYTES = 60 * 1024 * 1024;
+const MAX_PDF_PAGES_PER_FILE = 100;
+const MAX_WORKSHEET_AI_QUESTIONS = 50;
+const aggregateUploadBytes = Symbol('aggregateUploadBytes');
+
+const aggregateMemoryStorage = {
+  _handleFile(req: any, file: any, callback: (error?: any, info?: any) => void) {
+    const chunks: Buffer[] = [];
+    let fileSize = 0;
+    let settled = false;
+
+    file.stream.on('data', (value: Buffer | Uint8Array) => {
+      if (settled) return;
+      const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
+      const nextTotal = Number(req[aggregateUploadBytes] || 0) + chunk.length;
+      req[aggregateUploadBytes] = nextTotal;
+      if (nextTotal > MAX_WORKSHEET_TOTAL_BYTES) {
+        settled = true;
+        chunks.length = 0;
+        const error: any = new Error(
+          `Combined worksheet uploads must be ${MAX_WORKSHEET_TOTAL_BYTES / (1024 * 1024)} MB or smaller`
+        );
+        error.code = 'LIMIT_TOTAL_FILE_SIZE';
+        file.stream.resume();
+        callback(error);
+        return;
+      }
+      chunks.push(chunk);
+      fileSize += chunk.length;
+    });
+
+    file.stream.once('error', (error: Error) => {
+      if (settled) return;
+      settled = true;
+      chunks.length = 0;
+      callback(error);
+    });
+
+    file.stream.once('end', () => {
+      if (settled) return;
+      settled = true;
+      callback(null, { buffer: Buffer.concat(chunks, fileSize), size: fileSize });
+    });
+  },
+  _removeFile(_req: any, file: any, callback: (error?: Error | null) => void) {
+    delete file.buffer;
+    callback(null);
+  }
+};
+
+const upload = multer({
+  storage: aggregateMemoryStorage,
+  limits: {
+    fileSize: MAX_WORKSHEET_FILE_BYTES,
+    files: MAX_WORKSHEET_FILES,
+    fields: 30,
+    fieldSize: 1024 * 1024,
+    parts: MAX_WORKSHEET_FILES + 30
+  },
+  fileFilter: (_req, file, callback) => {
+    if (file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/')) {
+      callback(null, true);
+      return;
+    }
+    const error: any = new Error(`Unsupported worksheet file type: ${file.mimetype || 'unknown'}`);
+    error.code = 'UNSUPPORTED_WORKSHEET_FILE';
+    callback(error);
+  }
+});
 const router = Router();
 
-router.post('/api/extract_worksheet', tokenRequired, upload.any(), async (req: AuthRequest, res) => {
+function respondWorksheetAiLimit(res: any, error: unknown): boolean {
+  if (!(error instanceof AiWorkLimitError)) return false;
+  res.setHeader('Retry-After', String(error.retryAfterSeconds));
+  res.status(error.status).json({
+    success: false,
+    error: error.message,
+    code: error.code
+  });
+  return true;
+}
+
+const SESSION_PROGRESS_TTL_MS = 15 * 60 * 1000;
+const progressCleanupTimers = new Map<string, NodeJS.Timeout>();
+
+function canManageQuiz(user: any, quiz: any): boolean {
+  if (!user || !quiz) return false;
+  if (user.role === 'admin') return true;
+  if (quiz.user_id && quiz.user_id === user.uid) return true;
+  return !quiz.user_id && user.uid === 'teacher_test';
+}
+
+function setWorksheetProgress(sessionId: unknown, progress: Record<string, any>): void {
+  const normalizedSessionId = String(sessionId || '').trim() || 'worksheet';
+  const previousTimer = progressCleanupTimers.get(normalizedSessionId);
+  if (previousTimer) clearTimeout(previousTimer);
+
+  const updatedAt = Date.now();
+  sessionProgress.set(normalizedSessionId, { ...progress, updated_at: updatedAt });
+  const timer = setTimeout(() => {
+    const current = sessionProgress.get(normalizedSessionId);
+    if (current?.updated_at === updatedAt) sessionProgress.delete(normalizedSessionId);
+    progressCleanupTimers.delete(normalizedSessionId);
+  }, SESSION_PROGRESS_TTL_MS);
+  timer.unref();
+  progressCleanupTimers.set(normalizedSessionId, timer);
+}
+
+function worksheetUploadAny(req: any, res: any, next: any): void {
+  upload.any()(req, res, (error: any) => {
+    if (!error) {
+      next();
+      return;
+    }
+    if (error instanceof multer.MulterError) {
+      const limitMessages: Record<string, string> = {
+        LIMIT_FILE_SIZE: `Each worksheet file must be ${MAX_WORKSHEET_FILE_BYTES / (1024 * 1024)} MB or smaller.`,
+        LIMIT_FILE_COUNT: `Upload no more than ${MAX_WORKSHEET_FILES} worksheet and answer files at once.`,
+        LIMIT_PART_COUNT: 'The worksheet upload contains too many form parts.',
+        LIMIT_FIELD_COUNT: 'The worksheet upload contains too many form fields.',
+        LIMIT_FIELD_VALUE: 'A worksheet form field is too large.'
+      };
+      const message = limitMessages[error.code] || `Invalid worksheet upload: ${error.message}`;
+      res.status(error.code.startsWith('LIMIT_') ? 413 : 400).json({ success: false, error: message });
+      return;
+    }
+    if (error?.code === 'LIMIT_TOTAL_FILE_SIZE') {
+      res.status(413).json({
+        success: false,
+        error: `Combined worksheet and answer files must be ${MAX_WORKSHEET_TOTAL_BYTES / (1024 * 1024)} MB or smaller.`
+      });
+      return;
+    }
+    if (error?.code === 'UNSUPPORTED_WORKSHEET_FILE') {
+      res.status(415).json({ success: false, error: `${error.message}. Upload PDF or image files only.` });
+      return;
+    }
+    next(error);
+  });
+}
+
+interface UploadedFilePage {
+  buffer: Buffer;
+  mimeType: string;
+  pageIndex: number;
+  pageNumber: number;
+  pageCount: number;
+}
+
+async function forEachUploadedFilePage(
+  file: Express.Multer.File,
+  onPage: (page: UploadedFilePage) => void | Promise<void>
+): Promise<void> {
+  if (file.mimetype !== 'application/pdf') {
+    await onPage({
+      buffer: file.buffer,
+      mimeType: file.mimetype,
+      pageIndex: 0,
+      pageNumber: 1,
+      pageCount: 1
+    });
+    return;
+  }
+
+  await renderPdfPageRange(
+    file.buffer,
+    { maxPages: MAX_PDF_PAGES_PER_FILE },
+    async page => {
+      await onPage({
+        buffer: page.image,
+        mimeType: 'image/png',
+        pageIndex: page.pageIndex,
+        pageNumber: page.pageNumber,
+        pageCount: page.pageCount
+      });
+    }
+  );
+}
+
+const ALLOWED_QUESTION_TYPES = new Set([
+  'multiple_choice',
+  'multiple_choice_multi',
+  'identification',
+  'open_ended',
+  'graphing',
+  'true_false'
+]);
+
+const WORKSHEET_EXTRACTION_SCHEMA = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      raw_text: { type: Type.STRING, description: 'The literal text transcript of the question.' },
+      options: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Choices, or an empty array.' },
+      type: { type: Type.STRING, description: 'The normalized question type.' },
+      original_index: { type: Type.STRING, description: 'The question identifier on the source.' },
+      bounding_box: {
+        type: Type.ARRAY,
+        items: { type: Type.INTEGER },
+        description: 'Four normalized integers [ymin, xmin, ymax, xmax], or an empty array.'
+      }
+    },
+    required: ['raw_text', 'options', 'type', 'original_index', 'bounding_box']
+  }
+};
+
+const SOLVED_QUESTION_SCHEMA = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      options: { type: Type.ARRAY, items: { type: Type.STRING } },
+      answer: { type: Type.STRING },
+      type: { type: Type.STRING },
+      source_index: { type: Type.INTEGER },
+      solution: { type: Type.STRING }
+    },
+    required: ['options', 'answer', 'type', 'source_index']
+  }
+};
+
+const RMX_QUESTION_PROPERTIES = {
+  identifier: { type: Type.STRING },
+  original_index: { type: Type.STRING },
+  statement: { type: Type.STRING },
+  choices: { type: Type.ARRAY, items: { type: Type.STRING } },
+  answer: { type: Type.STRING },
+  bounding_box: { type: Type.ARRAY, items: { type: Type.INTEGER } }
+};
+
+const RMX_EXTRACTION_SCHEMA = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: RMX_QUESTION_PROPERTIES,
+    required: ['identifier', 'original_index', 'statement', 'choices', 'bounding_box']
+  }
+};
+
+const RMX_MATCH_SCHEMA = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: RMX_QUESTION_PROPERTIES,
+    required: ['identifier', 'original_index', 'statement', 'choices', 'answer']
+  }
+};
+
+const ANSWER_KEY_PAIR_SCHEMA = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      question_number: { type: Type.STRING },
+      answer: { type: Type.STRING }
+    },
+    required: ['question_number', 'answer']
+  }
+};
+
+const COMPLETE_QUESTION_SCHEMA = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      question: { type: Type.STRING },
+      raw_text: { type: Type.STRING },
+      options: { type: Type.ARRAY, items: { type: Type.STRING } },
+      answer: { type: Type.STRING },
+      type: { type: Type.STRING },
+      source_index: { type: Type.INTEGER },
+      original_index: { type: Type.STRING },
+      solution: { type: Type.STRING }
+    },
+    required: ['question', 'options', 'answer', 'type', 'source_index']
+  }
+};
+
+const MANDATORY_MATH_FEEDBACK_RULE =
+  'CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\$$40). Do NOT use asterisks for math.';
+
+interface PreparedVisionText {
+  original: string;
+  text: string;
+  assets: Array<{ token: string; html: string; data: string }>;
+}
+
+function prepareVisionText(rawValue: unknown, contents: any[]): PreparedVisionText {
+  const original = typeof rawValue === 'string' ? rawValue : '';
+  const assets: PreparedVisionText['assets'] = [];
+  const addAsset = (html: string) => {
+    const srcMatch = html.match(/\bsrc\s*=\s*["']data:([^;,"']+);base64,([^"']+)["']/i);
+    if (!srcMatch) return html;
+    const visionNumber = contents.reduce(
+      (count, item) => count + (item && item.inlineData ? 1 : 0),
+      0
+    ) + 1;
+    const token = `[IMAGE_PROVIDED_IN_VISION_CONTEXT_${visionNumber}]`;
+    contents.push({ inlineData: { mimeType: srcMatch[1] || 'image/png', data: srcMatch[2] } });
+    assets.push({ token, html, data: srcMatch[2] });
+    return token;
+  };
+
+  const wrappedImagePattern = /<div\s+class=["']resizable-image-wrapper["'][^>]*>\s*<div\s+class=["']image-content-box["'][^>]*>\s*<img\b[^>]*\bsrc\s*=\s*["']data:[^"']+["'][^>]*>\s*<\/div>\s*<\/div>/gi;
+  let text = original.replace(wrappedImagePattern, addAsset);
+  text = text.replace(/<img\b[^>]*\bsrc\s*=\s*["']data:[^"']+["'][^>]*>/gi, addAsset);
+  text = text.replace(/<br\s*\/?>/gi, '\n').trim();
+  return { original, text, assets };
+}
+
+function restoreVisionText(candidate: unknown, prepared: PreparedVisionText): string {
+  if (typeof candidate !== 'string' || !candidate.trim()) return prepared.original;
+  let restored = candidate;
+  const restoredAssets = new Set<number>();
+  prepared.assets.forEach((asset, index) => {
+    if (restored.includes(asset.token)) {
+      restored = restored.split(asset.token).join(asset.html);
+      restoredAssets.add(index);
+    } else if (restored.includes(asset.data)) {
+      restoredAssets.add(index);
+    }
+  });
+  prepared.assets.forEach((asset, index) => {
+    if (!restoredAssets.has(index)) restored += `${restored.trim() ? '\n' : ''}${asset.html}`;
+  });
+  return restored.replace(/\[IMAGE_PROVIDED_IN_VISION_CONTEXT(?:_\d+)?\]/gi, '').trim();
+}
+
+function validateBoundingBox(value: unknown): number[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || (value.length !== 0 && value.length !== 4)) {
+    throw new Error('AI returned an invalid diagram bounding box');
+  }
+  const normalized = value.map(item => Number(item));
+  if (normalized.some(item => !Number.isInteger(item) || item < 0 || item > 1000)) {
+    throw new Error('AI returned diagram coordinates outside the 0-1000 range');
+  }
+  return normalized;
+}
+
+function validateExtractedQuestions(value: unknown, label: string): any[] {
+  if (!Array.isArray(value)) throw new Error(`${label} did not return a JSON question array`);
+  return value.map((item: any, index: number) => {
+    if (!item || typeof item !== 'object') throw new Error(`${label} question ${index + 1} is not an object`);
+    const rawText = String(item.raw_text || '').trim();
+    const originalIndex = String(item.original_index ?? '').trim();
+    const type = String(item.type || '').trim();
+    if (!rawText || !originalIndex || !ALLOWED_QUESTION_TYPES.has(type) || !Array.isArray(item.options)) {
+      throw new Error(`${label} question ${index + 1} is missing required fields`);
+    }
+    return {
+      ...item,
+      raw_text: rawText,
+      original_index: originalIndex,
+      type,
+      options: item.options.map((option: unknown) => String(option)),
+      bounding_box: validateBoundingBox(item.bounding_box)
+    };
+  });
+}
+
+function validateSolvedQuestions(value: unknown, expectedLength: number, expectedStartIndex: number): any[] {
+  if (!Array.isArray(value) || value.length !== expectedLength) {
+    throw new Error(`AI solved ${Array.isArray(value) ? value.length : 0} of ${expectedLength} questions in a batch`);
+  }
+  return value.map((item: any, index: number) => {
+    if (
+      !item
+      || typeof item !== 'object'
+      || !Array.isArray(item.options)
+      || !ALLOWED_QUESTION_TYPES.has(String(item.type || ''))
+      || !Number.isInteger(Number(item.source_index))
+      || Number(item.source_index) !== expectedStartIndex + index
+      || item.answer === undefined
+      || item.answer === null
+      || !String(item.answer).trim()
+    ) {
+      throw new Error(`AI returned an invalid solution for batch question ${index + 1}`);
+    }
+    return {
+      ...item,
+      options: item.options.map((option: unknown) => String(option)),
+      answer: String(item.answer).trim(),
+      type: String(item.type)
+    };
+  });
+}
+
+function answerPairsToRecord(value: unknown, label: string): Record<string, string> {
+  if (!Array.isArray(value)) throw new Error(`${label} did not return a JSON answer array`);
+  const result: Record<string, string> = {};
+  value.forEach((item: any, index: number) => {
+    const key = String(item?.question_number ?? '').trim();
+    const answer = String(item?.answer ?? '').trim();
+    if (!key || !answer) throw new Error(`${label} answer ${index + 1} is missing its number or value`);
+    result[key] = answer;
+  });
+  if (Object.keys(result).length === 0) throw new Error(`${label} did not find any answers`);
+  return result;
+}
+
+function validateRmxQuestions(value: unknown, requireAnswer = false): any[] {
+  if (!Array.isArray(value)) throw new Error('RMX extraction did not return a JSON question array');
+  return value.map((item: any, index: number) => {
+    const identifier = String(item?.identifier ?? '').trim();
+    const originalIndex = String(item?.original_index ?? '').trim();
+    const statement = String(item?.statement ?? '').trim();
+    const answer = String(item?.answer ?? '').trim();
+    if (!identifier || !originalIndex || !statement || !Array.isArray(item?.choices) || (requireAnswer && !answer)) {
+      throw new Error(`RMX question ${index + 1} is missing required fields`);
+    }
+    return {
+      ...item,
+      identifier,
+      original_index: originalIndex,
+      statement,
+      choices: item.choices.map((choice: unknown) => String(choice)),
+      ...(answer ? { answer } : {}),
+      bounding_box: validateBoundingBox(item.bounding_box)
+    };
+  });
+}
+
+function validateCompleteQuestions(value: unknown, expectedLength: number): any[] {
+  if (!Array.isArray(value) || value.length !== expectedLength) {
+    throw new Error(`Gemini returned ${Array.isArray(value) ? value.length : 0} of ${expectedLength} finalized questions`);
+  }
+  const bySourceIndex = new Map<number, any>();
+  value.forEach((item: any, index: number) => {
+    const sourceIndex = Number(item?.source_index);
+    const question = String(item?.question || '').trim();
+    const answer = String(item?.answer ?? '').trim();
+    const type = String(item?.type || '').trim();
+    if (
+      !Number.isInteger(sourceIndex)
+      || sourceIndex < 0
+      || sourceIndex >= expectedLength
+      || bySourceIndex.has(sourceIndex)
+      || !question
+      || !answer
+      || !Array.isArray(item?.options)
+      || !ALLOWED_QUESTION_TYPES.has(type)
+    ) {
+      throw new Error(`Gemini returned an invalid finalized question at position ${index + 1}`);
+    }
+    bySourceIndex.set(sourceIndex, {
+      ...item,
+      source_index: sourceIndex,
+      question,
+      answer,
+      type,
+      options: item.options.map((option: unknown) => String(option))
+    });
+  });
+  return Array.from({ length: expectedLength }, (_, index) => {
+    const item = bySourceIndex.get(index);
+    if (!item) throw new Error(`Gemini omitted finalized question ${index + 1}`);
+    return item;
+  });
+}
+
+router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (req: AuthRequest, res) => {
   const {
     api_key,
     model_name = 'gemini-3.5-flash-lite',
@@ -51,104 +515,64 @@ router.post('/api/extract_worksheet', tokenRequired, upload.any(), async (req: A
   const files = (req.files as Express.Multer.File[]) || [];
   const wsFiles = getFilesByField(files, ['files', 'worksheet_files']);
 
-  sessionProgress.set(session_id, { message: '📄 Processing uploaded worksheet files...', percentage: 20, status: 'processing' });
-
   try {
+    if (wsFiles.length === 0) {
+      return res.status(400).json({ success: false, error: 'Upload at least one worksheet PDF or image.' });
+    }
     const ai = getGeminiClient(api_key);
+    if (!ai) {
+      return res.status(400).json({
+        success: false,
+        error: 'No Gemini API key is configured. Provide a browser key or configure GEMINI_API_KEY/API_KEY on the server.'
+      });
+    }
+    setWorksheetProgress(session_id, { message: '📄 Processing uploaded worksheet files...', percentage: 20, status: 'processing' });
     let questions: any[] = [];
 
-    if (ai && wsFiles.length > 0) {
+    {
       const selectedModel = getRealModelName(model_name);
-      const pdfFile = wsFiles.find(f => f.mimetype === 'application/pdf');
-      const imgFile = wsFiles.find(f => f.mimetype && f.mimetype.startsWith('image/'));
+      const extractionSchema = WORKSHEET_EXTRACTION_SCHEMA;
+      const isNonMath = ['english', 'history', 'biology', 'social studies'].includes(String(subject).toLowerCase());
+      const basePrompt = isNonMath ? WORKSHEET_EXTRACTION_PROMPT_NON_MATH : WORKSHEET_EXTRACTION_PROMPT;
+      const prompt = basePrompt
+        .replace('{latex_rules}', SHARED_LATEX_RULES)
+        .replace('{subject_rules}', isNonMath ? NON_MATH_RULES : '')
+        .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
 
-      const extractionSchema = {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            raw_text: {
-              type: Type.STRING,
-              description: "The literal text transcript of the question."
-            },
-            options: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "The choices (e.g. ['A) 10', 'B) 20']) if multiple choice."
-            },
-            type: {
-              type: Type.STRING,
-              description: "The type: 'multiple_choice', 'multiple_choice_multi', 'identification', 'open_ended', 'graphing', 'true_false'."
-            },
-            original_index: {
-              type: Type.STRING,
-              description: "The question number/index on the worksheet."
-            },
-            bounding_box: {
-              type: Type.ARRAY,
-              items: { type: Type.INTEGER },
-              description: "Four normalized integers [ymin, xmin, ymax, xmax] (0 to 1000) of any diagram. Empty array [] if no diagram."
-            }
-          },
-          required: ["raw_text", "options", "type", "original_index"]
-        }
-      };
+      const totalFiles = wsFiles.length;
+      for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
+        const file = wsFiles[fileIdx];
+        await forEachUploadedFilePage(file, async page => {
+            setWorksheetProgress(session_id, {
+              message: `🤖 Analyzing worksheet file ${fileIdx + 1} of ${totalFiles}, page ${page.pageNumber} of ${page.pageCount}...`,
+              percentage: Math.round(30 + ((fileIdx + page.pageIndex / page.pageCount) / totalFiles) * 50),
+              status: 'processing'
+            });
+            const response = await ai.models.generateContent({
+              model: selectedModel,
+              contents: [
+                prompt,
+                {
+                  inlineData: {
+                    data: page.buffer.toString('base64'),
+                    mimeType: page.mimeType
+                  }
+                }
+              ],
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: extractionSchema,
+                maxOutputTokens: 8192
+              }
+            });
 
-      if (pdfFile && !imgFile) {
-        const pageCount = getPdfPageCount(pdfFile.buffer);
-        console.log(`[QUIZ] Processing PDF with page count: ${pageCount}`);
-
-        const chunkSize = 1;
-        const totalChunks = Math.ceil(pageCount / chunkSize);
-
-        for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
-          const startPage = chunkIdx * chunkSize + 1;
-          const endPage = Math.min((chunkIdx + 1) * chunkSize, pageCount);
-
-          sessionProgress.set(session_id, {
-            message: `🔍 Extracting Questions from Page ${chunkIdx + 1} of ${pageCount}...`,
-            percentage: Math.round(20 + (chunkIdx / totalChunks) * 60),
-            status: 'processing'
-          });
-
-          const chunkBuffer = await extractPdfPages(pdfFile.buffer, startPage, endPage);
-          if (!chunkBuffer) continue;
-
-          const chunkPageImage = await pdfPageToImage(pdfFile.buffer, startPage - 1);
-
-          const isNonMath = ['English', 'History', 'Biology', 'Social Studies'].includes(subject);
-          let basePrompt = isNonMath ? WORKSHEET_EXTRACTION_PROMPT_NON_MATH : WORKSHEET_EXTRACTION_PROMPT;
-          let prompt = basePrompt
-            .replace('{latex_rules}', SHARED_LATEX_RULES)
-            .replace('{subject_rules}', isNonMath ? NON_MATH_RULES : '')
-            .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
-
-          let contents: any[] = [
-            prompt,
-            {
-              inlineData: { data: chunkBuffer.toString('base64'), mimeType: 'application/pdf' }
-            }
-          ];
-
-          const response = await ai.models.generateContent({
-            model: selectedModel,
-            contents,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: extractionSchema,
-              maxOutputTokens: 8192
-            }
-          });
-
-          const text = response.text || '';
-          const parsed = safeParseJSON(text);
-          if (Array.isArray(parsed)) {
+            const parsed = validateExtractedQuestions(
+              safeParseJSON(response.text || ''),
+              `Worksheet file ${fileIdx + 1}, page ${page.pageNumber}`
+            );
             for (const q of parsed) {
-              if (!q.raw_text && q.question) q.raw_text = q.question;
-              if (!q.raw_text && q.statement) q.raw_text = q.statement;
-
-              if (q.bounding_box && chunkPageImage) {
-                const imgUri = await cropImageBoundingBox(chunkPageImage, q.bounding_box);
+              if (q.bounding_box.length === 4) {
+                const imgUri = await cropImageBoundingBox(page.buffer, q.bounding_box);
                 if (imgUri) {
                   const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Source Diagram"></div></div>`;
                   q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
@@ -156,80 +580,14 @@ router.post('/api/extract_worksheet', tokenRequired, upload.any(), async (req: A
               }
             }
             questions.push(...parsed);
-          }
-        }
-      } else {
-        const isNonMath = ['English', 'History', 'Biology', 'Social Studies'].includes(subject);
-        let basePrompt = isNonMath ? WORKSHEET_EXTRACTION_PROMPT_NON_MATH : WORKSHEET_EXTRACTION_PROMPT;
-        let prompt = basePrompt
-          .replace('{latex_rules}', SHARED_LATEX_RULES)
-          .replace('{subject_rules}', isNonMath ? NON_MATH_RULES : '')
-          .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
-
-        const totalFiles = wsFiles.length;
-        for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
-          const f = wsFiles[fileIdx];
-          sessionProgress.set(session_id, {
-            message: `🤖 Analyzing worksheet file ${fileIdx + 1} of ${totalFiles} with Gemini AI...`,
-            percentage: Math.round(30 + (fileIdx / totalFiles) * 50),
-            status: 'processing'
-          });
-
-          let contents: any[] = [
-            prompt,
-            {
-              inlineData: { data: f.buffer.toString('base64'), mimeType: f.mimetype }
-            }
-          ];
-
-          const response = await ai.models.generateContent({
-            model: selectedModel,
-            contents,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: extractionSchema,
-              maxOutputTokens: 8192
-            }
-          });
-
-          const text = response.text || '';
-          const parsed = safeParseJSON(text);
-          if (Array.isArray(parsed)) {
-            let currentImageBuffer: Buffer | null = null;
-            if (f.mimetype === 'application/pdf') {
-              currentImageBuffer = await pdfPageToImage(f.buffer, 0);
-            } else if (f.mimetype && f.mimetype.startsWith('image/')) {
-              currentImageBuffer = f.buffer;
-            }
-
-            for (const q of parsed) {
-              if (!q.raw_text && q.question) q.raw_text = q.question;
-              if (!q.raw_text && q.statement) q.raw_text = q.statement;
-
-              if (q.bounding_box && q.bounding_box.length === 4 && currentImageBuffer) {
-                const imgUri = await cropImageBoundingBox(currentImageBuffer, q.bounding_box);
-                if (imgUri) {
-                  const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Source Diagram"></div></div>`;
-                  q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
-                }
-              }
-            }
-            questions.push(...parsed);
-          }
-        }
+        });
       }
     }
 
-    if (!questions || questions.length === 0) {
-      questions = [
-        {
-          raw_text: '1. What is $5 + 5$?',
-          type: 'multiple_choice',
-          options: ['A) $10$', 'B) $20$', 'C) $30$', 'D) $40$'],
-          original_index: 1,
-          answer: 'A) $10$'
-        }
-      ];
+    if (questions.length === 0) {
+      const message = 'Gemini did not find any worksheet questions. Check that the upload is readable and contains numbered questions, then try again.';
+      setWorksheetProgress(session_id, { message: `Error: ${message}`, percentage: 100, status: 'error' });
+      return res.status(422).json({ success: false, error: message });
     }
 
     sortQuestionsByIndex(questions);
@@ -248,11 +606,11 @@ router.post('/api/extract_worksheet', tokenRequired, upload.any(), async (req: A
       }
     }
 
-    sessionProgress.set(session_id, { message: '✅ Worksheet extraction complete!', percentage: 100, status: 'completed' });
+    setWorksheetProgress(session_id, { message: '✅ Worksheet extraction complete!', percentage: 100, status: 'completed' });
     res.json({ success: true, questions, missing_indices: missingIndices });
   } catch (err: any) {
-    sessionProgress.set(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
-    res.status(500).json({ success: false, error: err.message });
+    setWorksheetProgress(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
+    res.status(502).json({ success: false, error: `Worksheet extraction failed: ${err.message}` });
   }
 });
 
@@ -270,99 +628,120 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
     session_id = 'solve_1'
   } = req.body;
 
-  sessionProgress.set(session_id, { message: '⚡ Preparing to solve worksheet questions...', percentage: 10, status: 'processing' });
+  if (!Array.isArray(questions) || questions.length === 0) {
+    return res.status(400).json({ success: false, error: 'Provide at least one extracted worksheet question to solve.' });
+  }
+  if (questions.length > MAX_WORKSHEET_AI_QUESTIONS) {
+    return res.status(400).json({
+      success: false,
+      error: `Worksheet solving is limited to ${MAX_WORKSHEET_AI_QUESTIONS} questions per job.`
+    });
+  }
+  const invalidQuestionIndex = questions.findIndex((question: any) => {
+    const text = question?.raw_text || question?.question || question?.statement;
+    return typeof text !== 'string' || !text.trim();
+  });
+  if (invalidQuestionIndex >= 0) {
+    return res.status(400).json({
+      success: false,
+      error: `Question ${invalidQuestionIndex + 1} has no readable question text. Re-extract the worksheet before solving.`
+    });
+  }
+  const ai = getGeminiClient(api_key);
+  if (!ai) {
+    return res.status(400).json({
+      success: false,
+      error: 'No Gemini API key is configured. Provide an AI Studio browser key or configure GEMINI_API_KEY/API_KEY on the server.'
+    });
+  }
 
-  res.json({ success: true });
+  const batchNum = Math.min(10, Math.max(1, parseInt(batch_size) || 3));
+  let aiLease: AiWorkLease;
+  try {
+    aiLease = acquireAiWork({
+      userId: req.user?.uid || '',
+      cost: Math.max(questions.length, Math.ceil(questions.length / batchNum) * 3),
+      byok: typeof api_key === 'string' && api_key.trim().length > 0,
+      perUserConcurrency: 1,
+      globalConcurrency: 3
+    });
+  } catch (error) {
+    if (respondWorksheetAiLimit(res, error)) return;
+    console.error('Worksheet AI work guard error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Worksheet solving could not be scheduled.'
+    });
+  }
 
-  (async () => {
+  setWorksheetProgress(session_id, { message: '⚡ Preparing to solve worksheet questions...', percentage: 10, status: 'processing' });
+
+  res.status(202).json({ success: true, status: 'accepted' });
+
+  void (async () => {
     try {
-      const ai = getGeminiClient(api_key);
-      const isNonMath = ['English', 'History', 'Biology', 'Social Studies'].includes(subject);
+      const isNonMath = ['english', 'history', 'biology', 'social studies'].includes(String(subject).toLowerCase());
       const solverPromptTemplate = isNonMath ? WORKSHEET_SOLVER_PROMPT_NON_MATH : WORKSHEET_SOLVER_PROMPT;
       const selectedModel = getRealModelName(model_name);
 
       let solvedResults: any[] = [];
-      const batchNum = parseInt(batch_size) || 3;
       const totalQuestions = questions.length;
 
       for (let i = 0; i < totalQuestions; i += batchNum) {
         const batch = questions.slice(i, i + batchNum);
         const currentProgress = Math.round(10 + ((i + batch.length) / totalQuestions) * 80);
 
-        sessionProgress.set(session_id, {
+        setWorksheetProgress(session_id, {
           message: `✨ Solving questions ${i + 1} to ${Math.min(i + batch.length, totalQuestions)} of ${totalQuestions}...`,
           percentage: currentProgress,
           status: 'processing'
         });
 
-        if (ai) {
-          try {
-            const contents: any[] = [];
-            const cleanBatch = batch.map((q: any) => {
-                let cleanRawText = q.raw_text || q.question || '';
-                const imgMatches = [...cleanRawText.matchAll(/src="data:([^;]+);base64,([^"]+)"/g)];
-                for (const match of imgMatches) {
-                    contents.push({
-                        inlineData: {
-                            mimeType: match[1] || 'image/png',
-                            data: match[2]
-                        }
-                    });
-                }
-                cleanRawText = cleanRawText.replace(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi, '[IMAGE_PROVIDED_IN_VISION_CONTEXT]').replace(/<br\s*\/?>/gi, '\n').trim();
-                return { ...q, raw_text: cleanRawText, question: cleanRawText };
-            });
+        const contents: any[] = [];
+        const cleanBatch = batch.map((q: any, batchIndex: number) => {
+          const prepared = prepareVisionText(q.raw_text || q.question || q.statement, contents);
+          return {
+            raw_text: prepared.text,
+            options: Array.isArray(q.options) ? q.options.map((option: unknown) => String(option)) : [],
+            type: ALLOWED_QUESTION_TYPES.has(String(q.type || '')) ? q.type : 'open_ended',
+            original_index: String(q.original_index ?? i + batchIndex + 1),
+            source_index: i + batchIndex
+          };
+        });
 
-            const prompt = solverPromptTemplate
-              .replace('{subject}', subject)
-              .replace('{topic}', topic)
-              .replace('{questions_json}', JSON.stringify(cleanBatch))
-              .replace('{latex_rules}', SHARED_LATEX_RULES);
-            
-            contents.unshift(prompt);
+        const prompt = `${solverPromptTemplate
+          .replace('{subject}', String(subject))
+          .replace('{topic}', String(topic))
+          .replace('{questions_json}', JSON.stringify(cleanBatch))
+          .replace('{latex_rules}', SHARED_LATEX_RULES)}
 
-            const response = await ai.models.generateContent({
-              model: selectedModel,
-              contents: contents,
-              config: { responseMimeType: 'application/json' }
-            });
-            const text = response.text || '';
-            const batchSolved = safeParseJSON(text);
+${MANDATORY_MATH_FEEDBACK_RULE}`;
+        contents.unshift(prompt);
 
-            if (Array.isArray(batchSolved)) {
-              const restoredBatch = batchSolved.map((solvedItem, index) => {
-                  let finalQuestion = solvedItem.question || batch[index].question || batch[index].raw_text || '';
-                  const origText = batch[index].question || batch[index].raw_text || '';
-                  const imgMatches = origText.match(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi);
-                  if (imgMatches && finalQuestion) {
-                      finalQuestion = finalQuestion.replace(/\[IMAGE_PROVIDED_IN_VISION_CONTEXT\]/gi, '');
-                      imgMatches.forEach(img => {
-                          if (!finalQuestion.includes(img)) {
-                              finalQuestion += '\n' + '<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;">' + img + '</div></div>';
-                          }
-                      });
-                  }
-                  return {
-                      ...solvedItem,
-                      question: finalQuestion,
-                      raw_text: batch[index].raw_text
-                  };
-              });
-              solvedResults.push(...restoredBatch);
-            }
-          } catch (e) {
-            console.warn(`Error solving batch starting at index ${i}:`, e);
+        const response = await ai.models.generateContent({
+          model: selectedModel,
+          contents,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: SOLVED_QUESTION_SCHEMA,
+            maxOutputTokens: 8192
           }
-        }
+        });
+        const batchSolved = validateSolvedQuestions(safeParseJSON(response.text || ''), batch.length, i);
+        solvedResults.push(...batchSolved);
       }
 
       const finalQuestions = questions.map((orig: any, idx: number) => {
-        const solved = solvedResults[idx] || {};
+        const solved = solvedResults[idx];
+        const originalQuestion = String(orig.raw_text || orig.question || orig.statement).trim();
         return {
-          question: orig.raw_text || orig.question || orig.statement || `Question ${idx + 1}`,
-          options: Array.isArray(solved.options) && solved.options.length > 0 ? solved.options : (Array.isArray(orig.options) ? orig.options : []),
-          answer: solved.answer !== undefined ? String(solved.answer) : (orig.answer || ''),
-          type: solved.type || orig.type || 'multiple_choice'
+          ...orig,
+          question: originalQuestion,
+          raw_text: orig.raw_text || originalQuestion,
+          options: solved.options,
+          answer: solved.answer,
+          type: solved.type,
+          ...(solved.solution ? { solution: solved.solution } : {})
         };
       });
 
@@ -375,47 +754,57 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         subject: subject || 'General',
         time_limit: parseInt(time_limit) || 20,
         quiz_mode: quiz_mode || 'back_and_forth',
-        require_solution: require_solution || false,
+        require_solution: require_solution === true || require_solution === 'true',
         questions: finalQuestions,
         created_at: new Date().toISOString()
       };
 
       quizzes.set(newQuizId, newQuiz);
       savePersistentData();
-      syncDocToFirestore('quizzes', newQuizId, newQuiz);
+      await syncDocToFirestore('quizzes', newQuizId, newQuiz);
 
-      sessionProgress.set(session_id, {
+      setWorksheetProgress(session_id, {
         message: '🚀 Quiz created! Redirecting...',
         percentage: 100,
         status: 'completed',
         quiz_id: newQuizId
       });
     } catch (err: any) {
-      sessionProgress.set(session_id, {
+      setWorksheetProgress(session_id, {
         message: `❌ Error: ${err.message}`,
         percentage: 100,
         status: 'error',
         error: err.message
       });
+    } finally {
+      aiLease.release();
     }
   })();
 });
 
-router.post('/api/extract_rmxflash', tokenRequired, upload.any(), async (req: AuthRequest, res) => {
+router.post('/api/extract_rmxflash', tokenRequired, worksheetUploadAny, async (req: AuthRequest, res) => {
   const { api_key, model_name = 'gemini-3.5-flash-lite', session_id = 'rmx_1' } = req.body;
   const files = (req.files as Express.Multer.File[]) || [];
 
   const wsFiles = getFilesByField(files, ['worksheet_files', 'files']);
   const ansFiles = getFilesByField(files, ['answer_files']);
 
-  sessionProgress.set(session_id, { message: '⚡ Extracting RMXFlash questions...', percentage: 25, status: 'processing' });
-
   try {
+    if (wsFiles.length === 0) {
+      return res.status(400).json({ success: false, error: 'Upload at least one RMX worksheet PDF or image.' });
+    }
     const ai = getGeminiClient(api_key);
+    if (!ai) {
+      return res.status(400).json({
+        success: false,
+        error: 'No Gemini API key is configured. Provide an AI Studio browser key or configure GEMINI_API_KEY/API_KEY on the server.'
+      });
+    }
+    setWorksheetProgress(session_id, { message: '⚡ Extracting RMXFlash questions...', percentage: 25, status: 'processing' });
     let rmxQuestions: any[] = [];
     let goldenKey: Record<string, string> = {};
 
-    if (ai) {
+    {
       const selectedModel = getRealModelName(model_name);
 
       let prompt = RMX_FLASH_EXTRACTION_PROMPT
@@ -424,39 +813,34 @@ router.post('/api/extract_rmxflash', tokenRequired, upload.any(), async (req: Au
 
       const totalFiles = wsFiles.length;
       for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
-        const f = wsFiles[fileIdx];
-        sessionProgress.set(session_id, {
-          message: `⚡ Extracting questions from file ${fileIdx + 1} of ${totalFiles}...`,
-          percentage: Math.round(25 + (fileIdx / totalFiles) * 40),
-          status: 'processing'
-        });
+        await forEachUploadedFilePage(wsFiles[fileIdx], async page => {
+          setWorksheetProgress(session_id, {
+            message: `⚡ Extracting RMX file ${fileIdx + 1} of ${totalFiles}, page ${page.pageNumber} of ${page.pageCount}...`,
+            percentage: Math.round(25 + ((fileIdx + page.pageIndex / page.pageCount) / totalFiles) * 40),
+            status: 'processing'
+          });
+          const response = await ai.models.generateContent({
+            model: selectedModel,
+            contents: [
+              prompt,
+              {
+                inlineData: {
+                  data: page.buffer.toString('base64'),
+                  mimeType: page.mimeType
+                }
+              }
+            ],
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: RMX_EXTRACTION_SCHEMA,
+              maxOutputTokens: 8192
+            }
+          });
 
-        let contents: any[] = [
-          prompt,
-          {
-            inlineData: { data: f.buffer.toString('base64'), mimeType: f.mimetype }
-          }
-        ];
-
-        const response = await ai.models.generateContent({
-          model: selectedModel,
-          contents,
-          config: { responseMimeType: 'application/json', maxOutputTokens: 8192 }
-        });
-
-        const text = response.text || '';
-        const parsed = safeParseJSON(text);
-        if (Array.isArray(parsed)) {
-          let currentImageBuffer: Buffer | null = null;
-          if (f.mimetype === 'application/pdf') {
-            currentImageBuffer = await pdfPageToImage(f.buffer, 0);
-          } else if (f.mimetype && f.mimetype.startsWith('image/')) {
-            currentImageBuffer = f.buffer;
-          }
-
+          const parsed = validateRmxQuestions(safeParseJSON(response.text || ''));
           for (const q of parsed) {
-            if (q.bounding_box && q.bounding_box.length === 4 && currentImageBuffer) {
-              const imgUri = await cropImageBoundingBox(currentImageBuffer, q.bounding_box);
+            if (q.bounding_box.length === 4) {
+              const imgUri = await cropImageBoundingBox(page.buffer, q.bounding_box);
               if (imgUri) {
                 const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Diagram"></div></div>`;
                 q.statement = (q.statement || '') + '\n' + imgHtml;
@@ -464,12 +848,15 @@ router.post('/api/extract_rmxflash', tokenRequired, upload.any(), async (req: Au
             }
           }
           rmxQuestions.push(...parsed);
-        }
+        });
       }
 
       if (ansFiles.length > 0) {
-        sessionProgress.set(session_id, { message: '⚡ Matching Golden Answer Key...', percentage: 80, status: 'processing' });
-        let keyPrompt = `Extract the Golden Answer Key from these files as a JSON object where key is question number (e.g. "1") and value is answer choice letter or text.`;
+        setWorksheetProgress(session_id, { message: '⚡ Matching Golden Answer Key...', percentage: 80, status: 'processing' });
+        let keyPrompt = `Extract the Golden Answer Key from these files.
+Return ONLY a JSON array in this exact shape:
+[{"question_number":"1","answer":"A"},{"question_number":"2","answer":"42"}]
+Use the printed question number as question_number and the correct choice letter or answer text as answer.`;
         let keyContents: any[] = [keyPrompt];
         ansFiles.forEach(f => {
           keyContents.push({
@@ -480,14 +867,14 @@ router.post('/api/extract_rmxflash', tokenRequired, upload.any(), async (req: Au
         const keyResp = await ai.models.generateContent({
           model: selectedModel,
           contents: keyContents,
-          config: { responseMimeType: 'application/json' }
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: ANSWER_KEY_PAIR_SCHEMA,
+            maxOutputTokens: 4096
+          }
         });
 
-        const keyText = keyResp.text || '';
-        const parsedKey = safeParseJSON(keyText);
-        if (parsedKey && typeof parsedKey === 'object') {
-          goldenKey = parsedKey;
-        }
+        goldenKey = answerPairsToRecord(safeParseJSON(keyResp.text || ''), 'RMX answer key extraction');
 
         if (Object.keys(goldenKey).length > 0) {
           const matchPrompt = RMX_FLASH_MATCH_PROMPT
@@ -497,35 +884,35 @@ router.post('/api/extract_rmxflash', tokenRequired, upload.any(), async (req: Au
           const matchResp = await ai.models.generateContent({
             model: selectedModel,
             contents: [matchPrompt],
-            config: { responseMimeType: 'application/json' }
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: RMX_MATCH_SCHEMA,
+              maxOutputTokens: 8192
+            }
           });
 
-          const matchText = matchResp.text || '';
-          const matched = safeParseJSON(matchText);
-          if (Array.isArray(matched)) rmxQuestions = matched;
+          const matched = validateRmxQuestions(safeParseJSON(matchResp.text || ''), true);
+          if (matched.length !== rmxQuestions.length) {
+            throw new Error(`RMX answer matching returned ${matched.length} of ${rmxQuestions.length} questions`);
+          }
+          rmxQuestions = matched;
         }
       }
     }
 
-    if (!rmxQuestions || rmxQuestions.length === 0) {
-      rmxQuestions = [
-        {
-          identifier: 'a1B2c3D4e5F6',
-          original_index: 1,
-          statement: 'Sample RMX Question 1: What is $2 + 2$?',
-          choices: ['A) $3$', 'B) $4$', 'C) $5$', 'D) $6$'],
-          answer: 'B'
-        }
-      ];
+    if (rmxQuestions.length === 0) {
+      const message = 'Gemini did not find any RMX questions. Check that the upload is readable and contains complete question statements.';
+      setWorksheetProgress(session_id, { message: `Error: ${message}`, percentage: 100, status: 'error' });
+      return res.status(422).json({ success: false, error: message });
     }
 
     sortQuestionsByIndex(rmxQuestions);
 
-    sessionProgress.set(session_id, { message: '✅ RMXFlash extraction complete!', percentage: 100, status: 'completed' });
+    setWorksheetProgress(session_id, { message: '✅ RMXFlash extraction complete!', percentage: 100, status: 'completed' });
     res.json({ success: true, questions: rmxQuestions });
   } catch (err: any) {
-    sessionProgress.set(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
-    res.status(500).json({ success: false, error: err.message });
+    setWorksheetProgress(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
+    res.status(502).json({ success: false, error: `RMX extraction failed: ${err.message}` });
   }
 });
 
@@ -605,109 +992,71 @@ router.post('/api/export_rmxflash_excel', tokenRequired, async (req, res) => {
   }
 });
 
-router.post('/api/extract_worksheet_with_answers', tokenRequired, upload.any(), async (req: AuthRequest, res) => {
+router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploadAny, async (req: AuthRequest, res) => {
   const { session_id = 'sess_ans_1', topic_hint = '', subject = 'General', api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
   const files = (req.files as Express.Multer.File[]) || [];
 
   const wsFiles = getFilesByField(files, ['files', 'worksheet_files']);
   const ansFiles = getFilesByField(files, ['answer_files']);
 
-  sessionProgress.set(session_id, { message: '📄 Processing worksheet & answer key files...', percentage: 15, status: 'processing' });
-
   try {
+    if (wsFiles.length === 0) {
+      return res.status(400).json({ success: false, error: 'Upload at least one worksheet PDF or image.' });
+    }
     const ai = getGeminiClient(api_key);
+    if (!ai) {
+      return res.status(400).json({
+        success: false,
+        error: 'No Gemini API key is configured. Provide an AI Studio browser key or configure GEMINI_API_KEY/API_KEY on the server.'
+      });
+    }
+    setWorksheetProgress(session_id, { message: '📄 Processing worksheet & answer key files...', percentage: 15, status: 'processing' });
     let questions: any[] = [];
     let goldenReference: Record<string, string> = {};
 
-    if (ai) {
+    {
       const selectedModel = getRealModelName(model_name);
-      const pdfFileWs = wsFiles.find(f => f.mimetype === 'application/pdf');
-      const imgFileWs = wsFiles.find(f => f.mimetype && f.mimetype.startsWith('image/'));
+      const extractionSchema = WORKSHEET_EXTRACTION_SCHEMA;
+      const isNonMath = ['english', 'history', 'biology', 'social studies'].includes(String(subject).toLowerCase());
+      const extractionPromptTemplate = isNonMath ? WORKSHEET_EXTRACTION_PROMPT_NON_MATH : WORKSHEET_EXTRACTION_PROMPT;
+      const extractionPrompt = extractionPromptTemplate
+        .replace('{latex_rules}', SHARED_LATEX_RULES)
+        .replace('{subject_rules}', isNonMath ? NON_MATH_RULES : '')
+        .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
 
-      const extractionSchema = {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            raw_text: {
-              type: Type.STRING,
-              description: "The literal text transcript of the question."
-            },
-            options: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "The choices (e.g. ['A) 10', 'B) 20']) if multiple choice."
-            },
-            type: {
-              type: Type.STRING,
-              description: "The type: 'multiple_choice', 'multiple_choice_multi', 'identification', 'open_ended', 'graphing', 'true_false'."
-            },
-            original_index: {
-              type: Type.STRING,
-              description: "The question number/index on the worksheet."
-            },
-            bounding_box: {
-              type: Type.ARRAY,
-              items: { type: Type.INTEGER },
-              description: "Four normalized integers [ymin, xmin, ymax, xmax] (0 to 1000) of any diagram. Empty array [] if no diagram."
-            }
-          },
-          required: ["raw_text", "options", "type", "original_index"]
-        }
-      };
+      const totalFiles = wsFiles.length;
+      for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
+        await forEachUploadedFilePage(wsFiles[fileIdx], async page => {
+            setWorksheetProgress(session_id, {
+              message: `🤖 Extracting worksheet file ${fileIdx + 1} of ${totalFiles}, page ${page.pageNumber} of ${page.pageCount}...`,
+              percentage: Math.round(30 + ((fileIdx + page.pageIndex / page.pageCount) / totalFiles) * 40),
+              status: 'processing'
+            });
+            const wsResponse = await ai.models.generateContent({
+              model: selectedModel,
+              contents: [
+                extractionPrompt,
+                {
+                  inlineData: {
+                    data: page.buffer.toString('base64'),
+                    mimeType: page.mimeType
+                  }
+                }
+              ],
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: extractionSchema,
+                maxOutputTokens: 8192
+              }
+            });
 
-      if (pdfFileWs && !imgFileWs) {
-        const pageCount = getPdfPageCount(pdfFileWs.buffer);
-        console.log(`[QUIZ] Processing PDF with Answers page count: ${pageCount}`);
-
-        const chunkSize = 1;
-        const totalChunks = Math.ceil(pageCount / chunkSize);
-
-        for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
-          const startPage = chunkIdx * chunkSize + 1;
-          const endPage = Math.min((chunkIdx + 1) * chunkSize, pageCount);
-
-          sessionProgress.set(session_id, {
-            message: `🔍 Extracting Questions from Page ${chunkIdx + 1} of ${pageCount}...`,
-            percentage: Math.round(20 + (chunkIdx / totalChunks) * 50),
-            status: 'processing'
-          });
-
-          const chunkBuffer = await extractPdfPages(pdfFileWs.buffer, startPage, endPage);
-          if (!chunkBuffer) continue;
-
-          const chunkPageImage = await pdfPageToImage(pdfFileWs.buffer, startPage - 1);
-
-          let extractionPrompt = WORKSHEET_EXTRACTION_PROMPT
-            .replace('{latex_rules}', SHARED_LATEX_RULES)
-            .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
-
-          let wsContents: any[] = [
-            extractionPrompt,
-            {
-              inlineData: { data: chunkBuffer.toString('base64'), mimeType: 'application/pdf' }
-            }
-          ];
-
-          const wsResponse = await ai.models.generateContent({
-            model: selectedModel,
-            contents: wsContents,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: extractionSchema,
-              maxOutputTokens: 8192
-            }
-          });
-
-          const wsText = wsResponse.text || '';
-          const parsed = safeParseJSON(wsText);
-          if (Array.isArray(parsed)) {
+            const parsed = validateExtractedQuestions(
+              safeParseJSON(wsResponse.text || ''),
+              `Worksheet file ${fileIdx + 1}, page ${page.pageNumber}`
+            );
             for (const q of parsed) {
-              if (!q.raw_text && q.question) q.raw_text = q.question;
-              if (!q.raw_text && q.statement) q.raw_text = q.statement;
-
-              if (q.bounding_box && chunkPageImage) {
-                const imgUri = await cropImageBoundingBox(chunkPageImage, q.bounding_box);
+              if (q.bounding_box.length === 4) {
+                const imgUri = await cropImageBoundingBox(page.buffer, q.bounding_box);
                 if (imgUri) {
                   const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Diagram"></div></div>`;
                   q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
@@ -715,72 +1064,15 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, upload.any(), 
               }
             }
             questions.push(...parsed);
-          }
-        }
-      } else {
-        let extractionPrompt = WORKSHEET_EXTRACTION_PROMPT
-          .replace('{latex_rules}', SHARED_LATEX_RULES)
-          .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
-
-        const totalFiles = wsFiles.length;
-        for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
-          const f = wsFiles[fileIdx];
-          sessionProgress.set(session_id, {
-            message: `🤖 Extracting questions from worksheet file ${fileIdx + 1} of ${totalFiles} with Gemini AI...`,
-            percentage: Math.round(30 + (fileIdx / totalFiles) * 40),
-            status: 'processing'
-          });
-
-          let wsContents: any[] = [
-            extractionPrompt,
-            {
-              inlineData: { data: f.buffer.toString('base64'), mimeType: f.mimetype }
-            }
-          ];
-
-          const wsResponse = await ai.models.generateContent({
-            model: selectedModel,
-            contents: wsContents,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: extractionSchema,
-              maxOutputTokens: 8192
-            }
-          });
-
-          const wsText = wsResponse.text || '';
-          const parsed = safeParseJSON(wsText);
-          if (Array.isArray(parsed)) {
-            let currentImageBuffer: Buffer | null = null;
-            if (f.mimetype === 'application/pdf') {
-              currentImageBuffer = await pdfPageToImage(f.buffer, 0);
-            } else if (f.mimetype && f.mimetype.startsWith('image/')) {
-              currentImageBuffer = f.buffer;
-            }
-
-            for (const q of parsed) {
-              if (!q.raw_text && q.question) q.raw_text = q.question;
-              if (!q.raw_text && q.statement) q.raw_text = q.statement;
-
-              if (q.bounding_box && q.bounding_box.length === 4 && currentImageBuffer) {
-                const imgUri = await cropImageBoundingBox(currentImageBuffer, q.bounding_box);
-                if (imgUri) {
-                  const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Diagram"></div></div>`;
-                  q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
-                }
-              }
-            }
-            questions.push(...parsed);
-          }
-        }
+        });
       }
 
       if (ansFiles.length > 0) {
-        sessionProgress.set(session_id, { message: '🔑 Extracting Golden Answer Key from answer files...', percentage: 70, status: 'processing' });
-        let ansPrompt = `Extract the Golden Answer Key / Master Answers from these answer key files as a JSON key-value map.
-Keys MUST be the question numbers as strings (e.g., "1", "2", "3").
-Values MUST be the correct answers as strings (e.g. "A", "180 degrees", "3.14").
-Return ONLY a valid JSON object map like {"1": "A", "2": "B", "3": "42"}.`;
+        setWorksheetProgress(session_id, { message: '🔑 Extracting Golden Answer Key from answer files...', percentage: 70, status: 'processing' });
+        let ansPrompt = `Extract the Golden Answer Key / Master Answers from these answer key files.
+Return ONLY a JSON array in this exact shape:
+[{"question_number":"1","answer":"A"},{"question_number":"2","answer":"42"}]
+Use the printed question number as question_number and the correct choice letter or answer text as answer.`;
 
         let ansContents: any[] = [ansPrompt];
         ansFiles.forEach(f => {
@@ -792,36 +1084,24 @@ Return ONLY a valid JSON object map like {"1": "A", "2": "B", "3": "42"}.`;
         const ansResponse = await ai.models.generateContent({
           model: selectedModel,
           contents: ansContents,
-          config: { responseMimeType: 'application/json' }
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: ANSWER_KEY_PAIR_SCHEMA,
+            maxOutputTokens: 4096
+          }
         });
 
-        const ansText = ansResponse.text || '';
-        const parsedAns = safeParseJSON(ansText);
-        if (parsedAns && typeof parsedAns === 'object') {
-          goldenReference = parsedAns;
-        }
+        goldenReference = answerPairsToRecord(
+          safeParseJSON(ansResponse.text || ''),
+          'Worksheet answer key extraction'
+        );
       }
     }
 
-    if (!questions || questions.length === 0) {
-      questions = [
-        {
-          raw_text: '1. What is the capital of France?',
-          question: 'What is the capital of France?',
-          type: 'multiple_choice',
-          options: ['A) Paris', 'B) London', 'C) Berlin', 'D) Madrid'],
-          original_index: 1,
-          answer: 'A) Paris'
-        },
-        {
-          raw_text: '2. Solve $2x + 6 = 14$',
-          question: 'Solve $2x + 6 = 14$',
-          type: 'identification',
-          options: [],
-          original_index: 2,
-          answer: '4'
-        }
-      ];
+    if (questions.length === 0) {
+      const message = 'Gemini did not find any worksheet questions. Check that the worksheet upload is readable, then try again.';
+      setWorksheetProgress(session_id, { message: `Error: ${message}`, percentage: 100, status: 'error' });
+      return res.status(422).json({ success: false, error: message });
     }
 
     if (Object.keys(goldenReference).length > 0) {
@@ -849,15 +1129,15 @@ Return ONLY a valid JSON object map like {"1": "A", "2": "B", "3": "42"}.`;
       }
     }
 
-    sessionProgress.set(session_id, { message: '✅ Questions and answers extracted successfully!', percentage: 100, status: 'completed' });
+    setWorksheetProgress(session_id, { message: '✅ Questions and answers extracted successfully!', percentage: 100, status: 'completed' });
     res.json({ success: true, questions, golden_reference: goldenReference, missing_indices: missingIndices });
   } catch (err: any) {
-    sessionProgress.set(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
-    res.status(500).json({ success: false, error: err.message });
+    setWorksheetProgress(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
+    res.status(502).json({ success: false, error: `Worksheet and answer-key extraction failed: ${err.message}` });
   }
 });
 
-router.post('/api/recover_questions', tokenRequired, upload.any(), async (req: AuthRequest, res) => {
+router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (req: AuthRequest, res) => {
   const { missing_numbers, topic_hint = 'General', api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
   const files = (req.files as Express.Multer.File[]) || [];
 
@@ -869,10 +1149,24 @@ router.post('/api/recover_questions', tokenRequired, upload.any(), async (req: A
   }
 
   try {
+    if (!Array.isArray(missingNums)) missingNums = [];
+    missingNums = [...new Set(missingNums.map(Number).filter(Number.isInteger))];
+    if (missingNums.length === 0) {
+      return res.status(400).json({ success: false, error: 'Provide at least one valid missing question number.' });
+    }
+    if (files.length === 0) {
+      return res.status(400).json({ success: false, error: 'Upload the original worksheet PDF or image for recovery.' });
+    }
     const ai = getGeminiClient(api_key);
+    if (!ai) {
+      return res.status(400).json({
+        success: false,
+        error: 'No Gemini API key is configured. Provide an AI Studio browser key or configure GEMINI_API_KEY/API_KEY on the server.'
+      });
+    }
     let recovered: any[] = [];
 
-    if (ai && files.length > 0) {
+    {
       const selectedModel = getRealModelName(model_name);
       const prompt = RECOVERY_PROMPT
         .replace('{topic_hint}', topic_hint)
@@ -880,51 +1174,32 @@ router.post('/api/recover_questions', tokenRequired, upload.any(), async (req: A
 
       const totalFiles = files.length;
       for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
-        const f = files[fileIdx];
+        await forEachUploadedFilePage(files[fileIdx], async page => {
+          const response = await ai.models.generateContent({
+            model: selectedModel,
+            contents: [
+              prompt,
+              {
+                inlineData: {
+                  data: page.buffer.toString('base64'),
+                  mimeType: page.mimeType
+                }
+              }
+            ],
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: WORKSHEET_EXTRACTION_SCHEMA,
+              maxOutputTokens: 8192
+            }
+          });
 
-        let contents: any[] = [
-          prompt,
-          {
-            inlineData: { data: f.buffer.toString('base64'), mimeType: f.mimetype }
-          }
-        ];
-
-        const extractionSchema = {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              raw_text: { type: Type.STRING, description: "The literal text transcript of the question." },
-              options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Choices if multiple choice." },
-              type: { type: Type.STRING, description: "The type: 'multiple_choice', 'multiple_choice_multi', 'identification', 'open_ended', 'graphing', 'true_false'." },
-              original_index: { type: Type.STRING, description: "The question number/index on the worksheet." },
-              bounding_box: { type: Type.ARRAY, items: { type: Type.INTEGER }, description: "Four normalized integers [ymin, xmin, ymax, xmax] (0 to 1000) of any diagram. Empty array [] if no diagram." }
-            },
-            required: ["raw_text", "options", "type", "original_index"]
-          }
-        };
-        const response = await ai.models.generateContent({
-          model: selectedModel,
-          contents,
-          config: { responseMimeType: 'application/json', responseSchema: extractionSchema, maxOutputTokens: 8192 }
-        });
-
-        const text = response.text || '';
-        const parsedRec = safeParseJSON(text);
-        if (Array.isArray(parsedRec)) {
-          let currentImageBuffer: Buffer | null = null;
-          if (f.mimetype === 'application/pdf') {
-            currentImageBuffer = await pdfPageToImage(f.buffer, 0);
-          } else if (f.mimetype && f.mimetype.startsWith('image/')) {
-            currentImageBuffer = f.buffer;
-          }
-
+          const parsedRec = validateExtractedQuestions(
+            safeParseJSON(response.text || ''),
+            `Recovery file ${fileIdx + 1}, page ${page.pageNumber}`
+          ).filter(question => missingNums.includes(parseInt(question.original_index, 10)));
           for (const q of parsedRec) {
-            if (!q.raw_text && q.question) q.raw_text = q.question;
-            if (!q.raw_text && q.statement) q.raw_text = q.statement;
-
-            if (q.bounding_box && q.bounding_box.length === 4 && currentImageBuffer) {
-              const imgUri = await cropImageBoundingBox(currentImageBuffer, q.bounding_box);
+            if (q.bounding_box.length === 4) {
+              const imgUri = await cropImageBoundingBox(page.buffer, q.bounding_box);
               if (imgUri) {
                 const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Diagram"></div></div>`;
                 q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
@@ -932,25 +1207,26 @@ router.post('/api/recover_questions', tokenRequired, upload.any(), async (req: A
             }
           }
           recovered.push(...parsedRec);
-        }
+        });
       }
     }
 
-    if (!recovered || recovered.length === 0) {
-      recovered = missingNums.map(num => ({
-        original_index: num,
-        question: `Question ${num} (Recovered)`,
-        type: 'identification',
-        options: [],
-        answer: 'Recovered Answer'
-      }));
+    const recoveredByNumber = new Map<string, any>();
+    recovered.forEach(question => recoveredByNumber.set(String(parseInt(question.original_index, 10)), question));
+    recovered = [...recoveredByNumber.values()];
+    if (recovered.length === 0) {
+      return res.status(422).json({
+        success: false,
+        error: `Gemini could not locate requested question numbers ${missingNums.join(', ')} in the uploaded files. Verify the pages and numbering, then try again.`
+      });
     }
 
     sortQuestionsByIndex(recovered);
-
-    res.json({ success: true, recovered });
+    const recoveredNumbers = new Set(recovered.map(question => parseInt(question.original_index, 10)));
+    const stillMissing = missingNums.filter(number => !recoveredNumbers.has(number));
+    res.json({ success: true, recovered, missing_numbers_remaining: stillMissing });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(502).json({ success: false, error: `Question recovery failed: ${err.message}` });
   }
 });
 
@@ -967,78 +1243,110 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
     session_id = 'gen_1'
   } = req.body;
 
-  sessionProgress.set(session_id, { message: '✨ Finalizing and polishing quiz...', percentage: 30, status: 'processing' });
-
+  let aiLease: AiWorkLease | null = null;
   try {
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ success: false, error: 'Provide at least one extracted question to create a quiz.' });
+    }
+    if (questions.length > MAX_WORKSHEET_AI_QUESTIONS) {
+      return res.status(400).json({
+        success: false,
+        error: `Quiz finalization is limited to ${MAX_WORKSHEET_AI_QUESTIONS} questions per request.`
+      });
+    }
+    const malformedIndex = questions.findIndex((question: any) => {
+      const text = question?.question || question?.raw_text || question?.statement;
+      return typeof text !== 'string' || !text.trim();
+    });
+    if (malformedIndex >= 0) {
+      return res.status(422).json({
+        success: false,
+        error: `Extracted question ${malformedIndex + 1} has no readable text. Re-extract or remove it before creating the quiz.`
+      });
+    }
     const ai = getGeminiClient(api_key);
-    let finalQuestions = questions;
+    let finalQuestions = questions.map((question: any) => ({ ...question }));
 
-    if (ai && questions.length > 0) {
-      try {
-        sessionProgress.set(session_id, { message: '📐 Re-checking equations & answer key consistency...', percentage: 65, status: 'processing' });
+    if (ai) {
+        aiLease = acquireAiWork({
+          userId: req.user?.uid || '',
+          cost: questions.length,
+          byok: typeof api_key === 'string' && api_key.trim().length > 0
+        });
+        setWorksheetProgress(session_id, { message: '✨ Finalizing and polishing quiz...', percentage: 30, status: 'processing' });
+        setWorksheetProgress(session_id, { message: '📐 Re-checking equations & answer key consistency...', percentage: 65, status: 'processing' });
         const contents: any[] = [];
-        const cleanQuestions = questions.map((q: any) => {
-            let cleanRawText = q.raw_text || q.question || '';
-            const imgMatches = [...cleanRawText.matchAll(/src="data:([^;]+);base64,([^"]+)"/g)];
-            for (const match of imgMatches) {
-                contents.push({
-                    inlineData: {
-                        mimeType: match[1] || 'image/png',
-                        data: match[2]
-                    }
-                });
-            }
-            cleanRawText = cleanRawText.replace(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi, '[IMAGE_PROVIDED_IN_VISION_CONTEXT]').replace(/<br\s*\/?>/gi, '\n').trim();
-            return { ...q, raw_text: cleanRawText, question: cleanRawText };
+        const preparedQuestions: PreparedVisionText[] = [];
+        const cleanQuestions = questions.map((q: any, sourceIndex: number) => {
+            const prepared = prepareVisionText(q.raw_text || q.question || q.statement, contents);
+            preparedQuestions.push(prepared);
+            return {
+              ...q,
+              raw_text: prepared.text,
+              question: prepared.text,
+              options: Array.isArray(q.options) ? q.options : (Array.isArray(q.choices) ? q.choices : []),
+              source_index: sourceIndex
+            };
         });
 
-        const prompt = RECHECK_ANSWERS_PROMPT
+        const prompt = `${RECHECK_ANSWERS_PROMPT
           .replace('{golden_reference}', JSON.stringify(golden_reference))
-          .replace('{batch_json}', JSON.stringify(cleanQuestions));
+          .replace('{batch_json}', JSON.stringify(cleanQuestions))}
+
+${MANDATORY_MATH_FEEDBACK_RULE}`;
         
         const selectedModel = getRealModelName(model_name);
         contents.unshift(prompt);
 
         const response = await ai.models.generateContent({
           model: selectedModel,
-          contents: contents,
-          config: { responseMimeType: 'application/json' }
+          contents,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: COMPLETE_QUESTION_SCHEMA,
+            maxOutputTokens: 8192
+          }
         });
-        const text = response.text || '';
-        const parsed = safeParseJSON(text);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          finalQuestions = parsed.map((solvedItem: any, index: number) => {
-              let finalQuestion = solvedItem.question || questions[index].question || questions[index].raw_text || '';
-              const origText = questions[index].question || questions[index].raw_text || '';
-              const imgMatches = origText.match(/<img[^>]+src="data:image\/[^">]+"[^>]*>/gi);
-              if (imgMatches && finalQuestion) {
-                  finalQuestion = finalQuestion.replace(/\[IMAGE_PROVIDED_IN_VISION_CONTEXT\]/gi, '');
-                  imgMatches.forEach(img => {
-                      if (!finalQuestion.includes(img)) {
-                          finalQuestion += '\n' + '<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;">' + img + '</div></div>';
-                      }
-                  });
-              }
-              return {
-                  ...solvedItem,
-                  question: finalQuestion,
-                  raw_text: questions[index].raw_text
-              };
-          });
-        }
-      } catch (e) {
-        console.warn('AI polish fallback:', e);
+        const parsed = validateCompleteQuestions(safeParseJSON(response.text || ''), questions.length);
+        finalQuestions = parsed.map((solvedItem: any, index: number) => ({
+          ...questions[index],
+          options: solvedItem.options,
+          answer: solvedItem.answer,
+          type: solvedItem.type,
+          ...(solvedItem.solution ? { solution: solvedItem.solution } : {}),
+          question: restoreVisionText(solvedItem.question, preparedQuestions[index]),
+          raw_text: questions[index].raw_text || restoreVisionText(solvedItem.question, preparedQuestions[index])
+        }));
+    } else {
+      const unansweredIndex = finalQuestions.findIndex((question: any) => !String(question?.answer ?? '').trim());
+      if (unansweredIndex >= 0) {
+        return res.status(400).json({
+          success: false,
+          error: `Question ${unansweredIndex + 1} has no answer and no Gemini key is configured to solve it. Provide an AI Studio browser key or configure GEMINI_API_KEY/API_KEY.`
+        });
       }
+      setWorksheetProgress(session_id, { message: '✨ Finalizing quiz...', percentage: 65, status: 'processing' });
     }
 
     sortQuestionsByIndex(finalQuestions);
 
-    const formattedQuestions = finalQuestions.map((q: any, i: number) => ({
-      question: q.question || q.raw_text || q.statement || `Question ${i + 1}`,
-      options: Array.isArray(q.options) ? q.options : (Array.isArray(q.choices) ? q.choices : []),
-      answer: q.answer !== undefined ? String(q.answer) : (q.options && q.options[0] ? q.options[0] : ''),
-      type: q.type || (q.options && q.options.length > 0 ? 'multiple_choice' : 'identification')
-    }));
+    const formattedQuestions = finalQuestions.map((q: any, i: number) => {
+      const question = String(q.question || q.raw_text || q.statement || '').trim();
+      const options = (Array.isArray(q.options) ? q.options : (Array.isArray(q.choices) ? q.choices : []))
+        .map((option: unknown) => String(option));
+      const answer = String(q.answer ?? '').trim();
+      const type = String(q.type || (options.length > 0 ? 'multiple_choice' : 'identification'));
+      if (!question || !answer || !ALLOWED_QUESTION_TYPES.has(type)) {
+        throw new Error(`Finalized question ${i + 1} is missing valid text, answer, or type`);
+      }
+      return {
+        ...q,
+        question,
+        options,
+        answer,
+        type
+      };
+    });
 
     const uniqueTitle = getUniqueQuizTitle(topic || 'Extracted Worksheet Quiz');
     const newQuizId = `quiz_${Date.now()}`;
@@ -1056,13 +1364,16 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
 
     quizzes.set(newQuizId, newQuiz);
     savePersistentData();
-    syncDocToFirestore('quizzes', newQuizId, newQuiz);
+    await syncDocToFirestore('quizzes', newQuizId, newQuiz);
 
-    sessionProgress.set(session_id, { message: '🚀 Quiz created! Redirecting...', percentage: 100, status: 'completed', quiz_id: newQuizId });
+    setWorksheetProgress(session_id, { message: '🚀 Quiz created! Redirecting...', percentage: 100, status: 'completed', quiz_id: newQuizId });
     res.json({ success: true, quiz_id: newQuizId });
   } catch (err: any) {
-    sessionProgress.set(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
-    res.status(500).json({ success: false, error: err.message });
+    setWorksheetProgress(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
+    if (respondWorksheetAiLimit(res, err)) return;
+    res.status(502).json({ success: false, error: `Quiz finalization failed: ${err.message}` });
+  } finally {
+    aiLease?.release();
   }
 });
 
@@ -1074,9 +1385,10 @@ router.get('/worksheet_upload', tokenRequired, (req, res) => {
   res.render('worksheet_upload');
 });
 
-router.get('/worksheet/:quiz_id', tokenRequired, (req, res) => {
+router.get('/worksheet/:quiz_id', tokenRequired, (req: AuthRequest, res) => {
   const quiz = quizzes.get(req.params.quiz_id);
   if (quiz) {
+    if (!canManageQuiz(req.user, quiz)) return res.status(403).send('You do not have access to this quiz');
     return res.render('worksheet', { quiz });
   }
   res.status(404).send('Worksheet not found');

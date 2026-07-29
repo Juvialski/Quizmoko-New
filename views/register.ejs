@@ -170,15 +170,7 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
         import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
-        // Your Firebase config
-        const firebaseConfig = {
-            apiKey: 'AIzaSyD7Wy5IR__uA_IQot9YdPvVgEu-aB81Juc',
-            authDomain: 'quizmoko-51920.firebaseapp.com',
-            projectId: 'quizmoko-51920',
-            storageBucket: 'quizmoko-51920.firebasestorage.app',
-            messagingSenderId: '399313723605',
-            appId: '1:399313723605:web:85769dd5aa7edebc13025c'
-        };
+        const firebaseConfig = <%- firebase_config_json %>;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -206,9 +198,14 @@
                 // 2. Initial user setup (Optional: mark as teacher if needed, or leave for dashboard default)
                 // await fetch('/api/set_role', ...);
 
-                // 3. Keep user logged in immediately (default 30 days for new accounts)
+                // 3. Exchange the short-lived Firebase token for an HTTP-only app session.
                 const token = await user.getIdToken();
-                document.cookie = `token=${token}; path=/; max-age=2592000; samesite=strict`;
+                const sessionRes = await fetch('/api/login_session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token, remember_me: true })
+                });
+                if (!sessionRes.ok) throw new Error('Failed to establish session');
                 
                 // 4. Redirect to dashboard
                 window.location.href = '/';
@@ -243,16 +240,21 @@
 
                 googleBtn.textContent = 'ESTABLISHING SESSION...';
 
-                // Set Session
+                // Set an HTTP-only server session.
                 const token = await user.getIdToken();
-                document.cookie = `token=${token}; path=/; max-age=2592000; samesite=strict`;
+                const sessionRes = await fetch('/api/login_session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token, remember_me: true })
+                });
+                if (!sessionRes.ok) throw new Error('Failed to establish session');
 
                 window.location.href = '/';
             } catch (error) {
                 errorDiv.textContent = error.message;
                 googleBtn.disabled = false;
                 googleBtn.innerHTML = `
-                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width='18' height='18' alt='Google">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18" alt="Google">
                     GOOGLE ACCOUNT
                 `;
             }

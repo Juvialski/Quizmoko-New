@@ -429,6 +429,29 @@
 
     <script>
         let GLOBAL_DAILY_STATS = {};
+        let serverAiConfiguredPromise = null;
+
+        function getStoredGeminiKeys() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+                return Array.isArray(parsed)
+                    ? parsed.filter(key => typeof key === 'string' && key.trim()).map(key => key.trim())
+                    : [];
+            } catch (e) {
+                localStorage.removeItem('gemini_api_keys');
+                return [];
+            }
+        }
+
+        async function hasServerGeminiKey() {
+            if (!serverAiConfiguredPromise) {
+                serverAiConfiguredPromise = fetch('/api/ai/config')
+                    .then(response => response.ok ? response.json() : null)
+                    .then(data => !!(data && data.gemini_configured))
+                    .catch(() => false);
+            }
+            return serverAiConfiguredPromise;
+        }
 
         async function getHash(text) {
             if (!text) return 'default';
@@ -452,7 +475,8 @@
         }
 
         async function getUsableKey(model, needed = 1) {
-            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+            if (String(model || '').startsWith('ollama:')) return '';
+            const keys = getStoredGeminiKeys();
             if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
 
             const today = new Date().toISOString().split('T')[0];
@@ -472,7 +496,8 @@
                 const used = modelStats[kid] || 0;
                 if (used + needed <= baseLimit) return key;
             }
-            return keys[0] || null;
+            if (keys.length > 0) return keys[0];
+            return await hasServerGeminiKey() ? '' : null;
         }
 
         async function fetchWithTimeout(resource, options = {}) {
@@ -480,12 +505,48 @@
 
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
-            const response = await fetch(resource, {
-                ...options,
-                signal: controller.signal
-            });
-            clearTimeout(id);
-            return response;
+            try {
+                return await fetch(resource, {
+                    ...options,
+                    signal: controller.signal
+                });
+            } finally {
+                clearTimeout(id);
+            }
+        }
+
+        function normalizeQuizListPayload(payload) {
+            if (Array.isArray(payload)) return payload;
+            if (payload && typeof payload === 'object' && Array.isArray(payload.quizzes)) {
+                return payload.quizzes;
+            }
+            throw new Error('The server returned an invalid quiz list.');
+        }
+
+        function normalizeQuizDetailsPayload(payload) {
+            const quiz = payload && typeof payload === 'object' && payload.quiz
+                ? payload.quiz
+                : payload;
+            if (quiz && typeof quiz === 'object' && Array.isArray(quiz.questions)) {
+                return quiz;
+            }
+            throw new Error('The server returned invalid quiz details.');
+        }
+
+        async function readJsonResponse(response) {
+            let payload;
+            try {
+                payload = await response.json();
+            } catch (error) {
+                throw new Error(`The server returned an unreadable response (HTTP ${response.status}).`);
+            }
+            if (!response.ok || (payload && payload.success === false)) {
+                throw new Error(
+                    (payload && typeof payload.error === 'string' && payload.error)
+                    || `Request failed (HTTP ${response.status}).`
+                );
+            }
+            return payload;
         }
 
         window.addEventListener('DOMContentLoaded', fetchUsageStats);
@@ -499,9 +560,11 @@
 
         document.getElementById('share-link').value = window.location.origin + '/quiz/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>';
         const quizData = <%- JSON.stringify(quiz).replace(/</g, "\\u003c") %>;
+        // Never send a legacy persisted API key back to the server or Firebase.
+        delete quizData['api_key'];
 
         // Clean up legacy AI outputs where newline was literal \n
-        if (quizData && quizData.questions) {
+        if (quizData && Array.isArray(quizData.questions)) {
             quizData.questions.forEach(q => {
                 if (typeof q.answer === 'string') {
                     q.answer = q.answer.replace(/\\n/g, '\n');
@@ -513,6 +576,8 @@
                     q.options = q.options.map(opt => typeof opt === 'string' ? opt.replace(/\\n/g, '\n') : opt);
                 }
             });
+        } else {
+            quizData.questions = [];
         }
         document.getElementById('quiz-title').value = quizData.title;
         document.getElementById('quiz-time').value = quizData.time_limit;
@@ -535,8 +600,8 @@
                 item.style.fontSize = '13px';
                 item.innerHTML = `
                     <div style="font-weight:700; color:var(--primary);">[Source Q${i + 1}]</div>
-                    <div>${q.raw_text}</div>
-                    ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;"><i data-lucide="image" class="icon-sm"></i>️ ${q.image_description}</div>` : ''}
+                    <div>${formatText(q && q.raw_text)}</div>
+                    ${q && q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;"><i data-lucide="image" class="icon-sm"></i>️ ${formatText(q.image_description)}</div>` : ''}
                 `;
                 sourceContent.appendChild(item);
             });
@@ -601,8 +666,76 @@
             return cleaned;
         }
 
+        function isSafeDisplayImageSource(value) {
+            if (typeof value !== 'string' || value.length > 12000000) return false;
+            return /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(value)
+                || /^https:\/\/kroki\.io\/tikz\/svg\/[a-z0-9_-]+$/i.test(value);
+        }
+
+        function sanitizeDisplayHtml(value) {
+            const template = document.createElement('template');
+            template.innerHTML = String(value ?? '');
+            const allowedTags = new Set([
+                'BR', 'UL', 'OL', 'LI', 'STRONG', 'B', 'EM', 'I', 'SPAN',
+                'DIV', 'P', 'SUB', 'SUP', 'CODE', 'PRE', 'IMG'
+            ]);
+            const allowedClasses = new Set([
+                'resizable-image-wrapper', 'image-content-box', 'workings-img'
+            ]);
+
+            function cleanNode(node) {
+                if (node.nodeType === Node.COMMENT_NODE) {
+                    node.remove();
+                    return;
+                }
+                if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+                const element = node;
+                if (!allowedTags.has(element.tagName)) {
+                    element.replaceWith(document.createTextNode(element.textContent || ''));
+                    return;
+                }
+
+                const originalClass = element.getAttribute('class') || '';
+                const originalWidth = element.style && element.style.width ? element.style.width : '';
+                const originalSrc = element.getAttribute('src') || '';
+                const originalAlt = element.getAttribute('alt') || '';
+                for (const attribute of [...element.attributes]) {
+                    element.removeAttribute(attribute.name);
+                }
+
+                const safeClasses = originalClass
+                    .split(/\s+/)
+                    .filter(className => allowedClasses.has(className));
+                if (safeClasses.length) element.setAttribute('class', safeClasses.join(' '));
+                if (
+                    element.tagName === 'DIV'
+                    && safeClasses.includes('image-content-box')
+                    && /^(?:[1-9]\d?|1\d\d|200)%$/.test(originalWidth)
+                ) {
+                    element.style.width = originalWidth;
+                }
+
+                if (element.tagName === 'IMG') {
+                    if (!isSafeDisplayImageSource(originalSrc)) {
+                        element.remove();
+                        return;
+                    }
+                    element.setAttribute('src', originalSrc);
+                    element.setAttribute('alt', originalAlt.slice(0, 200));
+                    element.setAttribute('loading', 'lazy');
+                    element.setAttribute('decoding', 'async');
+                }
+
+                for (const child of [...element.childNodes]) cleanNode(child);
+            }
+
+            for (const child of [...template.content.childNodes]) cleanNode(child);
+            return template.innerHTML;
+        }
+
         function formatText(text) {
-            if (!text) return "";
+            if (text === null || text === undefined) return "";
 
             // 1. Unpack JSON Objects/Lists (if any) - Handles [object Object] cases
             let data = text;
@@ -615,22 +748,24 @@
 
             if (typeof data === 'object' && data !== null) {
                 if (Array.isArray(data)) {
-                    return '<ul style="margin: 5px 0; padding-left: 20px;">' +
+                    return sanitizeDisplayHtml('<ul>' +
                            data.map(v => `<li>${formatText(v)}</li>`).join('') +
-                           '</ul>';
+                           '</ul>');
                 }
-                let html = '<ul style="margin: 5px 0; padding-left: 20px;">';
+                let html = '<ul>';
                 for (const [k, v] of Object.entries(data)) {
-                    html += `<li><strong>${k.charAt(0).toUpperCase() + k.slice(1)}:</strong> ${formatText(v)}</li>`;
+                    const label = String(k);
+                    const displayLabel = label.charAt(0).toUpperCase() + label.slice(1);
+                    html += `<li><strong>${sanitizeDisplayHtml(displayLabel)}:</strong> ${formatText(v)}</li>`;
                 }
-                return html + '</ul>';
+                return sanitizeDisplayHtml(html + '</ul>');
             }
 
             // 2. Standard Text Formatting (Line breaks and Bullets)
             let str = String(data).replace(/\\n/g, '\n');
             str = cleanNewlinesInMath(str);
             const parts = str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>\s*<\/div>|<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi);
-            return parts.map(part => {
+            const formatted = parts.map(part => {
                 if (part.startsWith('<div class="resizable-image-wrapper"')) return part;
 
                 const lines = part.split(/\r?\n/);
@@ -643,6 +778,7 @@
                     return line;
                 }).join('<br>');
             }).join('');
+            return sanitizeDisplayHtml(formatted);
         }
 
         function updatePreview(qIndex, previewBox) {
@@ -689,7 +825,7 @@
         async function addAIQuestion() {
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);
-            if (!apiKey) { alert("No API keys with remaining quota found today."); return; }
+            if (apiKey === null) { alert("No browser or server Gemini API key is configured."); return; }
 
             const subTopic = prompt("Enter specific concept OR Special Instructions:", quizData.title);
             if (subTopic === null) return; 
@@ -701,45 +837,44 @@
             btn.style.color = "var(--warning)";
             btn.style.borderColor = "var(--warning)";
             
-            let subjectRules = quizData.subject === 'Math' || quizData.subject === 'Science' 
-                ? `2. You MUST use LaTeX for ALL numbers/formulas. Enclose tightly with $ (e.g., $5x + 3$).\n3. Use \\dfrac for fractions.\n4. VISUAL STYLE: If fractions are parenthesized, use \\left( and \\right) (e.g., \\left( -\\dfrac{4}{9} \\right) ).\n5. Write options on following lines, starting A), B), C), D). Options must use LaTeX.`
-                : `2. DO NOT use LaTeX $ tags for normal text.\n3. Keep text plain.\n4. VISUAL STYLE: If math expressions are parenthesized, use \\left( and \\right).\n5. Write options starting A), B), C), D).`;
-
-            let promptText = `Create EXACTLY ONE multiple-choice question.\nFORMATTING RULES:\n1. Question on first line. ${subjectRules}\n4. NEVER bold or italicize.\n6. Last line must start exactly with "Answer: " followed by letter.\n7. Output ONLY raw question.\n8. Include [TIKZ] diagram if relevant. Pure basic TikZ only.`;
-            if (subTopic.trim() !== '') promptText += `\n\nINSTRUCTIONS:\n${subTopic}`;
-
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                const response = await fetchWithTimeout('/api/generate_question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic: quizData.title,
+                        subject: quizData.subject,
+                        question_style: quizData.question_style || 'Mixed',
+                        target_type: 'multiple_choice',
+                        instructions: subTopic,
+                        api_key: apiKey,
+                        ollama_url: localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434',
+                        model_name: model
+                    }),
+                    timeout: 120000
                 });
-                
-                if (!response.ok) throw new Error("API call failed.");
                 const data = await response.json();
+                if (!response.ok || !data.success || !data.question) {
+                    throw new Error(data.error || `API call failed (HTTP ${response.status})`);
+                }
 
                 // Track usage (optimistic local update)
-                const kid = await getHash(apiKey);
-                const today = new Date().toISOString().split('T')[0];
-                if (!GLOBAL_DAILY_STATS[today]) GLOBAL_DAILY_STATS[today] = {};
-                if (!GLOBAL_DAILY_STATS[today][model]) GLOBAL_DAILY_STATS[today][model] = {};
-                GLOBAL_DAILY_STATS[today][model][kid] = (GLOBAL_DAILY_STATS[today][model][kid] || 0) + 1;
-
-                let rawText = processTikzToImageJS(data.candidates[0].content.parts[0].text);
-
-                const lines = rawText.replace(/\r/g, '').split('\n').filter(l => l.trim());
-                let currentQ = "", options = [], answerVal = "";
-                
-                for (let line of lines) {
-                    if (line.toLowerCase().startsWith('answer:')) { answerVal = line.split(':')[1].trim(); }
-                    else if (/^[A-Z][\)\.]\s?/i.test(line) && options.length < 4) { options.push(line); }
-                    else { currentQ += (currentQ ? "\n" : "") + line; }
+                if (apiKey) {
+                    const kid = await getHash(apiKey);
+                    const today = new Date().toISOString().split('T')[0];
+                    if (!GLOBAL_DAILY_STATS[today]) GLOBAL_DAILY_STATS[today] = {};
+                    if (!GLOBAL_DAILY_STATS[today][model]) GLOBAL_DAILY_STATS[today][model] = {};
+                    GLOBAL_DAILY_STATS[today][model][kid] = (GLOBAL_DAILY_STATS[today][model][kid] || 0) + 1;
                 }
-                
-                if (currentQ && options.length > 0) {
-                    quizData.questions.push({ question: currentQ.trim(), options: options, answer: answerVal });
-                    renderQuestions();
-                    setTimeout(() => { window.scrollTo(0, document.body.scrollHeight); }, 100);
-                } else { alert("Generated invalid format. Try again."); }
-            } catch (err) { alert("Failed. Check API key."); }
+
+                data.question.question = processTikzToImageJS(data.question.question);
+                quizData.questions.push(data.question);
+                renderQuestions();
+                markQuestionChanged(quizData.questions.length - 1);
+                setTimeout(() => { window.scrollTo(0, document.body.scrollHeight); }, 100);
+            } catch (err) {
+                alert("Question generation failed: " + err.message);
+            }
             
             btn.innerHTML = originalText;
             btn.style.color = "var(--on-dark)";
@@ -751,14 +886,23 @@
         function triggerImageUpload(index) {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = 'image/*';
+            input.accept = 'image/png,image/jpeg,image/gif,image/webp';
             input.onchange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
+                const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+                if (!allowedTypes.has(file.type) || file.size > 8000000) {
+                    alert('Choose a PNG, JPEG, GIF, or WebP image no larger than 8 MB.');
+                    return;
+                }
 
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const base64 = event.target.result;
+                    if (!isSafeDisplayImageSource(base64)) {
+                        alert('The selected image could not be safely loaded.');
+                        return;
+                    }
                     const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${base64}" alt="Manual Upload"></div></div>`;
 
                     // Add to the end of the question text
@@ -767,6 +911,7 @@
                     quizData.questions[index].question = text + "\n" + imgHtml;
 
                     renderQuestions();
+                    markQuestionChanged(index);
                 };
                 reader.readAsDataURL(file);
             };
@@ -778,6 +923,7 @@
             const { text } = extractImageAndText(currentText);
             quizData.questions[index].question = text; // Just keep the text part
             renderQuestions();
+            markQuestionChanged(index);
         }
 
         // --- RECROP IMAGE LOGIC ---
@@ -789,6 +935,9 @@
             const q = quizData.questions[index];
             const imgMatch = q.question.match(/src=["']([^"']+)["']/i);
             if (!imgMatch) return alert("No image found to recrop.");
+            if (!isSafeDisplayImageSource(imgMatch[1])) {
+                return alert('This image source is not safe to recrop.');
+            }
 
             const modal = document.getElementById('cropper-modal');
             const image = document.getElementById('cropper-image');
@@ -887,7 +1036,7 @@
         async function reformatSingleAnswer(index, btn) {
             const model = 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);
-            if (!apiKey) return alert("No API keys with remaining quota found today.");
+            if (apiKey === null) return alert("No browser or server Gemini API key is configured.");
 
             const q = quizData.questions[index];
             const currentAns = q.answer;
@@ -950,7 +1099,7 @@
         async function regenerateQuestion(qIndex) {
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);
-            if (!apiKey) { alert("No API keys with remaining quota found today."); return; }
+            if (apiKey === null) { alert("No browser or server Gemini API key is configured."); return; }
 
             const q = quizData.questions[qIndex];
             const currentType = q.type || 'multiple_choice';
@@ -964,76 +1113,57 @@
             btn.innerHTML = "GENERATING...";
             btn.disabled = true;
             
-            let subjectRules = quizData.subject === 'Math' || quizData.subject === 'Science' 
-                ? `2. You MUST use LaTeX for ALL numbers. Enclose tightly with $ (e.g., $5x + 3$).\n3. Use \\dfrac.\n4. VISUAL STYLE: If fractions are parenthesized, use \\left( and \\right).\n5. Write options starting A), B), C), D). Options must use LaTeX.\n6. If the question ends with math, include the question mark inside the $ tags (e.g., $x?$).`
-                : `2. DO NOT use LaTeX $ for text.\n3. Plain text.\n4. VISUAL STYLE: If math expressions are parenthesized, use \\left( and \\right).\n5. Write options starting A), B), C), D).\n6. If a question ends with math, include the question mark inside the $ tags.`;
-
-            let typeInstructions = "";
-            if (currentType === 'identification') {
-                if (quizData.subject === 'Math') {
-                    typeInstructions = "Generate an IDENTIFICATION (Short Answer) question with NO options. The final answer MUST be a single integer or number. If the initial answer is a fraction $n/d$, instruct the student to find $n+d$ as the final answer. The last line MUST be 'Answer: [number]'.";
-                } else if (quizData.subject === 'Science') {
-                    typeInstructions = "Generate an IDENTIFICATION (Short Answer) question with NO options. If it is definition-based, the answer MUST be a word. If it is a calculation resulting in a fraction $n/d$, instruct the student to find $n+d$. The last line MUST be 'Answer: [word/number]'.";
-                } else {
-                    typeInstructions = "Generate an IDENTIFICATION (Short Answer) question with NO options. The final answer should be a correct word or phrase. The last line MUST be 'Answer: [word]'.";
-                }
-            } else if (currentType === 'true_false') {
-                typeInstructions = "Generate a TRUE/FALSE question. USE THIS FORMAT:\n$$ \\text{True or False?} $$\n[Statement here]\nA) True\nB) False\n\nThe last line MUST be 'Answer: A' or 'Answer: B'.";
-            } else {
-                typeInstructions = "Generate a MULTIPLE CHOICE question with 4 options (A, B, C, D). The last line MUST be 'Answer: [Letter]'.";
-            }
-
-            let promptText = `Regenerate a SINGLE question about ${quizData.title}.\n\nTYPE: ${typeInstructions}\n\nFORMATTING RULES:\n1. Question on first line. ${subjectRules}\n4. NEVER bold/italicize.\n7. Output raw block.\n8. Include new [TIKZ] diagram if relevant. Pure basic TikZ only.`;
-
-            // IF this question came from a worksheet, include the original source for context
+            let regenerationInstructions = extraInst.trim();
             if (q.source_index !== undefined && quizData.worksheet_source && quizData.worksheet_source.extracted_questions) {
                 const src = quizData.worksheet_source.extracted_questions[q.source_index];
-                promptText += `\n\nORIGINAL SOURCE CONTEXT (STAY FAITHFUL TO THIS):\nText: ${src.raw_text}\n${src.image_description ? `Image Description: ${src.image_description}` : ''}`;
+                const safeSourceText = String(src.raw_text || '')
+                    .replace(/data:[^;,"']+;base64,[^"']+/gi, '[IMAGE_PROVIDED]')
+                    .slice(0, 1500);
+                regenerationInstructions += `${regenerationInstructions ? '\n\n' : ''}Stay faithful to this original source context:\n${safeSourceText}`;
             }
 
-            if (extraInst.trim() !== '') promptText += `\n\nTEACHER INSTRUCTIONS:\n${extraInst}`;
-
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+                const response = await fetchWithTimeout('/api/generate_question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic: quizData.title,
+                        subject: quizData.subject,
+                        question_style: quizData.question_style || 'Mixed',
+                        target_type: currentType,
+                        instructions: regenerationInstructions,
+                        existing_question: q,
+                        api_key: apiKey,
+                        ollama_url: localStorage.getItem('ollama_url') || 'http://127.0.0.1:11434',
+                        model_name: model
+                    }),
+                    timeout: 120000
                 });
-                
-                if (!response.ok) throw new Error("API call failed.");
                 const data = await response.json();
+                if (!response.ok || !data.success || !data.question) {
+                    throw new Error(data.error || `API call failed (HTTP ${response.status})`);
+                }
 
                 // Track usage (optimistic local update)
-                const kid = await getHash(apiKey);
-                const today = new Date().toISOString().split('T')[0];
-                if (!GLOBAL_DAILY_STATS[today]) GLOBAL_DAILY_STATS[today] = {};
-                if (!GLOBAL_DAILY_STATS[today][model]) GLOBAL_DAILY_STATS[today][model] = {};
-                GLOBAL_DAILY_STATS[today][model][kid] = (GLOBAL_DAILY_STATS[today][model][kid] || 0) + 1;
-
-                let rawText = processTikzToImageJS(data.candidates[0].content.parts[0].text);
-
-                // Re-use our robust parsing logic
-                const lines = rawText.replace(/\r/g, '').split('\n').filter(l => l.trim());
-                let currentQ = "", options = [], answerVal = "";
-                
-                for (let line of lines) {
-                    if (line.toLowerCase().startsWith('answer:')) {
-                        answerVal = line.split(':')[1].trim();
-                    }
-                    else if (/^[A-Z][\)\.]\s?/i.test(line)) {
-                        options.push(line);
-                    }
-                    else {
-                        currentQ += (currentQ ? "\n" : "") + line;
-                    }
+                if (apiKey) {
+                    const kid = await getHash(apiKey);
+                    const today = new Date().toISOString().split('T')[0];
+                    if (!GLOBAL_DAILY_STATS[today]) GLOBAL_DAILY_STATS[today] = {};
+                    if (!GLOBAL_DAILY_STATS[today][model]) GLOBAL_DAILY_STATS[today][model] = {};
+                    GLOBAL_DAILY_STATS[today][model][kid] = (GLOBAL_DAILY_STATS[today][model][kid] || 0) + 1;
                 }
-                
-                if (currentQ) {
-                    quizData.questions[qIndex].question = currentQ.trim();
-                    quizData.questions[qIndex].options = options;
-                    quizData.questions[qIndex].answer = answerVal;
-                    // Keep the type the same unless the AI completely changed it (unlikely with strict prompt)
-                    renderQuestions();
-                } else { alert("Invalid format. Click regenerate again."); }
-            } catch (err) { alert("Failed. Check API key."); }
+
+                quizData.questions[qIndex] = {
+                    ...q,
+                    ...data.question,
+                    question: processTikzToImageJS(data.question.question),
+                    source_index: q.source_index
+                };
+                renderQuestions();
+                markQuestionChanged(qIndex);
+            } catch (err) {
+                alert("Question regeneration failed: " + err.message);
+            }
             
             if(document.getElementById(`regen-btn-${qIndex}`)) {
                 document.getElementById(`regen-btn-${qIndex}`).innerHTML = originalText;
@@ -1046,16 +1176,32 @@
             if(quizData.questions.length === 0) { container.innerHTML = '<p style="text-align:center;">No questions left.</p>'; return; }
             
             quizData.questions.forEach((q, qIndex) => {
+                if (!q || typeof q !== 'object') {
+                    q = { question: String(q || ''), options: [], answer: '', type: 'identification' };
+                    quizData.questions[qIndex] = q;
+                }
+                q.question = String(q.question || q.raw_text || '');
+                q.options = Array.isArray(q.options) ? q.options.map(option => String(option ?? '')) : [];
+                if (!q.type) {
+                    const trueFalseOptions = q.options.map(option => option.replace(/^[A-B][).]\s*/i, '').trim().toLowerCase());
+                    q.type = trueFalseOptions.length === 2 && trueFalseOptions.includes('true') && trueFalseOptions.includes('false')
+                        ? 'true_false'
+                        : (q.options.length > 0 ? 'multiple_choice' : 'identification');
+                }
                 const block = document.createElement('div');
                 block.className = 'question-block';
-                
+                const numericSourceIndex = Number(q.source_index);
+                const sourceQuestionLabel = Number.isInteger(numericSourceIndex) && numericSourceIndex >= 0
+                    ? `<span style="font-size: 11px; color: var(--primary); font-weight: 700;">(ORIGINAL: SOURCE Q${numericSourceIndex + 1})</span>`
+                    : '';
+                 
                 const header = document.createElement('div');
                 header.className = 'header-flex';
                 header.innerHTML = `
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <div style="display: flex; align-items: baseline; gap: 12px;">
                             <strong style="font-size: 20px; color: var(--on-dark); font-weight: 700; text-transform: uppercase;">QUESTION ${qIndex + 1}</strong>
-                            ${q.source_index !== undefined ? `<span style="font-size: 11px; color: var(--primary); font-weight: 700;">(ORIGINAL: SOURCE Q${q.source_index + 1})</span>` : ''}
+                            ${sourceQuestionLabel}
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
                             <label style="margin: 0; font-size: 11px; color: var(--on-dark); font-weight: 700;">TYPE:</label>
@@ -1243,6 +1389,7 @@
 
         function addOption(qIndex) {
             const q = quizData.questions[qIndex];
+            if (!Array.isArray(q.options)) q.options = [];
             const letter = String.fromCharCode(65 + q.options.length);
             q.options.push(`${letter}) New Choice`);
             renderQuestions();
@@ -1304,7 +1451,7 @@
         }
 
         function getCorrectAnswerText(q) {
-            const letter = q.answer.trim().toUpperCase();
+            const letter = String(q.answer || '').trim().toUpperCase();
 
             // Try to find by starting letter first
             let option = q.options.find(opt => opt.toUpperCase().startsWith(letter + ')') || opt.toUpperCase().startsWith(letter + '.'));
@@ -1330,7 +1477,11 @@
 
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);
-            if (!apiKey) { alert('No API keys with remaining quota found today.'); return; }
+            if (apiKey === null) {
+                alert('No browser or server Gemini API key is configured.');
+                renderQuestions();
+                return;
+            }
 
             const btn = document.getElementById(`regen-btn-${qIndex}`);
             const originalText = btn ? btn.innerHTML : '<i data-lucide="refresh-cw" class="icon-sm"></i>';
@@ -1374,9 +1525,10 @@
                         source_index: q.source_index // Preserve source index
                     };
 
-                    // SAVE ENTIRE QUIZ AND RELOAD TO ENSURE UI IS 100% CLEAN
-                    saveQuiz(false); // Pass false to prevent the standard dashboard redirect
-                    setTimeout(() => window.location.reload(), 500);
+                    // Save before reloading so a slow Render/Firebase request
+                    // cannot race the navigation and lose the AI result.
+                    const saved = await saveQuiz(false);
+                    if (saved) window.location.reload();
                 } else {
                     alert('Reprocessing failed: ' + data.error);
                     if (btn) {
@@ -1397,7 +1549,7 @@
             const originalText = btn.innerText;
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);
-            if (!apiKey) return alert('No API keys with remaining quota found today.');
+            if (apiKey === null) return alert('No browser or server Gemini API key is configured.');
 
             btn.innerText = '⏳ Solving...';
             btn.disabled = true;
@@ -1426,8 +1578,8 @@
                 const data = await res.json();
                 if (data.success) {
                     quizData.questions[index] = data.question;
-                    saveQuiz(false); // Silent save
-                    setTimeout(() => window.location.reload(), 300); // Reload to clean UI
+                    const saved = await saveQuiz(false); // Silent save
+                    if (saved) window.location.reload();
                 } else {
                     alert('Re-solve failed: ' + data.error);
                 }
@@ -1443,7 +1595,7 @@
             const originalText = btn.innerText;
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);
-            if (!apiKey) return alert('No API keys with remaining quota found today.');
+            if (apiKey === null) return alert('No browser or server Gemini API key is configured.');
 
             btn.innerText = '⏳...';
             btn.disabled = true;
@@ -1486,7 +1638,7 @@
 
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 2);
-            if (!apiKey) { alert('No API keys with remaining quota found today.'); return; }
+            if (apiKey === null) { alert('No browser or server Gemini API key is configured.'); return; }
 
             if (!confirm('AI will now scan and fix all math formatting and fractions. This may take a few seconds. Continue?')) return;
 
@@ -1568,7 +1720,7 @@
                     sortedNums.forEach(num => {
                         const item = document.createElement('div');
                         item.className = 'golden-sidebar-item';
-                        item.innerHTML = `<b>Q${num}</b> ${quizData.golden_reference[num]}`;
+                        item.innerHTML = `<b>Q${sanitizeDisplayHtml(num)}</b> ${formatText(quizData.golden_reference[num])}`;
                         content.appendChild(item);
                     });
                 }
@@ -1591,8 +1743,8 @@
                         item.style.fontSize = '12px';
                         item.innerHTML = `
                             <div style="font-weight:700; color:var(--primary); margin-bottom:4px;">[Source Q${i + 1}]</div>
-                            <div>${q.raw_text}</div>
-                            ${q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;"><i data-lucide="image" class="icon-sm"></i>️ ${q.image_description}</div>` : ''}
+                            <div>${formatText(q && q.raw_text)}</div>
+                            ${q && q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;"><i data-lucide="image" class="icon-sm"></i>️ ${formatText(q.image_description)}</div>` : ''}
                         `;
                         content.appendChild(item);
                     });
@@ -1611,7 +1763,7 @@
             const originalText = btn.innerText;
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 2);
-            if (!apiKey) return alert('No API keys found.');
+            if (apiKey === null) return alert('No browser or server Gemini API key is configured.');
 
             if (!confirm('AI will now perform a deep scan to verify all answers match the original document. Continue?')) return;
 
@@ -1661,35 +1813,38 @@
 
             try {
                 const res = await fetch('/api/list_quizzes');
-                const data = await res.json();
-                if (data.success) {
-                    listContainer.innerHTML = '';
-                    if (data.quizzes.length <= 1) {
-                        listContainer.innerHTML = '<p style="text-align: center; color: var(--body);">No other quizzes found to transfer to.</p>';
-                        return;
-                    }
-                    data.quizzes.forEach(quiz => {
-                        if (quiz.id === quizData.id) return; // Don't show current quiz
-                        const item = document.createElement('div');
-                        item.className = 'quiz-list-item';
-                        item.innerHTML = `
-                            <div>
-                                <div style="font-weight: 700; color: var(--on-dark);">${quiz.title}</div>
-                                <div style="font-size: 11px; color: var(--body);">${quiz.subject}</div>
-                            </div>
-                        `;
-                        item.onclick = () => {
-                            document.querySelectorAll('.quiz-list-item').forEach(i => i.classList.remove('selected'));
-                            item.classList.add('selected');
-                            transferTargetQuizId = quiz.id;
-                            document.getElementById('confirm-transfer-btn').disabled = false;
-                        };
-                        listContainer.appendChild(item);
-                    });
-                } else {
-                    listContainer.innerHTML = '<p style="text-align: center; color: var(--m-red);">Failed to load quizzes.</p>';
+                const quizzes = normalizeQuizListPayload(await readJsonResponse(res))
+                    .filter(quiz => quiz && typeof quiz === 'object' && quiz.id !== quizData.id);
+                listContainer.innerHTML = '';
+                if (quizzes.length === 0) {
+                    listContainer.innerHTML = '<p style="text-align: center; color: var(--body);">No other quizzes found to transfer to.</p>';
+                    return;
                 }
+
+                quizzes.forEach(quiz => {
+                    const item = document.createElement('div');
+                    item.className = 'quiz-list-item';
+                    const details = document.createElement('div');
+                    const title = document.createElement('div');
+                    title.style.fontWeight = '700';
+                    title.style.color = 'var(--on-dark)';
+                    title.textContent = String(quiz.title || 'Untitled Quiz');
+                    const subject = document.createElement('div');
+                    subject.style.fontSize = '11px';
+                    subject.style.color = 'var(--body)';
+                    subject.textContent = String(quiz.subject || '');
+                    details.append(title, subject);
+                    item.appendChild(details);
+                    item.onclick = () => {
+                        document.querySelectorAll('.quiz-list-item').forEach(i => i.classList.remove('selected'));
+                        item.classList.add('selected');
+                        transferTargetQuizId = String(quiz.id);
+                        document.getElementById('confirm-transfer-btn').disabled = false;
+                    };
+                    listContainer.appendChild(item);
+                });
             } catch (e) {
+                console.error('Failed to load transfer quizzes:', e);
                 listContainer.innerHTML = '<p style="text-align: center; color: var(--m-red);">Error loading quizzes.</p>';
             }
         }
@@ -1729,8 +1884,8 @@
                         question_index: transferSourceIndex
                     })
                 });
-                const data = await res.json();
-                if (data.success) {
+                const data = await readJsonResponse(res);
+                if (data.success !== false) {
                     alert('Question copied successfully!');
                     closeTransferModal();
                 } else {
@@ -1758,25 +1913,35 @@
 
             try {
                 const res = await fetch('/api/list_quizzes');
-                const data = await res.json();
-                if (data.success) {
-                    listContainer.innerHTML = '';
-                    data.quizzes.forEach(quiz => {
-                        if (quiz.id === quizData.id) return;
-                        const item = document.createElement('div');
-                        item.className = 'quiz-list-item';
-                        item.innerHTML = `
-                            <div>
-                                <div style="font-weight: 700; color: var(--on-dark);">${quiz.title}</div>
-                                <div style="font-size: 11px; color: var(--body);">${quiz.subject}</div>
-                            </div>
-                            <span style="font-size: 18px; color: var(--primary);"><i data-lucide="arrow-right" class="icon-sm"></i>️</span>
-                        `;
-                        item.onclick = () => loadQuestionsForImport(quiz.id, quiz.title);
-                        listContainer.appendChild(item);
-                    });
+                const quizzes = normalizeQuizListPayload(await readJsonResponse(res))
+                    .filter(quiz => quiz && typeof quiz === 'object' && quiz.id !== quizData.id);
+                listContainer.innerHTML = '';
+                quizzes.forEach(quiz => {
+                    const item = document.createElement('div');
+                    item.className = 'quiz-list-item';
+                    const details = document.createElement('div');
+                    const title = document.createElement('div');
+                    title.style.fontWeight = '700';
+                    title.style.color = 'var(--on-dark)';
+                    title.textContent = String(quiz.title || 'Untitled Quiz');
+                    const subject = document.createElement('div');
+                    subject.style.fontSize = '11px';
+                    subject.style.color = 'var(--body)';
+                    subject.textContent = String(quiz.subject || '');
+                    details.append(title, subject);
+                    const arrow = document.createElement('span');
+                    arrow.style.fontSize = '18px';
+                    arrow.style.color = 'var(--primary)';
+                    arrow.textContent = '→';
+                    item.append(details, arrow);
+                    item.onclick = () => loadQuestionsForImport(String(quiz.id), String(quiz.title || 'Untitled Quiz'));
+                    listContainer.appendChild(item);
+                });
+                if (quizzes.length === 0) {
+                    listContainer.innerHTML = '<p style="text-align: center; color: var(--body);">No other quizzes found to import from.</p>';
                 }
             } catch (e) {
+                console.error('Failed to load import quizzes:', e);
                 listContainer.innerHTML = '<p style="text-align: center; color: var(--m-red);">Error loading quizzes.</p>';
             }
         }
@@ -1794,24 +1959,31 @@
             listContainer.innerHTML = '<p style="text-align: center; color: var(--body);">Loading questions...</p>';
 
             try {
-                const res = await fetch(`/api/get_quiz_details/${id}`);
-                const data = await res.json();
-                if (data.success) {
-                    listContainer.innerHTML = '';
-                    data.questions.forEach((q, idx) => {
-                        const item = document.createElement('label');
-                        item.className = 'import-question-item';
-                        item.innerHTML = `
-                            <input type="checkbox" value="${idx}">
-                            <div class="import-question-text">
-                                <strong style="color:var(--primary);">Q${idx + 1}:</strong> ${q.question.substring(0, 150)}${q.question.length > 150 ? '...' : ''}
-                            </div>
-                        `;
-                        // Label handles click on checkbox
-                        listContainer.appendChild(item);
-                    });
+                const res = await fetch(`/api/get_quiz_details/${encodeURIComponent(String(id))}`);
+                const sourceQuiz = normalizeQuizDetailsPayload(await readJsonResponse(res));
+                listContainer.innerHTML = '';
+                sourceQuiz.questions.forEach((q, idx) => {
+                    const item = document.createElement('label');
+                    item.className = 'import-question-item';
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = String(idx);
+                    const text = document.createElement('div');
+                    text.className = 'import-question-text';
+                    const prefix = document.createElement('strong');
+                    prefix.style.color = 'var(--primary)';
+                    prefix.textContent = `Q${idx + 1}:`;
+                    const rawQuestion = String(q && (q.question ?? q.raw_text) || '');
+                    const summary = rawQuestion.slice(0, 150) + (rawQuestion.length > 150 ? '...' : '');
+                    text.append(prefix, document.createTextNode(` ${summary}`));
+                    item.append(checkbox, text);
+                    listContainer.appendChild(item);
+                });
+                if (sourceQuiz.questions.length === 0) {
+                    listContainer.innerHTML = '<p style="text-align: center; color: var(--body);">This quiz has no questions to import.</p>';
                 }
             } catch (e) {
+                console.error('Failed to load import questions:', e);
                 listContainer.innerHTML = '<p style="text-align: center; color: var(--m-red);">Error loading questions.</p>';
             }
         }
@@ -1850,8 +2022,8 @@
                         question_indices: selectedIndices
                     })
                 });
-                const data = await res.json();
-                if (data.success) {
+                const data = await readJsonResponse(res);
+                if (data.success !== false) {
                     alert(`Successfully imported ${data.count} questions!`);
                     window.location.reload();
                 } else {
@@ -1866,7 +2038,7 @@
             }
         }
 
-        function saveQuiz(redirect = true, btn = null, singleIndex = null) {
+        async function saveQuiz(redirect = true, btn = null, singleIndex = null) {
             // --- NEW: PRE-FLIGHT VALIDATION ---
             let invalidQuestions = [];
 
@@ -1875,26 +2047,34 @@
 
             targets.forEach((idx) => {
                 const q = quizData.questions[idx];
-                const cleanAns = String(q.answer || '').trim();
-                const cleanText = String(q.question || '').trim();
+                const cleanAns = String(q && q.answer || '').trim();
+                const cleanText = String(q && q.question || '').trim();
+                const needsOptions = q && ['multiple_choice', 'multiple_choice_multi', 'true_false'].includes(q.type);
 
-                if (!cleanText || !cleanAns || cleanAns.toLowerCase() === 'no answer provided') {
+                if (
+                    !cleanText
+                    || !cleanAns
+                    || cleanAns.toLowerCase() === 'no answer provided'
+                    || (needsOptions && (!Array.isArray(q.options) || q.options.length < 2))
+                ) {
                     invalidQuestions.push(idx + 1);
                 }
             });
 
             if (invalidQuestions.length > 0 && singleIndex === null) {
                 const proceed = confirm(`<i data-lucide="alert-triangle" class="icon-sm"></i>️ WARNING: Questions ${invalidQuestions.join(', ')} appear to have empty text or answers.\n\nStudents will not be able to be graded properly on these.\n\nSave anyway?`);
-                if (!proceed) return;
+                if (!proceed) return false;
             } else if (invalidQuestions.length > 0 && singleIndex !== null) {
                 alert(`Cannot save: Question ${singleIndex + 1} has empty text or answer.`);
-                return;
+                return false;
             }
 
             // --- UI FEEDBACK FOR SINGLE SAVE ---
             let originalBtnText = '';
+            let originalBtnBackground = '';
             if (btn) {
                 originalBtnText = btn.innerHTML;
+                originalBtnBackground = btn.style.background;
                 btn.innerHTML = '⌛...';
                 btn.disabled = true;
             }
@@ -1902,23 +2082,49 @@
             quizData.questions.forEach((q, qIndex) => {
                 quizData.questions[qIndex].question = processTikzToImageJS(q.question);
             });
-            quizData.title = document.getElementById('quiz-title').value;
-            quizData.time_limit = document.getElementById('quiz-time').value;
+            const title = document.getElementById('quiz-title').value.trim();
+            const timeLimit = Number.parseInt(document.getElementById('quiz-time').value, 10);
+            if (!title) {
+                alert('Quiz title cannot be empty.');
+                if (btn) {
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
+                }
+                return false;
+            }
+            if (!Number.isFinite(timeLimit) || timeLimit < 1) {
+                alert('Time limit must be a positive whole number.');
+                if (btn) {
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
+                }
+                return false;
+            }
+
+            quizData.title = title;
+            quizData.time_limit = timeLimit;
             quizData.quiz_mode = document.getElementById('quiz-mode').value;
             quizData.require_solution = document.getElementById('require-solution').checked;
 
-            // --- ATTACH CREDENTIALS (Ensures AI support for Blank/Transferred quizzes) ---
-            const currentKey = localStorage.getItem('gemini_api_key');
-            const currentModel = quizData.model_name || 'gemini-3.5-flash-lite';
-            if (currentKey) {
-                quizData.api_key = currentKey;
-                quizData.model_name = currentModel;
-            }
+            // API keys belong only in browser/server configuration, never in
+            // quiz documents or Firebase payloads.
+            delete quizData['api_key'];
+            const savePayload = {
+                ...quizData,
+                questions: quizData.questions.map(question => ({ ...question }))
+            };
+            delete savePayload.api_key;
 
-            fetch('/update/' + quizData.id, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(quizData) })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
+            try {
+                const response = await fetch('/update/' + encodeURIComponent(quizData.id), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(savePayload)
+                });
+                const data = await response.json().catch(() => null);
+                if (!response.ok || !data || !data.success) {
+                    throw new Error(data && data.error ? data.error : `Save failed (HTTP ${response.status})`);
+                }
                     if (data.quiz && data.quiz.title) {
                         quizData.title = data.quiz.title;
                         const titleInput = document.getElementById('quiz-title');
@@ -1929,6 +2135,7 @@
                         btn.style.background = 'var(--success)';
                         setTimeout(() => {
                             btn.style.display = 'none';
+                            btn.style.background = originalBtnBackground;
                             btn.innerHTML = originalBtnText;
                             btn.disabled = false;
                         }, 1500);
@@ -1936,8 +2143,17 @@
                         alert('Quiz saved successfully!');
                         window.location.href = '/';
                     }
+                return true;
+            } catch (error) {
+                console.error('Quiz save failed:', error);
+                alert('Quiz could not be saved: ' + error.message);
+                if (btn) {
+                    btn.style.background = originalBtnBackground;
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
                 }
-            });
+                return false;
+            }
         }
         renderQuestions();
     </script>

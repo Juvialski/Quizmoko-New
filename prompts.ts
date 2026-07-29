@@ -156,6 +156,32 @@ QUESTION TYPES FOR THIS BATCH:
 
 Generate the questions now strictly following the system rules.`;
 
+export const STRUCTURED_QUIZ_GENERATOR_PROMPT = `You are an expert educator creating a production-ready quiz.
+
+QUIZ:
+- Topic: {topic}
+- Subject: {subject}
+- Question style: {question_style}
+- Teacher instructions: {teacher_instructions}
+
+Generate EXACTLY {batch_size} questions in the exact order below:
+{question_plan}
+
+CONTENT RULES:
+1. Every question must be unambiguous, factually correct, and solvable from the information provided.
+2. For "multiple_choice", provide exactly four unique options prefixed "A) ", "B) ", "C) ", and "D) ". The answer must be only the correct letter.
+3. For "true_false", provide exactly ["A) True", "B) False"]. The answer must be "A" or "B".
+4. For "identification", "open_ended", and "graphing", provide an empty options array. Identification answers must be one concise word, short phrase, number, or comparison symbol.
+5. Do not put "Question:", question numbers, difficulty labels, markdown fences, or hidden reasoning in question text.
+6. Do not repeat a scenario or merely change numbers from another question.
+7. If a real newline is needed inside a field, use a real newline, not the two characters backslash and n.
+8. Include [TIKZ]...[/TIKZ] in at most {images_count} question texts, only when a diagram materially helps. TikZ must not reveal the answer.
+
+FORMATTING RULES:
+{subject_rules}
+
+Return only the JSON array required by the response schema.`;
+
 export const WORKSHEET_EXTRACTION_PROMPT = `Extract EVERY SINGLE question from this segment. Do not skip any, even if they seem repetitive or simple.
 
 CRITICAL RULES:
@@ -168,7 +194,7 @@ CRITICAL RULES:
    - Standalone text blocks of instructions or headings must never be extracted as separate questions. Instead, distribute them to ALL questions they apply to.
 3. NO SPLITTING SUB-PARTS (CRITICAL): ONE MAIN NUMBER = ONE QUESTION. If a question has sub-parts (e.g., 11a, 11b), you MUST keep them together in a single 'raw_text' block. NEVER extract sub-parts as separate items in the JSON array.
    - Example: '11. a) Define X. b) Define Y.' must be ONE object with both parts in 'raw_text'.
-   - NEWLINE RULE: Ensure each sub-part (a, b, c) starts on a NEW LINE in 'raw_text' (use '\\n' for newlines) for better readability.
+   - NEWLINE RULE: Ensure each sub-part (a, b, c) starts on a real new line in 'raw_text'. Do not output the two characters backslash and n.
 4. INLINE CHOICE DETECTION: If a question contains a list of choices within its text (e.g., 'A integers B whole numbers...'), you MUST extract these into the 'options' array. Do NOT leave them inside the 'raw_text' if they represent the selectable choices.
 5. MULTI-PAGE CHOICE DETECTION (CRITICAL): If you see a list of choices (A, B, C, D) that do not immediately follow a question, but belong to questions in the PREVIOUS segment, you MUST still extract them. If a question is clearly Multiple Choice but its options are missing, look ahead or acknowledge they may be in the next segment.
 6. LITERAL TRANSCRIPTION: The 'raw_text' must be a transcript of the WRITTEN text only.
@@ -207,7 +233,7 @@ CRITICAL RULES:
    - Standalone text blocks of instructions, passages, or headings must never be extracted as separate questions. Instead, distribute them to ALL questions they apply to.
 3. NO SPLITTING SUB-PARTS (CRITICAL): ONE MAIN NUMBER = ONE QUESTION. If a question has sub-parts (e.g., 11a, 11b), you MUST keep them together in a single 'raw_text' block. NEVER extract sub-parts as separate items in the JSON array.
    - Example: '11. a) Define X. b) Define Y.' must be ONE object with both parts in 'raw_text'.
-   - NEWLINE RULE: Ensure each sub-part (a, b, c) starts on a NEW LINE in 'raw_text' (use '\\n' for newlines) for better readability.
+   - NEWLINE RULE: Ensure each sub-part (a, b, c) starts on a real new line in 'raw_text'. Do not output the two characters backslash and n.
 4. INLINE CHOICE DETECTION: If a question contains a list of choices within its text (e.g., 'A nouns B verbs...'), you MUST extract these into the 'options' array. Do NOT leave them inside the 'raw_text' if they represent the selectable choices.
 5. LITERAL TRANSCRIPTION: The 'raw_text' must be a transcript of the WRITTEN text only.
    - NEVER add text not written on the page.
@@ -260,6 +286,7 @@ CRITICAL RULES:
 9. PROFESSIONAL ANSWERS: For all other types (Multiple Choice, Open Ended), you MUST use proper LaTeX enclosure ($) and formatting (e.g. \dfrac for fractions) in the 'answer' and 'options' fields. (CRITICAL: Adhere strictly to the 'ONLY WRAP MATH' rule—do NOT wrap plain text words in options or answers. e.g. 'A) $45$ apples', NOT '$A) 45 apples$').
 10. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using a real newline in the 'answer' field.
 11. Return ONLY a JSON array of objects with: 'options', 'answer', 'type', 'source_index'.
+12. CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\$$40). Do NOT use asterisks for math.
 `;
 
 export const WORKSHEET_SOLVER_PROMPT_NON_MATH = `You are an expert educator. PROVIDE ANSWERS for these worksheet questions.
@@ -284,6 +311,7 @@ CRITICAL RULES:
 7. Accuracy: Verify facts step-by-step in [THINKING] tags first.
 8. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using a real newline in the 'answer' field.
 9. Return ONLY a JSON array of objects with: 'options', 'answer', 'type', 'source_index'.
+10. When mathematical feedback is required, CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\$$40). Do NOT use asterisks for math.
 `;
 
 export const CRITIC_PROMPT = `You are a strict educational QA reviewer.

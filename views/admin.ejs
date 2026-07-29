@@ -176,6 +176,16 @@
     </div>
 
     <script>
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[character]);
+        }
+
         async function fetchUsers() {
             try {
                 const res = await fetch('/api/admin/users');
@@ -197,23 +207,30 @@
             users.forEach(user => {
                 const row = document.createElement('tr');
                 const isActive = user.status !== 'blocked';
+                const displayStatus = isActive ? 'active' : 'blocked';
 
                 row.innerHTML = `
-                    <td style="font-weight: 600;">${user.email}</td>
-                    <td style="font-family: monospace; font-size: 11px; color: var(--body);">${user.uid}</td>
+                    <td style="font-weight: 600;">${escapeHtml(user.email)}</td>
+                    <td style="font-family: monospace; font-size: 11px; color: var(--body);">${escapeHtml(user.uid)}</td>
                     <td>
                         <span class="status-badge ${isActive ? 'status-active' : 'status-blocked'}">
-                            ${user.status || 'active'}
+                            ${displayStatus}
                         </span>
                     </td>
-                    <td style="font-weight: 700; color: var(--primary);">${user.total_usage}</td>
+                    <td style="font-weight: 700; color: var(--primary);">${escapeHtml(user.total_usage ?? 0)}</td>
                     <td>
                         ${isActive ?
-                            `<button class="btn btn-block" onclick="updateStatus('${user.uid}', 'blocked')">Block User</button>` :
-                            `<button class="btn btn-unblock" onclick="updateStatus('${user.uid}', 'active')">Unblock User</button>`
+                            '<button class="btn btn-block" type="button">Block User</button>' :
+                            '<button class="btn btn-unblock" type="button">Unblock User</button>'
                         }
                     </td>
                 `;
+                const statusButton = row.querySelector('button');
+                if (statusButton) {
+                    statusButton.addEventListener('click', () => {
+                        updateStatus(user.uid, isActive ? 'blocked' : 'active');
+                    });
+                }
                 body.appendChild(row);
             });
 

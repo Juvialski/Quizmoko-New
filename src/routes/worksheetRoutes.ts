@@ -85,7 +85,7 @@ const aggregateMemoryStorage = {
       callback(null, { buffer: Buffer.concat(chunks, fileSize), size: fileSize });
     });
   },
-  _removeFile(_req: any, file: any, callback: (error?: Error | null) => void) {
+  _removeFile(_req: any, file: any, callback: (error: Error | null) => void) {
     delete file.buffer;
     callback(null);
   }

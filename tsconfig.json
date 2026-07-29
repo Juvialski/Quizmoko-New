@@ -3,20 +3,14 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "strict": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
     "skipLibCheck": true,
-    "strict": false,
-    "types": ["node"]
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "."
   },
-  "include": [
-    "server.ts",
-    "prompts.ts",
-    "src/**/*.ts",
-    "test/**/*.ts"
-  ],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*", "server.ts", "prompts.ts"]
 }

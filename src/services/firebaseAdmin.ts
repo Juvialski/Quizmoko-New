@@ -62,6 +62,9 @@ function parseServiceAccount(): Record<string, unknown> | undefined {
 }
 
 function isGoogleManagedRuntime(): boolean {
+  if (process.env.K_SERVICE && process.env.K_SERVICE.startsWith('ais-')) {
+    return false;
+  }
   return Boolean(
     process.env.K_SERVICE ||
     process.env.GAE_ENV ||

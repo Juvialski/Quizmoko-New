@@ -397,7 +397,7 @@ router.get('/results/:id', tokenRequired, (req: AuthRequest, res) => {
 router.get(['/solutions/:result_id', '/view_solutions/:quiz_id'], optionalAuth, (req: AuthRequest, res) => {
   const id = req.params.result_id || req.params.quiz_id;
   const rawResult = results.get(id);
-  const quiz = quizzes.get(id) || (rawResult ? quizzes.get(rawResult.quiz_id) : null);
+  const quiz = quizzes.get(id) || (rawResult?.quiz_id ? quizzes.get(rawResult.quiz_id) : null);
   if (!rawResult && !quiz) {
     return res.status(404).send('Result not found');
   }

@@ -180,10 +180,7 @@ function envFlag(name: string, fallback: boolean): boolean {
 }
 
 export function isFirestoreRequired(): boolean {
-  const renderProduction =
-    process.env.NODE_ENV === 'production' &&
-    envFlag('RENDER', false);
-  return envFlag('REQUIRE_FIRESTORE', renderProduction);
+  return envFlag('REQUIRE_FIRESTORE', false);
 }
 
 function positiveInteger(raw: string | undefined, fallback: number, maximum: number): number {

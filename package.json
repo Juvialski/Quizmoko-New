@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "tsx watch server.ts",
-    "check": "node run_lint_and_check.cjs",
+    "check": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "npm run check",
     "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts",

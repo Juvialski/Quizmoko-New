@@ -1,1 +1,71 @@
-{"teacher_test":{"uid":"teacher_test","email":"teacher@quizmoko.com","name":"Teacher Test","role":"admin","rmx_authorized":true,"total_ai_calls":5},"5cgKNUgBCpWXqFpIEX5jdSXMcTz2":{"role":"teacher","uid":"5cgKNUgBCpWXqFpIEX5jdSXMcTz2"},"85Dh9fTGUEQA4E5w8H1ZqKzHihG2":{"role":"teacher","uid":"85Dh9fTGUEQA4E5w8H1ZqKzHihG2"},"EBzFGyHElJeJlqfjwvQ3DkGXinE2":{"role":"teacher","uid":"EBzFGyHElJeJlqfjwvQ3DkGXinE2"},"GDqK5SmuBlSMQQwQcksGugBgOT73":{"role":"teacher","uid":"GDqK5SmuBlSMQQwQcksGugBgOT73"},"H9w32NoN8NULzST9hLb4Y53NAwy2":{"role":"student","uid":"H9w32NoN8NULzST9hLb4Y53NAwy2"},"KbaZLuDGTRUP6TMAdY6Dtq7nrUw2":{"role":"teacher","uid":"KbaZLuDGTRUP6TMAdY6Dtq7nrUw2"},"MJlYRRnC8eQehLcWL6VEftFukVf1":{"role":"teacher","uid":"MJlYRRnC8eQehLcWL6VEftFukVf1"},"PPndDrP4BlgvBtzO4UkKX9kue0o1":{"uid":"PPndDrP4BlgvBtzO4UkKX9kue0o1","created_at":{"type":"firestore/timestamp/1.0","seconds":1779519021,"nanoseconds":725000000},"email":"alpogimatubis14344@gmail.com"},"UoWzZ2ScQQXObQ4o5Xoekzqmht12":{"role":"teacher","uid":"UoWzZ2ScQQXObQ4o5Xoekzqmht12"},"V8Lhsgd6JIXRdn3SaDKnG9RHRDi1":{"role":"teacher","uid":"V8Lhsgd6JIXRdn3SaDKnG9RHRDi1"},"Vt9SPcQONKcCeJbaYggoFDfY75r1":{"role":"teacher","uid":"Vt9SPcQONKcCeJbaYggoFDfY75r1"},"fbnuU0JRjqbPLUjdFpoVSEwOT733":{"role":"teacher","uid":"fbnuU0JRjqbPLUjdFpoVSEwOT733"},"iAKdDCD9sSZklby8Oq5U0EJwFKd2":{"role":"teacher","uid":"iAKdDCD9sSZklby8Oq5U0EJwFKd2"},"pfE8YdKTA9dBREZiZhri8YEGsni2":{"role":"student","uid":"pfE8YdKTA9dBREZiZhri8YEGsni2"}}
+{
+  "teacher_test": {
+    "uid": "teacher_test",
+    "email": "teacher@quizmoko.com",
+    "name": "Teacher Test",
+    "role": "admin",
+    "rmx_authorized": true,
+    "total_ai_calls": 5
+  },
+  "5cgKNUgBCpWXqFpIEX5jdSXMcTz2": {
+    "role": "teacher",
+    "uid": "5cgKNUgBCpWXqFpIEX5jdSXMcTz2"
+  },
+  "85Dh9fTGUEQA4E5w8H1ZqKzHihG2": {
+    "role": "teacher",
+    "uid": "85Dh9fTGUEQA4E5w8H1ZqKzHihG2"
+  },
+  "EBzFGyHElJeJlqfjwvQ3DkGXinE2": {
+    "role": "teacher",
+    "uid": "EBzFGyHElJeJlqfjwvQ3DkGXinE2"
+  },
+  "GDqK5SmuBlSMQQwQcksGugBgOT73": {
+    "role": "teacher",
+    "uid": "GDqK5SmuBlSMQQwQcksGugBgOT73"
+  },
+  "H9w32NoN8NULzST9hLb4Y53NAwy2": {
+    "role": "student",
+    "uid": "H9w32NoN8NULzST9hLb4Y53NAwy2"
+  },
+  "KbaZLuDGTRUP6TMAdY6Dtq7nrUw2": {
+    "role": "teacher",
+    "uid": "KbaZLuDGTRUP6TMAdY6Dtq7nrUw2"
+  },
+  "MJlYRRnC8eQehLcWL6VEftFukVf1": {
+    "role": "teacher",
+    "uid": "MJlYRRnC8eQehLcWL6VEftFukVf1"
+  },
+  "PPndDrP4BlgvBtzO4UkKX9kue0o1": {
+    "uid": "PPndDrP4BlgvBtzO4UkKX9kue0o1",
+    "created_at": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1779519021,
+      "nanoseconds": 725000000
+    },
+    "email": "alpogimatubis14344@gmail.com"
+  },
+  "UoWzZ2ScQQXObQ4o5Xoekzqmht12": {
+    "role": "teacher",
+    "uid": "UoWzZ2ScQQXObQ4o5Xoekzqmht12"
+  },
+  "V8Lhsgd6JIXRdn3SaDKnG9RHRDi1": {
+    "role": "teacher",
+    "uid": "V8Lhsgd6JIXRdn3SaDKnG9RHRDi1"
+  },
+  "Vt9SPcQONKcCeJbaYggoFDfY75r1": {
+    "role": "teacher",
+    "uid": "Vt9SPcQONKcCeJbaYggoFDfY75r1"
+  },
+  "fbnuU0JRjqbPLUjdFpoVSEwOT733": {
+    "role": "teacher",
+    "uid": "fbnuU0JRjqbPLUjdFpoVSEwOT733"
+  },
+  "iAKdDCD9sSZklby8Oq5U0EJwFKd2": {
+    "role": "teacher",
+    "uid": "iAKdDCD9sSZklby8Oq5U0EJwFKd2"
+  },
+  "pfE8YdKTA9dBREZiZhri8YEGsni2": {
+    "role": "student",
+    "uid": "pfE8YdKTA9dBREZiZhri8YEGsni2"
+  }
+}

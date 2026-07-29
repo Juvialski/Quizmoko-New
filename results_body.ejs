@@ -39,9 +39,12 @@
                                         const sec = s % 60;
                                         return `${m}m ${sec}s`;
                                     }
-                                    document.getElementById('active-<%= typeof r.id !== 'undefined' ? r.id : '' %>').innerText = fmt(<%= r.time_active_seconds || 0 %>);
-                                    document.getElementById('paused-<%= typeof r.id !== 'undefined' ? r.id : '' %>').innerText = fmt(<%= r.time_paused_seconds || 0 %>);
-                                    document.getElementById('total-<%= typeof r.id !== 'undefined' ? r.id : '' %>').innerText = fmt(<%= r.total_duration_seconds || 0 %>);
+                                    const actEl = document.getElementById('active-<%= typeof r.id !== "undefined" ? r.id : "" %>');
+                                    if (actEl) actEl.innerText = fmt(<%= r.time_active_seconds || 0 %>);
+                                    const pauEl = document.getElementById('paused-<%= typeof r.id !== "undefined" ? r.id : "" %>');
+                                    if (pauEl) pauEl.innerText = fmt(<%= r.time_paused_seconds || 0 %>);
+                                    const totEl = document.getElementById('total-<%= typeof r.id !== "undefined" ? r.id : "" %>');
+                                    if (totEl) totEl.innerText = fmt(<%= r.total_duration_seconds || 0 %>);
                                 })();
                             </script>
                         </td>

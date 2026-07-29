@@ -188,7 +188,7 @@ function authoritativeDetail(
   });
 
   return {
-    question: question.question,
+    question: question.question || question.raw_text || question.statement || '',
     type: canonicalQuestionType(question),
     user_answer: userAnswer,
     correct_answer: getCorrectAnswer(question),

@@ -205,7 +205,7 @@
                     <span class="q-num">Question <%= itemIdx + 1 %></span>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <span style="font-size: 13px; font-weight: 800; color: var(--body); background: var(--surface-soft); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--hairline);">Points: <%= Number(item.score_fraction !== undefined ? item.score_fraction : (item.is_correct ? 1 : 0)).toFixed(2) %> / 1.0</span>
-                        <span class='status-badge <% if (item.is_correct) { %>status-correct<% } else if (item.correct_answer == 'Finalizing...') { %>status-grading<% } else { %>status-wrong<% } %>" id="status-<%= itemIdx %>">
+                        <span class="status-badge <% if (item.is_correct) { %>status-correct<% } else if (item.correct_answer == 'Finalizing...') { %>status-grading<% } else { %>status-wrong<% } %>" id="status-<%= itemIdx %>">
                             <% if (item.correct_answer == 'Finalizing...') { %>⏳ Finalizing...<% } else if (item.is_correct) { %><i data-lucide="check" class="icon-sm"></i> Correct<% } else { %><i data-lucide="x" class="icon-sm"></i> Incorrect<% } %>
                         </span>
                     </div>
@@ -678,7 +678,8 @@
                 const data = await res.json();
                 if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
 
-                document.getElementById('total-score-display').innerText = `${data.score} / ${data.total}`;
+                const totalScoreElem = document.getElementById('total-score-display');
+                if (totalScoreElem) totalScoreElem.innerText = `${data.score} / ${data.total}`;
 
                 let stillGrading = false;
                 const details = Array.isArray(data.details) ? data.details : [];
@@ -699,7 +700,7 @@
 
                     // Update snapshots if any
                     const snaps = (data.solution_snapshots && data.solution_snapshots[String(i)]) ? data.solution_snapshots[String(i)] : null;
-                    if (snaps && snaps.length > 0) {
+                    if (snaps && snaps.length > 0 && snapContainer) {
                         let snapHtml = '<div class="workings-title"><i data-lucide="edit-3" class="icon-sm"></i> Workings / Whiteboard Solutions:</div>';
                         snaps.forEach(img => {
                             if (isSafeDisplayImageSource(img)) {
@@ -714,24 +715,28 @@
 
                     if (item.correct_answer === 'Finalizing...') {
                         stillGrading = true;
-                        correctAnsBox.innerHTML = '⏳ Finalizing...';
+                        if (correctAnsBox) correctAnsBox.innerHTML = '⏳ Finalizing...';
                     } else {
                         // Update Status
-                        statusBadge.className = `status-badge ${item.is_correct ? 'status-correct' : 'status-wrong'}`;
-                        statusBadge.innerHTML = item.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide="x" class="icon-sm"></i> Incorrect';
+                        if (statusBadge) {
+                            statusBadge.className = `status-badge ${item.is_correct ? 'status-correct' : 'status-wrong'}`;
+                            statusBadge.innerHTML = item.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide="x" class="icon-sm"></i> Incorrect';
+                        }
 
                         // Update Correct Answer
-                        correctAnsBox.innerHTML = formatDisplay(item.correct_answer);
+                        if (correctAnsBox) correctAnsBox.innerHTML = formatDisplay(item.correct_answer);
 
                         // Update Feedback
-                        if (item.ai_feedback) {
+                        if (item.ai_feedback && feedbackBox) {
                             feedbackBox.style.display = 'block';
-                            feedbackBox.querySelector('.feedback-text').innerHTML = formatDisplay(item.ai_feedback);
+                            const feedbackText = feedbackBox.querySelector('.feedback-text');
+                            if (feedbackText) feedbackText.innerHTML = formatDisplay(item.ai_feedback);
                         }
                     }
                 });
 
-                document.getElementById('grading-status').style.display = stillGrading ? 'block' : 'none';
+                const gradingStatusElem = document.getElementById('grading-status');
+                if (gradingStatusElem) gradingStatusElem.style.display = stillGrading ? 'block' : 'none';
 
                 if (!stillGrading) {
                     isComplete = true;
@@ -752,19 +757,27 @@
         }
 
         // Start polling or initial render
-        const initialDetails = <%- JSON.stringify(result.details).replace(/</g, "\\u003c") %>;
-        initialDetails.forEach((item, i) => {
-            if (!item) return;
-            currentAnswersData[i] = item.correct_answer; // Store for edit
-            const qTextBox = document.getElementById(`question-text-${i}`);
-            if (qTextBox) qTextBox.innerHTML = formatDisplay(item.question);
+        const initialDetails = <%- JSON.stringify(result.details || []).replace(/</g, "\\u003c") %>;
+        if (Array.isArray(initialDetails)) {
+            initialDetails.forEach((item, i) => {
+                if (!item) return;
+                currentAnswersData[i] = item.correct_answer; // Store for edit
+                const qTextBox = document.getElementById(`question-text-${i}`);
+                if (qTextBox) qTextBox.innerHTML = formatDisplay(item.question);
 
-            document.getElementById(`user-ans-${i}`).innerHTML = formatDisplay(item.user_answer);
-            document.getElementById(`correct-ans-${i}`).innerHTML = formatDisplay(item.correct_answer);
-            if (item.ai_feedback) {
-                document.getElementById(`feedback-${i}`).querySelector('.feedback-text').innerHTML = formatDisplay(item.ai_feedback);
-            }
-        });
+                const userAnsBox = document.getElementById(`user-ans-${i}`);
+                if (userAnsBox) userAnsBox.innerHTML = formatDisplay(item.user_answer);
+
+                const correctAnsBox = document.getElementById(`correct-ans-${i}`);
+                if (correctAnsBox) correctAnsBox.innerHTML = formatDisplay(item.correct_answer);
+
+                const feedbackBox = document.getElementById(`feedback-${i}`);
+                if (feedbackBox && item.ai_feedback) {
+                    const feedbackText = feedbackBox.querySelector('.feedback-text');
+                    if (feedbackText) feedbackText.innerHTML = formatDisplay(item.ai_feedback);
+                }
+            });
+        }
 
         if (initialDetails.some(d => d && d.correct_answer === 'Finalizing...')) {
             document.getElementById('grading-status').style.display = 'block';

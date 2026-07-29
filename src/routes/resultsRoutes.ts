@@ -114,8 +114,10 @@ function enrichDetails(rawResult: any): any[] {
   return resultDetails(rawResult).map((item: any, index: number) => {
     if (!item || typeof item !== 'object') return item;
     const quizQuestion = quiz?.questions?.[index];
+    const qText = item.question || (quizQuestion ? (quizQuestion.question || quizQuestion.raw_text || quizQuestion.statement) : '');
     return {
       ...item,
+      question: qText,
       type: item.type || (quizQuestion ? canonicalQuestionType(quizQuestion) : undefined)
     };
   });

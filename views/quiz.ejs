@@ -1280,6 +1280,8 @@
             try {
                 if (currentIndex >= quizData.questions.length) return submitQuiz();
 
+                startTimer(); // Ensure timer continues ticking on question load
+
                 // Reset instant feedback
                 const feedbackCont = document.getElementById('instant-feedback');
                 if (feedbackCont) feedbackCont.style.display = 'none';
@@ -1568,7 +1570,8 @@
 
         async function handleAnswer(val, direction = 1, btn = null) {
             try {
-                clearInterval(timerInterval);
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = null;
                 isGrading = true;
                 pendingGradings++;
 

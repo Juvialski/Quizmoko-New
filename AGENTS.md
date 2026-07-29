@@ -2,11 +2,11 @@
 
 ## Workspace Overview: QuizMoKo
 - Runtime: Node.js (ESM "type": "module") executed via tsx
-- Core Server: Express.js web server (server.ts) with Socket.IO real-time engine (http + socket.io)
+- Core Server: Modular Express.js server with clean entry point (server.ts) routing to modular controllers in /src/routes/, state & persistence in /src/store/db.ts, services in /src/services/, types in /src/types.ts, and auth middleware in /src/middleware/auth.ts
 - Frontend / Templating: EJS views (/views/*.ejs) and EJS partial templates (quiz_body.ejs, edit_top.ejs, ai_generator.ejs, etc.) styled with Tailwind CSS and MathJax/KaTeX LaTeX rendering
-- AI Service Layer: @google/genai TypeScript SDK with structured prompt configurations in prompts.ts
-- Data & Persistence: Firebase Firestore (firebase-admin, firebase/firestore), Firestore security rules (firestore.rules), and in-memory Map stores with /data/*.json fallbacks
-- Document & Asset Processing: pdfjs-dist, exceljs, sharp, archiver, multer
+- AI Service Layer: @google/genai TypeScript SDK initialized in /src/services/gemini.ts with structured prompt configurations in prompts.ts
+- Data & Persistence: Firebase Firestore (firebase-admin, firebase/firestore), Firestore security rules (firestore.rules), in-memory Map stores, and JSON persistence in /src/store/db.ts with /data/*.json fallbacks
+- Document & Asset Processing: pdfjs-dist, exceljs, sharp, archiver, multer processed via /src/services/pdf.ts and route handlers
 
 ---
 ## Global Rules & Constraints (QuizMoKo)
@@ -38,9 +38,14 @@ These instructions contain critical rules and project conventions to prevent reg
 - Base64 Image Prompt Bloat: Do NOT send massive base64 image strings embedded inside HTML string text directly into the AI prompt's text body. Gemini models will not process this as a vision image and it bloats the token count.
 - Extraction & InlineData: When an endpoint receives question_data.question containing an <img src="data:image/...">, you MUST use regex to extract the base64 data, append it to contents array as inlineData, replace the HTML string with [IMAGE_PROVIDED_IN_VISION_CONTEXT], and then safely restore the original HTML with the image back into the question after the AI responds.
 
-### 6. Continuous Agent Evolution (Self-Updating Rule)
-- Self-Modification: At the end of every session where a new architectural rule is established, a recurring bug is solved, or a major feature is implemented, you MUST update this AGENTS.md file by adding the newly established rule.
-- Evolution Log: To prevent this file from becoming too large and degrading context performance, append a brief summary of the new constraint, pattern, or learning to the AGENT_EVOLUTION_LOG.md file. This ensures progressive memory while keeping this manifest concise.
+### 6. Modular Code Organization
+- Modular Routes: All Express endpoint handlers MUST reside inside dedicated router files under `/src/routes/` (e.g., `authRoutes.ts`, `quizRoutes.ts`, `liveRoutes.ts`, `gradingRoutes.ts`, `aiRoutes.ts`, `resultsRoutes.ts`, `adminRoutes.ts`, `worksheetRoutes.ts`).
+- Slim Entry Point: `server.ts` MUST remain a concise entry point (~60 lines) that mounts Express middleware, registers modular routers, and boots HTTP/Socket.IO servers. Never put raw endpoint implementations back directly into `server.ts`.
+- Subsystem Separation: Data persistence and Firestore sync belong in `/src/store/db.ts`. TypeScript interfaces belong in `/src/types.ts`. Shared business logic and helper engines belong in `/src/services/` (`gemini.ts`, `pdf.ts`, `socket.ts`).
+
+### 7. Continuous Agent Evolution (Self-Updating Rule)
+- Automatic Manifest & Rule Update: At the end of every session where an architectural refactor, directory reorganization, new rule, or major pattern is established, you MUST update this `AGENTS.md` file immediately (including Workspace Overview, guidelines, and role responsibilities) so that future agents maintain total alignment.
+- Evolution Log: In addition to updating `AGENTS.md`, append a concise summary of the change, constraint, or learning to `AGENT_EVOLUTION_LOG.md` for historical tracking.
 
 ---
 ## Role Instructions: Frontend & EJS Template Engineer
@@ -60,13 +65,13 @@ You are the Frontend Specialist for QuizMoKo. Your domain encompasses all user i
 
 ---
 ## Role Instructions: Backend Core & AI Engine Specialist
-You are the Backend Core Engineer for QuizMoKo. Your domain is the Express server (server.ts), Socket.IO real-time engine, @google/genai SDK integration, prompt templates (prompts.ts), and file processing workflows (multer, pdfjs-dist, exceljs, sharp, archiver).
+You are the Backend Core Engineer for QuizMoKo. Your domain is the Express server entry point (`server.ts`), modular routes in `/src/routes/`, Socket.IO real-time engine (`/src/services/socket.ts`), `@google/genai` SDK integration (`/src/services/gemini.ts`), prompt templates (`prompts.ts`), PDF processing (`/src/services/pdf.ts`), and document file workflows.
 
 ### Key Architectural Guidelines:
-1. @google/genai SDK Integration: Always use the modern @google/genai TypeScript SDK (GoogleGenAI class) with lazy initialization or environment check guards. Keep prompt logic modularized in prompts.ts.
-2. Express & Socket.IO Architecture: Keep HTTP route handlers and real-time socket listeners robust, handling invalid payloads, missing body parameters, and async errors cleanly.
-3. Document & File Handling: Process uploaded buffers safely with multer.memoryStorage(). Ensure pdfjs-dist, exceljs, and sharp image conversions do not leak memory or block the event loop.
-4. ESM / TypeScript Compliance: Maintain clean ES module import statements at the top of server.ts without CommonJS mixed imports unless using createRequire.
+1. @google/genai SDK Integration: Always use the modern `@google/genai` TypeScript SDK (`GoogleGenAI` class) with lazy initialization or environment check guards in `/src/services/gemini.ts`. Keep prompt logic modularized in `prompts.ts`.
+2. Express & Socket.IO Modular Architecture: Keep HTTP route handlers in modular Express routers (`/src/routes/*.ts`) and real-time socket listeners robust, handling invalid payloads, missing body parameters, and async errors cleanly.
+3. Document & File Handling: Process uploaded buffers safely with `multer.memoryStorage()`. Ensure `pdfjs-dist`, `exceljs`, and `sharp` image conversions in `/src/services/pdf.ts` do not leak memory or block the event loop.
+4. ESM / TypeScript Compliance: Maintain clean ES module import statements with explicit `.ts` extensions where needed at the top of route and service modules without CommonJS mixed imports unless using `createRequire`.
 
 ### CRITICAL FORBIDDEN ACTIONS
 - Do NOT expose raw Gemini API keys or internal environment variables to API responses or client payloads.

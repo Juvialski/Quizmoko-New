@@ -478,6 +478,33 @@ if (results && results.length > 0) {
             }
         }
     </script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        (function() {
+            const quizId = '<%= (typeof results !== "undefined" && results.length > 0) ? results[0].quiz_id : "" %>';
+            if (!quizId) return;
+            const socket = io();
+            socket.emit('join_quiz', { quiz_id: quizId });
+
+            socket.on('update_session', (payload) => {
+                console.log('[WS] Live update received:', payload);
+                triggerProgressiveReload();
+            });
+
+            socket.on('progressive_result_update', (payload) => {
+                console.log('[WS] Progressive result update:', payload);
+                triggerProgressiveReload();
+            });
+
+            let reloadTimeout;
+            function triggerProgressiveReload() {
+                if (reloadTimeout) clearTimeout(reloadTimeout);
+                reloadTimeout = setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            }
+        })();
+    </script>
     <script>lucide.createIcons();</script>
 </body>
 </html>

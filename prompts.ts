@@ -181,8 +181,8 @@ CRITICAL RULES:
 9. CLASSIFICATION: Carefully determine 'type':
    - 'multiple_choice': If the question has options A) B) C) D) and implies exactly ONE correct answer.
    - 'multiple_choice_multi': If the question has options and explicitly asks to 'Select all that apply', 'Which of these...', 'Choose multiple', or context implies more than one correct answer.
-   - 'identification': If it has NO options and requires exactly ONE number (integer, decimal, e.g. 0.75), ONE word, or ONE symbol as the answer. (DO NOT use for fractions, fractions are open_ended). This is the DEFAULT for single-value answers.
-   - 'open_ended': If it has NO options and requires a descriptive response, a multi-part list (e.g., '70, 105, 140'), a fraction, or a sentence.
+   - 'identification': If it has NO options and requires exactly ONE number (integer, decimal, e.g. 0.75), ONE word, or ONE symbol as the answer. (DO NOT use for fractions, algebraic expressions, equations, or formulas; fractions, algebraic expressions, equations, or formulas MUST be classified as 'open_ended'). This is the DEFAULT for single-value answers.
+   - 'open_ended': If it has NO options and requires a descriptive response, a multi-part list (e.g., '70, 105, 140'), a fraction, a mathematical expression, an equation/formula, or a sentence.
 10. DIAGRAM / IMAGE BOUNDING BOX DETECTION (CRITICAL): ONLY set "bounding_box" if the question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. If the question consists purely of text or mathematical equations with NO associated diagram/illustration, "bounding_box" MUST be set to an empty array []. When a diagram IS present, provide a bounding box [ymin, xmin, ymax, xmax] (0 to 1000) that wraps the diagram with a slight 5-10% extra margin to ensure the visual is fully enclosed. Do not output boxes for plain text.
 11. COMPLETE EXTRACTION: You MUST extract 100% of all questions found on the page from the first to the very last. Do not omit or summarize any questions.
 12. CLEAN SPACING (CRITICAL): OCR often breaks large numbers with newlines and commas (e.g., '226\\n,\\n000'). You MUST reconstruct these into a single clean number (e.g., '226,000'). Remove all unnatural newlines, spaces, and line breaks within sentences, numbers, or words.
@@ -252,8 +252,8 @@ CRITICAL RULES:
 3. {latex_rules}
 4. MULTI-ANSWER RULE: For questions classified as 'multiple_choice_multi', the 'answer' field MUST be a comma-separated list of ALL correct letters (e.g., "A, C" or "A, B, D").
 5. DYNAMIC TYPE CLASSIFICATION (CRITICAL):
-   - 'identification': ONLY if the answer is a single **number** (integer, decimal, e.g. 0.75) OR a single comparison symbol (<, >, or =). (DO NOT use for fractions, fractions are open_ended).
-   - 'open_ended': If the question requires a descriptive sentence, a multi-part list, or a fraction.
+   - 'identification': ONLY if the answer is a single **number** (integer, decimal, e.g. 0.75) OR a single comparison symbol (<, >, or =). (DO NOT use for fractions, algebraic expressions, equations, or formulas; fractions, algebraic expressions, equations, or formulas MUST be classified as 'open_ended').
+   - 'open_ended': If the question requires a descriptive sentence, a multi-part list, a fraction, a mathematical expression, or an equation/formula.
 6. CONCISE ANSWERS: For 'identification' questions, DO NOT include explanations, steps, or labels like "Answer is..." in the 'answer' field. Output ONLY the raw final value.
 7. Accuracy: Solve step-by-step in [THINKING] tags first.
 8. IDENTIFICATION EXCEPTION: For Identification questions ONLY, keep the 'answer' field as a plain number or word (no dollar signs).

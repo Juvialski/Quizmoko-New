@@ -516,15 +516,6 @@
             <i data-lucide="rocket"></i> QUIZMOKO
         </span>
         <div id="connection-dot" class="status-dot" title="Online"></div>
-        
-        <div class="quiz-stats-group">
-            <span id="q-tracker" class="stat-badge" style="display:none;">
-                Question <span id="q-num">1</span> of <%= (quiz.questions || []).length %>
-            </span>
-            <span id="score-tracker" class="stat-badge stat-score" style="display:none;">
-                Score: <span id="live-score">0.00</span>
-            </span>
-        </div>
     </div>
     
     <!-- Bottom Row: Interactive Tools and Action Buttons (Expanded & Balanced) -->
@@ -559,6 +550,12 @@
 
         <!-- Right Side: Navigation & Core Actions -->
         <div class="tools-right-group">
+            <span id="q-tracker" class="stat-badge" style="display:none;">
+                Question <span id="q-num" style="margin: 0 4px;">1</span> of <%= (quiz.questions || []).length %>
+            </span>
+            <span id="score-tracker" class="stat-badge stat-score" style="display:none;">
+                Score: <span id="live-score">0.00</span>
+            </span>
             <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" class="action-btn btn-primary" style="display:none;">
                 <i data-lucide="pen-tool"></i> Whiteboard
             </button>
@@ -783,6 +780,33 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         }
 
+        function saveProgressToServer() {
+            if (isSubmitting) return;
+            if (!studentName || studentName === 'Anonymous' || studentName === 'undefined') {
+                return;
+            }
+            const metrics = getCurrentTimeMetrics();
+            const accuracyPct = totalScore ? (totalScore / quizData.questions.length) * 100 : 0;
+
+            fetch('/api/save_progressive_result', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    quiz_id: quizId,
+                    session_id: sessionId,
+                    student_name: studentName,
+                    progressive_results: progressiveResults,
+                    score: totalScore,
+                    time_active_seconds: metrics.timeActive,
+                    time_paused_seconds: metrics.finalPausedTime,
+                    total_duration_seconds: metrics.totalDuration,
+                    accuracy_pct: accuracyPct
+                })
+            }).catch(e => console.warn('[QUIZ] Progressive server save failed:', e));
+        }
+
         function loadQuizState() {
             const saved = localStorage.getItem(STORAGE_KEY);
             if (!saved) return false;
@@ -885,6 +909,19 @@
 
         function toggleQuestionCentering() { document.getElementById('question-text').classList.toggle('centered'); }
 
+        function cleanNewlinesInMath(str) {
+            if (!str) return "";
+            // Replace newlines inside $$...$$ with spaces
+            let cleaned = str.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {
+                return '$$' + mathContent.replace(/\r?\n/g, ' ') + '$$';
+            });
+            // Replace newlines inside $...$ with spaces
+            cleaned = cleaned.replace(/\$([\s\S]*?)\$/g, (match, mathContent) => {
+                return '$' + mathContent.replace(/\r?\n/g, ' ') + '$';
+            });
+            return cleaned;
+        }
+
         function formatText(t) {
             if (t === null || t === undefined) return '';
 
@@ -911,7 +948,8 @@
             }
 
             // 2. Standard Text Formatting
-            let str = String(data);
+            let str = String(data).replace(/\\n/g, '\n');
+            str = cleanNewlinesInMath(str);
 
             // --- NEW: RENDER MANUALLY ENTERED TIKZ ---
             str = str.replace(/\[TIKZ\]([\s\S]*?)\[\/TIKZ\]/gi, (match, code) => {
@@ -1076,7 +1114,7 @@
             // HIDE LIVE SCORE in Back-and-Forth Mode to prevent 'brute forcing' answers
             const scoreTracker = document.getElementById('score-tracker');
             if (scoreTracker) {
-                scoreTracker.style.display = (quizData.quiz_mode === 'back_and_forth') ? 'none' : 'inline-block';
+                scoreTracker.style.display = (quizData.quiz_mode === 'back_and_forth') ? 'none' : 'inline-flex';
             }
 
             document.getElementById('btn-end-early').style.display = 'inline-flex';
@@ -1482,6 +1520,7 @@
 
                     sendPing('Score Synced');
                     saveQuizState();
+                    saveProgressToServer();
                 }).catch(e => {
                     console.error('BG Grading Error:', e);
                     progressiveResults[qIndex] = {
@@ -1492,6 +1531,8 @@
                         score_fraction: 0,
                         ai_feedback: 'Error: ' + e.message
                     };
+                    saveQuizState();
+                    saveProgressToServer();
                 }).finally(() => {
                     pendingGradings--;
                 });
@@ -1660,6 +1701,7 @@
                 // SYNC & PERSIST
                 sendPing('Score Synced');
                 saveQuizState();
+                saveProgressToServer();
 
                 // RE-RENDER FEEDBACK BOX
                 const feedbackCont = document.getElementById('instant-feedback');

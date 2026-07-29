@@ -588,6 +588,19 @@
             });
         }
 
+        function cleanNewlinesInMath(str) {
+            if (!str) return "";
+            // Replace newlines inside $$...$$ with spaces
+            let cleaned = str.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {
+                return '$$' + mathContent.replace(/\r?\n/g, ' ') + '$$';
+            });
+            // Replace newlines inside $...$ with spaces
+            cleaned = cleaned.replace(/\$([\s\S]*?)\$/g, (match, mathContent) => {
+                return '$' + mathContent.replace(/\r?\n/g, ' ') + '$';
+            });
+            return cleaned;
+        }
+
         function formatText(text) {
             if (!text) return "";
 
@@ -614,7 +627,8 @@
             }
 
             // 2. Standard Text Formatting (Line breaks and Bullets)
-            let str = String(data);
+            let str = String(data).replace(/\\n/g, '\n');
+            str = cleanNewlinesInMath(str);
             const parts = str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>\s*<\/div>|<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi);
             return parts.map(part => {
                 if (part.startsWith('<div class="resizable-image-wrapper"')) return part;
@@ -1320,8 +1334,10 @@
 
             const btn = document.getElementById(`regen-btn-${qIndex}`);
             const originalText = btn ? btn.innerHTML : '<i data-lucide="refresh-cw" class="icon-sm"></i>';
-            btn.innerHTML = 'REFORMATTING...';
-            btn.disabled = true;
+            if (btn) {
+                btn.innerHTML = 'REFORMATTING...';
+                btn.disabled = true;
+            }
 
             // Get source context if available
             let sourceContext = { raw_text: q.question, image_description: '' };
@@ -1363,13 +1379,17 @@
                     setTimeout(() => window.location.reload(), 500);
                 } else {
                     alert('Reprocessing failed: ' + data.error);
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
+                    if (btn) {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
                 }
             } catch (e) {
                 alert('Error reprocessing question.');
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                if (btn) {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
             }
         }
 

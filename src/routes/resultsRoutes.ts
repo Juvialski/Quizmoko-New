@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { tokenRequired, AuthRequest } from '../middleware/auth.ts';
+import { tokenRequired } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 import { quizzes, results, deleteDocFromFirestore, savePersistentData } from '../store/db.ts';
 
 const router = Router();

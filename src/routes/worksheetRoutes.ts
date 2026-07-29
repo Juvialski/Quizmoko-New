@@ -5,7 +5,8 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const archiver = require('archiver');
 import { Type } from '@google/genai';
-import { tokenRequired, AuthRequest } from '../middleware/auth.ts';
+import { tokenRequired } from '../middleware/auth.ts';
+import type { AuthRequest } from '../middleware/auth.ts';
 import {
   quizzes,
   sessionProgress,

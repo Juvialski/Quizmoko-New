@@ -3,7 +3,7 @@ import http from 'http';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import { PORT, initDatabase, quizzes } from './src/store/db.ts';
-import { tokenRequired, AuthRequest } from './src/middleware/auth.ts';
+import { tokenRequired } from './src/middleware/auth.ts';
 import { initSocketServer } from './src/services/socket.ts';
 
 // Modular Routes

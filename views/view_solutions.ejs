@@ -169,6 +169,18 @@
         textarea { height: 60px; resize: vertical; } 
         label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
+        /* Lucide Icons Standard Styling */
+        .icon-sm, i[data-lucide], svg.lucide {
+            width: 16px !important;
+            height: 16px !important;
+            display: inline-block !important;
+            vertical-align: middle !important;
+            margin-right: 4px;
+        }
+        svg.lucide {
+            stroke-width: 2;
+        }
+
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -384,10 +396,12 @@
                     box.style.display = 'block';
                     box.innerHTML = `<strong><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + formatDisplay(data.explanation || 'No explanation returned.');
                     if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([box]);
+                    if (window.lucide) lucide.createIcons();
                 }
             }).catch(err => {
                 btn.innerHTML = '<i data-lucide="bot" class="icon-sm"></i> AI Tutor: Explain My Mistake';
                 btn.disabled = false;
+                if (window.lucide) lucide.createIcons();
                 alert('Failed to generate explanation. Please try again.');
             });
         }
@@ -469,7 +483,7 @@
 
         async function recheckAnswer(index, btn = null) {
             const targetBtn = btn || document.querySelector(`#card-${index} .edit-btn[onclick*='recheckAnswer']`);
-            const originalText = targetBtn ? targetBtn.innerText : '<i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK';
+            const originalHtml = targetBtn ? targetBtn.innerHTML : '<i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK';
 
             if (targetBtn) {
                 targetBtn.innerText = '⌛ RE-CHECKING...';
@@ -512,11 +526,13 @@
                     if (targetBtn) {
                         targetBtn.style.color = 'var(--success)';
                         setTimeout(() => {
-                            targetBtn.innerText = originalText;
+                            targetBtn.innerHTML = originalHtml;
                             targetBtn.disabled = false;
                             targetBtn.style.color = 'var(--warning)';
+                            if (window.lucide) lucide.createIcons();
                         }, 2000);
                     }
+                    if (window.lucide) lucide.createIcons();
                 } else {
                     alert('Re-check failed: ' + data.error);
                 }
@@ -640,9 +656,10 @@
 
         async function forceSyncResults() {
             const btn = document.getElementById('force-sync-btn');
-            const originalText = btn.innerText;
+            const originalHtml = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="zap" class="icon-sm"></i> REPAIRING...';
             btn.disabled = true;
+            if (window.lucide) lucide.createIcons();
 
             try {
                 // Reset completion flag to allow pollResults to run once more and update UI
@@ -658,16 +675,18 @@
                     btn.style.borderColor = 'var(--success)';
                     btn.style.color = 'var(--success)';
                     btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> REPAIRED';
+                    if (window.lucide) lucide.createIcons();
                 }
             } catch (err) {
                 console.error('Force sync failed:', err);
                 alert('Failed to sync: ' + err.message);
             } finally {
                 setTimeout(() => {
-                    btn.innerText = originalText;
+                    btn.innerHTML = originalHtml;
                     btn.disabled = false;
                     btn.style.borderColor = 'var(--warning)';
                     btn.style.color = 'var(--warning)';
+                    if (window.lucide) lucide.createIcons();
                 }, 3000);
             }
         }
@@ -747,9 +766,12 @@
                     setTimeout(pollResults, 3000);
                 }
 
-                // Re-run MathJax
+                // Re-run MathJax & Lucide
                 if (window.MathJax && MathJax.typesetPromise) {
                     MathJax.typesetPromise();
+                }
+                if (window.lucide) {
+                    lucide.createIcons();
                 }
 
             } catch (e) {
@@ -779,6 +801,9 @@
                     if (feedbackText) feedbackText.innerHTML = formatDisplay(item.ai_feedback);
                 }
             });
+            if (window.lucide) {
+                lucide.createIcons();
+            }
         }
 
         if (initialDetails.some(d => d && d.correct_answer === 'Finalizing...')) {

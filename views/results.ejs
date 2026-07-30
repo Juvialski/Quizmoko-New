@@ -130,6 +130,18 @@
         textarea { height: 60px; resize: vertical; } 
         label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
+        /* Lucide Icons Standard Styling */
+        .icon-sm, i[data-lucide], svg.lucide {
+            width: 16px !important;
+            height: 16px !important;
+            display: inline-block !important;
+            vertical-align: middle !important;
+            margin-right: 4px;
+        }
+        svg.lucide {
+            stroke-width: 2;
+        }
+
         /* Responsive Mobile Styles */
         @media (max-width: 768px) {
             body {
@@ -560,6 +572,7 @@ if (results && results.length > 0) {
                 }
                 btn.style.display = 'none'; const box = btn.nextElementSibling; box.style.display = 'block';
                 box.innerHTML = `<strong><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + formatDisplayText(data.explanation);
+                if (window.lucide) lucide.createIcons();
                 if (window.MathJax && MathJax.typesetPromise) {
                     MathJax.typesetPromise([box]).catch(error => console.error('MathJax rendering failed:', error));
                 }

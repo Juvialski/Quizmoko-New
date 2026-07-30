@@ -23,4 +23,7 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Removed the forced 302 redirect in `src/routes/resultsRoutes.ts` that stripped `access_token` from URL parameters, preventing 404 "Result not found" errors when third-party cookies are blocked or constrained in iframe previews.
   - Implemented a multi-level fallback `copyTextToClipboard` function across `views/results.ejs`, `views/index.ejs`, and `views/link.ejs` (`navigator.clipboard.writeText` -> temporary `<textarea>` with `execCommand('copy')` -> `window.prompt` dialog) to guarantee clipboard copy functionality across all browsers and iframe contexts.
   - Updated `downloadTeacherPDF` and `copySolutionsLink` in `views/results.ejs` to include share token credentials in generated URLs.
+* **[2026-07-30]** Fixed Lucide icon rendering issues across the solutions page (`/view_solutions/:id`), results page, live tracking, and all other view templates:
+  - Standardized `.icon-sm, i[data-lucide], svg.lucide` CSS rules (`width: 16px !important; height: 16px !important; display: inline-block !important; vertical-align: middle !important; margin-right: 4px;`) across all view templates in `views/` to ensure converted SVG elements maintain proper layout dimensions and inline alignment.
+  - Added `if (window.lucide) lucide.createIcons();` calls after all dynamic DOM/`innerHTML` updates (AI Tutor explanations, status badges, polling updates, force repair sync, and live session table updates) to ensure newly injected icon markup is immediately converted into rendered SVGs.
 

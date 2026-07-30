@@ -19,4 +19,8 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Parallelized Firestore collection loading in `loadFromFirestore` (`Promise.all` across `quiz`, `quizzes`, `results`, `users`) and chunked document hydration in `loadCollection` to reduce cold-start database hydration latency.
   - Eliminated redundant `_quizmoko_chunks` subcollection listing queries on 99.9% of document writes by introducing `knownChunkedDocs` tracking in `src/store/db.ts`.
   - Streamlined progressive autosaving in `/api/save_progressive_result` by executing `syncDocToFirestore` asynchronously in the background so live quiz keystrokes and navigation yield sub-10ms HTTP response times, while full `/submit` retains synchronous Firestore commit guarantees.
+* **[2026-07-30]** Fixed copy link failures and access errors for solutions pages (`/view_solutions/:id`):
+  - Removed the forced 302 redirect in `src/routes/resultsRoutes.ts` that stripped `access_token` from URL parameters, preventing 404 "Result not found" errors when third-party cookies are blocked or constrained in iframe previews.
+  - Implemented a multi-level fallback `copyTextToClipboard` function across `views/results.ejs`, `views/index.ejs`, and `views/link.ejs` (`navigator.clipboard.writeText` -> temporary `<textarea>` with `execCommand('copy')` -> `window.prompt` dialog) to guarantee clipboard copy functionality across all browsers and iframe contexts.
+  - Updated `downloadTeacherPDF` and `copySolutionsLink` in `views/results.ejs` to include share token credentials in generated URLs.
 

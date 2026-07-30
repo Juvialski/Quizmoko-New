@@ -504,15 +504,6 @@ router.get(['/solutions/:result_id', '/view_solutions/:quiz_id'], optionalAuth, 
     const token = requestResultAccessToken(req, id);
     if (token && verifyResultAccessToken(token, (rawResult as any).access_token_hash)) {
       setResultAccessCookie(req, res, id, token);
-      if (typeof req.query.access_token === 'string') {
-        const remainingQuery = new URLSearchParams();
-        for (const [key, value] of Object.entries(req.query)) {
-          if (key === 'access_token') continue;
-          if (typeof value === 'string') remainingQuery.append(key, value);
-        }
-        const suffix = remainingQuery.toString();
-        return res.redirect(302, `${req.path}${suffix ? `?${suffix}` : ''}`);
-      }
     }
   } else if (!canManageQuiz(req.user, quiz)) {
     return res.status(404).send('Result not found');

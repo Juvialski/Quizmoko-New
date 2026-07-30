@@ -388,6 +388,35 @@ if (results && results.length > 0) {
             if (row.style.display === 'table-row') MathJax.typesetPromise([row]);
         }
 
+        async function copyTextToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } catch (err) {
+                    console.warn('navigator.clipboard.writeText failed, using fallback:', err);
+                }
+            }
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                textarea.style.top = '-9999px';
+                textarea.setAttribute('readonly', '');
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                if (successful) return true;
+            } catch (err) {
+                console.warn('execCommand copy failed:', err);
+            }
+            window.prompt('Copy this link:', text);
+            return true;
+        }
+
         async function copySolutionsLink(resultId) {
             try {
                 const response = await fetch(`/api/results/${encodeURIComponent(resultId)}/share_token`, { method: 'POST' });
@@ -395,18 +424,29 @@ if (results && results.length > 0) {
                 if (!response.ok || !data.success) throw new Error(data.error || 'Unable to create share link');
                 const url = window.location.origin + '/view_solutions/' + encodeURIComponent(resultId)
                     + '?access_token=' + encodeURIComponent(data.result_access_token);
-                await navigator.clipboard.writeText(url);
+                await copyTextToClipboard(url);
                 alert('Secure solutions link copied to clipboard!');
             } catch (error) {
-                alert('Could not copy solutions link: ' + error.message);
+                alert('Could not copy solutions link: ' + (error.message || error));
             }
         }
 
         const resultsData = <%- JSON.stringify(results).replace(/</g, "\\u003c") %>;
 
         async function downloadTeacherPDF(resultId) {
-            // New strategy: Open the solutions page and trigger PDF download there
-            const url = window.location.origin + '/view_solutions/' + resultId + '?download=true';
+            try {
+                const response = await fetch(`/api/results/${encodeURIComponent(resultId)}/share_token`, { method: 'POST' });
+                const data = await response.json();
+                if (data.success && data.result_access_token) {
+                    const url = window.location.origin + '/view_solutions/' + encodeURIComponent(resultId)
+                        + '?download=true&access_token=' + encodeURIComponent(data.result_access_token);
+                    window.open(url, '_blank');
+                    return;
+                }
+            } catch (e) {
+                console.warn('Could not generate share token for PDF download, falling back to direct URL:', e);
+            }
+            const url = window.location.origin + '/view_solutions/' + encodeURIComponent(resultId) + '?download=true';
             window.open(url, '_blank');
         }
 

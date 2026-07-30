@@ -1428,9 +1428,39 @@
             label.className = total === 100 ? 'limit-status-green' : 'limit-status-red';
         }
 
-        function copyLink(id) {
+        async function copyTextToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } catch (err) {
+                    console.warn('navigator.clipboard.writeText failed, using fallback:', err);
+                }
+            }
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                textarea.style.top = '-9999px';
+                textarea.setAttribute('readonly', '');
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                if (successful) return true;
+            } catch (err) {
+                console.warn('execCommand copy failed:', err);
+            }
+            window.prompt('Copy this link:', text);
+            return true;
+        }
+
+        async function copyLink(id) {
             const urlText = document.getElementById('url-' + id).innerText;
-            navigator.clipboard.writeText(urlText).then(() => alert('Quiz link copied to clipboard!'));
+            await copyTextToClipboard(urlText);
+            alert('Quiz link copied to clipboard!');
         }
 
         updateCounterUI();

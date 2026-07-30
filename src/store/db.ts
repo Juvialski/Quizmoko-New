@@ -172,6 +172,7 @@ const SENSITIVE_PERSISTENCE_KEYS = new Set([
 const FIRESTORE_INLINE_LIMIT = 700_000;
 const FIRESTORE_CHUNK_CHARACTERS = 180_000;
 const CHUNK_COLLECTION = '_quizmoko_chunks';
+const knownChunkedDocs = new Set<string>();
 
 function envFlag(name: string, fallback: boolean): boolean {
   const raw = process.env[name];
@@ -836,10 +837,14 @@ async function writeDocumentWithChunking(
 ) {
   const data = toPlainPersistenceValue(rawData) as Record<string, any>;
   const serialized = JSON.stringify(data);
+  const docKey = `${collectionName}/${documentId}`;
 
   if (Buffer.byteLength(serialized, 'utf8') <= FIRESTORE_INLINE_LIMIT) {
     await setDocument(backend, collectionName, documentId, data);
-    await removeStaleChunks(backend, collectionName, documentId);
+    if (knownChunkedDocs.has(docKey)) {
+      await removeStaleChunks(backend, collectionName, documentId);
+      knownChunkedDocs.delete(docKey);
+    }
     return;
   }
 
@@ -863,6 +868,7 @@ async function writeDocumentWithChunking(
     _quizmoko_schema_version: 2
   });
   await removeStaleChunks(backend, collectionName, documentId, generation);
+  knownChunkedDocs.add(docKey);
 }
 
 async function hydrateChunkedDocument(
@@ -872,6 +878,7 @@ async function hydrateChunkedDocument(
   data: Record<string, any>
 ) {
   if (!data?._quizmoko_chunked) return data;
+  knownChunkedDocs.add(`${collectionName}/${documentId}`);
   const generation = data._quizmoko_chunk_generation;
   const expectedCount = Number(data._quizmoko_chunk_count);
   const chunks = (await listChunkDocuments(backend, collectionName, documentId))
@@ -988,7 +995,11 @@ export function deleteDocFromFirestore(collectionName: string, documentId: strin
     const failures: Array<{ backend: FirestoreBackend; error: unknown }> = [];
     for (const backend of backends) {
       try {
-        await removeStaleChunks(backend, collectionName, documentId);
+        const docKey = `${collectionName}/${documentId}`;
+        if (knownChunkedDocs.has(docKey)) {
+          await removeStaleChunks(backend, collectionName, documentId);
+          knownChunkedDocs.delete(docKey);
+        }
         await deleteDocument(backend, collectionName, documentId);
       } catch (error) {
         failures.push({ backend, error });
@@ -1023,18 +1034,21 @@ async function loadCollection(
 ): Promise<CollectionLoadResult> {
   try {
     const documents = await listDocuments(backend, collectionName);
-    const hydrated: Array<{ id: string; data: Record<string, any> }> = [];
     let success = true;
-    for (const entry of documents) {
-      try {
-        const data = await hydrateChunkedDocument(backend, collectionName, entry.id, entry.data);
-        stripSensitiveFieldsInPlace(data);
-        hydrated.push({ id: entry.id, data });
-      } catch (error) {
-        success = false;
-        console.warn(`[Firebase] Skipping unreadable ${collectionName}/${entry.id}:`, error instanceof Error ? error.message : 'unknown error');
-      }
-    }
+    const hydratedEntries = await Promise.all(
+      documents.map(async (entry) => {
+        try {
+          const data = await hydrateChunkedDocument(backend, collectionName, entry.id, entry.data);
+          stripSensitiveFieldsInPlace(data);
+          return { id: entry.id, data };
+        } catch (error) {
+          success = false;
+          console.warn(`[Firebase] Skipping unreadable ${collectionName}/${entry.id}:`, error instanceof Error ? error.message : 'unknown error');
+          return null;
+        }
+      })
+    );
+    const hydrated = hydratedEntries.filter((e): e is { id: string; data: Record<string, any> } => e !== null);
     return { success, entries: hydrated };
   } catch (error) {
     lastPersistenceError = error instanceof Error ? error.message : 'Firestore collection load failed';
@@ -1063,11 +1077,13 @@ export async function loadFromFirestore(generation = ++firestoreLoadGeneration):
   };
 
   for (const backend of backends) {
-    // Load the legacy singular collection first so canonical "quizzes" wins.
-    const legacyQuizzes = await loadCollection(backend, 'quiz');
-    const canonicalQuizzes = await loadCollection(backend, 'quizzes');
-    const remoteResults = await loadCollection(backend, 'results');
-    const remoteUsers = await loadCollection(backend, 'users');
+    // Load collections concurrently across the backend
+    const [legacyQuizzes, canonicalQuizzes, remoteResults, remoteUsers] = await Promise.all([
+      loadCollection(backend, 'quiz'),
+      loadCollection(backend, 'quizzes'),
+      loadCollection(backend, 'results'),
+      loadCollection(backend, 'users')
+    ]);
 
     readSuccess.quizzes &&= legacyQuizzes.success && canonicalQuizzes.success;
     readSuccess.results &&= remoteResults.success;

@@ -623,7 +623,9 @@ router.post(
 
   results.set(resultId, resultObj as any);
   savePersistentData();
-  await syncDocToFirestore('results', resultId, resultObj as any);
+  void syncDocToFirestore('results', resultId, resultObj as any).catch((err) => {
+    console.warn(`[Firebase] Progressive result sync failed for ${resultId}:`, err);
+  });
 
   const io = req.app.get('io');
   if (io) {

@@ -13,6 +13,7 @@ import {
   setSessionCookie,
   verifyFirebaseIdToken
 } from '../middleware/auth.ts';
+import { loginLimiter } from '../middleware/rateLimit.ts';
 
 const router = Router();
 const VALID_ROLES = new Set<User['role']>(['admin', 'teacher', 'student']);
@@ -154,7 +155,7 @@ router.post('/api/set_session', asyncRoute(async (req, res) => {
   res.json({ success: true, uid: user.uid, role: user.role });
 }));
 
-router.post('/api/login_session', asyncRoute(async (req, res) => {
+router.post('/api/login_session', loginLimiter, asyncRoute(async (req, res) => {
   if (tokenFromRequest(req)) {
     await establishFirebaseSession(req, res);
     return;

@@ -1457,7 +1457,23 @@
         function toggleCustomBlankSubject(select) {
             document.getElementById('blank-quiz-custom-subject').style.display = (select.value === '__custom__') ? 'block' : 'none';
         }
+        let isCreatingBlank = false;
         function executeCreateBlank() {
+            if (isCreatingBlank) return;
+            isCreatingBlank = true;
+
+            const modal = document.getElementById('createBlankModal');
+            const createBtn = modal.querySelector('.btn-primary');
+            const cancelBtn = modal.querySelector('.btn-secondary');
+            
+            if (createBtn) {
+                createBtn.disabled = true;
+                createBtn.innerHTML = '⏳ Creating Quiz...';
+            }
+            if (cancelBtn) {
+                cancelBtn.disabled = true;
+            }
+
             const title = document.getElementById('blank-quiz-title').value.trim() || 'Untitled Quiz';
             let subject = document.getElementById('blank-quiz-subject').value;
             if (subject === '__custom__') {
@@ -1465,6 +1481,50 @@
             }
             window.location.href = `/create_blank?title=${encodeURIComponent(title)}&subject=${encodeURIComponent(subject)}`;
         }
+
+        window.addEventListener('pageshow', (event) => {
+            // Restore blank quiz buttons and AI generator form if page is loaded from cache (like browser Back button)
+            isCreatingBlank = false;
+            isMerging = false;
+            
+            const modal = document.getElementById('createBlankModal');
+            if (modal) {
+                const createBtn = modal.querySelector('.btn-primary');
+                const cancelBtn = modal.querySelector('.btn-secondary');
+                if (createBtn) {
+                    createBtn.disabled = false;
+                    createBtn.innerHTML = 'Create Quiz';
+                }
+                if (cancelBtn) {
+                    cancelBtn.disabled = false;
+                }
+            }
+
+            const genBtn = document.getElementById('generate-btn');
+            const genForm = document.getElementById('ai-generator-form');
+            if (genBtn && genForm) {
+                genBtn.disabled = false;
+                genBtn.style.color = '';
+                genBtn.style.borderColor = '';
+                genBtn.innerHTML = '<i data-lucide="zap"></i> Generate Quiz';
+                genForm.style.opacity = '';
+                genForm.style.pointerEvents = '';
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay) overlay.style.display = 'none';
+                if (window.lucide) lucide.createIcons();
+            }
+            
+            const mergeBtn = document.querySelector('#mergeActionBar button[onclick="executeMerge()"]');
+            const mergeCancelBtn = document.querySelector('#mergeActionBar button[onclick="toggleMergeMode()"]');
+            if (mergeBtn) {
+                mergeBtn.disabled = false;
+                mergeBtn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> Confirm Merge';
+                if (window.lucide) lucide.createIcons();
+            }
+            if (mergeCancelBtn) {
+                mergeCancelBtn.disabled = false;
+            }
+        });
 
         // --- MOVE MODAL LOGIC ---
         function openMoveModal(id, currentSubject) {
@@ -1544,16 +1604,28 @@
             });
         }
 
+        let isMerging = false;
         async function executeMerge() {
             if(selectedQuizzes.size < 2) {
                 alert('Please select at least 2 worksheets to merge.');
                 return;
             }
+            if(isMerging) return;
+
             const newTitle = prompt('Enter a title for the newly merged worksheet:', 'Merged Worksheet');
             if(!newTitle) return;
 
+            isMerging = true;
             document.getElementById('mergeCount').innerText = 'MERGING...';
             
+            const mergeBtn = document.querySelector('#mergeActionBar button[onclick="executeMerge()"]');
+            const cancelBtn = document.querySelector('#mergeActionBar button[onclick="toggleMergeMode()"]');
+            if (mergeBtn) {
+                mergeBtn.disabled = true;
+                mergeBtn.innerText = '⏳ Merging...';
+            }
+            if (cancelBtn) cancelBtn.disabled = true;
+
             try {
                 const res = await fetch('/merge', {
                     method: 'POST',
@@ -1565,9 +1637,25 @@
                     window.location.href = `/edit/${data.new_quiz_id}`;
                 } else {
                     alert('Merge failed: ' + data.error);
+                    isMerging = false;
+                    document.getElementById('mergeCount').innerText = `${selectedQuizzes.size} SELECTED`;
+                    if (mergeBtn) {
+                        mergeBtn.disabled = false;
+                        mergeBtn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> Confirm Merge';
+                        if (window.lucide) lucide.createIcons();
+                    }
+                    if (cancelBtn) cancelBtn.disabled = false;
                 }
             } catch(err) {
                 alert('An error occurred during merge.');
+                isMerging = false;
+                document.getElementById('mergeCount').innerText = `${selectedQuizzes.size} SELECTED`;
+                if (mergeBtn) {
+                    mergeBtn.disabled = false;
+                    mergeBtn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> Confirm Merge';
+                    if (window.lucide) lucide.createIcons();
+                }
+                if (cancelBtn) cancelBtn.disabled = false;
             }
         }
     </script>

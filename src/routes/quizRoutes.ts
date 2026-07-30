@@ -1,5 +1,6 @@
 import { Router, type NextFunction, type Response } from 'express';
 import { tokenRequired } from '../middleware/auth.ts';
+import { createQuizLimiter } from '../middleware/rateLimit.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
 import {
   quizzes,
@@ -369,7 +370,7 @@ router.delete('/api/quiz/:quiz_id', tokenRequired, asyncRoute(async (req, res) =
   res.json({ success: true, deleted_result_count: deletedResultCount });
 }));
 
-router.get('/create_blank', tokenRequired, asyncRoute(async (req, res) => {
+router.get('/create_blank', tokenRequired, createQuizLimiter, asyncRoute(async (req, res) => {
   const title = (req.query.title as string) || 'Untitled Quiz';
   const uniqueTitle = getUniqueQuizTitle(title);
   const subject = (req.query.subject as string) || 'General';
@@ -404,7 +405,7 @@ router.get('/create_blank', tokenRequired, asyncRoute(async (req, res) => {
   res.redirect(`/edit/${newId}`);
 }));
 
-router.post('/merge', tokenRequired, asyncRoute(async (req, res) => {
+router.post('/merge', tokenRequired, createQuizLimiter, asyncRoute(async (req, res) => {
   const { quiz_ids = [], new_title = 'Merged Quiz' } = req.body;
   if (!Array.isArray(quiz_ids) || quiz_ids.length === 0) {
     return res.status(400).json({ success: false, error: 'Select at least one quiz to merge' });

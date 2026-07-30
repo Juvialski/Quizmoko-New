@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Type } from '@google/genai';
 import { tokenRequired } from '../middleware/auth.ts';
+import { generateAiLimiter } from '../middleware/rateLimit.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
 import {
   quizzes,
@@ -448,7 +449,7 @@ router.get('/api/ollama_tags', tokenRequired, async (req: AuthRequest, res) => {
   }
 });
 
-router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, async (req: AuthRequest, res) => {
+router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimiter, async (req: AuthRequest, res) => {
   const wantsJson = req.path.startsWith('/api/') || (req.get('accept') || '').includes('application/json');
   const fail = (status: number, message: string) => {
     if (wantsJson) return res.status(status).json({ success: false, error: message });

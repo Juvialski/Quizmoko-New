@@ -536,8 +536,10 @@
             updateFileList();
         });
 
+        let isExtracting = false;
         async function handleExtract(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
+            if (isExtracting) return;
             if (fileInput.files.length === 0 && pastedFiles.length === 0) return alert('Please upload or paste at least one file.');
 
             const model = document.getElementById('model_select').value;
@@ -545,6 +547,13 @@
             const apiKey = isLocal ? null : await getUsableKey(model, 1);
 
             if (!isLocal && !apiKey) return alert('No API keys with remaining quota found today. Please add more keys or wait for reset.');
+
+            isExtracting = true;
+            const extractBtn = document.getElementById('extract-btn');
+            if (extractBtn) {
+                extractBtn.disabled = true;
+                extractBtn.innerHTML = '⏳ Extracting...';
+            }
 
             const sessionId = 'ws_' + Math.random().toString(36).substring(2, 15);
             progressText.innerHTML = '<i data-lucide="search" class="icon-sm"></i> Extracting Worksheet Content...';
@@ -613,12 +622,30 @@
                         document.getElementById('extraction-preview').style.display = 'block';
                         overlay.style.display = 'none';
                         progressBar.style.width = '0%';
+                        isExtracting = false;
+                        if (extractBtn) {
+                            extractBtn.disabled = false;
+                            extractBtn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> EXTRACT QUESTIONS';
+                            if (window.lucide) lucide.createIcons();
+                        }
                     }, 1000);
                 } else {
                     alert('Extraction failed: ' + data.error);
+                    isExtracting = false;
+                    if (extractBtn) {
+                        extractBtn.disabled = false;
+                        extractBtn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> EXTRACT QUESTIONS';
+                        if (window.lucide) lucide.createIcons();
+                    }
                 }
             } catch (err) {
                 alert('An error occurred during extraction.');
+                isExtracting = false;
+                if (extractBtn) {
+                    extractBtn.disabled = false;
+                    extractBtn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> EXTRACT QUESTIONS';
+                    if (window.lucide) lucide.createIcons();
+                }
             } finally {
                 overlay.style.display = 'none';
                 progressBar.style.width = '0%';
@@ -852,7 +879,9 @@
             q.raw_text = text + (imgMatch ? '\n' + imgMatch[0] : '');
         }
 
+        let isSolving = false;
         async function handleSolve() {
+            if (isSolving) return;
             const batchSize = parseInt(document.getElementById('batch_size').value);
             const model = document.getElementById('model_select').value;
             const isLocal = model.startsWith('ollama:');
@@ -861,6 +890,13 @@
             const apiKey = isLocal ? null : await getUsableKey(model, estimatedRequests);
 
             if (!isLocal && !apiKey) return alert(`No API keys with enough remaining quota (${estimatedRequests} calls needed) found today.`);
+
+            isSolving = true;
+            const solveBtn = document.getElementById('solve-btn');
+            if (solveBtn) {
+                solveBtn.disabled = true;
+                solveBtn.innerHTML = '⏳ Generating...';
+            }
 
             const subject = document.getElementById('subject_input').value;
             const timeLimit = document.getElementById('time_limit').value;
@@ -883,6 +919,12 @@
                         clearInterval(pollInterval);
                         alert('Solving timed out. Please check your internet connection and dashboard to see if the quiz was created.');
                         overlay.style.display = 'none';
+                        isSolving = false;
+                        if (solveBtn) {
+                            solveBtn.disabled = false;
+                            solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ';
+                            if (window.lucide) lucide.createIcons();
+                        }
                         return;
                     }
 
@@ -906,6 +948,12 @@
                         clearInterval(pollInterval);
                         alert('Solving failed: ' + (data.error || data.message));
                         overlay.style.display = 'none';
+                        isSolving = false;
+                        if (solveBtn) {
+                            solveBtn.disabled = false;
+                            solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ';
+                            if (window.lucide) lucide.createIcons();
+                        }
                     }
                 } catch(e) {
                     // Suppress polling error logging to console when server restarts or network has transient issues
@@ -940,8 +988,32 @@
                 clearInterval(pollInterval);
                 alert('Solving failed: ' + error.message);
                 overlay.style.display = 'none';
+                isSolving = false;
+                if (solveBtn) {
+                    solveBtn.disabled = false;
+                    solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ';
+                    if (window.lucide) lucide.createIcons();
+                }
             }
         }
+
+        window.addEventListener('pageshow', () => {
+            isExtracting = false;
+            isSolving = false;
+            const extractBtn = document.getElementById('extract-btn');
+            if (extractBtn) {
+                extractBtn.disabled = false;
+                extractBtn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> EXTRACT QUESTIONS';
+            }
+            const solveBtn = document.getElementById('solve-btn');
+            if (solveBtn) {
+                solveBtn.disabled = false;
+                solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ';
+            }
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) overlay.style.display = 'none';
+            if (window.lucide) lucide.createIcons();
+        });
     </script>
     <script>lucide.createIcons();</script>
 </body>

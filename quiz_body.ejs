@@ -13,7 +13,6 @@
                     <div class="header-info">
                         <span style="font-weight: 800;"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> QUIZMOKO</span>
                         <div id="connection-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--success); margin-left:10px;" title="Online"></div>
-                        <button id="math-retry-btn" onclick="renderMath()" style="display:none; background:transparent; border:1px solid var(--hairline); border-radius:4px; padding:2px 8px; font-size:10px; color:var(--body); cursor:pointer; margin-left:10px;">📐 RETRY MATH</button>
                         <span id="q-tracker" style="display:none; background:var(--surface-elevated); padding: 6px 12px; border-radius: 12px; margin-left: 10px;">Q <span id="q-num">1</span> / <%= (quiz.questions || []).length %></span>
                         <span id="score-tracker" style="display:none; background:rgba(52, 211, 153, 0.1); color:var(--success); padding: 6px 12px; border-radius: 12px; margin-left: 10px; font-weight:800;">Score: <span id="live-score">0.00</span></span>
                         <button id="btn-end-early" onclick="submitQuiz('early')" class="action-btn btn-danger" style="display:none;"><i data-lucide="log-out" class="icon-sm"></i> End Quiz</button>

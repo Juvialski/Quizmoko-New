@@ -236,7 +236,10 @@ export function gradeQuestionLocally(question: any, studentAnswer: any): LocalGr
 
   if (questionType === 'identification') {
     const isCorrect = gradeIdentification(correctAnswer, studentAnswer);
-    return { isCorrect, scoreFraction: isCorrect ? 1 : 0, questionType, correctAnswer, requiresSemanticGrading: false };
+    if (isCorrect) {
+      return { isCorrect: true, scoreFraction: 1, questionType, correctAnswer, requiresSemanticGrading: false };
+    }
+    return { isCorrect: false, scoreFraction: 0, questionType, correctAnswer, requiresSemanticGrading: true };
   }
 
   const expected = normalizeText(correctAnswer);

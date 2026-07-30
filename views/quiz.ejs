@@ -130,6 +130,7 @@
         .review-block { padding: 30px; margin-bottom: 24px; border-radius: var(--radius-md); text-align: left; border: 1px solid var(--hairline); background: var(--surface-soft);}
         .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; display: inline-block;}
         .status-correct { background: #dcfce7; color: #166534; }
+        .status-partial { background: #ffedd5; color: #9a3412; }
         .status-wrong { background: #fee2e2; color: #991b1b; }
         .workings-title { font-weight: 700; color: var(--on-dark); margin-top: 24px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 14px;}
         .workings-img { width: 100%; max-width: 100%; height: auto; max-height: 400px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); background: white; display: block; object-fit: contain;}
@@ -254,25 +255,35 @@
         /* Redesigned Top Bar Styles */
         .quiz-topbar-wrapper {
             background: var(--surface-card);
-            border-bottom: 1px solid var(--hairline);
-            padding: 16px 20px;
+            border: 1px solid var(--hairline);
+            padding: 14px 20px;
             margin-bottom: 24px;
-            border-radius: var(--radius-sm);
+            border-radius: var(--radius-md);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             width: 100%;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 12px;
         }
         .quiz-brand-row {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
-            gap: 12px;
+            justify-content: space-between;
             width: 100%;
-            border-bottom: 1px solid var(--hairline);
-            padding-bottom: 12px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .brand-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand-right-tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
         }
         .quiz-brand-title {
             font-weight: 800;
@@ -296,7 +307,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-left: auto; /* Push stats to the far right of the top row */
         }
         .stat-badge {
             background: var(--surface-soft);
@@ -330,6 +340,8 @@
             width: 100%;
             gap: 16px;
             flex-wrap: wrap;
+            padding-top: 12px;
+            border-top: 1px solid var(--hairline);
         }
         .tools-left-group {
             display: flex;
@@ -342,6 +354,7 @@
             align-items: center;
             gap: 12px;
             margin-left: auto;
+            flex-wrap: wrap;
         }
         
         .expanded-toolbar {
@@ -473,8 +486,13 @@
             }
             .quiz-brand-row {
                 flex-wrap: wrap;
-                padding-bottom: 8px;
-                justify-content: center !important;
+                justify-content: space-between !important;
+                gap: 10px !important;
+            }
+            .brand-right-tools {
+                margin-left: 0 !important;
+                width: 100%;
+                justify-content: center;
             }
             .quiz-stats-group {
                 margin-left: 0 !important;
@@ -482,9 +500,11 @@
                 justify-content: center;
             }
             .quiz-tools-row {
-                flex-direction: column !important;
-                align-items: stretch !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
                 gap: 10px !important;
+                padding-top: 10px !important;
             }
             .tools-left-group, .tools-right-group {
                 justify-content: center !important;
@@ -539,18 +559,16 @@
             <div class="quiz-container">
                 
 <div class="quiz-topbar-wrapper">
-    <!-- Top Row: Branding, Connectivity, and Progress Stats -->
+    <!-- Top Row: Branding (Left) and Theme/Align/Size Toolbar (Right) -->
     <div class="quiz-brand-row">
-        <span class="quiz-brand-title">
-            <i data-lucide="rocket"></i> QUIZMOKO
-        </span>
-        <div id="connection-dot" class="status-dot" title="Online"></div>
-    </div>
-    
-    <!-- Bottom Row: Interactive Tools and Action Buttons (Expanded & Balanced) -->
-    <div class="quiz-tools-row">
-        <!-- Left Side: Custom Tools & Utilities -->
-        <div class="tools-left-group">
+        <div class="brand-left">
+            <span class="quiz-brand-title">
+                <i data-lucide="rocket"></i> QUIZMOKO
+            </span>
+            <div id="connection-dot" class="status-dot" title="Online"></div>
+        </div>
+
+        <div class="brand-right-tools">
             <div class="expanded-toolbar">
                 <button onclick="toggleTheme()" class="tool-btn" title="Toggle Theme">
                     <i data-lucide="moon"></i>
@@ -570,21 +588,23 @@
                     <span>A+</span>
                 </button>
             </div>
-
-            <!-- Retry Math Button -->
-            <button id="math-retry-btn" onclick="renderMath()" class="action-btn btn-secondary" style="display:none;">
-                <i data-lucide="refresh-cw"></i> Retry Math
-            </button>
         </div>
-
-        <!-- Right Side: Navigation & Core Actions -->
-        <div class="tools-right-group">
+    </div>
+    
+    <!-- Bottom Row: Progress Trackers (Left) and Core Actions (Right) Stretching Below -->
+    <div class="quiz-tools-row" id="quiz-bottom-row" style="display:none;">
+        <!-- Left Side: Question Tracker & Score Tracker -->
+        <div class="tools-left-group">
             <span id="q-tracker" class="stat-badge" style="display:none;">
                 Question <span id="q-num" style="margin: 0 4px;">1</span> of <%= (quiz.questions || []).length %>
             </span>
             <span id="score-tracker" class="stat-badge stat-score" style="display:none;">
                 Score: <span id="live-score">0.00</span>
             </span>
+        </div>
+
+        <!-- Right Side: Whiteboard & End Quiz Actions -->
+        <div class="tools-right-group">
             <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" class="action-btn btn-primary" style="display:none;">
                 <i data-lucide="pen-tool" class="icon-sm"></i> Show Whiteboard
             </button>
@@ -675,6 +695,10 @@
     <script>
         const quizId = '<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>';
         const quizData = <%- JSON.stringify(quiz).replace(/</g, "\\u003c") %>;
+        if (quizData) {
+            const rawMode = String(quizData.quiz_mode || quizData.quizMode || 'back_and_forth').toLowerCase().trim().replace(/[\s-]+/g, '_');
+            quizData.quiz_mode = (rawMode === 'sequential') ? 'sequential' : 'back_and_forth';
+        }
 
         function applyPauseState(paused) {
             const nextPaused = !!paused;
@@ -1112,15 +1136,9 @@
         }
 
         function renderMath(t = 'quiz-screen', attempt = 0) {
-            // Show retry button if it takes too long
-            const retryBtn = document.getElementById('math-retry-btn');
-            if (retryBtn) retryBtn.style.display = 'inline-flex';
-
             if (window.MathJax && window.MathJax.typesetPromise) {
                 MathJax.typesetClear();
-                MathJax.typesetPromise([document.getElementById(t)]).then(() => {
-                    if (retryBtn) retryBtn.style.display = 'none'; // Hide if successful
-                }).catch(e => console.log(e));
+                MathJax.typesetPromise([document.getElementById(t)]).catch(e => console.log(e));
             }
             else if (attempt < 100) setTimeout(() => renderMath(t, attempt + 1), 50);
         }
@@ -1237,12 +1255,16 @@
         function startQuizUI() {
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('quiz-screen').style.display = 'block';
+
+            const bottomRow = document.getElementById('quiz-bottom-row');
+            if (bottomRow) bottomRow.style.display = 'flex';
+
             document.getElementById('q-tracker').style.display = 'inline-flex';
 
             // HIDE LIVE SCORE in Back-and-Forth Mode to prevent 'brute forcing' answers
             const scoreTracker = document.getElementById('score-tracker');
             if (scoreTracker) {
-                scoreTracker.style.display = (quizData.quiz_mode === 'back_and_forth') ? 'none' : 'inline-flex';
+                scoreTracker.style.display = (quizData.quiz_mode === 'sequential') ? 'inline-flex' : 'none';
             }
 
             document.getElementById('btn-end-early').style.display = 'inline-flex';
@@ -1282,9 +1304,14 @@
 
                 startTimer(); // Ensure timer continues ticking on question load
 
-                // Reset instant feedback
+                // Reset instant feedback & score tracker visibility per mode
                 const feedbackCont = document.getElementById('instant-feedback');
                 if (feedbackCont) feedbackCont.style.display = 'none';
+
+                const scoreTracker = document.getElementById('score-tracker');
+                if (scoreTracker) {
+                    scoreTracker.style.display = (quizData.quiz_mode === 'sequential') ? 'inline-flex' : 'none';
+                }
 
                 currentSelectedOption = answers[currentIndex] || null; // RESTORE PREVIOUS ANSWER
 
@@ -1993,14 +2020,15 @@
                 progressiveResults.forEach((item, i) => {
                     const b = document.createElement('div'); b.className = `review-block`;
 
-                    const statusClass = item.is_correct ? 'status-correct' : 'status-wrong';
-                    const statusText = item.is_correct ? '<i data-lucide="check" class="icon-sm"></i> Correct' : '<i data-lucide="x" class="icon-sm"></i> Incorrect';
+                    const sfVal = Number(item.score_fraction !== undefined ? item.score_fraction : (item.is_correct ? 1 : 0));
+                    const statusClass = sfVal >= 1 ? 'status-correct' : (sfVal > 0 ? 'status-partial' : 'status-wrong');
+                    const statusText = sfVal >= 1 ? '<i data-lucide="check" class="icon-sm"></i> Correct' : (sfVal > 0 ? `<i data-lucide="minus" class="icon-sm"></i> Partial (${(sfVal * 100).toFixed(0)}%)` : '<i data-lucide="x" class="icon-sm"></i> Incorrect');
 
                     let html = `
                         <div class="status-badge ${statusClass}">${statusText}</div>
                         <div style="font-weight: 800; color: var(--primary); display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
                             <span>QUESTION ${i+1}</span>
-                            <span style="font-size: 14px; background: var(--surface-card); padding: 4px 10px; border-radius: 8px;">Points: ${(Number(item.score_fraction) || 0).toFixed(2)} / 1.0</span>
+                            <span style="font-size: 14px; background: var(--surface-card); padding: 4px 10px; border-radius: 8px;">Points: ${sfVal.toFixed(2)} / 1.0</span>
                         </div>
                         <div style="font-size: 18px; margin-bottom: 20px;">${formatText(item.question)}</div>
                     `;

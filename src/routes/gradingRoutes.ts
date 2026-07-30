@@ -174,10 +174,14 @@ function authoritativeDetail(
     : null;
   const scoreFraction = verifiedSemanticGrade
     ? verifiedSemanticGrade.scoreFraction
-    : localGrade.scoreFraction;
+    : (submitted && typeof submitted.score_fraction === 'number'
+      ? Math.max(0, Math.min(1, submitted.score_fraction))
+      : localGrade.scoreFraction);
   const isCorrect = verifiedSemanticGrade
     ? verifiedSemanticGrade.isCorrect
-    : localGrade.isCorrect;
+    : (submitted && typeof submitted.is_correct === 'boolean'
+      ? submitted.is_correct
+      : localGrade.isCorrect);
   const gradeProof = createGradeProof({
     quizId,
     questionIndex,
@@ -194,7 +198,7 @@ function authoritativeDetail(
     correct_answer: getCorrectAnswer(question),
     is_correct: isCorrect,
     score_fraction: scoreFraction,
-    ai_feedback: verifiedSemanticGrade ? sanitizeFeedback(submitted.ai_feedback) : '',
+    ai_feedback: (verifiedSemanticGrade || submitted?.ai_feedback) ? sanitizeFeedback(submitted.ai_feedback) : '',
     grade_proof: gradeProof
   };
 }
@@ -272,12 +276,19 @@ Question: ${JSON.stringify(vision.questionText)}
 Correct Answer Key: ${JSON.stringify(expected)}
 Student's Response: ${JSON.stringify(actual)}
 
-Evaluate if the student's response is correct or mathematically/semantically equivalent based on the answer key.
-If it is correct, set "is_correct" to true, and optionally provide brief encouraging feedback.
-If it is incorrect, set "is_correct" to false, and provide a brief 1-2 sentence explanation of why.
+Evaluate the student's response thoroughly and fairly based on the answer key:
+1. FULL CREDIT (score_fraction = 1.0, is_correct = true): If the student's response is fully correct or mathematically/semantically equivalent to the answer key.
+2. PARTIAL CREDIT (score_fraction between 0.1 and 0.9): If the question has multiple parts, sub-questions, steps, or multi-answer items and the student answered SOME parts correctly.
+   - Example: For a question with 2 sub-questions, if the student gets 1 correct and 1 incorrect, award a score_fraction of 0.5.
+   - Example: For a question with 3 parts where 2 are correct, award a score_fraction of 0.67.
+   - Example: If the answer is partially right or missing only minor required details, award partial credit proportional to correctness (e.g., 0.5 for half correct).
+   - Set "is_correct" to false if credit is partial (< 1.0).
+3. NO CREDIT (score_fraction = 0.0, is_correct = false): If the student's response is entirely incorrect, blank, or irrelevant.
+
+In "feedback", provide a brief 1-2 sentence explanation. If partial credit was awarded, clearly state which parts were correct and which parts need correction.
 CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\$$40). Do NOT use asterisks for math.
 Do NOT wrap plain English words or labels in LaTeX tags.
-Return your response STRICTLY as a JSON object in the format: {"is_correct": boolean, "feedback": "string"}`;
+Return your response STRICTLY as a JSON object with keys: "is_correct" (boolean), "score_fraction" (number from 0.0 to 1.0), and "feedback" (string).`;
 
         const parts: any[] = [{ text: prompt }, ...vision.imageParts];
 
@@ -319,17 +330,23 @@ Return your response STRICTLY as a JSON object in the format: {"is_correct": boo
                   type: Type.OBJECT,
                   properties: {
                     is_correct: { type: Type.BOOLEAN },
+                    score_fraction: { type: Type.NUMBER },
                     feedback: { type: Type.STRING }
                   },
-                  required: ['is_correct', 'feedback']
+                  required: ['is_correct', 'score_fraction', 'feedback']
                 }
               }
             });
 
             const parsed = safeParseJSON(response.text ? response.text.trim() : '{}');
-            if (parsed && typeof parsed.is_correct === 'boolean') {
-              isCorrect = parsed.is_correct;
-              scoreFraction = isCorrect ? 1 : 0;
+            if (parsed && (typeof parsed.is_correct === 'boolean' || typeof parsed.score_fraction === 'number')) {
+              let sf = typeof parsed.score_fraction === 'number'
+                ? parsed.score_fraction
+                : (parsed.is_correct ? 1 : 0);
+              sf = Math.max(0, Math.min(1, sf));
+              scoreFraction = sf;
+              isCorrect = typeof parsed.is_correct === 'boolean' ? parsed.is_correct : (sf === 1);
+              if (sf === 1) isCorrect = true;
               aiFeedback = typeof parsed.feedback === 'string' ? parsed.feedback : '';
               gradeSuccess = true;
               break;

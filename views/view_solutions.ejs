@@ -491,10 +491,11 @@
             }
 
             try {
+                const apiKey = localStorage.getItem('gemini_api_key') || '';
                 const res = await fetch(`/api/results/${resultId}/recheck`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ q_index: index })
+                    body: JSON.stringify({ q_index: index, api_key: apiKey })
                 });
 
                 const data = await res.json();
@@ -534,15 +535,16 @@
                     }
                     if (window.lucide) lucide.createIcons();
                 } else {
-                    alert('Re-check failed: ' + data.error);
+                    alert('Re-check failed: ' + (data.error || 'Unknown error'));
                 }
             } catch (e) {
                 console.error('Recheck error:', e);
                 alert('Network error while re-checking.');
             } finally {
-                if (targetBtn && targetBtn.innerText === '⌛ RE-CHECKING...') {
-                    targetBtn.innerText = originalText;
+                if (targetBtn && (targetBtn.innerText === '⌛ RE-CHECKING...' || targetBtn.disabled)) {
+                    targetBtn.innerHTML = originalHtml;
                     targetBtn.disabled = false;
+                    if (window.lucide) lucide.createIcons();
                 }
             }
         }

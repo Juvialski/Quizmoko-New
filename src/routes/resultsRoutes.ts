@@ -229,19 +229,39 @@ router.post('/api/results/:result_id/recheck', optionalAuth, async (req: AuthReq
   }
 
   const quizQuestion: any = quizzes.get(result.quiz_id)?.questions?.[questionIndex] || {};
+  const originalAnswer = getCorrectAnswer(quizQuestion);
+  const detailAnswer = detail.correct_answer;
+  const answerKey = (originalAnswer && String(originalAnswer).trim() !== '' && originalAnswer !== 'Grading Error')
+    ? originalAnswer
+    : (detailAnswer !== 'Grading Error' ? detailAnswer : '');
+
   const gradingQuestion = {
     ...quizQuestion,
     type: detail.type || quizQuestion.type,
-    answer: Object.prototype.hasOwnProperty.call(detail, 'correct_answer')
-      ? detail.correct_answer
-      : getCorrectAnswer(quizQuestion)
+    answer: answerKey
   };
   const grade = gradeQuestionLocally(gradingQuestion, detail.user_answer);
 
   const customApiKey = typeof req.body?.api_key === 'string' ? req.body.api_key.trim() : '';
-  const ai = getGeminiClient(customApiKey) || getGeminiClient();
+  const clientsToTry: any[] = [];
+  if (customApiKey) {
+    try {
+      const customClient = getGeminiClient(customApiKey);
+      if (customClient) clientsToTry.push(customClient);
+    } catch (err) {
+      console.warn('Recheck custom API key error, falling back to default:', err);
+    }
+  }
+  try {
+    const defaultClient = getGeminiClient();
+    if (defaultClient && (!clientsToTry.length || defaultClient !== clientsToTry[0])) {
+      clientsToTry.push(defaultClient);
+    }
+  } catch (err) {
+    console.error('Recheck failed to resolve default Gemini client:', err);
+  }
 
-  if (ai) {
+  if (clientsToTry.length > 0) {
     try {
       const quiz = quizzes.get(result.quiz_id);
       const qText = gradingQuestion.question || gradingQuestion.raw_text || gradingQuestion.statement || '';
@@ -260,11 +280,11 @@ router.post('/api/results/:result_id/recheck', optionalAuth, async (req: AuthReq
       const prompt = `You are an expert teacher grading a quiz.
 Question Type: ${qType}
 Question: ${JSON.stringify(visionText)}
-Correct Answer Key: ${JSON.stringify(gradingQuestion.answer)}
+Correct Answer Key: ${JSON.stringify(gradingQuestion.answer || 'Open-ended evaluation / evaluate based on question requirement')}
 Student's Response: ${JSON.stringify(detail.user_answer)}
 
 Evaluate the student's response thoroughly and fairly based on the answer key:
-1. FULL CREDIT (score_fraction = 1.0, is_correct = true): If the student's response is fully correct or mathematically/semantically equivalent to the answer key.
+1. FULL CREDIT (score_fraction = 1.0, is_correct = true): If the student's response is fully correct or mathematically/semantically equivalent to the answer key or question requirement.
 2. PARTIAL CREDIT (score_fraction between 0.1 and 0.9): If the question has multiple parts, sub-questions, steps, or multi-answer items and the student answered SOME parts correctly.
    - Example: For a question with 2 sub-questions, if the student gets 1 correct and 1 incorrect, award a score_fraction of 0.5.
    - Example: For a question with 3 parts where 2 are correct, award a score_fraction of 0.67.
@@ -290,42 +310,45 @@ Return your response STRICTLY as a JSON object with keys: "is_correct" (boolean)
       const modelsToTry = [primaryModel, ...fallbackCandidates.filter(m => m !== primaryModel)];
 
       let gradeSuccess = false;
-      for (const modelName of modelsToTry) {
-        try {
-          const response = await ai.models.generateContent({
-            model: modelName,
-            contents: [{ role: 'user', parts }],
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                  is_correct: { type: Type.BOOLEAN },
-                  score_fraction: { type: Type.NUMBER },
-                  feedback: { type: Type.STRING }
-                },
-                required: ['is_correct', 'score_fraction', 'feedback']
+      for (const client of clientsToTry) {
+        if (gradeSuccess) break;
+        for (const modelName of modelsToTry) {
+          try {
+            const response = await client.models.generateContent({
+              model: modelName,
+              contents: [{ role: 'user', parts }],
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: {
+                  type: Type.OBJECT,
+                  properties: {
+                    is_correct: { type: Type.BOOLEAN },
+                    score_fraction: { type: Type.NUMBER },
+                    feedback: { type: Type.STRING }
+                  },
+                  required: ['is_correct', 'score_fraction', 'feedback']
+                }
               }
-            }
-          });
+            });
 
-          const parsed = safeParseJSON(response.text ? response.text.trim() : '{}');
-          if (parsed && (typeof parsed.is_correct === 'boolean' || typeof parsed.score_fraction === 'number')) {
-            let sf = typeof parsed.score_fraction === 'number'
-              ? parsed.score_fraction
-              : (parsed.is_correct ? 1 : 0);
-            sf = Math.max(0, Math.min(1, sf));
-            grade.scoreFraction = sf;
-            grade.isCorrect = typeof parsed.is_correct === 'boolean' ? parsed.is_correct : (sf === 1);
-            if (sf === 1) grade.isCorrect = true;
-            if (typeof parsed.feedback === 'string') {
-              detail.ai_feedback = parsed.feedback;
+            const parsed = safeParseJSON(response.text ? response.text.trim() : '{}');
+            if (parsed && (typeof parsed.is_correct === 'boolean' || typeof parsed.score_fraction === 'number')) {
+              let sf = typeof parsed.score_fraction === 'number'
+                ? parsed.score_fraction
+                : (parsed.is_correct ? 1 : 0);
+              sf = Math.max(0, Math.min(1, sf));
+              grade.scoreFraction = sf;
+              grade.isCorrect = typeof parsed.is_correct === 'boolean' ? parsed.is_correct : (sf === 1);
+              if (sf === 1) grade.isCorrect = true;
+              if (typeof parsed.feedback === 'string') {
+                detail.ai_feedback = parsed.feedback;
+              }
+              gradeSuccess = true;
+              break;
             }
-            gradeSuccess = true;
-            break;
+          } catch (modelErr) {
+            console.warn(`Recheck AI grading failed with model ${modelName}, trying fallback:`, modelErr);
           }
-        } catch (modelErr) {
-          console.warn(`Recheck AI grading failed with model ${modelName}, trying fallback:`, modelErr);
         }
       }
 

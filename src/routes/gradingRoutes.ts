@@ -269,15 +269,25 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
 
   if (localGrade.requiresSemanticGrading) {
     const semanticSlot = await acquireSemanticAiSlot(req);
-    let ai: ReturnType<typeof getGeminiClient> = null;
-    if (semanticSlot) {
+    const clientsToTry: any[] = [];
+    if (typeof api_key === 'string' && api_key.trim().length > 0) {
       try {
-        ai = getGeminiClient(api_key) || getGeminiClient();
-      } catch (error) {
-        console.error('AI grader initialization error:', error);
+        const customClient = getGeminiClient(api_key.trim());
+        if (customClient) clientsToTry.push(customClient);
+      } catch (err) {
+        console.warn('Invalid custom API key provided, will use default system key:', err);
       }
     }
-    if (ai && semanticSlot) {
+    try {
+      const defaultClient = getGeminiClient();
+      if (defaultClient && (!clientsToTry.length || defaultClient !== clientsToTry[0])) {
+        clientsToTry.push(defaultClient);
+      }
+    } catch (err) {
+      console.error('Failed to resolve system Gemini client:', err);
+    }
+
+    if (clientsToTry.length > 0) {
       try {
         const vision = extractQuestionVision(q.question);
         const prompt = `You are an expert teacher grading a quiz.
@@ -329,40 +339,43 @@ Return your response STRICTLY as a JSON object with keys: "is_correct" (boolean)
         const modelsToTry = [primaryModel, ...fallbackCandidates.filter(m => m !== primaryModel)];
 
         let gradeSuccess = false;
-        for (const modelName of modelsToTry) {
-          try {
-            const response = await ai.models.generateContent({
-              model: modelName,
-              contents: [{ role: 'user', parts }],
-              config: {
-                responseMimeType: 'application/json',
-                responseSchema: {
-                  type: Type.OBJECT,
-                  properties: {
-                    is_correct: { type: Type.BOOLEAN },
-                    score_fraction: { type: Type.NUMBER },
-                    feedback: { type: Type.STRING }
-                  },
-                  required: ['is_correct', 'score_fraction', 'feedback']
+        for (const client of clientsToTry) {
+          if (gradeSuccess) break;
+          for (const modelName of modelsToTry) {
+            try {
+              const response = await client.models.generateContent({
+                model: modelName,
+                contents: [{ role: 'user', parts }],
+                config: {
+                  responseMimeType: 'application/json',
+                  responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                      is_correct: { type: Type.BOOLEAN },
+                      score_fraction: { type: Type.NUMBER },
+                      feedback: { type: Type.STRING }
+                    },
+                    required: ['is_correct', 'score_fraction', 'feedback']
+                  }
                 }
-              }
-            });
+              });
 
-            const parsed = safeParseJSON(response.text ? response.text.trim() : '{}');
-            if (parsed && (typeof parsed.is_correct === 'boolean' || typeof parsed.score_fraction === 'number')) {
-              let sf = typeof parsed.score_fraction === 'number'
-                ? parsed.score_fraction
-                : (parsed.is_correct ? 1 : 0);
-              sf = Math.max(0, Math.min(1, sf));
-              scoreFraction = sf;
-              isCorrect = typeof parsed.is_correct === 'boolean' ? parsed.is_correct : (sf === 1);
-              if (sf === 1) isCorrect = true;
-              aiFeedback = typeof parsed.feedback === 'string' ? parsed.feedback : '';
-              gradeSuccess = true;
-              break;
+              const parsed = safeParseJSON(response.text ? response.text.trim() : '{}');
+              if (parsed && (typeof parsed.is_correct === 'boolean' || typeof parsed.score_fraction === 'number')) {
+                let sf = typeof parsed.score_fraction === 'number'
+                  ? parsed.score_fraction
+                  : (parsed.is_correct ? 1 : 0);
+                sf = Math.max(0, Math.min(1, sf));
+                scoreFraction = sf;
+                isCorrect = typeof parsed.is_correct === 'boolean' ? parsed.is_correct : (sf === 1);
+                if (sf === 1) isCorrect = true;
+                aiFeedback = typeof parsed.feedback === 'string' ? parsed.feedback : '';
+                gradeSuccess = true;
+                break;
+              }
+            } catch (modelErr) {
+              console.warn(`AI grading model ${modelName} failed, trying fallback:`, modelErr);
             }
-          } catch (modelErr) {
-            console.warn(`AI grading model ${modelName} failed, trying fallback:`, modelErr);
           }
         }
 
@@ -373,7 +386,7 @@ Return your response STRICTLY as a JSON object with keys: "is_correct" (boolean)
         console.error('AI individual grading error:', err);
         aiFeedback = isCorrect ? '' : 'AI semantic grading failed; exact-match grading was used.';
       } finally {
-        semanticSlot.release();
+        semanticSlot?.release();
       }
     } else if (!semanticSlot) {
       aiFeedback = isCorrect

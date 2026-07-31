@@ -338,46 +338,64 @@ function areAnswersMatching(ans1: string, ans2: string, type1?: string, type2?: 
   if (!a || !b) return false;
   if (a.toLowerCase() === b.toLowerCase()) return true;
 
-  // Clean strings (remove LaTeX $ wrappers, text tags, extra spaces)
-  const cleanA = a.replace(/\$/g, '').replace(/\\text\{([^}]+)\}/g, '$1').replace(/\\bar\{(\d+)\}/g, '$1').trim().toLowerCase();
-  const cleanB = b.replace(/\$/g, '').replace(/\\text\{([^}]+)\}/g, '$1').replace(/\\bar\{(\d+)\}/g, '$1').trim().toLowerCase();
-  if (cleanA === cleanB) return true;
+  // 1. Helper function to normalize LaTeX/Math expressions
+  const normalizeMath = (str: string): string => {
+    let s = str.replace(/\$/g, '').trim();
+    // Replace \frac{A}{B} or \dfrac{A}{B} with A/B
+    s = s.replace(/\\d?frac\s*\{([^}]+)\}\s*\{([^}]+)\}/g, '$1/$2');
+    // Remove \text{...} wrappers
+    s = s.replace(/\\text\s*\{([^}]+)\}/g, '$1');
+    // Remove general LaTeX wrappers: \mathrm, \mathbf, \vec etc.
+    s = s.replace(/\\[a-zA-Z]+\s*\{([^}]+)\}/g, '$1');
+    // Replace LaTeX spacing and special symbols
+    s = s.replace(/\\[,;!\s]/g, '');
+    s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
+    s = s.replace(/\\div/g, '/');
+    s = s.replace(/\\bar\s*\{([^}]+)\}/g, '$1');
+    s = s.replace(/\\/g, '');
+    // Lowercase and remove all whitespace
+    return s.toLowerCase().replace(/\s+/g, '');
+  };
 
-  // Check multiple choice letter match (e.g., "A" vs "A) 42" or "A")
-  const letterA = cleanA.match(/^([a-d])[\b\)\.]?/i)?.[1] || cleanA.match(/\b([a-d])\b/i)?.[1];
-  const letterB = cleanB.match(/^([a-d])[\b\)\.]?/i)?.[1] || cleanB.match(/\b([a-d])\b/i)?.[1];
-  if (letterA && letterB && letterA === letterB && (type1 === 'multiple_choice' || type2 === 'multiple_choice' || (cleanA.length <= 4 && cleanB.length <= 4))) {
-    return true;
-  }
-
-  // Pure Numerical comparison (e.g. "12.0" vs "12" or "0.5" vs "0.50")
-  const numA = parseFloat(cleanA);
-  const numB = parseFloat(cleanB);
-  if (!isNaN(numA) && !isNaN(numB) && Math.abs(numA - numB) < 0.0001) {
-    return true;
-  }
-
-  // Check extracted numeric values: if both answers contain numbers, numbers must match
-  const numsA = (cleanA.match(/\d+(?:\.\d+)?/g) || []).map(Number);
-  const numsB = (cleanB.match(/\d+(?:\.\d+)?/g) || []).map(Number);
-  if (numsA.length > 0 && numsB.length > 0) {
-    if (numsA.length === numsB.length) {
-      const allNumsMatch = numsA.every((n, idx) => Math.abs(n - numsB[idx]) < 0.05);
-      if (!allNumsMatch) return false;
-    } else {
-      const firstNumMatch = Math.abs(numsA[0] - numsB[0]) < 0.05;
-      if (!firstNumMatch) return false;
-    }
-  }
-
-  // Open-ended / free text comparison
-  const normA = cleanA.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ');
-  const normB = cleanB.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ');
+  const normA = normalizeMath(a);
+  const normB = normalizeMath(b);
   if (normA === normB) return true;
 
-  // Word overlap comparison for open-ended text answers (only when no conflicting numbers)
-  const wordsA = new Set(normA.split(' ').filter(w => w.length > 2));
-  const wordsB = new Set(normB.split(' ').filter(w => w.length > 2));
+  // 2. Multiple choice letter comparison (e.g., "A" vs "A) some text" or "A.")
+  const letterA = normA.match(/^([a-d])[\b\)\.]?/)?.[1] || normA.match(/\b([a-d])\b/)?.[1];
+  const letterB = normB.match(/^([a-d])[\b\)\.]?/)?.[1] || normB.match(/\b([a-d])\b/)?.[1];
+  if (letterA && letterB && letterA === letterB && (type1 === 'multiple_choice' || type2 === 'multiple_choice' || (normA.length <= 4 && normB.length <= 4))) {
+    return true;
+  }
+
+  // 3. Mathematical evaluation (e.g., "1/2" vs "0.5", "0.08" vs "2/25")
+  const tryEvaluate = (str: string): number | null => {
+    if (/^\d+(?:\.\d+)?$/.test(str)) {
+      return parseFloat(str);
+    }
+    const fracMatch = str.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
+    if (fracMatch) {
+      const num = parseFloat(fracMatch[1]);
+      const den = parseFloat(fracMatch[2]);
+      if (den !== 0) return num / den;
+    }
+    return null;
+  };
+
+  const valA = tryEvaluate(normA);
+  const valB = tryEvaluate(normB);
+  if (valA !== null && valB !== null && Math.abs(valA - valB) < 0.005) {
+    return true;
+  }
+
+  // 4. Word-by-word text comparison (for open-ended/descriptive)
+  // Strip punctuation for basic text comparison
+  const textA = normA.replace(/[^\w]/g, ' ');
+  const textB = normB.replace(/[^\w]/g, ' ');
+  if (textA.trim() === textB.trim() && textA.trim() !== '') return true;
+
+  const wordsA = new Set(textA.split(' ').filter(w => w.length > 2));
+  const wordsB = new Set(textB.split(' ').filter(w => w.length > 2));
   if (wordsA.size > 0 && wordsB.size > 0) {
     let intersection = 0;
     for (const w of wordsA) {
@@ -763,24 +781,29 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         status: 'processing'
       });
 
-      for (let i = 0; i < totalQuestions; i++) {
-        const rawQ = questions[i];
-        const pctStart = Math.round(15 + (i / totalQuestions) * 75);
-        const pctEnd = Math.round(15 + ((i + 1) / totalQuestions) * 75);
+      const batchSize = batchNum;
+      for (let i = 0; i < totalQuestions; i += batchSize) {
+        const batchEnd = Math.min(totalQuestions, i + batchSize);
+        const batchQuestions = questions.slice(i, batchEnd);
 
         setWorksheetProgress(session_id, {
-          message: `🤖 Q${i + 1}/${totalQuestions}: Solving simultaneously with gemini-3.1-flash-lite & gemini-3.5-flash-lite...`,
-          percentage: pctStart,
+          message: `🤖 Solving Batch Q${i + 1}-${batchEnd}/${totalQuestions} simultaneously with gemini-3.1-flash-lite & gemini-3.5-flash-lite...`,
+          percentage: Math.round(15 + (i / totalQuestions) * 75),
           status: 'processing'
         });
 
-        const qContents31: any[] = [];
-        const prepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qContents31);
-        const qContents35 = [...qContents31];
+        const batchPromises = batchQuestions.map(async (rawQ: any, index: number) => {
+          const qIdx = i + index;
+          const pctStart = Math.round(15 + (qIdx / totalQuestions) * 75);
+          const pctEnd = Math.round(15 + ((qIdx + 1) / totalQuestions) * 75);
 
-        const existingOptions = Array.isArray(rawQ.options) ? rawQ.options : (Array.isArray(rawQ.choices) ? rawQ.choices : []);
+          const qContents31: any[] = [];
+          const prepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qContents31);
+          const qContents35 = [...qContents31];
 
-        const solverPromptText = `You are a master educator and subject matter expert test solver.
+          const existingOptions = Array.isArray(rawQ.options) ? rawQ.options : (Array.isArray(rawQ.choices) ? rawQ.choices : []);
+
+          const solverPromptText = `You are a master educator and subject matter expert test solver.
 Solve the following question accurately and generate a complete step-by-step worked solution.
 
 SUBJECT: ${subject || 'General'}
@@ -809,63 +832,63 @@ Return STRICTLY a JSON object with keys:
 - "solution": string (detailed step-by-step worked solution)
 `;
 
-        qContents31.unshift(solverPromptText);
-        qContents35.unshift(solverPromptText);
+          qContents31.unshift(solverPromptText);
+          qContents35.unshift(solverPromptText);
 
-        const [res31, res35] = await Promise.allSettled([
-          ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
-            contents: qContents31,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-              maxOutputTokens: 4096
-            }
-          }),
-          ai.models.generateContent({
-            model: 'gemini-3.5-flash-lite',
-            contents: qContents35,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-              maxOutputTokens: 4096
-            }
-          })
-        ]);
+          const [res31, res35] = await Promise.allSettled([
+            ai.models.generateContent({
+              model: 'gemini-3.1-flash-lite',
+              contents: qContents31,
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                maxOutputTokens: 4096
+              }
+            }),
+            ai.models.generateContent({
+              model: 'gemini-3.5-flash-lite',
+              contents: qContents35,
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                maxOutputTokens: 4096
+              }
+            })
+          ]);
 
-        if (res31.status === 'rejected' && res35.status === 'rejected') {
-          const errMessage = `Both Gemini solvers failed. Model 3.1: ${res31.reason?.message || 'Unknown error'}. Model 3.5: ${res35.reason?.message || 'Unknown error'}`;
-          console.error('[Worksheet Solver] Dual failures:', errMessage);
-          throw new Error(errMessage);
-        }
-        if (res31.status === 'rejected') {
-          console.warn('[Worksheet Solver] gemini-3.1-flash-lite failed:', res31.reason);
-        }
-        if (res35.status === 'rejected') {
-          console.warn('[Worksheet Solver] gemini-3.5-flash-lite failed:', res35.reason);
-        }
+          if (res31.status === 'rejected' && res35.status === 'rejected') {
+            const errMessage = `Both Gemini solvers failed. Model 3.1: ${res31.reason?.message || 'Unknown error'}. Model 3.5: ${res35.reason?.message || 'Unknown error'}`;
+            console.error('[Worksheet Solver] Dual failures:', errMessage);
+            throw new Error(errMessage);
+          }
+          if (res31.status === 'rejected') {
+            console.warn('[Worksheet Solver] gemini-3.1-flash-lite failed:', res31.reason);
+          }
+          if (res35.status === 'rejected') {
+            console.warn('[Worksheet Solver] gemini-3.5-flash-lite failed:', res35.reason);
+          }
 
-        let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
-        let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
+          let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
+          let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
 
-        let ans31 = String(parsed31.answer || '').trim();
-        let ans35 = String(parsed35.answer || '').trim();
+          let ans31 = String(parsed31.answer || '').trim();
+          let ans35 = String(parsed35.answer || '').trim();
 
-        let isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
-        let activeParsed = isMatch ? (parsed35.answer ? parsed35 : parsed31) : null;
+          let isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
+          let activeParsed = isMatch ? (parsed35.answer ? parsed35 : parsed31) : null;
 
-        let attempt = 0;
-        const maxAttempts = 2;
+          let attempt = 0;
+          const maxAttempts = 2;
 
-        while (!isMatch && attempt < maxAttempts) {
-          attempt++;
-          setWorksheetProgress(session_id, {
-            message: `⚔️ Q${i + 1}/${totalQuestions}: Mismatch (3.1: "${ans31.substring(0, 25)}" vs 3.5: "${ans35.substring(0, 25)}"). Re-resolving (Attempt ${attempt}/2)...`,
-            percentage: Math.round(pctStart + (pctEnd - pctStart) * 0.5),
-            status: 'processing'
-          });
+          while (!isMatch && attempt < maxAttempts) {
+            attempt++;
+            setWorksheetProgress(session_id, {
+              message: `⚔️ Q${qIdx + 1}/${totalQuestions}: Mismatch (3.1: "${ans31.substring(0, 25)}" vs 3.5: "${ans35.substring(0, 25)}"). Re-resolving (Attempt ${attempt}/2)...`,
+              percentage: Math.round(pctStart + (pctEnd - pctStart) * 0.5),
+              status: 'processing'
+            });
 
-          const resolvePrompt = `Two independent AI solvers arrived at conflicting answers for this question:
+            const resolvePrompt = `Two independent AI solvers arrived at conflicting answers for this question:
 - Model A (gemini-3.1-flash-lite) answer: "${ans31}"
   Worked Solution A: ${parsed31.solution || 'None'}
 - Model B (gemini-3.5-flash-lite) answer: "${ans35}"
@@ -875,91 +898,93 @@ Please re-read the question carefully from first principles, verify all mathemat
 
 ${solverPromptText}`;
 
-          const qReContents31: any[] = [];
-          prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qReContents31);
-          qReContents31.unshift(resolvePrompt);
-          const qReContents35 = [...qReContents31];
+            const qReContents31: any[] = [];
+            prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qReContents31);
+            qReContents31.unshift(resolvePrompt);
+            const qReContents35 = [...qReContents31];
 
-          const [re31, re35] = await Promise.allSettled([
-            ai.models.generateContent({
-              model: 'gemini-3.1-flash-lite',
-              contents: qReContents31,
-              config: {
-                responseMimeType: 'application/json',
-                responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-                maxOutputTokens: 4096
-              }
-            }),
-            ai.models.generateContent({
-              model: 'gemini-3.5-flash-lite',
-              contents: qReContents35,
-              config: {
-                responseMimeType: 'application/json',
-                responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-                maxOutputTokens: 4096
-              }
-            })
-          ]);
+            const [re31, re35] = await Promise.allSettled([
+              ai.models.generateContent({
+                model: 'gemini-3.1-flash-lite',
+                contents: qReContents31,
+                config: {
+                  responseMimeType: 'application/json',
+                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                  maxOutputTokens: 4096
+                }
+              }),
+              ai.models.generateContent({
+                model: 'gemini-3.5-flash-lite',
+                contents: qReContents35,
+                config: {
+                  responseMimeType: 'application/json',
+                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                  maxOutputTokens: 4096
+                }
+              })
+            ]);
 
-          if (re31.status === 'rejected' && re35.status === 'rejected') {
-            const errMessage = `Both Gemini solvers failed during retry. Model 3.1: ${re31.reason?.message || 'Unknown error'}. Model 3.5: ${re35.reason?.message || 'Unknown error'}`;
-            console.error('[Worksheet Solver] Dual re-solve failures:', errMessage);
-            throw new Error(errMessage);
+            if (re31.status === 'rejected' && re35.status === 'rejected') {
+              const errMessage = `Both Gemini solvers failed during retry. Model 3.1: ${re31.reason?.message || 'Unknown error'}. Model 3.5: ${re35.reason?.message || 'Unknown error'}`;
+              console.error('[Worksheet Solver] Dual re-solve failures:', errMessage);
+              throw new Error(errMessage);
+            }
+            if (re31.status === 'rejected') {
+              console.warn('[Worksheet Solver] recheck gemini-3.1-flash-lite failed:', re31.reason);
+            }
+            if (re35.status === 'rejected') {
+              console.warn('[Worksheet Solver] recheck gemini-3.5-flash-lite failed:', re35.reason);
+            }
+
+            const newP31 = safeParseJSON(re31.status === 'fulfilled' ? re31.value.text || '' : '{}') || {};
+            const newP35 = safeParseJSON(re35.status === 'fulfilled' ? re35.value.text || '' : '{}') || {};
+
+            if (newP31.answer) { parsed31 = newP31; ans31 = String(newP31.answer).trim(); }
+            if (newP35.answer) { parsed35 = newP35; ans35 = String(newP35.answer).trim(); }
+
+            isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
+            if (isMatch) {
+              activeParsed = parsed35.answer ? parsed35 : parsed31;
+            }
           }
-          if (re31.status === 'rejected') {
-            console.warn('[Worksheet Solver] recheck gemini-3.1-flash-lite failed:', re31.reason);
+
+          if (!activeParsed) {
+            activeParsed = parsed35.answer ? parsed35 : (parsed31.answer ? parsed31 : {
+              answer: ans35 || ans31 || 'Unresolved',
+              options: existingOptions,
+              type: rawQ.type || 'identification',
+              solution: parsed35.solution || parsed31.solution || 'No solution generated.'
+            });
           }
-          if (re35.status === 'rejected') {
-            console.warn('[Worksheet Solver] recheck gemini-3.5-flash-lite failed:', re35.reason);
-          }
 
-          const newP31 = safeParseJSON(re31.status === 'fulfilled' ? re31.value.text || '' : '{}') || {};
-          const newP35 = safeParseJSON(re35.status === 'fulfilled' ? re35.value.text || '' : '{}') || {};
+          const chosenOptions = (Array.isArray(activeParsed.options) && activeParsed.options.length > 0)
+            ? activeParsed.options
+            : existingOptions;
 
-          if (newP31.answer) { parsed31 = newP31; ans31 = String(newP31.answer).trim(); }
-          if (newP35.answer) { parsed35 = newP35; ans35 = String(newP35.answer).trim(); }
-
-          isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
-          if (isMatch) {
-            activeParsed = parsed35.answer ? parsed35 : parsed31;
-          }
-        }
-
-        if (!activeParsed) {
-          activeParsed = parsed35.answer ? parsed35 : (parsed31.answer ? parsed31 : {
-            answer: ans35 || ans31 || 'Unresolved',
-            options: existingOptions,
-            type: rawQ.type || 'identification',
-            solution: parsed35.solution || parsed31.solution || 'No solution generated.'
-          });
-          setWorksheetProgress(session_id, {
-            message: `🔍 Q${i + 1}/${totalQuestions}: Finalized answer resolved: "${String(activeParsed.answer).substring(0, 25)}"`,
-            percentage: pctEnd,
-            status: 'processing'
-          });
-        } else {
-          setWorksheetProgress(session_id, {
-            message: `✅ Q${i + 1}/${totalQuestions}: Both models agreed! Answer: "${String(activeParsed.answer).substring(0, 25)}"`,
-            percentage: pctEnd,
-            status: 'processing'
-          });
-        }
-
-        const chosenOptions = (Array.isArray(activeParsed.options) && activeParsed.options.length > 0)
-          ? activeParsed.options
-          : existingOptions;
-
-        const originalQuestion = String(rawQ.raw_text || rawQ.question || rawQ.statement).trim();
-
-        finalQuestions.push({
-          ...rawQ,
-          question: originalQuestion,
-          raw_text: rawQ.raw_text || originalQuestion,
-          options: chosenOptions,
-          answer: activeParsed.answer,
-          type: activeParsed.type || rawQ.type || (chosenOptions.length > 0 ? 'multiple_choice' : 'identification'),
-          solution: activeParsed.solution || parsed35.solution || parsed31.solution || ''
+          return {
+            ...rawQ,
+            question: restoreVisionText(rawQ.question || rawQ.statement || rawQ.raw_text, prepared),
+            raw_text: rawQ.raw_text || restoreVisionText(rawQ.question || rawQ.statement, prepared),
+            options: chosenOptions,
+            answer: activeParsed.answer,
+            type: activeParsed.type || rawQ.type || (chosenOptions.length > 0 ? 'multiple_choice' : 'identification'),
+            solution: activeParsed.solution || parsed35.solution || parsed31.solution || ''
+          };
         });
+
+        const batchResults = await Promise.all(batchPromises);
+        finalQuestions.push(...batchResults);
+
+        // Dynamic rate limit control: Add cooldown between batches to fit 15 RPM
+        if (i + batchSize < totalQuestions) {
+          const progressPercentage = Math.round(15 + (batchEnd / totalQuestions) * 75);
+          setWorksheetProgress(session_id, {
+            message: `⏳ Cool-down phase (3s) to prevent API rate limits...`,
+            percentage: progressPercentage,
+            status: 'processing'
+          });
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
       }
 
       const uniqueTitle = getUniqueQuizTitle(topic || 'Worksheet Quiz');
@@ -1500,25 +1525,30 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
         const totalQs = questions.length;
         finalQuestions = [];
 
-        for (let i = 0; i < totalQs; i++) {
-          const rawQ = questions[i];
-          const pctStart = Math.round(20 + (i / totalQs) * 75);
-          const pctEnd = Math.round(20 + ((i + 1) / totalQs) * 75);
+        const batchSize = 3;
+        for (let i = 0; i < totalQs; i += batchSize) {
+          const batchEnd = Math.min(totalQs, i + batchSize);
+          const batchQuestions = questions.slice(i, batchEnd);
 
           setWorksheetProgress(session_id, {
-            message: `🤖 Q${i + 1}/${totalQs}: Solving simultaneously with gemini-3.1-flash-lite & gemini-3.5-flash-lite...`,
-            percentage: pctStart,
+            message: `🤖 Solving Batch Q${i + 1}-${batchEnd}/${totalQs} simultaneously with gemini-3.1-flash-lite & gemini-3.5-flash-lite...`,
+            percentage: Math.round(20 + (i / totalQs) * 75),
             status: 'processing'
           });
 
-          // Prepare vision image assets for this individual question
-          const qContents31: any[] = [];
-          const prepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qContents31);
-          const qContents35 = [...qContents31];
+          const batchPromises = batchQuestions.map(async (rawQ: any, index: number) => {
+            const qIdx = i + index;
+            const pctStart = Math.round(20 + (qIdx / totalQs) * 75);
+            const pctEnd = Math.round(20 + ((qIdx + 1) / totalQs) * 75);
 
-          const existingOptions = Array.isArray(rawQ.options) ? rawQ.options : (Array.isArray(rawQ.choices) ? rawQ.choices : []);
+            // Prepare vision image assets for this individual question
+            const qContents31: any[] = [];
+            const prepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qContents31);
+            const qContents35 = [...qContents31];
 
-          const solverPromptText = `You are a master educator and subject matter expert test solver.
+            const existingOptions = Array.isArray(rawQ.options) ? rawQ.options : (Array.isArray(rawQ.choices) ? rawQ.choices : []);
+
+            const solverPromptText = `You are a master educator and subject matter expert test solver.
 Solve the following question accurately and generate a complete step-by-step worked solution.
 
 SUBJECT: ${subject || 'General'}
@@ -1548,65 +1578,65 @@ Return STRICTLY a JSON object with keys:
 - "solution": string (detailed step-by-step worked solution)
 `;
 
-          qContents31.unshift(solverPromptText);
-          qContents35.unshift(solverPromptText);
+            qContents31.unshift(solverPromptText);
+            qContents35.unshift(solverPromptText);
 
-          // Run both 3.1 and 3.5 in parallel!
-          const [res31, res35] = await Promise.allSettled([
-            ai.models.generateContent({
-              model: 'gemini-3.1-flash-lite',
-              contents: qContents31,
-              config: {
-                responseMimeType: 'application/json',
-                responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-                maxOutputTokens: 4096
-              }
-            }),
-            ai.models.generateContent({
-              model: 'gemini-3.5-flash-lite',
-              contents: qContents35,
-              config: {
-                responseMimeType: 'application/json',
-                responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-                maxOutputTokens: 4096
-              }
-            })
-          ]);
+            // Run both 3.1 and 3.5 in parallel!
+            const [res31, res35] = await Promise.allSettled([
+              ai.models.generateContent({
+                model: 'gemini-3.1-flash-lite',
+                contents: qContents31,
+                config: {
+                  responseMimeType: 'application/json',
+                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                  maxOutputTokens: 4096
+                }
+              }),
+              ai.models.generateContent({
+                model: 'gemini-3.5-flash-lite',
+                contents: qContents35,
+                config: {
+                  responseMimeType: 'application/json',
+                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                  maxOutputTokens: 4096
+                }
+              })
+            ]);
 
-          if (res31.status === 'rejected' && res35.status === 'rejected') {
-            const errMessage = `Both Gemini solvers failed. Model 3.1: ${res31.reason?.message || 'Unknown error'}. Model 3.5: ${res35.reason?.message || 'Unknown error'}`;
-            console.error('[RMX Solver] Dual failures:', errMessage);
-            throw new Error(errMessage);
-          }
-          if (res31.status === 'rejected') {
-            console.warn('[RMX Solver] gemini-3.1-flash-lite failed:', res31.reason);
-          }
-          if (res35.status === 'rejected') {
-            console.warn('[RMX Solver] gemini-3.5-flash-lite failed:', res35.reason);
-          }
+            if (res31.status === 'rejected' && res35.status === 'rejected') {
+              const errMessage = `Both Gemini solvers failed. Model 3.1: ${res31.reason?.message || 'Unknown error'}. Model 3.5: ${res35.reason?.message || 'Unknown error'}`;
+              console.error('[RMX Solver] Dual failures:', errMessage);
+              throw new Error(errMessage);
+            }
+            if (res31.status === 'rejected') {
+              console.warn('[RMX Solver] gemini-3.1-flash-lite failed:', res31.reason);
+            }
+            if (res35.status === 'rejected') {
+              console.warn('[RMX Solver] gemini-3.5-flash-lite failed:', res35.reason);
+            }
 
-          let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
-          let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
+            let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
+            let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
 
-          let ans31 = String(parsed31.answer || '').trim();
-          let ans35 = String(parsed35.answer || '').trim();
+            let ans31 = String(parsed31.answer || '').trim();
+            let ans35 = String(parsed35.answer || '').trim();
 
-          let isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
-          let activeParsed = isMatch ? (parsed35.answer ? parsed35 : parsed31) : null;
+            let isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
+            let activeParsed = isMatch ? (parsed35.answer ? parsed35 : parsed31) : null;
 
-          // If answers do NOT match, initiate re-resolution rounds!
-          let attempt = 0;
-          const maxAttempts = 2;
+            // If answers do NOT match, initiate re-resolution rounds!
+            let attempt = 0;
+            const maxAttempts = 2;
 
-          while (!isMatch && attempt < maxAttempts) {
-            attempt++;
-            setWorksheetProgress(session_id, {
-              message: `⚔️ Q${i + 1}/${totalQs}: Mismatch (3.1: "${ans31.substring(0, 25)}" vs 3.5: "${ans35.substring(0, 25)}"). Re-resolving (Attempt ${attempt}/2)...`,
-              percentage: Math.round(pctStart + (pctEnd - pctStart) * 0.5),
-              status: 'processing'
-            });
+            while (!isMatch && attempt < maxAttempts) {
+              attempt++;
+              setWorksheetProgress(session_id, {
+                message: `⚔️ Q${qIdx + 1}/${totalQs}: Mismatch (3.1: "${ans31.substring(0, 25)}" vs 3.5: "${ans35.substring(0, 25)}"). Re-resolving (Attempt ${attempt}/2)...`,
+                percentage: Math.round(pctStart + (pctEnd - pctStart) * 0.5),
+                status: 'processing'
+              });
 
-            const resolvePrompt = `Two independent AI solvers arrived at conflicting answers for this question:
+              const resolvePrompt = `Two independent AI solvers arrived at conflicting answers for this question:
 - Model A (gemini-3.1-flash-lite) answer: "${ans31}"
   Worked Solution A: ${parsed31.solution || 'None'}
 - Model B (gemini-3.5-flash-lite) answer: "${ans35}"
@@ -1616,89 +1646,93 @@ Please re-read the question carefully from first principles, verify all mathemat
 
 ${solverPromptText}`;
 
-            const qReContents31: any[] = [];
-            prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qReContents31);
-            qReContents31.unshift(resolvePrompt);
-            const qReContents35 = [...qReContents31];
+              const qReContents31: any[] = [];
+              prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qReContents31);
+              qReContents31.unshift(resolvePrompt);
+              const qReContents35 = [...qReContents31];
 
-            const [re31, re35] = await Promise.allSettled([
-              ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
-                contents: qReContents31,
-                config: {
-                  responseMimeType: 'application/json',
-                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-                  maxOutputTokens: 4096
-                }
-              }),
-              ai.models.generateContent({
-                model: 'gemini-3.5-flash-lite',
-                contents: qReContents35,
-                config: {
-                  responseMimeType: 'application/json',
-                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-                  maxOutputTokens: 4096
-                }
-              })
-            ]);
+              const [re31, re35] = await Promise.allSettled([
+                ai.models.generateContent({
+                  model: 'gemini-3.1-flash-lite',
+                  contents: qReContents31,
+                  config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                    maxOutputTokens: 4096
+                  }
+                }),
+                ai.models.generateContent({
+                  model: 'gemini-3.5-flash-lite',
+                  contents: qReContents35,
+                  config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                    maxOutputTokens: 4096
+                  }
+                })
+              ]);
 
-            if (re31.status === 'rejected' && re35.status === 'rejected') {
-              const errMessage = `Both Gemini solvers failed during retry. Model 3.1: ${re31.reason?.message || 'Unknown error'}. Model 3.5: ${re35.reason?.message || 'Unknown error'}`;
-              console.error('[RMX Solver] Dual re-solve failures:', errMessage);
-              throw new Error(errMessage);
+              if (re31.status === 'rejected' && re35.status === 'rejected') {
+                const errMessage = `Both Gemini solvers failed during retry. Model 3.1: ${re31.reason?.message || 'Unknown error'}. Model 3.5: ${re35.reason?.message || 'Unknown error'}`;
+                console.error('[RMX Solver] Dual re-solve failures:', errMessage);
+                throw new Error(errMessage);
+              }
+              if (re31.status === 'rejected') {
+                console.warn('[RMX Solver] recheck gemini-3.1-flash-lite failed:', re31.reason);
+              }
+              if (re35.status === 'rejected') {
+                console.warn('[RMX Solver] recheck gemini-3.5-flash-lite failed:', re35.reason);
+              }
+
+              const newP31 = safeParseJSON(re31.status === 'fulfilled' ? re31.value.text || '' : '{}') || {};
+              const newP35 = safeParseJSON(re35.status === 'fulfilled' ? re35.value.text || '' : '{}') || {};
+
+              if (newP31.answer) { parsed31 = newP31; ans31 = String(newP31.answer).trim(); }
+              if (newP35.answer) { parsed35 = newP35; ans35 = String(newP35.answer).trim(); }
+
+              isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
+              if (isMatch) {
+                activeParsed = parsed35.answer ? parsed35 : parsed31;
+              }
             }
-            if (re31.status === 'rejected') {
-              console.warn('[RMX Solver] recheck gemini-3.1-flash-lite failed:', re31.reason);
+
+            if (!activeParsed) {
+              activeParsed = parsed35.answer ? parsed35 : (parsed31.answer ? parsed31 : {
+                answer: ans35 || ans31 || 'Unresolved',
+                options: existingOptions,
+                type: rawQ.type || 'identification',
+                solution: parsed35.solution || parsed31.solution || 'No solution generated.'
+              });
             }
-            if (re35.status === 'rejected') {
-              console.warn('[RMX Solver] recheck gemini-3.5-flash-lite failed:', re35.reason);
-            }
 
-            const newP31 = safeParseJSON(re31.status === 'fulfilled' ? re31.value.text || '' : '{}') || {};
-            const newP35 = safeParseJSON(re35.status === 'fulfilled' ? re35.value.text || '' : '{}') || {};
+            const chosenOptions = (Array.isArray(activeParsed.options) && activeParsed.options.length > 0)
+              ? activeParsed.options
+              : existingOptions;
 
-            if (newP31.answer) { parsed31 = newP31; ans31 = String(newP31.answer).trim(); }
-            if (newP35.answer) { parsed35 = newP35; ans35 = String(newP35.answer).trim(); }
-
-            isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
-            if (isMatch) {
-              activeParsed = parsed35.answer ? parsed35 : parsed31;
-            }
-          }
-
-          if (!activeParsed) {
-            activeParsed = parsed35.answer ? parsed35 : (parsed31.answer ? parsed31 : {
-              answer: ans35 || ans31 || 'Unresolved',
-              options: existingOptions,
-              type: rawQ.type || 'identification',
-              solution: parsed35.solution || parsed31.solution || 'No solution generated.'
-            });
-            setWorksheetProgress(session_id, {
-              message: `🔍 Q${i + 1}/${totalQs}: Finalized answer resolved: "${String(activeParsed.answer).substring(0, 25)}"`,
-              percentage: pctEnd,
-              status: 'processing'
-            });
-          } else {
-            setWorksheetProgress(session_id, {
-              message: `✅ Q${i + 1}/${totalQs}: Both models agreed! Answer: "${String(activeParsed.answer).substring(0, 25)}"`,
-              percentage: pctEnd,
-              status: 'processing'
-            });
-          }
-
-          const chosenOptions = (Array.isArray(activeParsed.options) && activeParsed.options.length > 0)
-            ? activeParsed.options
-            : existingOptions;
-
-          finalQuestions.push({
-            ...rawQ,
-            options: chosenOptions,
-            answer: activeParsed.answer,
-            type: activeParsed.type || rawQ.type || (chosenOptions.length > 0 ? 'multiple_choice' : 'identification'),
-            solution: activeParsed.solution || parsed35.solution || parsed31.solution || '',
-            question: restoreVisionText(rawQ.question || rawQ.statement || rawQ.raw_text, prepared),
-            raw_text: rawQ.raw_text || restoreVisionText(rawQ.question || rawQ.statement, prepared)
+            return {
+              ...rawQ,
+              options: chosenOptions,
+              answer: activeParsed.answer,
+              type: activeParsed.type || rawQ.type || (chosenOptions.length > 0 ? 'multiple_choice' : 'identification'),
+              solution: activeParsed.solution || parsed35.solution || parsed31.solution || '',
+              question: restoreVisionText(rawQ.question || rawQ.statement || rawQ.raw_text, prepared),
+              raw_text: rawQ.raw_text || restoreVisionText(rawQ.question || rawQ.statement, prepared)
+            };
           });
+
+          const batchResults = await Promise.all(batchPromises);
+          finalQuestions.push(...batchResults);
+
+          // Dynamic rate limit control: Add cooldown between batches to fit 15 RPM
+          if (i + batchSize < totalQs) {
+            const progressPercentage = Math.round(20 + (batchEnd / totalQs) * 75);
+            setWorksheetProgress(session_id, {
+              message: `⏳ Cool-down phase (3s) to prevent API rate limits...`,
+              percentage: progressPercentage,
+              status: 'processing'
+            });
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
         }
     } else {
       const unansweredIndex = finalQuestions.findIndex((question: any) => !String(question?.answer ?? '').trim());

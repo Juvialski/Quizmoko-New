@@ -850,95 +850,114 @@ router.post('/api/polish_questions', tokenRequired, async (req: AuthRequest, res
 });
 
 router.post('/api/resolve_question', tokenRequired, async (req: AuthRequest, res) => {
-  const { question_data, source_context, api_key, subject = 'General', topic = 'Quiz', model_name = 'gemini-3.5-flash-lite' } = req.body;
+  const { question_data, source_context, api_key, subject = 'General', topic = 'Quiz' } = req.body;
   if (!question_data) return res.status(400).json({ success: false, error: 'No question data' });
 
   let aiLease: AiWorkLease | null = null;
   try {
     const ai = getGeminiClient(api_key);
     if (!ai) return res.status(400).json({ success: false, error: 'No valid API key provided' });
-    aiLease = acquireRequestAiWork(req, 1, api_key);
+    aiLease = acquireRequestAiWork(req, 2, api_key);
 
-    const isNonMath = ['english', 'history', 'biology', 'social studies'].includes(String(subject).toLowerCase());
-    const solverPromptTemplate = isNonMath ? WORKSHEET_SOLVER_PROMPT_NON_MATH : WORKSHEET_SOLVER_PROMPT;
-    const selectedModel = getRealModelName(model_name);
+    const contents31: any[] = [];
+    const prepared = prepareVisionText(getOriginalQuestionText(question_data, source_context), contents31);
 
-    const contents: any[] = [];
-    const prepared = prepareVisionText(getOriginalQuestionText(question_data, source_context), contents);
-
-    const inputQuestion = {
-        ...question_data,
-        answer: "",
-        options: [],
-        correct_answer_letter: "",
-        correct_answer: "",
-        solution: "",
-        explanation: "",
-        feedback: "",
-        question: prepared.text,
-        raw_text: prepared.text,
-    };
-
-    const prompt = solverPromptTemplate
-      .replace('{subject}', subject)
-      .replace('{topic}', topic)
-      .replace('{questions_json}', JSON.stringify([inputQuestion]))
-      .replace('{latex_rules}', SHARED_LATEX_RULES);
-
-    contents.unshift(prompt);
     if (prepared.assets.length === 0) {
-      if (!appendDataUrlVision(contents, source_context?.crop_data_url)) {
-        appendDataUrlVision(contents, question_data?.image_url);
+      if (!appendDataUrlVision(contents31, source_context?.crop_data_url)) {
+        appendDataUrlVision(contents31, question_data?.image_url);
       }
     }
+    const contents35 = [...contents31];
 
-    const response = await ai.models.generateContent({
-      model: selectedModel,
-      contents,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: solvedQuestionArraySchema,
-        maxOutputTokens: 4096
+    const existingOptions = Array.isArray(question_data.options) ? question_data.options : [];
+
+    const solverPromptText = `You are a master educator and subject matter expert test solver.
+Solve the following question accurately and generate a complete step-by-step worked solution.
+
+SUBJECT: ${subject || 'General'}
+TOPIC: ${topic || 'General'}
+
+QUESTION TO SOLVE:
+${prepared.text}
+
+EXISTING CHOICES/OPTIONS (if multiple choice):
+${JSON.stringify(existingOptions)}
+
+CRITICAL INSTRUCTIONS:
+1. Provide the exact correct answer in the 'answer' field.
+   - For Multiple Choice: Output the correct choice letter (e.g. "A", "B", "C", "D") or choice string matching the option.
+   - For Multiple Select: Output comma-separated options/letters (e.g. "A, C").
+   - For True/False: Output "A" or "B" (or "True" / "False").
+   - For Identification: Output ONLY the concise final answer value (no sentence wrappers).
+   - For Open Ended / Math / Science: Output the complete, accurate answer value or key rubric grading points.
+2. In the 'solution' field, write a clear, thorough step-by-step worked explanation showing how to arrive at the answer.
+3. CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your answer and solution with LaTeX dollar signs (e.g. $x^2$, $130/10$, $\\$$40). Do NOT use asterisks for math.
+
+Return STRICTLY a JSON object with keys:
+- "options": array of strings (choices if multiple choice, else [])
+- "answer": string (the exact correct answer)
+- "type": string (one of "multiple_choice", "multiple_choice_multi", "identification", "open_ended", "graphing", "true_false")
+- "solution": string (detailed step-by-step worked solution)
+`;
+
+    contents31.unshift(solverPromptText);
+    contents35.unshift(solverPromptText);
+
+    const [res31, res35] = await Promise.allSettled([
+      ai.models.generateContent({
+        model: 'gemini-3.1-flash-lite',
+        contents: contents31,
+        config: {
+          responseMimeType: 'application/json',
+          maxOutputTokens: 4096
+        }
+      }),
+      ai.models.generateContent({
+        model: 'gemini-3.5-flash-lite',
+        contents: contents35,
+        config: {
+          responseMimeType: 'application/json',
+          maxOutputTokens: 4096
+        }
+      })
+    ]);
+
+    let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
+    let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
+
+    let ans31 = String(parsed31.answer || '').trim();
+    let ans35 = String(parsed35.answer || '').trim();
+
+    let activeParsed = (ans31 && ans35 && ans31.toLowerCase() === ans35.toLowerCase())
+      ? (parsed35.answer ? parsed35 : parsed31)
+      : (parsed35.answer ? parsed35 : parsed31);
+
+    if (activeParsed && activeParsed.answer) {
+      const finalQuestion = restoreVisionText(activeParsed.question || prepared.text, prepared);
+
+      const finalResolvedQuestion = {
+        ...question_data,
+        ...activeParsed,
+        question: finalQuestion || getOriginalQuestionText(question_data, source_context)
+      };
+      if (!Array.isArray(activeParsed.options) || activeParsed.options.length === 0) {
+        finalResolvedQuestion.options = question_data.options || [];
       }
-    });
-
-    const text = response.text || '';
-    const parsed = safeParseJSON(text);
-    
-    let resolvedData = null;
-    if (Array.isArray(parsed) && parsed.length > 0) {
-        resolvedData = parsed[0];
-    } else if (parsed && typeof parsed === 'object') {
-        resolvedData = parsed;
-    }
-
-    if (resolvedData && typeof resolvedData === 'object') {
-        if (resolvedData.answer === undefined || resolvedData.answer === null || String(resolvedData.answer).trim() === '') {
-          return res.status(502).json({ success: false, error: 'The model returned an empty answer' });
-        }
-        const finalQuestion = restoreVisionText(resolvedData.question, prepared);
-        
-        const finalResolvedQuestion = {
-            ...question_data,
-            ...resolvedData,
-            question: finalQuestion || getOriginalQuestionText(question_data, source_context)
-        };
-        if (!Array.isArray(resolvedData.options)) finalResolvedQuestion.options = question_data.options || [];
-        if (!resolvedData.type) finalResolvedQuestion.type = question_data.type;
-        if (Object.prototype.hasOwnProperty.call(question_data, 'raw_text')) {
-          finalResolvedQuestion.raw_text = question_data.raw_text;
-        }
-        return res.json({ success: true, question: finalResolvedQuestion });
+      if (!activeParsed.type) finalResolvedQuestion.type = question_data.type;
+      if (Object.prototype.hasOwnProperty.call(question_data, 'raw_text')) {
+        finalResolvedQuestion.raw_text = question_data.raw_text;
+      }
+      return res.json({ success: true, question: finalResolvedQuestion });
     } else {
-        return res.status(500).json({ success: false, error: 'Failed to parse model output' });
+      return res.status(500).json({ success: false, error: 'Failed to parse model output' });
     }
 
   } catch (err: any) {
-      if (respondAiWorkLimit(res, err)) return;
-      console.error('Resolve question error:', err);
-      res.status(500).json({ success: false, error: err.message });
+    if (respondAiWorkLimit(res, err)) return;
+    console.error('Resolve question error:', err);
+    res.status(500).json({ success: false, error: err.message });
   } finally {
-      aiLease?.release();
+    aiLease?.release();
   }
 });
 

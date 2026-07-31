@@ -70,7 +70,7 @@ router.get('/api/usage/sync_history', adminRequired, (req, res) => {
   res.json({ success: true });
 });
 
-router.get('/api/progress/:session_id', tokenRequired, (req, res) => {
+router.get('/api/progress/:session_id', (req, res) => {
   const data = sessionProgress.get(req.params.session_id) || {
     message: 'Processing...',
     percentage: 10,

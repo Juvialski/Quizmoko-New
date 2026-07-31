@@ -339,8 +339,8 @@ function areAnswersMatching(ans1: string, ans2: string, type1?: string, type2?: 
   if (a.toLowerCase() === b.toLowerCase()) return true;
 
   // Clean strings (remove LaTeX $ wrappers, text tags, extra spaces)
-  const cleanA = a.replace(/\$/g, '').replace(/\\text\{([^}]+)\}/g, '$1').trim().toLowerCase();
-  const cleanB = b.replace(/\$/g, '').replace(/\\text\{([^}]+)\}/g, '$1').trim().toLowerCase();
+  const cleanA = a.replace(/\$/g, '').replace(/\\text\{([^}]+)\}/g, '$1').replace(/\\bar\{(\d+)\}/g, '$1').trim().toLowerCase();
+  const cleanB = b.replace(/\$/g, '').replace(/\\text\{([^}]+)\}/g, '$1').replace(/\\bar\{(\d+)\}/g, '$1').trim().toLowerCase();
   if (cleanA === cleanB) return true;
 
   // Check multiple choice letter match (e.g., "A" vs "A) 42" or "A")
@@ -350,11 +350,24 @@ function areAnswersMatching(ans1: string, ans2: string, type1?: string, type2?: 
     return true;
   }
 
-  // Numerical comparison (e.g. "12.0" vs "12" or "0.5" vs "0.50")
+  // Pure Numerical comparison (e.g. "12.0" vs "12" or "0.5" vs "0.50")
   const numA = parseFloat(cleanA);
   const numB = parseFloat(cleanB);
   if (!isNaN(numA) && !isNaN(numB) && Math.abs(numA - numB) < 0.0001) {
     return true;
+  }
+
+  // Check extracted numeric values: if both answers contain numbers, numbers must match
+  const numsA = (cleanA.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+  const numsB = (cleanB.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+  if (numsA.length > 0 && numsB.length > 0) {
+    if (numsA.length === numsB.length) {
+      const allNumsMatch = numsA.every((n, idx) => Math.abs(n - numsB[idx]) < 0.05);
+      if (!allNumsMatch) return false;
+    } else {
+      const firstNumMatch = Math.abs(numsA[0] - numsB[0]) < 0.05;
+      if (!firstNumMatch) return false;
+    }
   }
 
   // Open-ended / free text comparison
@@ -362,7 +375,7 @@ function areAnswersMatching(ans1: string, ans2: string, type1?: string, type2?: 
   const normB = cleanB.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ');
   if (normA === normB) return true;
 
-  // Word overlap comparison for open-ended answers
+  // Word overlap comparison for open-ended text answers (only when no conflicting numbers)
   const wordsA = new Set(normA.split(' ').filter(w => w.length > 2));
   const wordsB = new Set(normB.split(' ').filter(w => w.length > 2));
   if (wordsA.size > 0 && wordsB.size > 0) {
@@ -371,7 +384,7 @@ function areAnswersMatching(ans1: string, ans2: string, type1?: string, type2?: 
       if (wordsB.has(w)) intersection++;
     }
     const overlapFraction = intersection / Math.min(wordsA.size, wordsB.size);
-    if (overlapFraction >= 0.70) return true;
+    if (overlapFraction >= 0.85) return true;
   }
 
   return false;
@@ -820,6 +833,18 @@ Return STRICTLY a JSON object with keys:
           })
         ]);
 
+        if (res31.status === 'rejected' && res35.status === 'rejected') {
+          const errMessage = `Both Gemini solvers failed. Model 3.1: ${res31.reason?.message || 'Unknown error'}. Model 3.5: ${res35.reason?.message || 'Unknown error'}`;
+          console.error('[Worksheet Solver] Dual failures:', errMessage);
+          throw new Error(errMessage);
+        }
+        if (res31.status === 'rejected') {
+          console.warn('[Worksheet Solver] gemini-3.1-flash-lite failed:', res31.reason);
+        }
+        if (res35.status === 'rejected') {
+          console.warn('[Worksheet Solver] gemini-3.5-flash-lite failed:', res35.reason);
+        }
+
         let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
         let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
 
@@ -875,6 +900,18 @@ ${solverPromptText}`;
               }
             })
           ]);
+
+          if (re31.status === 'rejected' && re35.status === 'rejected') {
+            const errMessage = `Both Gemini solvers failed during retry. Model 3.1: ${re31.reason?.message || 'Unknown error'}. Model 3.5: ${re35.reason?.message || 'Unknown error'}`;
+            console.error('[Worksheet Solver] Dual re-solve failures:', errMessage);
+            throw new Error(errMessage);
+          }
+          if (re31.status === 'rejected') {
+            console.warn('[Worksheet Solver] recheck gemini-3.1-flash-lite failed:', re31.reason);
+          }
+          if (re35.status === 'rejected') {
+            console.warn('[Worksheet Solver] recheck gemini-3.5-flash-lite failed:', re35.reason);
+          }
 
           const newP31 = safeParseJSON(re31.status === 'fulfilled' ? re31.value.text || '' : '{}') || {};
           const newP35 = safeParseJSON(re35.status === 'fulfilled' ? re35.value.text || '' : '{}') || {};
@@ -1536,6 +1573,18 @@ Return STRICTLY a JSON object with keys:
             })
           ]);
 
+          if (res31.status === 'rejected' && res35.status === 'rejected') {
+            const errMessage = `Both Gemini solvers failed. Model 3.1: ${res31.reason?.message || 'Unknown error'}. Model 3.5: ${res35.reason?.message || 'Unknown error'}`;
+            console.error('[RMX Solver] Dual failures:', errMessage);
+            throw new Error(errMessage);
+          }
+          if (res31.status === 'rejected') {
+            console.warn('[RMX Solver] gemini-3.1-flash-lite failed:', res31.reason);
+          }
+          if (res35.status === 'rejected') {
+            console.warn('[RMX Solver] gemini-3.5-flash-lite failed:', res35.reason);
+          }
+
           let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
           let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
 
@@ -1592,6 +1641,18 @@ ${solverPromptText}`;
                 }
               })
             ]);
+
+            if (re31.status === 'rejected' && re35.status === 'rejected') {
+              const errMessage = `Both Gemini solvers failed during retry. Model 3.1: ${re31.reason?.message || 'Unknown error'}. Model 3.5: ${re35.reason?.message || 'Unknown error'}`;
+              console.error('[RMX Solver] Dual re-solve failures:', errMessage);
+              throw new Error(errMessage);
+            }
+            if (re31.status === 'rejected') {
+              console.warn('[RMX Solver] recheck gemini-3.1-flash-lite failed:', re31.reason);
+            }
+            if (re35.status === 'rejected') {
+              console.warn('[RMX Solver] recheck gemini-3.5-flash-lite failed:', re35.reason);
+            }
 
             const newP31 = safeParseJSON(re31.status === 'fulfilled' ? re31.value.text || '' : '{}') || {};
             const newP35 = safeParseJSON(re35.status === 'fulfilled' ? re35.value.text || '' : '{}') || {};

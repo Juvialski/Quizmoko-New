@@ -922,6 +922,18 @@ Return STRICTLY a JSON object with keys:
       })
     ]);
 
+    if (res31.status === 'rejected' && res35.status === 'rejected') {
+      const errMessage = `Both Gemini solvers failed. Model 3.1: ${res31.reason?.message || 'Unknown error'}. Model 3.5: ${res35.reason?.message || 'Unknown error'}`;
+      console.error('[Resolve Question] Dual failures:', errMessage);
+      return res.status(502).json({ success: false, error: errMessage });
+    }
+    if (res31.status === 'rejected') {
+      console.warn('[Resolve Question] gemini-3.1-flash-lite failed:', res31.reason);
+    }
+    if (res35.status === 'rejected') {
+      console.warn('[Resolve Question] gemini-3.5-flash-lite failed:', res35.reason);
+    }
+
     let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
     let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
 

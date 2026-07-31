@@ -229,7 +229,7 @@
                     <%= typeof item.question !== 'undefined' ? item.question : '' %>
                 </div>
 
-                <% let snapshots = (result && result.solution_snapshots) ? result.solution_snapshots[itemIdx] : null; %>
+                <% let snapshots = (result && result.solution_snapshots) ? (result.solution_snapshots[itemIdx] || result.solution_snapshots[String(itemIdx)]) : null; %>
                 <div id="snapshots-container-<%= itemIdx %>">
                     <% if (snapshots && snapshots.length > 0) { %>
                         <div class="workings-title"><i data-lucide="edit-3" class="icon-sm"></i> Workings / Whiteboard Solutions:</div>
@@ -509,6 +509,14 @@
                     // Update Point display in parent
                     const pointBox = statusBadge.parentElement.querySelector("span[style*='background: var(--surface-soft)']");
                     if (pointBox) pointBox.innerText = `Points: ${sfVal.toFixed(2)} / 1.0`;
+
+                    // Update Correct Answer Box if updated
+                    if (data.correct_answer) {
+                        const correctAnsBox = document.getElementById(`correct-ans-${index}`);
+                        if (correctAnsBox) {
+                            correctAnsBox.innerHTML = typeof formatDisplay === 'function' ? formatDisplay(data.correct_answer) : data.correct_answer;
+                        }
+                    }
 
                     // 2. Update Total Score Header
                     const resDoc = await fetch(`/api/get_result/${resultId}`).then(r => r.json());

@@ -868,6 +868,7 @@
                     session_id: sessionId,
                     student_name: studentName,
                     progressive_results: progressiveResults,
+                    solution_snapshots: solutionSnapshots,
                     score: totalScore,
                     time_active_seconds: metrics.timeActive,
                     time_paused_seconds: metrics.finalPausedTime,
@@ -2002,11 +2003,11 @@
                         answers,
                         graded_details: progressiveResults, total_score: finalCalculatedScore,
                         submission_status: status,
+                        solution_snapshots: solutionSnapshots,
                         time_active_seconds: timeActive,
                         time_paused_seconds: finalPausedTime,
                         total_duration_seconds: totalDuration,
                         accuracy_pct: accuracyPct
-                        // Snapshots are now handled progressively to avoid memory/size limits
                     })
                 });
 

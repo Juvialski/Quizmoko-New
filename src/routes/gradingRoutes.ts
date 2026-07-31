@@ -234,7 +234,7 @@ function extractQuestionVision(questionValue: any): { questionText: string; imag
 }
 
 router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_000), async (req, res) => {
-  const { quiz_id, q_index, student_answer, solution_snapshots } = req.body || {};
+  const { quiz_id, session_id, q_index, student_answer, solution_snapshots } = req.body || {};
   if (!validRecordId(quiz_id)) {
     return res.status(400).json({ success: false, error: 'Invalid quiz_id' });
   }
@@ -259,6 +259,22 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
   const q = quiz.questions[questionIndex];
   const actual = sanitizeStudentAnswer(student_answer);
   const hasSnapshots = Array.isArray(solution_snapshots) && solution_snapshots.some((s: any) => typeof s === 'string' && s.trim().length > 0);
+
+  if (session_id && validRecordId(session_id) && hasSnapshots) {
+    const progressiveResultId = `res_${session_id}`;
+    const existingProgress = results.get(progressiveResultId) as any;
+    if (existingProgress && existingProgress.is_in_progress === true) {
+      const sanitized = sanitizeSolutionSnapshots({ [questionIndex]: solution_snapshots }, quiz.questions.length);
+      if (sanitized && sanitized[String(questionIndex)]) {
+        existingProgress.solution_snapshots = {
+          ...(existingProgress.solution_snapshots || {}),
+          [String(questionIndex)]: sanitized[String(questionIndex)]
+        };
+        results.set(progressiveResultId, existingProgress);
+      }
+    }
+  }
+
   const localGrade = gradeQuestionLocally(q, actual, hasSnapshots);
   const qType = localGrade.questionType;
   const expected = localGrade.correctAnswer;
@@ -510,6 +526,10 @@ router.post(
     finalDetails.map((detail, index) => [index, detail?.user_answer ?? 'No Answer'])
   );
   const sanitizedSnapshots = sanitizeSolutionSnapshots(solution_snapshots, quiz.questions.length);
+  const mergedSnapshots = {
+    ...(existingProgress?.solution_snapshots || {}),
+    ...(sanitizedSnapshots || {})
+  };
   const resultObj = {
     id: resultId,
     quiz_id: quiz_id || 'quiz_1',
@@ -526,7 +546,7 @@ router.post(
     details: finalDetails,
     timestamp: createdAt,
     answers: storedAnswers,
-    ...(sanitizedSnapshots ? { solution_snapshots: sanitizedSnapshots } : {}),
+    ...(Object.keys(mergedSnapshots).length > 0 ? { solution_snapshots: mergedSnapshots } : {}),
     time_active_seconds: boundedNumber(time_active_seconds, 0, 0, MAX_RECORDED_DURATION_SECONDS),
     time_paused_seconds: boundedNumber(time_paused_seconds, 0, 0, MAX_RECORDED_DURATION_SECONDS),
     total_duration_seconds: boundedNumber(total_duration_seconds, 0, 0, MAX_RECORDED_DURATION_SECONDS),
@@ -577,6 +597,7 @@ router.post(
     session_id,
     student_name,
     progressive_results,
+    solution_snapshots,
     time_active_seconds,
     time_paused_seconds,
     total_duration_seconds
@@ -623,6 +644,11 @@ router.post(
   const maxScore = quiz.questions.length;
   const createdAt = existing?.created_at || existing?.timestamp || new Date().toISOString();
   const resultAccuracy = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+  const sanitizedSnapshots = sanitizeSolutionSnapshots(solution_snapshots, quiz.questions.length);
+  const mergedSnapshots = {
+    ...(existing?.solution_snapshots || {}),
+    ...(sanitizedSnapshots || {})
+  };
   const resultObj = {
     id: resultId,
     quiz_id,
@@ -637,6 +663,7 @@ router.post(
     total: maxScore,
     details,
     timestamp: createdAt,
+    ...(Object.keys(mergedSnapshots).length > 0 ? { solution_snapshots: mergedSnapshots } : {}),
     time_active_seconds: boundedNumber(time_active_seconds, 0, 0, MAX_RECORDED_DURATION_SECONDS),
     time_paused_seconds: boundedNumber(time_paused_seconds, 0, 0, MAX_RECORDED_DURATION_SECONDS),
     total_duration_seconds: boundedNumber(total_duration_seconds, 0, 0, MAX_RECORDED_DURATION_SECONDS),

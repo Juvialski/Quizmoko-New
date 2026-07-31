@@ -231,9 +231,9 @@ router.post('/api/results/:result_id/recheck', optionalAuth, async (req: AuthReq
   const quizQuestion: any = quizzes.get(result.quiz_id)?.questions?.[questionIndex] || {};
   const originalAnswer = getCorrectAnswer(quizQuestion);
   const detailAnswer = detail.correct_answer;
-  const answerKey = (originalAnswer && String(originalAnswer).trim() !== '' && originalAnswer !== 'Grading Error')
-    ? originalAnswer
-    : (detailAnswer !== 'Grading Error' ? detailAnswer : '');
+  const answerKey = (detailAnswer && String(detailAnswer).trim() !== '' && detailAnswer !== 'Grading Error')
+    ? detailAnswer
+    : (originalAnswer && String(originalAnswer).trim() !== '' && originalAnswer !== 'Grading Error' ? originalAnswer : '');
 
   const gradingQuestion = {
     ...quizQuestion,
@@ -277,11 +277,14 @@ router.post('/api/results/:result_id/recheck', optionalAuth, async (req: AuthReq
       );
       const qType = canonicalQuestionType(gradingQuestion);
 
+      const snapshots = result.solution_snapshots?.[questionIndex] || result.solution_snapshots?.[String(questionIndex)];
+      const hasSnapshots = Array.isArray(snapshots) && snapshots.length > 0;
+
       const prompt = `You are an expert teacher grading a quiz.
 Question Type: ${qType}
 Question: ${JSON.stringify(visionText)}
 Correct Answer Key: ${JSON.stringify(gradingQuestion.answer || 'Open-ended evaluation / evaluate based on question requirement')}
-Student's Response: ${JSON.stringify(detail.user_answer)}
+Student's Response: ${JSON.stringify(detail.user_answer || (hasSnapshots ? '[Whiteboard solution image attached in vision context]' : 'No text response'))}
 
 Evaluate the student's response thoroughly and fairly based on the answer key:
 1. FULL CREDIT (score_fraction = 1.0, is_correct = true): If the student's response is fully correct or mathematically/semantically equivalent to the answer key or question requirement.
@@ -298,6 +301,22 @@ Do NOT wrap plain English words or labels in LaTeX tags.
 Return your response STRICTLY as a JSON object with keys: "is_correct" (boolean), "score_fraction" (number from 0.0 to 1.0), and "feedback" (string).`;
 
       const parts: any[] = [{ text: prompt }, ...imageParts];
+
+      if (Array.isArray(snapshots)) {
+        let snapshotChars = 0;
+        for (const snap of snapshots.slice(0, 5)) {
+          if (typeof snap !== 'string') continue;
+          const match = snap.match(/^data:(image\/[a-z0-9.+-]+);base64,([\s\S]+)$/i);
+          if (
+            match
+            && /^(?:image\/(?:png|jpe?g|gif|webp))$/i.test(match[1])
+            && snapshotChars + match[2].length <= 12 * 1024 * 1024
+          ) {
+            parts.push({ inlineData: { data: match[2], mimeType: match[1] } });
+            snapshotChars += match[2].length;
+          }
+        }
+      }
 
       const primaryModel = getRealModelName((quiz as any)?.model_name || 'gemini-3.5-flash-lite');
       const fallbackCandidates = [
@@ -363,7 +382,7 @@ Return your response STRICTLY as a JSON object with keys: "is_correct" (boolean)
   detail.is_correct = grade.isCorrect;
   detail.score_fraction = grade.scoreFraction;
   detail.type = grade.questionType;
-  detail.correct_answer = grade.correctAnswer;
+  detail.correct_answer = answerKey || grade.correctAnswer;
   recalculateResult(result);
   results.set(req.params.result_id, result);
   savePersistentData();
@@ -373,6 +392,7 @@ Return your response STRICTLY as a JSON object with keys: "is_correct" (boolean)
     success: true,
     is_correct: grade.isCorrect,
     score_fraction: grade.scoreFraction,
+    correct_answer: detail.correct_answer,
     ai_feedback: detail.ai_feedback || '',
     result: withResultAliases(result, req.params.result_id)
   });

@@ -888,10 +888,10 @@ CRITICAL INSTRUCTIONS:
    - For Multiple Choice: Output the correct choice letter (e.g. "A", "B", "C", "D") or choice string matching the option.
    - For Multiple Select: Output comma-separated options/letters (e.g. "A, C").
    - For True/False: Output "A" or "B" (or "True" / "False").
-   - For Identification: Output ONLY the concise final answer value (no sentence wrappers).
+   - For Identification (CRITICAL): Output ONLY the concise final raw numerical value or raw single-word answer. For numerical questions, the 'answer' field MUST be strictly a raw number (integer or decimal, e.g. -42, 120, 0.75) with NO units (e.g., NO 'meters', 'm', 'kg', 's', '$', '%', etc.) or letters, and NO dollar signs or LaTeX, so that student inputs can be graded numerically.
    - For Open Ended / Math / Science: Output the complete, accurate answer value or key rubric grading points.
 2. In the 'solution' field, write a clear, thorough step-by-step worked explanation showing how to arrive at the answer.
-3. CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your answer and solution with LaTeX dollar signs (e.g. $x^2$, $130/10$, $\\$$40). Do NOT use asterisks for math.
+3. CRUCIAL: You MUST enclose ALL mathematical expressions, equations, standalone numbers, counts, measurements, percentages, and currency amounts (except for Identification answers) inside your question text, choices, and solution with LaTeX dollar signs (e.g. $10$ meters, $32$ meters, $x^2$, $130/10$, $\\$$40, $15\\%$, $-42$). Do NOT use asterisks for math, and do NOT leave any numbers un-enclosed as plain text.
 
 Return STRICTLY a JSON object with keys:
 - "options": array of strings (choices if multiple choice, else [])

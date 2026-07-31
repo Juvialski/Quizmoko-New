@@ -31,5 +31,10 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Implemented `areAnswersMatching` normalization logic supporting multiple choice, true/false, numeric, identification, and open-ended text questions (using semantic word overlap).
   - Added real-time progress messages (`setWorksheetProgress`) reflecting initial dual solving, consensus agreement (`✅ Both models agreed!`), answer mismatches (`⚔️ Mismatch...`), and re-resolution attempts (`🔄 Re-resolving (Attempt 1/2)`).
   - Enhanced solution rendering on `/view_solutions/:id` and `/results/:id` to display step-by-step worked solutions formatted with MathJax/KaTeX.
+* **[2026-07-30]** Improved LaTeX formatting consistency and Identification question type answer key standards across the AI generation, worksheet extraction, and question-solving pipeline:
+  - Updated `SHARED_LATEX_RULES`, `STRUCTURED_QUIZ_GENERATOR_PROMPT`, `WORKSHEET_EXTRACTION_PROMPT`, `WORKSHEET_SOLVER_PROMPT`, `WORKSHEET_SOLVER_PROMPT_NON_MATH`, `LATEX_POLISH_PROMPT`, and `RECHECK_ANSWERS_PROMPT` in `prompts.ts` as well as the dynamic `solverPromptText` inside `/src/routes/aiRoutes.ts` `/api/resolve_question`.
+  - Standardized the `identification` answer field to strictly output raw numerical values (integer or decimal, e.g. -42, 120, 0.75) with NO units (like 'meters', 'kg', etc.), letters, dollar signs, or LaTeX enclosure, allowing robust numerical-based student grading.
+  - Enforced consistent LaTeX math-enclosure rule where EVERY standalone number, count, measurement, percentage, temperature, or mathematical value in non-identification contexts must be wrapped in single dollar signs (e.g. $10$ meters, $15\%$, $-42$, $\$540$).
+
 
 

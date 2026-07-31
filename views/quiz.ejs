@@ -1750,6 +1750,7 @@
                     }
                     textElem.innerHTML = feedbackHtml;
                     renderMath('instant-feedback');
+                    if (window.lucide) lucide.createIcons();
 
                     // Disable interaction with options - CRITICAL: Select all relevant elements
                     const inputs = document.getElementById('options-container').querySelectorAll('button, input, textarea');

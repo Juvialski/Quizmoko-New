@@ -281,10 +281,10 @@ Return your response STRICTLY as a JSON object with keys: "is_correct" (boolean)
 
       const primaryModel = getRealModelName((quiz as any)?.model_name || 'gemini-3.5-flash-lite');
       const fallbackCandidates = [
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
         'gemini-3.5-flash-lite',
         'gemini-3.1-flash-lite',
+        'gemini-3.6-flash',
+        'gemini-3.5-flash',
         'gemini-2.5-flash'
       ];
       const modelsToTry = [primaryModel, ...fallbackCandidates.filter(m => m !== primaryModel)];

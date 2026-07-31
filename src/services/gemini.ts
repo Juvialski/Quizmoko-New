@@ -17,18 +17,15 @@ export function getGeminiClient(customApiKey?: string) {
 
 export function getRealModelName(modelName?: string): string {
   const model = (modelName || '').toLowerCase().trim();
-  if (!model) return 'gemini-3.6-flash';
+  if (!model) return 'gemini-3.5-flash-lite';
 
   if (model.startsWith('ollama:')) return model;
 
-  // Preserve an explicit supported selection. Older builds collapsed every
-  // Flash-Lite choice to 3.1 and every Flash choice to 3.6, which made the
-  // model picker misleading and could silently move workloads between price
-  // and latency tiers.
+  // Preserve an explicit supported selection.
   const supportedModels = new Set([
+    'gemini-3.5-flash-lite',
     'gemini-3.6-flash',
     'gemini-3.5-flash',
-    'gemini-3.5-flash-lite',
     'gemini-3.1-flash-lite',
     'gemini-3.1-pro-preview',
     'gemini-2.5-flash',
@@ -38,12 +35,12 @@ export function getRealModelName(modelName?: string): string {
 
   // Compatibility aliases from older AI Studio exports.
   if (model === 'gemini-3.0-flash' || model === 'gemini-3-flash-preview') {
-    return 'gemini-3.6-flash';
+    return 'gemini-3.5-flash-lite';
   }
-  if (model === 'gemini-flash-latest') return 'gemini-3.5-flash';
+  if (model === 'gemini-flash-latest') return 'gemini-3.5-flash-lite';
   if (model.includes('pro')) return 'gemini-3.1-pro-preview';
 
-  return 'gemini-3.6-flash';
+  return 'gemini-3.5-flash-lite';
 }
 
 export function fixJsonLatexEscapes(jsonStr: string): string {

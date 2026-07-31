@@ -196,18 +196,19 @@ function gradeMultipleChoiceMulti(expected: any, actual: any): { isCorrect: bool
   };
 }
 
-export function gradeQuestionLocally(question: any, studentAnswer: any): LocalGradeResult {
+export function gradeQuestionLocally(question: any, studentAnswer: any, hasSnapshots: boolean = false): LocalGradeResult {
   const questionType = canonicalQuestionType(question);
   const correctAnswer = getCorrectAnswer(question);
   const hasExpectedAnswer = correctAnswer !== null
     && correctAnswer !== undefined
     && answerToString(correctAnswer).trim().length > 0;
-  const hasStudentAnswer = studentAnswer !== null
+  const hasStudentText = studentAnswer !== null
     && studentAnswer !== undefined
     && answerToString(studentAnswer).trim().length > 0
     && answerToString(studentAnswer).trim().toLowerCase() !== 'no answer';
+  const hasStudentAnswer = hasStudentText || Boolean(hasSnapshots);
 
-  if (!hasExpectedAnswer || !hasStudentAnswer) {
+  if (!hasStudentAnswer) {
     return {
       isCorrect: false,
       scoreFraction: 0,
@@ -218,16 +219,25 @@ export function gradeQuestionLocally(question: any, studentAnswer: any): LocalGr
   }
 
   if (questionType === 'multiple_choice') {
+    if (!hasExpectedAnswer) {
+      return { isCorrect: false, scoreFraction: 0, questionType, correctAnswer, requiresSemanticGrading: false };
+    }
     const isCorrect = gradeMultipleChoice(question, correctAnswer, studentAnswer);
     return { isCorrect, scoreFraction: isCorrect ? 1 : 0, questionType, correctAnswer, requiresSemanticGrading: false };
   }
 
   if (questionType === 'multiple_choice_multi') {
+    if (!hasExpectedAnswer) {
+      return { isCorrect: false, scoreFraction: 0, questionType, correctAnswer, requiresSemanticGrading: false };
+    }
     const grade = gradeMultipleChoiceMulti(correctAnswer, studentAnswer);
     return { ...grade, questionType, correctAnswer, requiresSemanticGrading: false };
   }
 
   if (questionType === 'true_false') {
+    if (!hasExpectedAnswer) {
+      return { isCorrect: false, scoreFraction: 0, questionType, correctAnswer, requiresSemanticGrading: false };
+    }
     const expected = normalizeTrueFalse(question, correctAnswer);
     const actual = normalizeTrueFalse(question, studentAnswer);
     const isCorrect = expected.length > 0 && expected === actual;
@@ -235,21 +245,35 @@ export function gradeQuestionLocally(question: any, studentAnswer: any): LocalGr
   }
 
   if (questionType === 'identification') {
-    const isCorrect = gradeIdentification(correctAnswer, studentAnswer);
-    if (isCorrect) {
-      return { isCorrect: true, scoreFraction: 1, questionType, correctAnswer, requiresSemanticGrading: false };
+    if (hasExpectedAnswer && hasStudentText) {
+      const isCorrect = gradeIdentification(correctAnswer, studentAnswer);
+      if (isCorrect) {
+        return { isCorrect: true, scoreFraction: 1, questionType, correctAnswer, requiresSemanticGrading: false };
+      }
     }
     return { isCorrect: false, scoreFraction: 0, questionType, correctAnswer, requiresSemanticGrading: true };
   }
 
-  const expected = normalizeText(correctAnswer);
-  const actual = normalizeText(studentAnswer);
-  const isCorrect = expected.length > 0 && expected === actual;
+  // For open_ended, graphing, essay, etc.:
+  if (hasExpectedAnswer && hasStudentText) {
+    const expected = normalizeText(correctAnswer);
+    const actual = normalizeText(studentAnswer);
+    if (expected.length > 0 && expected === actual) {
+      return {
+        isCorrect: true,
+        scoreFraction: 1,
+        questionType,
+        correctAnswer,
+        requiresSemanticGrading: false
+      };
+    }
+  }
+
   return {
-    isCorrect,
-    scoreFraction: isCorrect ? 1 : 0,
+    isCorrect: false,
+    scoreFraction: 0,
     questionType,
     correctAnswer,
-    requiresSemanticGrading: !isCorrect
+    requiresSemanticGrading: true
   };
 }

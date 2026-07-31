@@ -23,8 +23,8 @@ const MAX_VISION_IMAGE_CHARS = 12 * 1024 * 1024;
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 const semanticAiBuckets = new Map<string, { count: number; resetAt: number }>();
 let semanticAiInFlight = 0;
-const MAX_SEMANTIC_AI_IN_FLIGHT = 8;
-const MAX_SEMANTIC_AI_ATTEMPTS_PER_IP = 300;
+const MAX_SEMANTIC_AI_IN_FLIGHT = 32;
+const MAX_SEMANTIC_AI_ATTEMPTS_PER_IP = 1200;
 const SEMANTIC_AI_WINDOW_MS = 10 * 60 * 1_000;
 
 function publicRateLimit(prefix: string, maxRequests: number, windowMs: number) {
@@ -55,33 +55,42 @@ function publicRateLimit(prefix: string, maxRequests: number, windowMs: number) 
   };
 }
 
-function acquireSemanticAiSlot(req: any): { release(): void } | null {
-  const now = Date.now();
+async function acquireSemanticAiSlot(req: any): Promise<{ release(): void } | null> {
   const client = String(req.ip || req.socket?.remoteAddress || 'unknown').slice(0, 200);
-  let bucket = semanticAiBuckets.get(client);
-  if (!bucket || bucket.resetAt <= now) {
-    bucket = { count: 0, resetAt: now + SEMANTIC_AI_WINDOW_MS };
-    semanticAiBuckets.set(client, bucket);
-  }
-  if (bucket.count >= MAX_SEMANTIC_AI_ATTEMPTS_PER_IP) return null;
-  if (semanticAiInFlight >= MAX_SEMANTIC_AI_IN_FLIGHT) return null;
-  bucket.count += 1;
-  semanticAiInFlight += 1;
-
-  if (semanticAiBuckets.size > 10_000) {
-    for (const [bucketKey, value] of semanticAiBuckets) {
-      if (value.resetAt <= now) semanticAiBuckets.delete(bucketKey);
+  
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const now = Date.now();
+    let bucket = semanticAiBuckets.get(client);
+    if (!bucket || bucket.resetAt <= now) {
+      bucket = { count: 0, resetAt: now + SEMANTIC_AI_WINDOW_MS };
+      semanticAiBuckets.set(client, bucket);
     }
-  }
+    if (bucket.count >= MAX_SEMANTIC_AI_ATTEMPTS_PER_IP) return null;
 
-  let released = false;
-  return {
-    release() {
-      if (released) return;
-      released = true;
-      semanticAiInFlight = Math.max(0, semanticAiInFlight - 1);
+    if (semanticAiInFlight < MAX_SEMANTIC_AI_IN_FLIGHT) {
+      bucket.count += 1;
+      semanticAiInFlight += 1;
+
+      if (semanticAiBuckets.size > 10_000) {
+        for (const [bucketKey, value] of semanticAiBuckets) {
+          if (value.resetAt <= now) semanticAiBuckets.delete(bucketKey);
+        }
+      }
+
+      let released = false;
+      return {
+        release() {
+          if (released) return;
+          released = true;
+          semanticAiInFlight = Math.max(0, semanticAiInFlight - 1);
+        }
+      };
     }
-  };
+
+    // Brief delay before retrying slot acquisition
+    await new Promise(resolve => setTimeout(resolve, 150));
+  }
+  return null;
 }
 
 function finiteNumber(value: any, fallback = 0): number {
@@ -249,7 +258,8 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
 
   const q = quiz.questions[questionIndex];
   const actual = sanitizeStudentAnswer(student_answer);
-  const localGrade = gradeQuestionLocally(q, actual);
+  const hasSnapshots = Array.isArray(solution_snapshots) && solution_snapshots.some((s: any) => typeof s === 'string' && s.trim().length > 0);
+  const localGrade = gradeQuestionLocally(q, actual, hasSnapshots);
   const qType = localGrade.questionType;
   const expected = localGrade.correctAnswer;
 
@@ -258,7 +268,7 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
   let aiFeedback = '';
 
   if (localGrade.requiresSemanticGrading) {
-    const semanticSlot = acquireSemanticAiSlot(req);
+    const semanticSlot = await acquireSemanticAiSlot(req);
     let ai: ReturnType<typeof getGeminiClient> = null;
     if (semanticSlot) {
       try {
@@ -273,11 +283,11 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
         const prompt = `You are an expert teacher grading a quiz.
 Question Type: ${qType}
 Question: ${JSON.stringify(vision.questionText)}
-Correct Answer Key: ${JSON.stringify(expected)}
-Student's Response: ${JSON.stringify(actual)}
+Correct Answer Key: ${JSON.stringify(expected || 'Open-ended evaluation / evaluate based on question requirement')}
+Student's Response: ${JSON.stringify(actual || (hasSnapshots ? '[Whiteboard solution image attached in vision context]' : 'No text response'))}
 
 Evaluate the student's response thoroughly and fairly based on the answer key:
-1. FULL CREDIT (score_fraction = 1.0, is_correct = true): If the student's response is fully correct or mathematically/semantically equivalent to the answer key.
+1. FULL CREDIT (score_fraction = 1.0, is_correct = true): If the student's response is fully correct or mathematically/semantically equivalent to the answer key or question requirement.
 2. PARTIAL CREDIT (score_fraction between 0.1 and 0.9): If the question has multiple parts, sub-questions, steps, or multi-answer items and the student answered SOME parts correctly.
    - Example: For a question with 2 sub-questions, if the student gets 1 correct and 1 incorrect, award a score_fraction of 0.5.
    - Example: For a question with 3 parts where 2 are correct, award a score_fraction of 0.67.
@@ -310,10 +320,10 @@ Return your response STRICTLY as a JSON object with keys: "is_correct" (boolean)
 
         const primaryModel = getRealModelName((quiz as any).model_name || 'gemini-3.5-flash-lite');
         const fallbackCandidates = [
-          'gemini-3.6-flash',
-          'gemini-3.5-flash',
           'gemini-3.5-flash-lite',
           'gemini-3.1-flash-lite',
+          'gemini-3.6-flash',
+          'gemini-3.5-flash',
           'gemini-2.5-flash'
         ];
         const modelsToTry = [primaryModel, ...fallbackCandidates.filter(m => m !== primaryModel)];

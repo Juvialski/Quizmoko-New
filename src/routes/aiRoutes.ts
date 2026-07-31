@@ -5,6 +5,7 @@ import { generateAiLimiter } from '../middleware/rateLimit.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
 import {
   quizzes,
+  users,
   savePersistentData,
   syncDocToFirestore,
   getUniqueQuizTitle
@@ -457,7 +458,7 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
   };
 
   const {
-    api_key,
+    api_key: submittedApiKey,
     ollama_url,
     model_name = 'gemini-3.5-flash-lite',
     topic,
@@ -467,6 +468,15 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
     test_type = 'Mixed',
     quiz_mode = 'back_and_forth'
   } = req.body || {};
+
+  let resolvedApiKey = typeof submittedApiKey === 'string' ? submittedApiKey.trim() : '';
+  if (!resolvedApiKey && req.user?.uid) {
+    const user = users.get(req.user.uid);
+    if (user && typeof user.stored_custom_key === 'string') {
+      resolvedApiKey = user.stored_custom_key;
+    }
+  }
+  const api_key = resolvedApiKey || '';
 
   const cleanTopic = String(topic || '').trim();
   if (!cleanTopic) return fail(400, 'A quiz topic is required.');
@@ -679,10 +689,19 @@ router.post('/api/generate_question', tokenRequired, async (req: AuthRequest, re
     target_type = 'multiple_choice',
     instructions = '',
     existing_question,
-    api_key,
+    api_key: submittedApiKey,
     ollama_url,
     model_name = 'gemini-3.5-flash-lite'
   } = req.body || {};
+
+  let resolvedApiKey = typeof submittedApiKey === 'string' ? submittedApiKey.trim() : '';
+  if (!resolvedApiKey && req.user?.uid) {
+    const user = users.get(req.user.uid);
+    if (user && typeof user.stored_custom_key === 'string') {
+      resolvedApiKey = user.stored_custom_key;
+    }
+  }
+  const api_key = resolvedApiKey || '';
   const allowedTypes = new Set([
     'multiple_choice',
     'multiple_choice_multi',

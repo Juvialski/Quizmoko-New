@@ -9,6 +9,7 @@ import { tokenRequired } from '../middleware/auth.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
 import {
   quizzes,
+  users,
   sessionProgress,
   savePersistentData,
   syncDocToFirestore,
@@ -644,7 +645,14 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
     if (wsFiles.length === 0) {
       return res.status(400).json({ success: false, error: 'Upload at least one worksheet PDF or image.' });
     }
-    const ai = getGeminiClient(api_key);
+    let resolvedApiKey = typeof api_key === 'string' ? api_key.trim() : '';
+    if (!resolvedApiKey && req.user?.uid) {
+      const user = users.get(req.user.uid);
+      if (user && typeof user.stored_custom_key === 'string') {
+        resolvedApiKey = user.stored_custom_key;
+      }
+    }
+    const ai = getGeminiClient(resolvedApiKey);
     if (!ai) {
       return res.status(400).json({
         success: false,
@@ -1272,7 +1280,14 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
     if (wsFiles.length === 0) {
       return res.status(400).json({ success: false, error: 'Upload at least one worksheet PDF or image.' });
     }
-    const ai = getGeminiClient(api_key);
+    let resolvedApiKey = typeof api_key === 'string' ? api_key.trim() : '';
+    if (!resolvedApiKey && req.user?.uid) {
+      const user = users.get(req.user.uid);
+      if (user && typeof user.stored_custom_key === 'string') {
+        resolvedApiKey = user.stored_custom_key;
+      }
+    }
+    const ai = getGeminiClient(resolvedApiKey);
     if (!ai) {
       return res.status(400).json({
         success: false,

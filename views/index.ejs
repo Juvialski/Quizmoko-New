@@ -962,6 +962,13 @@
             }
             hiddenApiInput.value = key1;
 
+            // Sync API key to server profile
+            fetch('/api/user/save_api_key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ api_key: key1 })
+            }).catch(err => console.error('Error syncing API key to server:', err));
+
             closeApiKeyModal();
             fetchUsageStats();
 
@@ -1003,12 +1010,25 @@
             const savedKey = localStorage.getItem('gemini_api_key');
 
             if (savedKeys.length > 0 || savedKey) {
+                let activeKey = '';
                 if (savedKeys.length > 0) {
                     hiddenApiInput.value = savedKeys[0];
+                    activeKey = savedKeys[0];
                 } else {
                     hiddenApiInput.value = savedKey;
+                    activeKey = savedKey;
                     localStorage.setItem('gemini_api_keys', JSON.stringify([savedKey]));
                 }
+
+                // Auto-sync existing local storage API key to the server on load
+                if (activeKey) {
+                    fetch('/api/user/save_api_key', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ api_key: activeKey })
+                    }).catch(err => console.error('Error auto-syncing API key to server:', err));
+                }
+
                 checkAndRunTour();
             } else if (!serverAiConfigured) {
                 openApiKeyModal(); // Force modal on first load

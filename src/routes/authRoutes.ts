@@ -11,7 +11,9 @@ import {
   clearSessionCookies,
   isDemoAuthEnabled,
   setSessionCookie,
-  verifyFirebaseIdToken
+  verifyFirebaseIdToken,
+  tokenRequired,
+  type AuthRequest
 } from '../middleware/auth.ts';
 import { loginLimiter } from '../middleware/rateLimit.ts';
 
@@ -186,6 +188,20 @@ router.post('/api/test_login', asyncRoute(async (req, res) => {
   await persistUser(user);
   setSessionCookie(req, res, user, true);
   res.json({ success: true, uid: user.uid, role: user.role });
+}));
+
+router.post('/api/user/save_api_key', tokenRequired, asyncRoute(async (req: AuthRequest, res) => {
+  const { api_key } = req.body || {};
+  if (!req.user?.uid) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+  const user = users.get(req.user.uid);
+  if (!user) {
+    return res.status(404).json({ success: false, error: 'User not found' });
+  }
+  user.stored_custom_key = typeof api_key === 'string' ? api_key.trim().slice(0, 512) : '';
+  await persistUser(user);
+  res.json({ success: true });
 }));
 
 export default router;

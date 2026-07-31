@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { Type } from '@google/genai';
 import { optionalAuth } from '../middleware/auth.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
-import { quizzes, results, savePersistentData, syncDocToFirestore } from '../store/db.ts';
+import { quizzes, results, users, savePersistentData, syncDocToFirestore } from '../store/db.ts';
 import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
 import {
   canonicalQuestionType,
@@ -242,7 +242,15 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
   const submittedApiKey = typeof req.body.api_key === 'string'
     ? req.body.api_key.trim().slice(0, 512)
     : '';
-  const api_key = submittedApiKey || (quiz && (quiz as any).api_key) || '';
+  let resolvedApiKey = submittedApiKey;
+  if (!resolvedApiKey && quiz) {
+    const ownerId = quiz.user_id || 'teacher_test';
+    const owner = users.get(ownerId);
+    if (owner && typeof owner.stored_custom_key === 'string') {
+      resolvedApiKey = owner.stored_custom_key;
+    }
+  }
+  const api_key = resolvedApiKey || '';
   const questionIndex = Number(q_index);
 
   if (!quiz || !Number.isInteger(questionIndex) || questionIndex < 0 || !quiz.questions[questionIndex]) {

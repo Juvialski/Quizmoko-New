@@ -24,7 +24,8 @@ import {
 import type { User, Quiz, QuizResult, LiveSessionState } from '../types.ts';
 import {
   getFirebaseAdminApp,
-  getFirebaseAdminMode
+  getFirebaseAdminMode,
+  isAiStudioSandbox
 } from '../services/firebaseAdmin.ts';
 
 // In-Memory Stores
@@ -333,6 +334,11 @@ function configureFirestoreBackends() {
   if (backendsConfigured) return;
   backendsConfigured = true;
 
+  if (isAiStudioSandbox()) {
+    console.log('[AI Studio Sandbox] Offline sandbox mode active. Skipping Firestore database initialization.');
+    return;
+  }
+
   const firebaseConfig = getFirebaseConfig();
   const projectId = process.env.FIREBASE_PROJECT_ID || firebaseConfig?.projectId;
   const configuredDatabaseId =
@@ -478,7 +484,7 @@ function beginLocalSnapshot(): Promise<void> {
 }
 
 function scheduleLocalSnapshot(delayMs = positiveInteger(process.env.LOCAL_SAVE_DEBOUNCE_MS, 250, 5_000)) {
-  if (!localPersistenceAvailable) return;
+  if (!localPersistenceAvailable || isAiStudioSandbox()) return;
   localSaveRequested = true;
   if (localSaveTimer || localSaveInFlight) return;
   localSaveTimer = setTimeout(() => {
@@ -491,6 +497,7 @@ export function savePersistentData() {
   // Redaction is synchronous and immediate; the expensive full-store disk
   // snapshot is deferred/coalesced.
   sanitizeStoresInPlace();
+  if (isAiStudioSandbox()) return;
   scheduleLocalSnapshot();
 }
 
@@ -670,6 +677,10 @@ function loadStoreFile<T>(
 }
 
 export function loadPersistentData() {
+  if (isAiStudioSandbox()) {
+    console.log('[AI Studio Sandbox] Local disk persistence loading skipped in sandbox offline mode.');
+    return;
+  }
   // Failures are isolated so a malformed quiz file cannot block users/results.
   loadStoreFile(QUIZZES_FILE, quizzes, 'quiz');
   loadStoreFile(RESULTS_FILE, results, 'result');
@@ -925,6 +936,9 @@ function enqueueFirestoreMutation(
 }
 
 export function syncDocToFirestore(collectionName: string, documentId: string, data: any) {
+  if (isAiStudioSandbox()) {
+    return Promise.resolve();
+  }
   try {
     validateFirestoreTarget(collectionName, documentId);
   } catch (error) {
@@ -974,6 +988,9 @@ export function syncDocToFirestore(collectionName: string, documentId: string, d
 }
 
 export function deleteDocFromFirestore(collectionName: string, documentId: string) {
+  if (isAiStudioSandbox()) {
+    return Promise.resolve();
+  }
   try {
     validateFirestoreTarget(collectionName, documentId);
   } catch (error) {
@@ -1058,6 +1075,9 @@ async function loadCollection(
 }
 
 export async function loadFromFirestore(generation = ++firestoreLoadGeneration): Promise<boolean> {
+  if (isAiStudioSandbox()) {
+    return false;
+  }
   const backends = activeFirestoreBackends();
   if (backends.length === 0) {
     firestoreHydrated = false;
@@ -1214,6 +1234,22 @@ export function getOrCreateLiveState(quizId: string) {
 export const PORT = positiveInteger(process.env.PORT, 3000, 65_535);
 
 export function getPersistenceStatus() {
+  if (isAiStudioSandbox()) {
+    return {
+      ready: true,
+      sandboxOffline: true,
+      local: false,
+      dataDirectory: DATA_DIR,
+      firestoreConfigured: false,
+      firestoreRequired: false,
+      firestoreCredentialed: false,
+      firestoreHydrated: false,
+      firestoreHealthy: false,
+      firestoreBackends: [],
+      pendingWrites: 0,
+      lastError: null
+    };
+  }
   const firestoreRequired = isFirestoreRequired();
   const firestoreCredentialed = hasCredentialedFirestoreBackend();
   const ready = persistenceReady && (
@@ -1267,6 +1303,13 @@ export function initDatabase(): Promise<void> {
   if (databaseInitialization) return databaseInitialization;
 
   databaseInitialization = (async () => {
+    if (isAiStudioSandbox()) {
+      console.log('[AI Studio Sandbox] Isolated sandbox mode active. Operating fully offline (in-memory only, no DB reads/writes).');
+      persistenceReady = true;
+      firestoreHealthy = false;
+      return;
+    }
+
     loadPersistentData();
     configureFirestoreBackends();
 

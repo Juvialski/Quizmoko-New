@@ -35,6 +35,10 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Updated `SHARED_LATEX_RULES`, `STRUCTURED_QUIZ_GENERATOR_PROMPT`, `WORKSHEET_EXTRACTION_PROMPT`, `WORKSHEET_SOLVER_PROMPT`, `WORKSHEET_SOLVER_PROMPT_NON_MATH`, `LATEX_POLISH_PROMPT`, and `RECHECK_ANSWERS_PROMPT` in `prompts.ts` as well as the dynamic `solverPromptText` inside `/src/routes/aiRoutes.ts` `/api/resolve_question`.
   - Standardized the `identification` answer field to strictly output raw numerical values (integer or decimal, e.g. -42, 120, 0.75) with NO units (like 'meters', 'kg', etc.), letters, dollar signs, or LaTeX enclosure, allowing robust numerical-based student grading.
   - Enforced consistent LaTeX math-enclosure rule where EVERY standalone number, count, measurement, percentage, temperature, or mathematical value in non-identification contexts must be wrapped in single dollar signs (e.g. $10$ meters, $15\%$, $-42$, $\$540$).
+* **[2026-07-31]** Implemented complete AI Studio sandbox environment isolation:
+  - Added `isAiStudioSandbox()` helper in `src/services/firebaseAdmin.ts` to detect AI Studio preview Cloud Run instances while preserving standard operation on Render (`process.env.RENDER`).
+  - Completely blocked all Firebase Admin credentials, Firestore initialization, Firestore reads, and Firestore writes in AI Studio sandbox.
+  - Disabled local disk JSON file persistence loading and saving in sandbox mode to operate strictly in-memory, ensuring zero external DB read/writes occur in sandbox while deployed app on Render operates normally.
 
 
 

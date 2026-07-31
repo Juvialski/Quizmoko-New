@@ -62,6 +62,7 @@ function parseServiceAccount(): Record<string, unknown> | undefined {
 }
 
 function isGoogleManagedRuntime(): boolean {
+  if (isAiStudioSandbox()) return false;
   if (process.env.K_SERVICE && process.env.K_SERVICE.startsWith('ais-')) {
     return false;
   }
@@ -73,7 +74,23 @@ function isGoogleManagedRuntime(): boolean {
   );
 }
 
+export function isAiStudioSandbox(): boolean {
+  if (process.env.RENDER) return false;
+  if (process.env.FORCE_ONLINE_SANDBOX === 'true') return false;
+
+  const kService = process.env.K_SERVICE || '';
+  const gcpProject = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || '';
+
+  if (kService.startsWith('ais-')) return true;
+  if (gcpProject.includes('ai-studio') || gcpProject.includes('ais-')) return true;
+  if (process.env.AIS_SANDBOX === 'true' || process.env.AI_STUDIO_SANDBOX === 'true') return true;
+  if (!process.env.RENDER && kService.length > 0) return true;
+
+  return false;
+}
+
 export function hasFirebaseAdminCredentials(): boolean {
+  if (isAiStudioSandbox()) return false;
   if (!envFlag('FIREBASE_ADMIN_ENABLED', true)) return false;
   return Boolean(
     process.env.FIREBASE_SERVICE_ACCOUNT_JSON ||
@@ -89,6 +106,11 @@ export function hasFirebaseAdminCredentials(): boolean {
  * Google's public signatures and does not grant database access.
  */
 export function getFirebaseAdminApp(requireCredentials = false): App | null {
+  if (isAiStudioSandbox()) {
+    credentialMode = 'disabled';
+    return null;
+  }
+
   if (!envFlag('FIREBASE_ADMIN_ENABLED', true)) {
     credentialMode = 'disabled';
     return null;

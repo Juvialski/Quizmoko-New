@@ -331,6 +331,18 @@ const SINGLE_SOLVED_QUESTION_SCHEMA = {
   required: ['options', 'answer', 'type', 'solution']
 };
 
+const SINGLE_CHECKER_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    verified: { type: Type.BOOLEAN },
+    corrected_answer: { type: Type.STRING },
+    corrected_solution: { type: Type.STRING },
+    corrected_type: { type: Type.STRING },
+    reason: { type: Type.STRING }
+  },
+  required: ['verified', 'reason']
+};
+
 function areAnswersMatching(ans1: string, ans2: string, type1?: string, type2?: string): boolean {
   if (!ans1 || !ans2) return false;
   const a = String(ans1).trim();
@@ -801,7 +813,7 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
       const finalQuestions: any[] = [];
 
       setWorksheetProgress(session_id, {
-        message: '🤖 Initializing Dual-Model Solvers (gemini-3.1-flash-lite & gemini-3.5-flash-lite)...',
+        message: '🤖 Initializing Solve and Check Engine...',
         percentage: 15,
         status: 'processing'
       });
@@ -812,7 +824,7 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         const batchQuestions = questions.slice(i, batchEnd);
 
         setWorksheetProgress(session_id, {
-          message: `🤖 Solving Batch Q${i + 1}-${batchEnd}/${totalQuestions} simultaneously with gemini-3.1-flash-lite & gemini-3.5-flash-lite...`,
+          message: `🤖 Solving Batch Q${i + 1}-${batchEnd}/${totalQuestions} with Peer Verification...`,
           percentage: Math.round(15 + (i / totalQuestions) * 75),
           status: 'processing'
         });
@@ -822,9 +834,8 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
           const pctStart = Math.round(15 + (qIdx / totalQuestions) * 75);
           const pctEnd = Math.round(15 + ((qIdx + 1) / totalQuestions) * 75);
 
-          const qContents31: any[] = [];
-          const prepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qContents31);
-          const qContents35 = [...qContents31];
+          const qContents: any[] = [];
+          const prepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qContents);
 
           const existingOptions = Array.isArray(rawQ.options) ? rawQ.options : (Array.isArray(rawQ.choices) ? rawQ.choices : []);
 
@@ -857,143 +868,134 @@ Return STRICTLY a JSON object with keys:
 - "solution": string (detailed step-by-step worked solution)
 `;
 
-          qContents31.unshift(solverPromptText);
-          qContents35.unshift(solverPromptText);
+          qContents.unshift(solverPromptText);
 
-          const [res31, res35] = await Promise.allSettled([
-            ai.models.generateContent({
-              model: 'gemini-3.1-flash-lite',
-              contents: qContents31,
+          // 1. Solve Step
+          let resSolve;
+          try {
+            resSolve = await ai.models.generateContent({
+              model: selectedModel,
+              contents: qContents,
               config: {
                 responseMimeType: 'application/json',
                 responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
                 maxOutputTokens: 4096
               }
-            }),
-            ai.models.generateContent({
-              model: 'gemini-3.5-flash-lite',
-              contents: qContents35,
+            });
+          } catch (err: any) {
+            console.error(`[Worksheet Solver] Solver model failed for Q${qIdx + 1}:`, err);
+            throw new Error(`Solver model failed: ${err.message}`);
+          }
+
+          const parsed = safeParseJSON(resSolve?.text || '{}') || {};
+          const solvedAnswer = String(parsed.answer || '').trim();
+          const solvedSolution = String(parsed.solution || '').trim();
+          const solvedType = String(parsed.type || rawQ.type || 'identification').trim();
+
+          // 2. Check Step (Peer Checker)
+          const checkerModel = selectedModel === 'gemini-3.1-flash-lite' ? 'gemini-3.5-flash-lite' : 'gemini-3.1-flash-lite';
+          
+          setWorksheetProgress(session_id, {
+            message: `🔍 Q${qIdx + 1}/${totalQuestions}: Peer checker (${checkerModel}) verifying answer...`,
+            percentage: Math.round(pctStart + (pctEnd - pctStart) * 0.5),
+            status: 'processing'
+          });
+
+          const checkContents: any[] = [];
+          const checkerPrepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', checkContents);
+
+          const checkerPrompt = `You are a senior educator and peer reviewer. Your job is to verify the correctness of an AI-generated answer and step-by-step solution for the given question.
+
+SUBJECT: ${subject || 'General'}
+TOPIC: ${topic || 'General'}
+
+QUESTION TO VERIFY:
+${checkerPrepared.text}
+
+EXISTING CHOICES/OPTIONS (if multiple choice):
+${JSON.stringify(existingOptions)}
+
+PROPOSED ANSWER TO VERIFY:
+"${solvedAnswer}"
+
+PROPOSED WORKED SOLUTION TO VERIFY:
+"${solvedSolution}"
+
+PROPOSED QUESTION TYPE:
+"${solvedType}"
+
+CRITICAL INSTRUCTIONS:
+1. Analyze the question carefully. Determine if the proposed answer is correct and mathematically accurate.
+2. If the proposed answer, solution, and type are correct/accurate, set 'verified' to true.
+3. If there is any mistake in calculations, logic, fact, or option choice, set 'verified' to false.
+4. If 'verified' is false, you MUST provide the correct 'corrected_answer', 'corrected_solution', and 'corrected_type'.
+5. ${MANDATORY_MATH_FEEDBACK_RULE}
+
+Return STRICTLY a JSON object with keys:
+- "verified": boolean (true if correct, false if incorrect or needs correction)
+- "corrected_answer": string (the corrected exact answer, only if verified is false)
+- "corrected_solution": string (the corrected step-by-step solution, only if verified is false)
+- "corrected_type": string (one of "multiple_choice", "multiple_choice_multi", "identification", "open_ended", "graphing", "true_false", only if verified is false)
+- "reason": string (concise explanation of why the proposed solution is correct or why/how it was corrected)
+`;
+          checkContents.unshift(checkerPrompt);
+
+          let finalAnswer = solvedAnswer;
+          let finalSolution = solvedSolution;
+          let finalType = solvedType;
+          let finalOptions = (Array.isArray(parsed.options) && parsed.options.length > 0) ? parsed.options : existingOptions;
+
+          try {
+            const resCheck = await ai.models.generateContent({
+              model: checkerModel,
+              contents: checkContents,
               config: {
                 responseMimeType: 'application/json',
-                responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                responseSchema: SINGLE_CHECKER_SCHEMA,
                 maxOutputTokens: 4096
               }
-            })
-          ]);
+            });
+            const checkParsed = safeParseJSON(resCheck?.text || '{}') || {};
 
-          if (res31.status === 'rejected' && res35.status === 'rejected') {
-            const errMessage = `Both Gemini solvers failed. Model 3.1: ${res31.reason?.message || 'Unknown error'}. Model 3.5: ${res35.reason?.message || 'Unknown error'}`;
-            console.error('[Worksheet Solver] Dual failures:', errMessage);
-            throw new Error(errMessage);
-          }
-          if (res31.status === 'rejected') {
-            console.warn('[Worksheet Solver] gemini-3.1-flash-lite failed:', res31.reason);
-          }
-          if (res35.status === 'rejected') {
-            console.warn('[Worksheet Solver] gemini-3.5-flash-lite failed:', res35.reason);
-          }
-
-          let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
-          let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
-
-          let ans31 = String(parsed31.answer || '').trim();
-          let ans35 = String(parsed35.answer || '').trim();
-
-          let isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
-          let activeParsed = isMatch ? (parsed35.answer ? parsed35 : parsed31) : null;
-
-          let attempt = 0;
-          const maxAttempts = 2;
-
-          while (!isMatch && attempt < maxAttempts) {
-            attempt++;
+            if (checkParsed.verified === true) {
+              setWorksheetProgress(session_id, {
+                message: `✅ Q${qIdx + 1}/${totalQuestions}: Solver answer verified! Answer: "${finalAnswer.substring(0, 25)}"`,
+                percentage: pctEnd,
+                status: 'processing'
+              });
+            } else if (checkParsed.verified === false) {
+              finalAnswer = String(checkParsed.corrected_answer || solvedAnswer).trim();
+              finalSolution = String(checkParsed.corrected_solution || solvedSolution).trim();
+              finalType = String(checkParsed.corrected_type || solvedType).trim();
+              setWorksheetProgress(session_id, {
+                message: `✍️ Q${qIdx + 1}/${totalQuestions}: Peer corrected answer to: "${finalAnswer.substring(0, 25)}"`,
+                percentage: pctEnd,
+                status: 'processing'
+              });
+            } else {
+              setWorksheetProgress(session_id, {
+                message: `🔍 Q${qIdx + 1}/${totalQuestions}: Solver answer bypassed checker: "${finalAnswer.substring(0, 25)}"`,
+                percentage: pctEnd,
+                status: 'processing'
+              });
+            }
+          } catch (checkErr: any) {
+            console.warn(`[Worksheet Solver] Peer checker failed for Q${qIdx + 1} (falling back to Solver answer):`, checkErr);
             setWorksheetProgress(session_id, {
-              message: `⚔️ Q${qIdx + 1}/${totalQuestions}: Mismatch (3.1: "${ans31.substring(0, 25)}" vs 3.5: "${ans35.substring(0, 25)}"). Re-resolving (Attempt ${attempt}/2)...`,
-              percentage: Math.round(pctStart + (pctEnd - pctStart) * 0.5),
+              message: `🔍 Q${qIdx + 1}/${totalQuestions}: Solver answer: "${finalAnswer.substring(0, 25)}"`,
+              percentage: pctEnd,
               status: 'processing'
             });
-
-            const resolvePrompt = `Two independent AI solvers arrived at conflicting answers for this question:
-- Model A (gemini-3.1-flash-lite) answer: "${ans31}"
-  Worked Solution A: ${parsed31.solution || 'None'}
-- Model B (gemini-3.5-flash-lite) answer: "${ans35}"
-  Worked Solution B: ${parsed35.solution || 'None'}
-
-Please re-read the question carefully from first principles, verify all mathematical calculations, logic, and facts, and provide the definitively correct answer and step-by-step worked solution.
-
-${solverPromptText}`;
-
-            const qReContents31: any[] = [];
-            prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qReContents31);
-            qReContents31.unshift(resolvePrompt);
-            const qReContents35 = [...qReContents31];
-
-            const [re31, re35] = await Promise.allSettled([
-              ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
-                contents: qReContents31,
-                config: {
-                  responseMimeType: 'application/json',
-                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-                  maxOutputTokens: 4096
-                }
-              }),
-              ai.models.generateContent({
-                model: 'gemini-3.5-flash-lite',
-                contents: qReContents35,
-                config: {
-                  responseMimeType: 'application/json',
-                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-                  maxOutputTokens: 4096
-                }
-              })
-            ]);
-
-            if (re31.status === 'rejected' && re35.status === 'rejected') {
-              const errMessage = `Both Gemini solvers failed during retry. Model 3.1: ${re31.reason?.message || 'Unknown error'}. Model 3.5: ${re35.reason?.message || 'Unknown error'}`;
-              console.error('[Worksheet Solver] Dual re-solve failures:', errMessage);
-              throw new Error(errMessage);
-            }
-            if (re31.status === 'rejected') {
-              console.warn('[Worksheet Solver] recheck gemini-3.1-flash-lite failed:', re31.reason);
-            }
-            if (re35.status === 'rejected') {
-              console.warn('[Worksheet Solver] recheck gemini-3.5-flash-lite failed:', re35.reason);
-            }
-
-            const newP31 = safeParseJSON(re31.status === 'fulfilled' ? re31.value.text || '' : '{}') || {};
-            const newP35 = safeParseJSON(re35.status === 'fulfilled' ? re35.value.text || '' : '{}') || {};
-
-            if (newP31.answer) { parsed31 = newP31; ans31 = String(newP31.answer).trim(); }
-            if (newP35.answer) { parsed35 = newP35; ans35 = String(newP35.answer).trim(); }
-
-            isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
-            if (isMatch) {
-              activeParsed = parsed35.answer ? parsed35 : parsed31;
-            }
           }
-
-          if (!activeParsed) {
-            activeParsed = parsed35.answer ? parsed35 : (parsed31.answer ? parsed31 : {
-              answer: ans35 || ans31 || 'Unresolved',
-              options: existingOptions,
-              type: rawQ.type || 'identification',
-              solution: parsed35.solution || parsed31.solution || 'No solution generated.'
-            });
-          }
-
-          const chosenOptions = (Array.isArray(activeParsed.options) && activeParsed.options.length > 0)
-            ? activeParsed.options
-            : existingOptions;
 
           return {
             ...rawQ,
             question: restoreVisionText(rawQ.question || rawQ.statement || rawQ.raw_text, prepared),
             raw_text: rawQ.raw_text || restoreVisionText(rawQ.question || rawQ.statement, prepared),
-            options: chosenOptions,
-            answer: activeParsed.answer,
-            type: activeParsed.type || rawQ.type || (chosenOptions.length > 0 ? 'multiple_choice' : 'identification'),
-            solution: activeParsed.solution || parsed35.solution || parsed31.solution || ''
+            options: finalOptions,
+            answer: finalAnswer,
+            type: finalType || (finalOptions.length > 0 ? 'multiple_choice' : 'identification'),
+            solution: finalSolution
           };
         });
 
@@ -1543,7 +1545,7 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
         });
 
         setWorksheetProgress(session_id, {
-          message: '🤖 Initializing Dual-Model Solvers (gemini-3.1-flash-lite & gemini-3.5-flash-lite)...',
+          message: '🤖 Initializing Solve and Check Engine...',
           percentage: 20,
           status: 'processing'
         });
@@ -1557,7 +1559,7 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
           const batchQuestions = questions.slice(i, batchEnd);
 
           setWorksheetProgress(session_id, {
-            message: `🤖 Solving Batch Q${i + 1}-${batchEnd}/${totalQs} simultaneously with gemini-3.1-flash-lite & gemini-3.5-flash-lite...`,
+            message: `🤖 Solving Batch Q${i + 1}-${batchEnd}/${totalQs} with Peer Verification...`,
             percentage: Math.round(20 + (i / totalQs) * 75),
             status: 'processing'
           });
@@ -1568,9 +1570,8 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
             const pctEnd = Math.round(20 + ((qIdx + 1) / totalQs) * 75);
 
             // Prepare vision image assets for this individual question
-            const qContents31: any[] = [];
-            const prepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qContents31);
-            const qContents35 = [...qContents31];
+            const qContents: any[] = [];
+            const prepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qContents);
 
             const existingOptions = Array.isArray(rawQ.options) ? rawQ.options : (Array.isArray(rawQ.choices) ? rawQ.choices : []);
 
@@ -1604,143 +1605,132 @@ Return STRICTLY a JSON object with keys:
 - "solution": string (detailed step-by-step worked solution)
 `;
 
-            qContents31.unshift(solverPromptText);
-            qContents35.unshift(solverPromptText);
+            qContents.unshift(solverPromptText);
 
-            // Run both 3.1 and 3.5 in parallel!
-            const [res31, res35] = await Promise.allSettled([
-              ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
-                contents: qContents31,
+            // 1. Solve Step
+            let resSolve;
+            try {
+              resSolve = await ai.models.generateContent({
+                model: model_name || 'gemini-3.5-flash-lite',
+                contents: qContents,
                 config: {
                   responseMimeType: 'application/json',
                   responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
                   maxOutputTokens: 4096
                 }
-              }),
-              ai.models.generateContent({
-                model: 'gemini-3.5-flash-lite',
-                contents: qContents35,
+              });
+            } catch (err: any) {
+              console.error(`[Worksheet Solver] Solver model failed for Q${qIdx + 1}:`, err);
+              throw new Error(`Solver model failed: ${err.message}`);
+            }
+
+            const parsed = safeParseJSON(resSolve?.text || '{}') || {};
+            const solvedAnswer = String(parsed.answer || '').trim();
+            const solvedSolution = String(parsed.solution || '').trim();
+            const solvedType = String(parsed.type || rawQ.type || 'identification').trim();
+
+            // 2. Check Step (Peer Checker)
+            const checkerModel = model_name === 'gemini-3.1-flash-lite' ? 'gemini-3.5-flash-lite' : 'gemini-3.1-flash-lite';
+            
+            setWorksheetProgress(session_id, {
+              message: `🔍 Q${qIdx + 1}/${totalQs}: Peer checker (${checkerModel}) verifying answer...`,
+              percentage: Math.round(pctStart + (pctEnd - pctStart) * 0.5),
+              status: 'processing'
+            });
+
+            const checkContents: any[] = [];
+            const checkerPrepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', checkContents);
+
+            const checkerPrompt = `You are a senior educator and peer reviewer. Your job is to verify the correctness of an AI-generated answer and step-by-step solution for the given question.
+
+SUBJECT: ${subject || 'General'}
+TOPIC: ${topic || 'General'}
+
+QUESTION TO VERIFY:
+${checkerPrepared.text}
+
+EXISTING CHOICES/OPTIONS (if multiple choice):
+${JSON.stringify(existingOptions)}
+
+PROPOSED ANSWER TO VERIFY:
+"${solvedAnswer}"
+
+PROPOSED WORKED SOLUTION TO VERIFY:
+"${solvedSolution}"
+
+PROPOSED QUESTION TYPE:
+"${solvedType}"
+
+CRITICAL INSTRUCTIONS:
+1. Analyze the question carefully. Determine if the proposed answer is correct and mathematically accurate.
+2. If the proposed answer, solution, and type are correct/accurate, set 'verified' to true.
+3. If there is any mistake in calculations, logic, fact, or option choice, set 'verified' to false.
+4. If 'verified' is false, you MUST provide the correct 'corrected_answer', 'corrected_solution', and 'corrected_type'.
+5. ${MANDATORY_MATH_FEEDBACK_RULE}
+
+Return STRICTLY a JSON object with keys:
+- "verified": boolean (true if correct, false if incorrect or needs correction)
+- "corrected_answer": string (the corrected exact answer, only if verified is false)
+- "corrected_solution": string (the corrected step-by-step solution, only if verified is false)
+- "corrected_type": string (one of "multiple_choice", "multiple_choice_multi", "identification", "open_ended", "graphing", "true_false", only if verified is false)
+- "reason": string (concise explanation of why the proposed solution is correct or why/how it was corrected)
+`;
+            checkContents.unshift(checkerPrompt);
+
+            let finalAnswer = solvedAnswer;
+            let finalSolution = solvedSolution;
+            let finalType = solvedType;
+            let finalOptions = (Array.isArray(parsed.options) && parsed.options.length > 0) ? parsed.options : existingOptions;
+
+            try {
+              const resCheck = await ai.models.generateContent({
+                model: checkerModel,
+                contents: checkContents,
                 config: {
                   responseMimeType: 'application/json',
-                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                  responseSchema: SINGLE_CHECKER_SCHEMA,
                   maxOutputTokens: 4096
                 }
-              })
-            ]);
+              });
+              const checkParsed = safeParseJSON(resCheck?.text || '{}') || {};
 
-            if (res31.status === 'rejected' && res35.status === 'rejected') {
-              const errMessage = `Both Gemini solvers failed. Model 3.1: ${res31.reason?.message || 'Unknown error'}. Model 3.5: ${res35.reason?.message || 'Unknown error'}`;
-              console.error('[RMX Solver] Dual failures:', errMessage);
-              throw new Error(errMessage);
-            }
-            if (res31.status === 'rejected') {
-              console.warn('[RMX Solver] gemini-3.1-flash-lite failed:', res31.reason);
-            }
-            if (res35.status === 'rejected') {
-              console.warn('[RMX Solver] gemini-3.5-flash-lite failed:', res35.reason);
-            }
-
-            let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
-            let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
-
-            let ans31 = String(parsed31.answer || '').trim();
-            let ans35 = String(parsed35.answer || '').trim();
-
-            let isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
-            let activeParsed = isMatch ? (parsed35.answer ? parsed35 : parsed31) : null;
-
-            // If answers do NOT match, initiate re-resolution rounds!
-            let attempt = 0;
-            const maxAttempts = 2;
-
-            while (!isMatch && attempt < maxAttempts) {
-              attempt++;
+              if (checkParsed.verified === true) {
+                setWorksheetProgress(session_id, {
+                  message: `✅ Q${qIdx + 1}/${totalQs}: Solver answer verified! Answer: "${finalAnswer.substring(0, 25)}"`,
+                  percentage: pctEnd,
+                  status: 'processing'
+                });
+              } else if (checkParsed.verified === false) {
+                finalAnswer = String(checkParsed.corrected_answer || solvedAnswer).trim();
+                finalSolution = String(checkParsed.corrected_solution || solvedSolution).trim();
+                finalType = String(checkParsed.corrected_type || solvedType).trim();
+                setWorksheetProgress(session_id, {
+                  message: `✍️ Q${qIdx + 1}/${totalQs}: Peer corrected answer to: "${finalAnswer.substring(0, 25)}"`,
+                  percentage: pctEnd,
+                  status: 'processing'
+                });
+              } else {
+                setWorksheetProgress(session_id, {
+                  message: `🔍 Q${qIdx + 1}/${totalQs}: Solver answer bypassed checker: "${finalAnswer.substring(0, 25)}"`,
+                  percentage: pctEnd,
+                  status: 'processing'
+                });
+              }
+            } catch (checkErr: any) {
+              console.warn(`[RMX Solver] Peer checker failed for Q${qIdx + 1} (falling back to Solver answer):`, checkErr);
               setWorksheetProgress(session_id, {
-                message: `⚔️ Q${qIdx + 1}/${totalQs}: Mismatch (3.1: "${ans31.substring(0, 25)}" vs 3.5: "${ans35.substring(0, 25)}"). Re-resolving (Attempt ${attempt}/2)...`,
-                percentage: Math.round(pctStart + (pctEnd - pctStart) * 0.5),
+                message: `🔍 Q${qIdx + 1}/${totalQs}: Solver answer: "${finalAnswer.substring(0, 25)}"`,
+                percentage: pctEnd,
                 status: 'processing'
               });
-
-              const resolvePrompt = `Two independent AI solvers arrived at conflicting answers for this question:
-- Model A (gemini-3.1-flash-lite) answer: "${ans31}"
-  Worked Solution A: ${parsed31.solution || 'None'}
-- Model B (gemini-3.5-flash-lite) answer: "${ans35}"
-  Worked Solution B: ${parsed35.solution || 'None'}
-
-Please re-read the question carefully from first principles, verify all mathematical calculations, logic, and facts, and provide the definitively correct answer and step-by-step worked solution.
-
-${solverPromptText}`;
-
-              const qReContents31: any[] = [];
-              prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qReContents31);
-              qReContents31.unshift(resolvePrompt);
-              const qReContents35 = [...qReContents31];
-
-              const [re31, re35] = await Promise.allSettled([
-                ai.models.generateContent({
-                  model: 'gemini-3.1-flash-lite',
-                  contents: qReContents31,
-                  config: {
-                    responseMimeType: 'application/json',
-                    responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-                    maxOutputTokens: 4096
-                  }
-                }),
-                ai.models.generateContent({
-                  model: 'gemini-3.5-flash-lite',
-                  contents: qReContents35,
-                  config: {
-                    responseMimeType: 'application/json',
-                    responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
-                    maxOutputTokens: 4096
-                  }
-                })
-              ]);
-
-              if (re31.status === 'rejected' && re35.status === 'rejected') {
-                const errMessage = `Both Gemini solvers failed during retry. Model 3.1: ${re31.reason?.message || 'Unknown error'}. Model 3.5: ${re35.reason?.message || 'Unknown error'}`;
-                console.error('[RMX Solver] Dual re-solve failures:', errMessage);
-                throw new Error(errMessage);
-              }
-              if (re31.status === 'rejected') {
-                console.warn('[RMX Solver] recheck gemini-3.1-flash-lite failed:', re31.reason);
-              }
-              if (re35.status === 'rejected') {
-                console.warn('[RMX Solver] recheck gemini-3.5-flash-lite failed:', re35.reason);
-              }
-
-              const newP31 = safeParseJSON(re31.status === 'fulfilled' ? re31.value.text || '' : '{}') || {};
-              const newP35 = safeParseJSON(re35.status === 'fulfilled' ? re35.value.text || '' : '{}') || {};
-
-              if (newP31.answer) { parsed31 = newP31; ans31 = String(newP31.answer).trim(); }
-              if (newP35.answer) { parsed35 = newP35; ans35 = String(newP35.answer).trim(); }
-
-              isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
-              if (isMatch) {
-                activeParsed = parsed35.answer ? parsed35 : parsed31;
-              }
             }
-
-            if (!activeParsed) {
-              activeParsed = parsed35.answer ? parsed35 : (parsed31.answer ? parsed31 : {
-                answer: ans35 || ans31 || 'Unresolved',
-                options: existingOptions,
-                type: rawQ.type || 'identification',
-                solution: parsed35.solution || parsed31.solution || 'No solution generated.'
-              });
-            }
-
-            const chosenOptions = (Array.isArray(activeParsed.options) && activeParsed.options.length > 0)
-              ? activeParsed.options
-              : existingOptions;
 
             return {
               ...rawQ,
-              options: chosenOptions,
-              answer: activeParsed.answer,
-              type: activeParsed.type || rawQ.type || (chosenOptions.length > 0 ? 'multiple_choice' : 'identification'),
-              solution: activeParsed.solution || parsed35.solution || parsed31.solution || '',
+              options: finalOptions,
+              answer: finalAnswer,
+              type: finalType || rawQ.type || (finalOptions.length > 0 ? 'multiple_choice' : 'identification'),
+              solution: finalSolution,
               question: restoreVisionText(rawQ.question || rawQ.statement || rawQ.raw_text, prepared),
               raw_text: rawQ.raw_text || restoreVisionText(rawQ.question || rawQ.statement, prepared)
             };

@@ -360,6 +360,13 @@ if (results && results.length > 0) {
                                         <% if ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback && item.ai_feedback.trim()) { %>
                                             <div class="ai-feedback-box"><i data-lucide="sparkles" class="icon-sm" style="color:var(--primary);"></i> <strong>AI Tutor:</strong><br> <%= typeof item.ai_feedback !== 'undefined' ? item.ai_feedback : '' %></div>
                                         <% } %>
+                                        <% const workedSol = item.solution || (typeof quiz !== 'undefined' && quiz && quiz.questions && quiz.questions[itemIdx] ? quiz.questions[itemIdx].solution : ''); %>
+                                        <% if (workedSol && workedSol.trim()) { %>
+                                            <div class="ai-feedback-box" style="border-left: 4px solid var(--success); margin-top: 10px;">
+                                                <strong style="color:var(--success);"><i data-lucide="check-circle" class="icon-sm"></i> Step-by-Step Worked Solution:</strong><br>
+                                                <div style="margin-top: 4px; white-space: pre-wrap;"><%= workedSol %></div>
+                                            </div>
+                                        <% } %>
                                     </div>
                                     <% if (!item.is_correct) { %>
                                         <button class="btn-explain" onclick='explainMistake(this, <%= itemIdx %>, <%= resultIndex %>)'>

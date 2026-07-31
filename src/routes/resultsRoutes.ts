@@ -120,7 +120,8 @@ function enrichDetails(rawResult: any): any[] {
     return {
       ...item,
       question: qText,
-      type: item.type || (quizQuestion ? canonicalQuestionType(quizQuestion) : undefined)
+      type: item.type || (quizQuestion ? canonicalQuestionType(quizQuestion) : undefined),
+      solution: item.solution || quizQuestion?.solution || ''
     };
   });
 }
@@ -581,7 +582,8 @@ router.get(['/solutions/:result_id', '/view_solutions/:quiz_id'], optionalAuth, 
           user_answer: correctAnswer,
           correct_answer: correctAnswer,
           is_correct: true,
-          score_fraction: 1
+          score_fraction: 1,
+          solution: q.solution || ''
         };
       })
     };

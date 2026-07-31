@@ -320,6 +320,63 @@ const COMPLETE_QUESTION_SCHEMA = {
   }
 };
 
+const SINGLE_SOLVED_QUESTION_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    options: { type: Type.ARRAY, items: { type: Type.STRING } },
+    answer: { type: Type.STRING },
+    type: { type: Type.STRING },
+    solution: { type: Type.STRING }
+  },
+  required: ['options', 'answer', 'type', 'solution']
+};
+
+function areAnswersMatching(ans1: string, ans2: string, type1?: string, type2?: string): boolean {
+  if (!ans1 || !ans2) return false;
+  const a = String(ans1).trim();
+  const b = String(ans2).trim();
+  if (!a || !b) return false;
+  if (a.toLowerCase() === b.toLowerCase()) return true;
+
+  // Clean strings (remove LaTeX $ wrappers, text tags, extra spaces)
+  const cleanA = a.replace(/\$/g, '').replace(/\\text\{([^}]+)\}/g, '$1').trim().toLowerCase();
+  const cleanB = b.replace(/\$/g, '').replace(/\\text\{([^}]+)\}/g, '$1').trim().toLowerCase();
+  if (cleanA === cleanB) return true;
+
+  // Check multiple choice letter match (e.g., "A" vs "A) 42" or "A")
+  const letterA = cleanA.match(/^([a-d])[\b\)\.]?/i)?.[1] || cleanA.match(/\b([a-d])\b/i)?.[1];
+  const letterB = cleanB.match(/^([a-d])[\b\)\.]?/i)?.[1] || cleanB.match(/\b([a-d])\b/i)?.[1];
+  if (letterA && letterB && letterA === letterB && (type1 === 'multiple_choice' || type2 === 'multiple_choice' || (cleanA.length <= 4 && cleanB.length <= 4))) {
+    return true;
+  }
+
+  // Numerical comparison (e.g. "12.0" vs "12" or "0.5" vs "0.50")
+  const numA = parseFloat(cleanA);
+  const numB = parseFloat(cleanB);
+  if (!isNaN(numA) && !isNaN(numB) && Math.abs(numA - numB) < 0.0001) {
+    return true;
+  }
+
+  // Open-ended / free text comparison
+  const normA = cleanA.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ');
+  const normB = cleanB.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ');
+  if (normA === normB) return true;
+
+  // Word overlap comparison for open-ended answers
+  const wordsA = new Set(normA.split(' ').filter(w => w.length > 2));
+  const wordsB = new Set(normB.split(' ').filter(w => w.length > 2));
+  if (wordsA.size > 0 && wordsB.size > 0) {
+    let intersection = 0;
+    for (const w of wordsA) {
+      if (wordsB.has(w)) intersection++;
+    }
+    const overlapFraction = intersection / Math.min(wordsA.size, wordsB.size);
+    if (overlapFraction >= 0.70) return true;
+  }
+
+  return false;
+}
+
 const MANDATORY_MATH_FEEDBACK_RULE =
   'CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\$$40). Do NOT use asterisks for math.';
 
@@ -1270,53 +1327,195 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
     if (ai) {
         aiLease = acquireAiWork({
           userId: req.user?.uid || '',
-          cost: questions.length,
+          cost: questions.length * 2,
           byok: typeof api_key === 'string' && api_key.trim().length > 0
         });
-        setWorksheetProgress(session_id, { message: '✨ Finalizing and polishing quiz...', percentage: 30, status: 'processing' });
-        setWorksheetProgress(session_id, { message: '📐 Re-checking equations & answer key consistency...', percentage: 65, status: 'processing' });
-        const contents: any[] = [];
-        const preparedQuestions: PreparedVisionText[] = [];
-        const cleanQuestions = questions.map((q: any, sourceIndex: number) => {
-            const prepared = prepareVisionText(q.raw_text || q.question || q.statement, contents);
-            preparedQuestions.push(prepared);
-            return {
-              ...q,
-              raw_text: prepared.text,
-              question: prepared.text,
-              options: Array.isArray(q.options) ? q.options : (Array.isArray(q.choices) ? q.choices : []),
-              source_index: sourceIndex
-            };
+
+        setWorksheetProgress(session_id, {
+          message: '🤖 Initializing Dual-Model Solvers (gemini-3.1-flash-lite & gemini-3.5-flash-lite)...',
+          percentage: 20,
+          status: 'processing'
         });
 
-        const prompt = `${RECHECK_ANSWERS_PROMPT
-          .replace('{golden_reference}', JSON.stringify(golden_reference))
-          .replace('{batch_json}', JSON.stringify(cleanQuestions))}
+        const totalQs = questions.length;
+        finalQuestions = [];
 
-${MANDATORY_MATH_FEEDBACK_RULE}`;
-        
-        const selectedModel = getRealModelName(model_name);
-        contents.unshift(prompt);
+        for (let i = 0; i < totalQs; i++) {
+          const rawQ = questions[i];
+          const pctStart = Math.round(20 + (i / totalQs) * 75);
+          const pctEnd = Math.round(20 + ((i + 1) / totalQs) * 75);
 
-        const response = await ai.models.generateContent({
-          model: selectedModel,
-          contents,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: COMPLETE_QUESTION_SCHEMA,
-            maxOutputTokens: 8192
+          setWorksheetProgress(session_id, {
+            message: `🤖 Q${i + 1}/${totalQs}: Solving simultaneously with gemini-3.1-flash-lite & gemini-3.5-flash-lite...`,
+            percentage: pctStart,
+            status: 'processing'
+          });
+
+          // Prepare vision image assets for this individual question
+          const qContents31: any[] = [];
+          const prepared = prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qContents31);
+          const qContents35 = [...qContents31];
+
+          const existingOptions = Array.isArray(rawQ.options) ? rawQ.options : (Array.isArray(rawQ.choices) ? rawQ.choices : []);
+
+          const solverPromptText = `You are a master educator and subject matter expert test solver.
+Solve the following question accurately and generate a complete step-by-step worked solution.
+
+SUBJECT: ${subject || 'General'}
+TOPIC: ${topic || 'General'}
+GOLDEN ANSWER KEY REFERENCE (if provided): ${JSON.stringify(golden_reference || '')}
+
+QUESTION TO SOLVE:
+${prepared.text}
+
+EXISTING CHOICES/OPTIONS (if multiple choice):
+${JSON.stringify(existingOptions)}
+
+CRITICAL INSTRUCTIONS:
+1. Provide the exact correct answer in the 'answer' field.
+   - For Multiple Choice: Output the correct choice letter (e.g. "A", "B", "C", "D") or choice string matching the option.
+   - For Multiple Select: Output comma-separated options/letters (e.g. "A, C").
+   - For True/False: Output "A" or "B" (or "True" / "False").
+   - For Identification: Output ONLY the concise final answer value (no sentence wrappers).
+   - For Open Ended / Math / Science: Output the complete, accurate answer value or key rubric grading points.
+2. In the 'solution' field, write a clear, thorough step-by-step worked explanation showing how to arrive at the answer.
+3. ${MANDATORY_MATH_FEEDBACK_RULE}
+
+Return STRICTLY a JSON object with keys:
+- "options": array of strings (choices if multiple choice, else [])
+- "answer": string (the exact correct answer)
+- "type": string (one of "multiple_choice", "multiple_choice_multi", "identification", "open_ended", "graphing", "true_false")
+- "solution": string (detailed step-by-step worked solution)
+`;
+
+          qContents31.unshift(solverPromptText);
+          qContents35.unshift(solverPromptText);
+
+          // Run both 3.1 and 3.5 in parallel!
+          const [res31, res35] = await Promise.allSettled([
+            ai.models.generateContent({
+              model: 'gemini-3.1-flash-lite',
+              contents: qContents31,
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                maxOutputTokens: 4096
+              }
+            }),
+            ai.models.generateContent({
+              model: 'gemini-3.5-flash-lite',
+              contents: qContents35,
+              config: {
+                responseMimeType: 'application/json',
+                responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                maxOutputTokens: 4096
+              }
+            })
+          ]);
+
+          let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
+          let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
+
+          let ans31 = String(parsed31.answer || '').trim();
+          let ans35 = String(parsed35.answer || '').trim();
+
+          let isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
+          let activeParsed = isMatch ? (parsed35.answer ? parsed35 : parsed31) : null;
+
+          // If answers do NOT match, initiate re-resolution rounds!
+          let attempt = 0;
+          const maxAttempts = 2;
+
+          while (!isMatch && attempt < maxAttempts) {
+            attempt++;
+            setWorksheetProgress(session_id, {
+              message: `⚔️ Q${i + 1}/${totalQs}: Mismatch (3.1: "${ans31.substring(0, 25)}" vs 3.5: "${ans35.substring(0, 25)}"). Re-resolving (Attempt ${attempt}/2)...`,
+              percentage: Math.round(pctStart + (pctEnd - pctStart) * 0.5),
+              status: 'processing'
+            });
+
+            const resolvePrompt = `Two independent AI solvers arrived at conflicting answers for this question:
+- Model A (gemini-3.1-flash-lite) answer: "${ans31}"
+  Worked Solution A: ${parsed31.solution || 'None'}
+- Model B (gemini-3.5-flash-lite) answer: "${ans35}"
+  Worked Solution B: ${parsed35.solution || 'None'}
+
+Please re-read the question carefully from first principles, verify all mathematical calculations, logic, and facts, and provide the definitively correct answer and step-by-step worked solution.
+
+${solverPromptText}`;
+
+            const qReContents31: any[] = [];
+            prepareVisionText(rawQ.raw_text || rawQ.question || rawQ.statement || '', qReContents31);
+            qReContents31.unshift(resolvePrompt);
+            const qReContents35 = [...qReContents31];
+
+            const [re31, re35] = await Promise.allSettled([
+              ai.models.generateContent({
+                model: 'gemini-3.1-flash-lite',
+                contents: qReContents31,
+                config: {
+                  responseMimeType: 'application/json',
+                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                  maxOutputTokens: 4096
+                }
+              }),
+              ai.models.generateContent({
+                model: 'gemini-3.5-flash-lite',
+                contents: qReContents35,
+                config: {
+                  responseMimeType: 'application/json',
+                  responseSchema: SINGLE_SOLVED_QUESTION_SCHEMA,
+                  maxOutputTokens: 4096
+                }
+              })
+            ]);
+
+            const newP31 = safeParseJSON(re31.status === 'fulfilled' ? re31.value.text || '' : '{}') || {};
+            const newP35 = safeParseJSON(re35.status === 'fulfilled' ? re35.value.text || '' : '{}') || {};
+
+            if (newP31.answer) { parsed31 = newP31; ans31 = String(newP31.answer).trim(); }
+            if (newP35.answer) { parsed35 = newP35; ans35 = String(newP35.answer).trim(); }
+
+            isMatch = areAnswersMatching(ans31, ans35, parsed31.type, parsed35.type);
+            if (isMatch) {
+              activeParsed = parsed35.answer ? parsed35 : parsed31;
+            }
           }
-        });
-        const parsed = validateCompleteQuestions(safeParseJSON(response.text || ''), questions.length);
-        finalQuestions = parsed.map((solvedItem: any, index: number) => ({
-          ...questions[index],
-          options: solvedItem.options,
-          answer: solvedItem.answer,
-          type: solvedItem.type,
-          ...(solvedItem.solution ? { solution: solvedItem.solution } : {}),
-          question: restoreVisionText(solvedItem.question, preparedQuestions[index]),
-          raw_text: questions[index].raw_text || restoreVisionText(solvedItem.question, preparedQuestions[index])
-        }));
+
+          if (!activeParsed) {
+            activeParsed = parsed35.answer ? parsed35 : (parsed31.answer ? parsed31 : {
+              answer: ans35 || ans31 || 'Unresolved',
+              options: existingOptions,
+              type: rawQ.type || 'identification',
+              solution: parsed35.solution || parsed31.solution || 'No solution generated.'
+            });
+            setWorksheetProgress(session_id, {
+              message: `🔍 Q${i + 1}/${totalQs}: Finalized answer resolved: "${String(activeParsed.answer).substring(0, 25)}"`,
+              percentage: pctEnd,
+              status: 'processing'
+            });
+          } else {
+            setWorksheetProgress(session_id, {
+              message: `✅ Q${i + 1}/${totalQs}: Both models agreed! Answer: "${String(activeParsed.answer).substring(0, 25)}"`,
+              percentage: pctEnd,
+              status: 'processing'
+            });
+          }
+
+          const chosenOptions = (Array.isArray(activeParsed.options) && activeParsed.options.length > 0)
+            ? activeParsed.options
+            : existingOptions;
+
+          finalQuestions.push({
+            ...rawQ,
+            options: chosenOptions,
+            answer: activeParsed.answer,
+            type: activeParsed.type || rawQ.type || (chosenOptions.length > 0 ? 'multiple_choice' : 'identification'),
+            solution: activeParsed.solution || parsed35.solution || parsed31.solution || '',
+            question: restoreVisionText(rawQ.question || rawQ.statement || rawQ.raw_text, prepared),
+            raw_text: rawQ.raw_text || restoreVisionText(rawQ.question || rawQ.statement, prepared)
+          });
+        }
     } else {
       const unansweredIndex = finalQuestions.findIndex((question: any) => !String(question?.answer ?? '').trim());
       if (unansweredIndex >= 0) {

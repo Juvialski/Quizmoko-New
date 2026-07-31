@@ -267,6 +267,14 @@
                     <span class="feedback-text"><%= item.ai_feedback ? item.ai_feedback : '' %></span>
                 </div>
 
+                <% const qSolution = item.solution || (typeof quiz !== 'undefined' && quiz && quiz.questions && quiz.questions[itemIdx] ? quiz.questions[itemIdx].solution : ''); %>
+                <div class="solution-step-box" id="solution-step-<%= itemIdx %>" style="margin-top: 16px; padding: 16px; background: var(--surface-soft); border-left: 4px solid var(--success); border-radius: var(--radius-sm); display:<% if (qSolution && qSolution.trim()) { %>block<% } else { %>none<% } %>;">
+                    <strong style="color: var(--success); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 14px;">
+                        <i data-lucide="check-circle" class="icon-sm"></i> Step-by-Step Worked Solution:
+                    </strong>
+                    <div class="solution-text" style="font-size: 14px; line-height: 1.6; color: var(--on-dark);"><%= qSolution || '' %></div>
+                </div>
+
                 <% if (typeof session === 'undefined' || !session.user) { %>
                 <% if (!item.is_correct) { %>
                 <div id="student-help-<%= itemIdx %>">
@@ -763,6 +771,13 @@
                             const feedbackText = feedbackBox.querySelector('.feedback-text');
                             if (feedbackText) feedbackText.innerHTML = formatDisplay(item.ai_feedback);
                         }
+
+                        const solutionStepBox = document.getElementById(`solution-step-${i}`);
+                        if (solutionStepBox && item.solution) {
+                            const solTextEl = solutionStepBox.querySelector('.solution-text');
+                            if (solTextEl) solTextEl.innerHTML = formatDisplay(item.solution);
+                            solutionStepBox.style.display = 'block';
+                        }
                     }
                 });
 
@@ -809,6 +824,14 @@
                 if (feedbackBox && item.ai_feedback) {
                     const feedbackText = feedbackBox.querySelector('.feedback-text');
                     if (feedbackText) feedbackText.innerHTML = formatDisplay(item.ai_feedback);
+                }
+
+                const solutionStepBox = document.getElementById(`solution-step-${i}`);
+                if (solutionStepBox && (item.solution || (quizData && quizData.questions && quizData.questions[i] && quizData.questions[i].solution))) {
+                    const solText = item.solution || (quizData && quizData.questions && quizData.questions[i] && quizData.questions[i].solution);
+                    const solutionTextEl = solutionStepBox.querySelector('.solution-text');
+                    if (solutionTextEl) solutionTextEl.innerHTML = formatDisplay(solText);
+                    solutionStepBox.style.display = 'block';
                 }
             });
             if (window.lucide) {

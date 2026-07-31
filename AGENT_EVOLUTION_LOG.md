@@ -26,10 +26,10 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
 * **[2026-07-30]** Fixed Lucide icon rendering issues across the solutions page (`/view_solutions/:id`), results page, live tracking, and all other view templates:
   - Standardized `.icon-sm, i[data-lucide], svg.lucide` CSS rules (`width: 16px !important; height: 16px !important; display: inline-block !important; vertical-align: middle !important; margin-right: 4px;`) across all view templates in `views/` to ensure converted SVG elements maintain proper layout dimensions and inline alignment.
   - Added `if (window.lucide) lucide.createIcons();` calls after all dynamic DOM/`innerHTML` updates (AI Tutor explanations, status badges, polling updates, force repair sync, and live session table updates) to ensure newly injected icon markup is immediately converted into rendered SVGs.
-* **[2026-07-30]** Fixed AI semantic grading and answer re-checking failures:
-  - Fixed a `ReferenceError: originalText is not defined` crash in `views/view_solutions.ejs` inside `recheckAnswer`'s `finally` block that broke the RE-CHECK button upon completion.
-  - Resolved `RETRY GRADING` button hiding logic in `views/quiz.ejs` across lines 1450, 1740, and 1882 so students can re-check any question marked incorrect, partial, or where fallback grading occurred (matching feedback strings containing "unavailable", "exact-match", or "failed").
-  - Enhanced API client resolution in `src/routes/gradingRoutes.ts` and `src/routes/resultsRoutes.ts` to attempt the custom student API key first, and automatically fall back to the server system API key if the custom key fails, preventing invalid client keys from blocking AI evaluation.
-  - Fixed answer key resolution in `src/routes/resultsRoutes.ts` (`/api/results/:result_id/recheck`) to retrieve the question's true answer key (`getCorrectAnswer(quizQuestion)`) instead of using `'Grading Error'`.
+* **[2026-07-30]** Implemented Dual-Model Parallel Solver Engine (`gemini-3.1-flash-lite` & `gemini-3.5-flash-lite`) for Worksheet-to-Quiz generation in `src/routes/worksheetRoutes.ts`:
+  - Questions are solved concurrently using both 3.1 and 3.5 Flash Lite models in parallel via `Promise.allSettled`.
+  - Implemented `areAnswersMatching` normalization logic supporting multiple choice, true/false, numeric, identification, and open-ended text questions (using semantic word overlap).
+  - Added real-time progress messages (`setWorksheetProgress`) reflecting initial dual solving, consensus agreement (`✅ Both models agreed!`), answer mismatches (`⚔️ Mismatch...`), and re-resolution attempts (`🔄 Re-resolving (Attempt 1/2)`).
+  - Enhanced solution rendering on `/view_solutions/:id` and `/results/:id` to display step-by-step worked solutions formatted with MathJax/KaTeX.
 
 

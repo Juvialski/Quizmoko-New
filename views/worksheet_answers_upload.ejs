@@ -336,7 +336,7 @@
                     </div>
 
                     <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--hairline);">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
                             <div>
                                 <label>Subject Folder</label>
                                 <select id="subject_select">
@@ -344,6 +344,10 @@
                                     <option value="Math">Math</option>
                                     <option value="Science">Science</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label>Solve Batch Size</label>
+                                <input type="number" id="batch_size" value="3" min="1" max="10">
                             </div>
                             <div>
                                 <label>Seconds Per Question</label>
@@ -862,6 +866,7 @@
                         golden_reference: goldenReference,
                         topic: document.getElementById('topic_hint').value || 'Matched Quiz',
                         subject: document.getElementById('subject_select').value,
+                        batch_size: parseInt(document.getElementById('batch_size').value) || 3,
                         time_limit: document.getElementById('time_limit').value,
                         quiz_mode: document.getElementById('quiz_mode').value,
                         model_name: model,

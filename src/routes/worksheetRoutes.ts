@@ -348,48 +348,73 @@ function areAnswersMatching(ans1: string, ans2: string, type1?: string, type2?: 
     // Remove general LaTeX wrappers: \mathrm, \mathbf, \vec etc.
     s = s.replace(/\\[a-zA-Z]+\s*\{([^}]+)\}/g, '$1');
     // Replace LaTeX spacing and special symbols
-    s = s.replace(/\\[,;!\s]/g, '');
+    s = s.replace(/\\[,;!\s]/g, ' ');
     s = s.replace(/\\cdot/g, '*').replace(/\\times/g, '*');
     s = s.replace(/\\div/g, '/');
     s = s.replace(/\\bar\s*\{([^}]+)\}/g, '$1');
     s = s.replace(/\\/g, '');
-    // Lowercase and remove all whitespace
-    return s.toLowerCase().replace(/\s+/g, '');
+    
+    // Normalize spaces to single space instead of removing everything immediately
+    s = s.replace(/\s+/g, ' ').trim();
+    return s;
   };
 
   const normA = normalizeMath(a);
   const normB = normalizeMath(b);
-  if (normA === normB) return true;
+  if (normA.toLowerCase() === normB.toLowerCase()) return true;
+  if (normA.replace(/\s+/g, '') === normB.replace(/\s+/g, '')) return true;
 
   // 2. Multiple choice letter comparison (e.g., "A" vs "A) some text" or "A.")
-  const letterA = normA.match(/^([a-d])[\b\)\.]?/)?.[1] || normA.match(/\b([a-d])\b/)?.[1];
-  const letterB = normB.match(/^([a-d])[\b\)\.]?/)?.[1] || normB.match(/\b([a-d])\b/)?.[1];
-  if (letterA && letterB && letterA === letterB && (type1 === 'multiple_choice' || type2 === 'multiple_choice' || (normA.length <= 4 && normB.length <= 4))) {
+  const cleanA = normA.replace(/\s+/g, '');
+  const cleanB = normB.replace(/\s+/g, '');
+  const letterA = cleanA.match(/^([a-d])[\b\)\.]?/)?.[1] || cleanA.match(/\b([a-d])\b/)?.[1];
+  const letterB = cleanB.match(/^([a-d])[\b\)\.]?/)?.[1] || cleanB.match(/\b([a-d])\b/)?.[1];
+  if (letterA && letterB && letterA === letterB && (type1 === 'multiple_choice' || type2 === 'multiple_choice' || (cleanA.length <= 4 && cleanB.length <= 4))) {
     return true;
   }
 
-  // 3. Mathematical evaluation (e.g., "1/2" vs "0.5", "0.08" vs "2/25")
+  // 3. Mathematical evaluation (e.g., "1/3" vs "0.33", "3 1/2" vs "7/2" or "3.5")
   const tryEvaluate = (str: string): number | null => {
-    if (/^\d+(?:\.\d+)?$/.test(str)) {
-      return parseFloat(str);
+    const cleaned = str.trim().toLowerCase();
+    
+    // Remove common trailing units and prefixes
+    const unitLess = cleaned
+      .replace(/(?:cm|m|in|inches|ft|feet|deg|degrees|usd|dollars|cents|units|%|px|\bpt\b)\.?$/g, '')
+      .replace(/^\$/, '')
+      .trim();
+
+    // 1. Pure number: "12", "12.5", "-4.2"
+    if (/^-?\d+(?:\.\d+)?$/.test(unitLess)) {
+      return parseFloat(unitLess);
     }
-    const fracMatch = str.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
+
+    // 2. Pure fraction: "1/2", "7/4", "-1/3"
+    const fracMatch = unitLess.match(/^(-?\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
     if (fracMatch) {
       const num = parseFloat(fracMatch[1]);
       const den = parseFloat(fracMatch[2]);
       if (den !== 0) return num / den;
     }
+
+    // 3. Mixed number: "3 1/2" or "3_1/2" or "3-1/2"
+    const mixedMatch = unitLess.match(/^(\d+)(?:\s+|-|_|&nbsp;)(\d+)\/(\d+)$/);
+    if (mixedMatch) {
+      const whole = parseFloat(mixedMatch[1]);
+      const num = parseFloat(mixedMatch[2]);
+      const den = parseFloat(mixedMatch[3]);
+      if (den !== 0) return whole + (num / den);
+    }
+
     return null;
   };
 
   const valA = tryEvaluate(normA);
   const valB = tryEvaluate(normB);
-  if (valA !== null && valB !== null && Math.abs(valA - valB) < 0.005) {
+  if (valA !== null && valB !== null && Math.abs(valA - valB) < 0.015) {
     return true;
   }
 
   // 4. Word-by-word text comparison (for open-ended/descriptive)
-  // Strip punctuation for basic text comparison
   const textA = normA.replace(/[^\w]/g, ' ');
   const textB = normB.replace(/[^\w]/g, ' ');
   if (textA.trim() === textB.trim() && textA.trim() !== '') return true;
@@ -1478,6 +1503,7 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
     golden_reference = {},
     topic = 'Matched Quiz',
     subject = 'General',
+    batch_size = 3,
     time_limit = 30,
     quiz_mode = 'back_and_forth',
     model_name = 'gemini-3.5-flash-lite',
@@ -1525,7 +1551,7 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
         const totalQs = questions.length;
         finalQuestions = [];
 
-        const batchSize = 3;
+        const batchSize = Math.min(10, Math.max(1, parseInt(batch_size) || 3));
         for (let i = 0; i < totalQs; i += batchSize) {
           const batchEnd = Math.min(totalQs, i + batchSize);
           const batchQuestions = questions.slice(i, batchEnd);

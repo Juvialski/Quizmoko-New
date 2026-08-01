@@ -1325,12 +1325,24 @@
                 `;
                 leftCol.appendChild(ansLabel);
 
+                if (q.verification && q.verification.verification_status === 'review_required') {
+                    const reviewNotice = document.createElement('div');
+                    reviewNotice.style.cssText = 'margin: 6px 0 10px; padding: 9px 11px; border: 1px solid var(--m-red); border-radius: 7px; color: var(--m-red); font-size: 12px; font-weight: 700;';
+                    reviewNotice.textContent = `Teacher review required: ${q.verification.reason || 'Independent answer checks did not reach a reliable consensus.'}`;
+                    leftCol.appendChild(reviewNotice);
+                }
+
                 const ansInput = document.createElement('textarea');
                 ansInput.value = (typeof q.answer === 'object') ? JSON.stringify(q.answer, null, 2) : q.answer;
                 ansInput.id = `ans-input-${qIndex}`;
                 ansInput.style.height = '80px';
                 ansInput.oninput = (e) => {
                     quizData.questions[qIndex].answer = e.target.value;
+                    quizData.questions[qIndex].verification = {
+                        answer_source: 'manual',
+                        verification_status: 'verified',
+                        reason: 'Teacher manually updated and approved the answer.'
+                    };
                     markQuestionChanged(qIndex);
                     updatePreview(qIndex, block.querySelector('.live-preview'));
                 };
@@ -1445,6 +1457,11 @@
                         return `${letter}) ${text}`;
                     });
                     q.answer = newAnswerLetter;
+                    q.verification = {
+                        answer_source: 'manual',
+                        verification_status: 'verified',
+                        reason: 'Teacher-approved choice shuffle preserved the matching answer text.'
+                    };
                 }
             });
             renderQuestions();
@@ -1580,8 +1597,12 @@
                     quizData.questions[index] = data.question;
                     const saved = await saveQuiz(false); // Silent save
                     if (saved) window.location.reload();
+                } else if (data.review_required && data.question) {
+                    quizData.questions[index] = data.question;
+                    renderQuestions();
+                    alert('Re-solve needs teacher review: ' + (data.reason || 'The independent solvers did not agree. Manually enter the approved answer before saving.'));
                 } else {
-                    alert('Re-solve failed: ' + data.error);
+                    alert('Re-solve failed: ' + (data.error || data.reason || 'Unknown solver error'));
                 }
             } catch (e) {
                 alert('Error calling resolve API.');
@@ -1787,7 +1808,15 @@
                 if (data.success) {
                     quizData.questions = data.questions;
                     renderQuestions();
-                    alert('Answer integrity verified and fixed!');
+                    const summary = data.summary || {};
+                    const changed = Array.isArray(summary.changed) ? summary.changed.length : 0;
+                    const unchanged = Array.isArray(summary.unchanged) ? summary.unchanged.length : 0;
+                    const invalid = Array.isArray(summary.invalid) ? summary.invalid.length : 0;
+                    const review = Array.isArray(summary.review_required) ? summary.review_required : [];
+                    const reviewText = review.length
+                        ? `\nTeacher review required for: ${review.join(', ')}. Those answers were not silently accepted.`
+                        : '\nNo unresolved answer conflicts remain.';
+                    alert(`Answer recheck complete. Changed: ${changed}; unchanged: ${unchanged}; invalid: ${invalid}; review required: ${review.length}.${reviewText}`);
                 } else { alert('Re-check failed: ' + data.error); }
             } catch (e) {
                 if (e.name === 'AbortError') {

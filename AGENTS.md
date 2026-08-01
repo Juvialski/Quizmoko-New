@@ -4,7 +4,7 @@
 - Runtime: Node.js (ESM "type": "module") executed via tsx
 - Core Server: Modular Express.js server with clean entry point (server.ts) routing to modular controllers in /src/routes/, state & persistence in /src/store/db.ts, services in /src/services/, types in /src/types.ts, and auth middleware in /src/middleware/auth.ts
 - Frontend / Templating: EJS views (/views/*.ejs) and EJS partial templates (quiz_body.ejs, edit_top.ejs, ai_generator.ejs, etc.) styled with Tailwind CSS and MathJax/KaTeX LaTeX rendering
-- AI Service Layer: @google/genai TypeScript SDK initialized in /src/services/gemini.ts with structured prompt configurations in prompts.ts; semantic grading is isolated in /src/services/semanticGrading.ts
+- AI Service Layer: @google/genai TypeScript SDK initialized in /src/services/gemini.ts with structured prompt configurations in prompts.ts; semantic grading is isolated in /src/services/semanticGrading.ts and bounded worksheet batch orchestration in /src/services/worksheetSolver.ts
 - Grading Domain: canonical question normalization/scoring lives in /src/services/grading.ts, signed grade identity in /src/services/gradeProof.ts, and per-attempt ordering guards in /src/services/resultSession.ts
 - Data & Persistence: Firebase Firestore (firebase-admin, firebase/firestore), Firestore security rules (firestore.rules), in-memory Map stores, and JSON persistence in /src/store/db.ts with /data/*.json fallbacks
 - Document & Asset Processing: pdfjs-dist, exceljs, sharp, archiver, multer processed via /src/services/pdf.ts; worksheet validation/consensus rules are centralized in /src/services/worksheetPipeline.ts
@@ -59,6 +59,8 @@ These instructions contain critical rules and project conventions to prevent reg
 ### 8. Worksheet Publication Contract
 - Stable Identity: Every extracted worksheet item must have a unique stable string ID retained through extraction, solving, review, publication, and provenance. Reject duplicate IDs and do not use array position as the semantic identity.
 - Golden Source & Independent Consensus: Preserve original question text and images as immutable golden source material. Independent solver calls must receive only the golden question context, never another solver's answer. Agreement must pass the shared type-aware comparator; disagreement or invalid output remains review-required.
+- Bounded True Batching: Worksheet batch size means one multi-question request per independent solver model, not one request per question. Every solver/checker request must have an abort deadline and bounded transient retry, while the complete server job must time out before browser polling. Preserve strict `source_index`/stable `source_id` coverage and invoke adjudication only for genuine normalized disagreement.
+- Ordered Concurrency: Parallel batch workers may complete out of order, but stored questions must preserve worksheet source order and progress totals must be monotonic. Do not add unconditional cooldown delays between successful batches.
 - Strict Publication Gate: Apply the same canonical question validator used by normal quiz authoring. Enforce exact option counts, answer membership, valid types/points, full ID coverage, cross-page fragment handling, and explicit teacher approval for unresolved diagnostics before publishing.
 - Private Provenance: Store solver evidence, confidence, disagreement, fragment, and verification metadata for teacher review, but strip those fields and all answer-key material from public quiz payloads.
 

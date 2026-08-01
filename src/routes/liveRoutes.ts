@@ -134,6 +134,16 @@ router.post('/ping', (req, res) => {
       });
     }
 
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`quiz_${normalizedQuizId}`).emit('update_session', {
+        session_id: updated.sessionId,
+        data: updated.session,
+        paused: updated.liveState.paused,
+        terminated: updated.liveState.terminated
+      });
+    }
+
     const submittedTime = Number(req.body?.time_remaining);
     return res.json({
       success: true,

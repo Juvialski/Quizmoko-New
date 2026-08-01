@@ -1,5 +1,5 @@
 import { Server as SocketIOServer } from 'socket.io';
-import { getOrCreateLiveState, quizzes } from '../store/db.ts';
+import { getOrCreateLiveState, quizzes, results } from '../store/db.ts';
 
 const LIVE_ID_PATTERN = /^[A-Za-z0-9_-]{1,160}$/;
 const RESERVED_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
@@ -41,6 +41,12 @@ export function updateLiveSession(quizId: string, payload: any) {
 
   const quiz = quizzes.get(quizId);
   const totalQuestions = Array.isArray(quiz?.questions) ? quiz.questions.length : 0;
+  const maxScore = Array.isArray(quiz?.questions)
+    ? quiz.questions.reduce((sum: number, question: any) => {
+      const points = Number(question?.points);
+      return sum + (Number.isFinite(points) && points > 0 ? points : 1);
+    }, 0)
+    : totalQuestions;
   const displayNameRaw = String(payload?.student_name ?? '').trim();
   const displayName = displayNameRaw && displayNameRaw !== 'undefined'
     ? displayNameRaw.slice(0, 120)
@@ -51,6 +57,7 @@ export function updateLiveSession(quizId: string, payload: any) {
     current_q: 1,
     current_question: 1,
     total_questions: totalQuestions,
+    max_score: maxScore,
     score: 0,
     status: 'Active',
     last_active: Date.now(),
@@ -69,9 +76,17 @@ export function updateLiveSession(quizId: string, payload: any) {
   existing.current_q = currentQuestion;
   existing.current_question = currentQuestion;
   existing.total_questions = totalQuestions || existing.total_questions || 0;
+  existing.max_score = maxScore || existing.max_score || existing.total_questions || 0;
+  const progressiveResult = results.get(`res_${sessionId}`);
+  const authoritativeScore = progressiveResult?.quiz_id === quizId
+    ? finiteNumber(progressiveResult.total_score ?? progressiveResult.score, 0)
+    : null;
   existing.score = Math.max(
     0,
-    Math.min(totalQuestions, finiteNumber(payload?.score, finiteNumber(existing.score, 0)))
+    Math.min(
+      existing.max_score || maxScore || totalQuestions,
+      authoritativeScore ?? finiteNumber(payload?.score, finiteNumber(existing.score, 0))
+    )
   );
   existing.status = requestedStatus || existing.status || 'Active';
   existing.last_active = Date.now();
@@ -137,7 +152,7 @@ export function initSocketServer(server: any) {
       }
       socket.join(`quiz_session_${quiz_id}_${updated.sessionId}`);
 
-      socket.emit('update_session', {
+      io.to(`quiz_${quiz_id}`).emit('update_session', {
         session_id: updated.sessionId,
         data: updated.session,
         paused: updated.liveState.paused,

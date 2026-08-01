@@ -12,9 +12,10 @@
     <script>
       window.MathJax = {
         tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
-        startup: { typeset: true }
+        startup: { typeset: false }
       };
     </script>
+    <script src="/js/math-display.js"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
@@ -205,9 +206,11 @@
             <div class="score-display" id="total-score-display"><%= typeof result.score !== 'undefined' ? result.score : '' %> / <%= typeof result.total !== 'undefined' ? result.total : '' %></div>
             <div id="grading-status" style="display:none; color: var(--warning); font-weight: 700; font-size: 14px; margin-top: 10px;">⏳ Grading in progress...</div>
 
+            <% if (typeof session !== 'undefined' && session.user && ['teacher', 'admin'].includes(session.user.role)) { %>
             <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
                 <button id="force-sync-btn" onclick="forceSyncResults()" style="background: var(--surface-soft); color: var(--warning); border: 1px solid var(--warning); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s;"><i data-lucide="zap" class="icon-sm"></i> FORCE SYNC & REPAIR</button>
             </div>
+            <% } %>
         </div>
 
         <div id="solutions-container">
@@ -218,7 +221,9 @@
                     <span class="q-num">Question <%= itemIdx + 1 %></span>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <% const sfItem = Number(item.score_fraction !== undefined ? item.score_fraction : (item.is_correct ? 1 : 0)); %>
-                        <span style="font-size: 13px; font-weight: 800; color: var(--body); background: var(--surface-soft); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--hairline);">Points: <%= sfItem.toFixed(2) %> / 1.0</span>
+                        <% const maxPointsItem = Number.isFinite(Number(item.points)) ? Number(item.points) : 1; %>
+                        <% const earnedPointsItem = Number.isFinite(Number(item.earned_points)) ? Number(item.earned_points) : maxPointsItem * sfItem; %>
+                        <span style="font-size: 13px; font-weight: 800; color: var(--body); background: var(--surface-soft); padding: 4px 12px; border-radius: 8px; border: 1px solid var(--hairline);">Points: <%= earnedPointsItem.toFixed(2) %> / <%= maxPointsItem.toFixed(2) %></span>
                         <span class="status-badge <% if (item.correct_answer == 'Finalizing...') { %>status-grading<% } else if (sfItem >= 1) { %>status-correct<% } else if (sfItem > 0) { %>status-partial<% } else { %>status-wrong<% } %>" id="status-<%= itemIdx %>">
                             <% if (item.correct_answer == 'Finalizing...') { %>⏳ Finalizing...<% } else if (sfItem >= 1) { %><i data-lucide="check" class="icon-sm"></i> Correct<% } else if (sfItem > 0) { %><i data-lucide="minus" class="icon-sm"></i> Partial (<%= (sfItem * 100).toFixed(0) %>%)<% } else { %><i data-lucide="x" class="icon-sm"></i> Incorrect<% } %>
                         </span>
@@ -252,7 +257,9 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <span class="ans-label" style="margin-bottom: 0;">Correct Answer</span>
                             <div style="display: flex; gap: 8px; align-items: center;">
+                                <% if (typeof session !== 'undefined' && session.user && ['teacher', 'admin'].includes(session.user.role)) { %>
                                 <button class="edit-btn" onclick='recheckAnswer(<%= itemIdx %>, this)' style="background: transparent; border: none; color: var(--warning); font-size: 11px; cursor: pointer; font-weight: 800;"><i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK</button>
+                                <% } %>
                             </div>
                         </div>
                         <div class="ans-value" id="correct-ans-<%= itemIdx %>">
@@ -403,7 +410,7 @@
                 if (box) {
                     box.style.display = 'block';
                     box.innerHTML = `<strong><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + formatDisplay(data.explanation || 'No explanation returned.');
-                    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([box]);
+                    if (window.QuizMoKoMath) window.QuizMoKoMath.typeset(box);
                     if (window.lucide) lucide.createIcons();
                 }
             }).catch(err => {
@@ -463,14 +470,8 @@
                     document.getElementById(`correct-ans-${index}`).innerHTML = displayHtml;
                     cancelEditAnswer(index);
 
-                    // Trigger MathJax re-render
-                    if (window.MathJax && window.MathJax.typesetPromise) {
-                        console.log('[DEBUG] Triggering MathJax re-typeset...');
-                        MathJax.typesetPromise([document.getElementById(`correct-ans-${index}`)]).then(() => {
-                            console.log('[DEBUG] MathJax re-typeset complete.');
-                        }).catch((err) => console.error('[DEBUG] MathJax Error:', err));
-                    } else {
-                        console.warn('[DEBUG] MathJax not loaded or typesetPromise missing.');
+                    if (window.QuizMoKoMath) {
+                        window.QuizMoKoMath.typeset(document.getElementById(`correct-ans-${index}`));
                     }
 
                     // --- NEW: AUTO RE-CHECK AFTER EDIT ---
@@ -489,7 +490,7 @@
             }
         }
 
-        async function recheckAnswer(index, btn = null) {
+        async function recheckAnswer(index, btn = null, acknowledgeQuestionChange = false) {
             const targetBtn = btn || document.querySelector(`#card-${index} .edit-btn[onclick*='recheckAnswer']`);
             const originalHtml = targetBtn ? targetBtn.innerHTML : '<i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK';
 
@@ -499,11 +500,13 @@
             }
 
             try {
-                const apiKey = localStorage.getItem('gemini_api_key') || '';
                 const res = await fetch(`/api/results/${resultId}/recheck`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ q_index: index, api_key: apiKey })
+                    body: JSON.stringify({
+                        q_index: index,
+                        acknowledge_question_change: acknowledgeQuestionChange
+                    })
                 });
 
                 const data = await res.json();
@@ -516,7 +519,11 @@
 
                     // Update Point display in parent
                     const pointBox = statusBadge.parentElement.querySelector("span[style*='background: var(--surface-soft)']");
-                    if (pointBox) pointBox.innerText = `Points: ${sfVal.toFixed(2)} / 1.0`;
+                    if (pointBox) {
+                        const earnedPoints = Number(data.earned_points);
+                        const maxPoints = Number(data.max_points);
+                        pointBox.innerText = `Points: ${Number.isFinite(earnedPoints) ? earnedPoints.toFixed(2) : '0.00'} / ${Number.isFinite(maxPoints) ? maxPoints.toFixed(2) : '1.00'}`;
+                    }
 
                     // Update Correct Answer Box if updated
                     if (data.correct_answer) {
@@ -550,6 +557,11 @@
                         }, 2000);
                     }
                     if (window.lucide) lucide.createIcons();
+                } else if (data.review_required && !acknowledgeQuestionChange) {
+                    const approved = confirm(
+                        'The authoritative quiz question or answer key changed after this attempt. Regrading will intentionally update this historical result and record your acknowledgement. Continue?'
+                    );
+                    if (approved) return await recheckAnswer(index, targetBtn, true);
                 } else {
                     alert('Re-check failed: ' + (data.error || 'Unknown error'));
                 }
@@ -591,8 +603,7 @@
                         const box = document.getElementById(`correct-ans-${i}`);
                         if (box) box.innerHTML = formatDisplay(item.correct_answer);
                     });
-                    // Re-run MathJax
-                    if (window.MathJax && window.MathJax.typesetPromise) MathJax.typesetPromise();
+                    if (window.QuizMoKoMath) window.QuizMoKoMath.typeset(document.body);
                     if (!isAll) alert('Answer re-formatted successfully!');
                 } else {
                     alert('Re-format failed: ' + (data.error || 'Unknown error'));
@@ -649,6 +660,7 @@
 
             // 2. Pure Standard Mode with Identical Line Break Logic to Edit/Quiz Page
             let str = String(data);
+            if (window.QuizMoKoMath) str = window.QuizMoKoMath.normalizeLatexText(str);
 
             // FIX: Restrict the stripping strictly to tab characters (\t) as requested, preserving all other characters (including \n and \r)
             str = str.replace(/\t/g, '');
@@ -791,10 +803,7 @@
                     setTimeout(pollResults, 3000);
                 }
 
-                // Re-run MathJax & Lucide
-                if (window.MathJax && MathJax.typesetPromise) {
-                    MathJax.typesetPromise();
-                }
+                if (window.QuizMoKoMath) window.QuizMoKoMath.typeset(document.body);
                 if (window.lucide) {
                     lucide.createIcons();
                 }
@@ -844,9 +853,7 @@
             setTimeout(pollResults, 1000);
         } else {
             // Ensure MathJax runs on initial render
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise();
-            }
+            if (window.QuizMoKoMath) window.QuizMoKoMath.typeset(document.body);
 
             // AUTO-PDF if requested via URL
             if (window.location.search.includes('download=true')) {
@@ -862,9 +869,7 @@
 
             try {
                 // Ensure MathJax is finished
-                if (window.MathJax && MathJax.typesetPromise) {
-                    await MathJax.typesetPromise();
-                }
+                if (window.QuizMoKoMath) await window.QuizMoKoMath.typeset(document.body);
 
                 // Small delay to ensure images are painted
                 await new Promise(resolve => setTimeout(resolve, 500));

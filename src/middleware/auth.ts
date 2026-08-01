@@ -17,6 +17,14 @@ export const SESSION_COOKIE_NAME = 'quizmoko_session';
 const LEGACY_COOKIE_NAME = 'token';
 const SESSION_VERSION = 1;
 const VALID_ROLES = new Set<User['role']>(['admin', 'teacher', 'student']);
+const REQUEST_AI_KEY_FIELDS = [
+  'api_key',
+  'apiKey',
+  'gemini_api_key',
+  'geminiApiKey',
+  'google_api_key',
+  'googleApiKey'
+] as const;
 
 let generatedSessionSecret: Buffer | null = null;
 let warnedAboutGeneratedSecret = false;
@@ -55,6 +63,16 @@ function normalizeRole(value: unknown, fallback: User['role'] = 'teacher'): User
 
 function isBlockedUser(user: User | undefined | null): boolean {
   return String(user?.status || '').trim().toLowerCase() === 'blocked';
+}
+
+export function stripStudentSuppliedAiKeys(
+  body: unknown,
+  user: Pick<User, 'role'> | null | undefined
+): void {
+  if (user?.role !== 'student' || !body || typeof body !== 'object' || Array.isArray(body)) return;
+  for (const field of REQUEST_AI_KEY_FIELDS) {
+    delete (body as Record<string, unknown>)[field];
+  }
 }
 
 function base64UrlJson(value: unknown): string {
@@ -267,6 +285,7 @@ export async function tokenRequired(
       return;
     }
     req.user = user;
+    stripStudentSuppliedAiKeys(req.body, user);
     next();
   } catch (error) {
     next(error);
@@ -284,7 +303,10 @@ export async function optionalAuth(
 ) {
   try {
     const user = await authenticate(req, res);
-    if (user) req.user = user;
+    if (user) {
+      req.user = user;
+      stripStudentSuppliedAiKeys(req.body, user);
+    }
     next();
   } catch {
     next();

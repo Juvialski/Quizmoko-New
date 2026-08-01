@@ -12,9 +12,10 @@
     <script>
       window.MathJax = {
         tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
-        startup: { typeset: true }
+        startup: { typeset: false }
       };
     </script>
+    <script src="/js/math-display.js"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
@@ -404,7 +405,7 @@ if (results && results.length > 0) {
         function toggleDetails(id) {
             const row = document.getElementById('details-' + id);
             row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
-            if (row.style.display === 'table-row') MathJax.typesetPromise([row]);
+            if (row.style.display === 'table-row' && window.QuizMoKoMath) window.QuizMoKoMath.typeset(row);
         }
 
         async function copyTextToClipboard(text) {
@@ -551,6 +552,7 @@ if (results && results.length > 0) {
             }
 
             let text = String(value).replace(/\\n/g, '\n');
+            if (window.QuizMoKoMath) text = window.QuizMoKoMath.normalizeLatexText(text);
             text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, math) => `$$${math.replace(/\r?\n/g, ' ')}$$`);
             text = text.replace(/\$([\s\S]*?)\$/g, (match, math) => `$${math.replace(/\r?\n/g, ' ')}$`);
             return sanitizeDisplayHtml(text.split(/\r?\n/).join('<br>'));
@@ -580,9 +582,7 @@ if (results && results.length > 0) {
                 btn.style.display = 'none'; const box = btn.nextElementSibling; box.style.display = 'block';
                 box.innerHTML = `<strong><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + formatDisplayText(data.explanation);
                 if (window.lucide) lucide.createIcons();
-                if (window.MathJax && MathJax.typesetPromise) {
-                    MathJax.typesetPromise([box]).catch(error => console.error('MathJax rendering failed:', error));
-                }
+                if (window.QuizMoKoMath) window.QuizMoKoMath.typeset(box);
             } catch (error) {
                 const box = btn.nextElementSibling;
                 box.style.display = 'block';
@@ -654,10 +654,13 @@ if (results && results.length > 0) {
             }
         }
     </script>
+    <script>
+        if (window.QuizMoKoMath) window.QuizMoKoMath.typeset(document.body);
+    </script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
         (function() {
-            const quizId = '<%= (typeof results !== "undefined" && results.length > 0) ? results[0].quiz_id : "" %>';
+            const quizId = '<%= typeof quiz_id !== "undefined" ? quiz_id : ((typeof results !== "undefined" && results.length > 0) ? results[0].quiz_id : "") %>';
             if (!quizId) return;
             const socket = io();
             socket.emit('join_quiz', { quiz_id: quizId });
@@ -669,10 +672,12 @@ if (results && results.length > 0) {
 
             let reloadTimeout;
             function triggerProgressiveReload() {
-                if (reloadTimeout) clearTimeout(reloadTimeout);
+                // Throttle rather than debounce: continuous whiteboard/progress
+                // updates must not postpone the refresh indefinitely.
+                if (reloadTimeout) return;
                 reloadTimeout = setTimeout(() => {
                     location.reload();
-                }, 1500);
+                }, 500);
             }
         })();
     </script>

@@ -239,6 +239,22 @@
                 renderTable();
             });
 
+            socket.on('progressive_result_update', (payload) => {
+                const sessionId = String(payload && payload.session_id || '');
+                const session = sessionsCache[sessionId];
+                if (!session) {
+                    initialFetch();
+                    return;
+                }
+                const score = Number(payload.total_score);
+                const maxScore = Number(payload.max_score);
+                if (Number.isFinite(score)) session.score = score;
+                if (Number.isFinite(maxScore) && maxScore >= 0) session.max_score = maxScore;
+                session.last_active = Date.now();
+                if (payload.finalized === true) session.status = 'Completed';
+                renderTable();
+            });
+
             socket.on('pause_state', (data) => {
                 isPaused = data.paused;
                 updatePauseBtn();
@@ -496,7 +512,7 @@
                     <td style="color: var(--body); font-weight: 600;">Q ${displayedQ} of ${totalQ}</td>
                     <td style="max-width: 350px;">${detailsHtml}</td>
                     <td>${wbStatusHtml}</td>
-                    <td><span class="score-badge">${parseFloat(info.score || 0).toFixed(2)} CORRECT</span></td>
+                    <td><span class="score-badge">${parseFloat(info.score || 0).toFixed(2)} / ${parseFloat(info.max_score || totalQ || 0).toFixed(2)} PTS</span></td>
                     <td>${statusHtml}</td>
                 `;
                 const detailsElement = tr.querySelector('details');

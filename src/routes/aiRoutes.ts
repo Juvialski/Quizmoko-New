@@ -3,6 +3,7 @@ import { Type } from '@google/genai';
 import { tokenRequired } from '../middleware/auth.ts';
 import { generateAiLimiter } from '../middleware/rateLimit.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
+import type { NormalizedQuestion } from '../types.ts';
 import {
   quizzes,
   users,
@@ -11,6 +12,11 @@ import {
   getUniqueQuizTitle
 } from '../store/db.ts';
 import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
+import {
+  getCorrectAnswer,
+  normalizeQuestion,
+  normalizeQuestionForStorage
+} from '../services/grading.ts';
 import {
   acquireAiWork,
   AiWorkLimitError,
@@ -67,11 +73,22 @@ function canManageQuiz(user: any, quiz: any): boolean {
 }
 
 const questionProperties = {
+  id: { type: Type.STRING },
   question: { type: Type.STRING, description: 'The complete question text.' },
   raw_text: { type: Type.STRING, description: 'Legacy alias for question text.' },
   options: { type: Type.ARRAY, items: { type: Type.STRING } },
   answer: { type: Type.STRING },
-  type: { type: Type.STRING },
+  type: {
+    type: Type.STRING,
+    enum: [
+      'multiple_choice',
+      'multiple_choice_multi',
+      'true_false',
+      'identification',
+      'open_ended',
+      'graphing'
+    ]
+  },
   source_index: { type: Type.INTEGER },
   original_index: { type: Type.STRING },
   solution: { type: Type.STRING },
@@ -101,6 +118,21 @@ const reprocessedQuestionSchema = {
   type: Type.OBJECT,
   properties: questionProperties,
   required: ['question', 'options', 'answer', 'type']
+};
+
+const resolvedQuestionSchema = {
+  type: Type.OBJECT,
+  properties: questionProperties,
+  required: ['options', 'answer', 'type', 'solution']
+};
+
+const recheckQuestionArraySchema = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: questionProperties,
+    required: ['id', 'question', 'options', 'answer', 'type']
+  }
 };
 
 interface VisionAsset {
@@ -196,6 +228,61 @@ function clonePlainValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
+const ANSWER_OUTPUT_FIELDS = [
+  'answer',
+  'correct_answer',
+  'correctAnswer',
+  'correct_answer_letter',
+  'correctAnswerLetter',
+  'solution',
+  'worked_solution'
+] as const;
+
+function withoutPriorAnswerState(value: any): Record<string, any> {
+  const clean = value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...value }
+    : {};
+  for (const field of ANSWER_OUTPUT_FIELDS) delete clean[field];
+  return clean;
+}
+
+function normalizeResolvedCandidate(
+  original: any,
+  candidate: any,
+  restoredQuestion: string
+): { stored: any; normalized: NormalizedQuestion } | null {
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null;
+  const cleanOriginal = withoutPriorAnswerState(original);
+  const candidateQuestion: any = {
+    ...cleanOriginal,
+    ...candidate,
+    question: restoredQuestion,
+    options: Array.isArray(candidate.options) && candidate.options.length > 0
+      ? candidate.options
+      : (Array.isArray(original?.options) ? original.options : [])
+  };
+  for (const field of ANSWER_OUTPUT_FIELDS) {
+    if (field !== 'answer' && field !== 'solution') delete candidateQuestion[field];
+  }
+  candidateQuestion.answer = candidate.answer;
+  if (typeof candidate.solution === 'string' && candidate.solution.trim()) {
+    candidateQuestion.solution = candidate.solution.trim();
+  }
+  const storage = normalizeQuestionForStorage(candidateQuestion);
+  if (!storage.valid) return null;
+  return { stored: storage.question, normalized: storage.normalized as any };
+}
+
+function canonicalResolvedCandidatesAgree(
+  left: ReturnType<typeof normalizeResolvedCandidate>,
+  right: ReturnType<typeof normalizeResolvedCandidate>
+): boolean {
+  if (!left || !right) return false;
+  return left.normalized.type === right.normalized.type
+    && JSON.stringify(left.normalized.options) === JSON.stringify(right.normalized.options)
+    && JSON.stringify(left.normalized.answer) === JSON.stringify(right.normalized.answer);
+}
+
 function asBoundedInt(value: unknown, fallback: number, min: number, max: number): number {
   const parsed = Number.parseInt(String(value ?? ''), 10);
   if (!Number.isFinite(parsed)) return fallback;
@@ -272,8 +359,8 @@ function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: 
 
   if (expectedType === 'multiple_choice' || expectedType === 'multiple_choice_multi') {
     const sourceOptions = Array.isArray(raw.options) ? raw.options : [];
-    if (sourceOptions.length < 4) return null;
-    normalized.options = sourceOptions.slice(0, 4).map((option: unknown, index: number) => {
+    if (sourceOptions.length !== 4) return null;
+    normalized.options = sourceOptions.map((option: unknown, index: number) => {
       const text = String(option ?? '').trim().replace(/^[A-D][).]\s*/i, '');
       return `${String.fromCharCode(65 + index)}) ${text}`;
     });
@@ -303,8 +390,9 @@ function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: 
     else if (/^(?:b|false)(?:\b|[).])/i.test(rawAnswer)) normalized.answer = 'B';
     else return null;
   }
-
-  return normalized;
+  const canonical = normalizeQuestionForStorage(normalized);
+  if (!canonical.valid || canonical.normalized.type !== expectedType) return null;
+  return { ...canonical.question, difficulty };
 }
 
 function normalizeOllamaBaseUrl(value: unknown): string {
@@ -795,70 +883,191 @@ router.post('/api/polish_questions', tokenRequired, async (req: AuthRequest, res
   try {
     const ai = getGeminiClient(api_key);
     if (!ai) return res.status(400).json({ success: false, error: 'No valid API key provided' });
-    aiLease = acquireRequestAiWork(req, questions.length, api_key);
+    aiLease = acquireRequestAiWork(req, questions.length * (mode === 'RECHECK_ANSWERS' ? 2 : 1), api_key);
 
-    const contents: any[] = [];
-    const preparedQuestions = questions.map((q: any) => {
-      const prepared = prepareVisionText(getOriginalQuestionText(q), contents);
+    const stableQuestions = questions.map((question: any, index: number) => ({
+      ...question,
+      id: String(question?.id || question?.source?.original_index || question?.original_index || `question_${index + 1}`)
+    }));
+    const preparedContents: any[] = [];
+    const preparedQuestions = stableQuestions.map((question: any) => {
+      const prepared = prepareVisionText(getOriginalQuestionText(question), preparedContents);
+      const cleanBase = mode === 'RECHECK_ANSWERS'
+        ? withoutPriorAnswerState(question)
+        : { ...question };
       return {
         prepared,
         clean: {
-          ...q,
+          ...cleanBase,
+          id: question.id,
           raw_text: prepared.text,
-          question: prepared.text
+          question: prepared.text,
+          ...(mode === 'RECHECK_ANSWERS'
+            ? { proposed_answer_for_review: getCorrectAnswer(question) }
+            : {})
         }
       };
     });
-
     const cleanQuestions = preparedQuestions.map(item => item.clean);
     const prompt = mode === 'RECHECK_ANSWERS'
-      ? RECHECK_ANSWERS_PROMPT
+      ? `${RECHECK_ANSWERS_PROMPT
           .replace('{golden_reference}', JSON.stringify(golden_reference || {}))
-          .replace('{batch_json}', JSON.stringify(cleanQuestions))
-      : `${LATEX_POLISH_PROMPT}\n\nHere are the questions to polish. Preserve their order and return exactly ${questions.length} objects. Output ONLY the JSON array containing the polished questions matching the exact schema.\n\n${JSON.stringify(cleanQuestions)}`;
-    contents.unshift(prompt);
+          .replace('{batch_json}', JSON.stringify(cleanQuestions))}
 
-    const response = await ai.models.generateContent({
-      model: getRealModelName(model_name),
-      contents: contents,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: questionArraySchema,
-        maxOutputTokens: 8192
-      }
-    });
-    
-    const text = response.text || '';
-    const parsed = safeParseJSON(text);
-    
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const merged = questions.map((originalQ: any, i: number) => {
-        const polishedQ = parsed[i];
-        if (!polishedQ || typeof polishedQ !== 'object') return originalQ;
+The proposed_answer_for_review field is untrusted context only. Solve every item independently. Return every stable id exactly once; do not omit an item and do not add an item.`
+      : `${LATEX_POLISH_PROMPT}
 
-        const finalQuestion = restoreVisionText(
-          polishedQ.question || polishedQ.raw_text,
-          preparedQuestions[i].prepared
-        );
-        const mergedQuestion = {
-          ...originalQ,
-          ...polishedQ,
-          question: finalQuestion || getOriginalQuestionText(originalQ)
-        };
-        if (Object.prototype.hasOwnProperty.call(originalQ, 'raw_text')) {
-          mergedQuestion.raw_text = finalQuestion || originalQ.raw_text;
+Return exactly ${questions.length} objects keyed by the unchanged stable "id". Do not omit or add questions. Output only the JSON array.
+
+${JSON.stringify(cleanQuestions)}`;
+
+    const runModel = async (model: string) => {
+      const response = await ai.models.generateContent({
+        model,
+        contents: [prompt, ...preparedContents],
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: recheckQuestionArraySchema,
+          maxOutputTokens: 8192
         }
-        if (!Array.isArray(polishedQ.options)) mergedQuestion.options = originalQ.options;
-        if (polishedQ.answer === undefined || polishedQ.answer === null || String(polishedQ.answer).trim() === '') {
-          mergedQuestion.answer = originalQ.answer;
-        }
-        if (!polishedQ.type) mergedQuestion.type = originalQ.type;
-        return mergedQuestion;
       });
-      return res.json({ success: true, questions: merged });
-    } else {
-      return res.status(500).json({ success: false, error: 'Failed to parse model output as array' });
+      const parsed = safeParseJSON(response.text || '');
+      if (!Array.isArray(parsed)) throw new Error(`${model} did not return a question array.`);
+      const expectedIds = new Set(stableQuestions.map(question => question.id));
+      const output = new Map<string, any>();
+      for (const item of parsed) {
+        const id = String(item?.id || '');
+        if (!expectedIds.has(id) || output.has(id)) {
+          throw new Error(`${model} returned an unexpected or duplicate stable question id.`);
+        }
+        output.set(id, item);
+      }
+      if (output.size !== expectedIds.size) {
+        throw new Error(`${model} omitted one or more stable question ids.`);
+      }
+      return output;
+    };
+
+    if (mode !== 'RECHECK_ANSWERS') {
+      const output = await runModel(getRealModelName(model_name));
+      const polished = stableQuestions.map((original: any, index: number) => {
+        const item = output.get(original.id);
+        const restored = restoreVisionText(item.question || item.raw_text, preparedQuestions[index].prepared)
+          || getOriginalQuestionText(original);
+        const candidate = normalizeResolvedCandidate(original, item, restored);
+        if (!candidate) throw new Error(`Polished question ${original.id} is invalid.`);
+        return {
+          ...original,
+          ...candidate.stored,
+          question: restored,
+          ...(Object.prototype.hasOwnProperty.call(original, 'raw_text') ? { raw_text: restored } : {})
+        };
+      });
+      return res.json({ success: true, questions: polished });
     }
+
+    const primaryModel = getRealModelName(model_name);
+    const peerModel = primaryModel === 'gemini-3.1-flash-lite'
+      ? 'gemini-3.5-flash-lite'
+      : 'gemini-3.1-flash-lite';
+    const [primaryResult, peerResult] = await Promise.allSettled([
+      runModel(primaryModel),
+      runModel(peerModel)
+    ]);
+    if (primaryResult.status === 'rejected' && peerResult.status === 'rejected') {
+      throw new Error('Both independent recheck solvers failed or returned incomplete coverage.');
+    }
+
+    const primaryOutput = primaryResult.status === 'fulfilled' ? primaryResult.value : null;
+    const peerOutput = peerResult.status === 'fulfilled' ? peerResult.value : null;
+    const golden = golden_reference && typeof golden_reference === 'object' ? golden_reference : {};
+    const summary = {
+      changed: [] as string[],
+      unchanged: [] as string[],
+      invalid: [] as string[],
+      review_required: [] as string[]
+    };
+    const resolved = stableQuestions.map((original: any, index: number) => {
+      const restored = getOriginalQuestionText(original);
+      const primary = primaryOutput
+        ? normalizeResolvedCandidate(original, primaryOutput.get(original.id), restored)
+        : null;
+      const peer = peerOutput
+        ? normalizeResolvedCandidate(original, peerOutput.get(original.id), restored)
+        : null;
+      const originalNormalized = normalizeQuestion(original);
+      const sourceId = String(original?.source?.original_index || original?.original_index || original.id);
+      const goldenValue = Object.prototype.hasOwnProperty.call(golden, sourceId)
+        ? golden[sourceId]
+        : (Object.prototype.hasOwnProperty.call(golden, original.id) ? golden[original.id] : undefined);
+      let selected = peer || primary;
+      let reviewRequired = false;
+      let reason = '';
+
+      if (!selected) {
+        summary.invalid.push(original.id);
+        reviewRequired = true;
+        reason = 'Neither independent solver produced a valid complete question.';
+      } else if (goldenValue !== undefined) {
+        const goldenCandidate = normalizeResolvedCandidate(original, { ...selected.stored, answer: goldenValue }, restored);
+        if (!goldenCandidate) {
+          summary.invalid.push(original.id);
+          reviewRequired = true;
+          reason = 'The golden answer does not map unambiguously to this question.';
+        } else {
+          const primaryMatches = primary && JSON.stringify(primary.normalized.answer) === JSON.stringify(goldenCandidate.normalized.answer);
+          const peerMatches = peer && JSON.stringify(peer.normalized.answer) === JSON.stringify(goldenCandidate.normalized.answer);
+          selected = goldenCandidate;
+          reviewRequired = !(primaryMatches && peerMatches);
+          reason = reviewRequired
+            ? 'The authoritative golden answer was preserved, but solver disagreement requires review.'
+            : 'Both independent solvers agree with the authoritative golden answer.';
+        }
+      } else if (primary && peer && canonicalResolvedCandidatesAgree(primary, peer)) {
+        reason = 'Both independent solvers agree on the canonical answer.';
+      } else {
+        reviewRequired = true;
+        reason = primary && peer
+          ? 'Independent solvers disagree; no stale answer was retained.'
+          : 'Only one independent solver completed successfully.';
+      }
+
+      const output: any = selected
+        ? { ...original, ...selected.stored, question: restored }
+        : { ...withoutPriorAnswerState(original), id: original.id, question: restored, options: original.options || [], type: original.type, answer: '' };
+      if (reviewRequired && goldenValue === undefined) output.answer = '';
+      output.verification = {
+        answer_source: goldenValue !== undefined ? 'golden_key' : (reviewRequired ? 'manual' : 'solver_consensus'),
+        verification_status: reviewRequired ? 'review_required' : 'verified',
+        reason,
+        solver_models: [primaryModel, peerModel]
+      };
+      output.qa_metadata = {
+        candidate_answers: [
+          primary ? { model: primaryModel, answer: primary.normalized.answer } : { model: primaryModel, status: 'failed_or_invalid' },
+          peer ? { model: peerModel, answer: peer.normalized.answer } : { model: peerModel, status: 'failed_or_invalid' }
+        ],
+        ...(goldenValue !== undefined ? { golden_answer: goldenValue } : {})
+      };
+      if (reviewRequired) summary.review_required.push(original.id);
+      if (
+        originalNormalized.valid
+        && selected
+        && JSON.stringify(originalNormalized.question.answer) === JSON.stringify(selected.normalized.answer)
+      ) summary.unchanged.push(original.id);
+      else summary.changed.push(original.id);
+      return output;
+    });
+    return res.json({
+      success: true,
+      questions: resolved,
+      summary,
+      review_required: summary.review_required.length > 0,
+      model_failures: [
+        ...(primaryResult.status === 'rejected' ? [{ model: primaryModel, error: primaryResult.reason?.message || 'failed' }] : []),
+        ...(peerResult.status === 'rejected' ? [{ model: peerModel, error: peerResult.reason?.message || 'failed' }] : [])
+      ]
+    });
   } catch (err: any) {
     if (respondAiWorkLimit(res, err)) return;
     console.error('Polish questions error:', err);
@@ -910,7 +1119,7 @@ CRITICAL INSTRUCTIONS:
    - For Identification (CRITICAL): Output ONLY the concise final raw numerical value or raw single-word answer. For numerical questions, the 'answer' field MUST be strictly a raw number (integer or decimal, e.g. -42, 120, 0.75) with NO units (e.g., NO 'meters', 'm', 'kg', 's', '$', '%', etc.) or letters, and NO dollar signs or LaTeX, so that student inputs can be graded numerically.
    - For Open Ended / Math / Science: Output the complete, accurate answer value or key rubric grading points.
 2. In the 'solution' field, write a clear, thorough step-by-step worked explanation showing how to arrive at the answer.
-3. CRUCIAL: You MUST enclose ALL mathematical expressions, equations, standalone numbers, counts, measurements, percentages, and currency amounts (except for Identification answers) inside your question text, choices, and solution with LaTeX dollar signs (e.g. $10$ meters, $32$ meters, $x^2$, $130/10$, $\\$$40, $15\\%$, $-42$). Do NOT use asterisks for math, and do NOT leave any numbers un-enclosed as plain text.
+3. CRUCIAL: You MUST enclose ALL mathematical expressions, equations, standalone numbers, counts, measurements, percentages, and currency amounts (except for Identification answers) inside your question text, choices, and solution with LaTeX dollar signs (e.g. $10$ meters, $32$ meters, $x^2$, $130/10$, $\\text{\\$40}$, $15\\%$, $-42$). Do NOT use asterisks for math, and do NOT leave any numbers un-enclosed as plain text.
 
 Return STRICTLY a JSON object with keys:
 - "options": array of strings (choices if multiple choice, else [])
@@ -928,6 +1137,7 @@ Return STRICTLY a JSON object with keys:
         contents: contents31,
         config: {
           responseMimeType: 'application/json',
+          responseSchema: resolvedQuestionSchema,
           maxOutputTokens: 4096
         }
       }),
@@ -936,6 +1146,7 @@ Return STRICTLY a JSON object with keys:
         contents: contents35,
         config: {
           responseMimeType: 'application/json',
+          responseSchema: resolvedQuestionSchema,
           maxOutputTokens: 4096
         }
       })
@@ -953,35 +1164,94 @@ Return STRICTLY a JSON object with keys:
       console.warn('[Resolve Question] gemini-3.5-flash-lite failed:', res35.reason);
     }
 
-    let parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
-    let parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
-
-    let ans31 = String(parsed31.answer || '').trim();
-    let ans35 = String(parsed35.answer || '').trim();
-
-    let activeParsed = (ans31 && ans35 && ans31.toLowerCase() === ans35.toLowerCase())
-      ? (parsed35.answer ? parsed35 : parsed31)
-      : (parsed35.answer ? parsed35 : parsed31);
-
-    if (activeParsed && activeParsed.answer) {
-      const finalQuestion = restoreVisionText(activeParsed.question || prepared.text, prepared);
-
-      const finalResolvedQuestion = {
-        ...question_data,
-        ...activeParsed,
-        question: finalQuestion || getOriginalQuestionText(question_data, source_context)
-      };
-      if (!Array.isArray(activeParsed.options) || activeParsed.options.length === 0) {
-        finalResolvedQuestion.options = question_data.options || [];
-      }
-      if (!activeParsed.type) finalResolvedQuestion.type = question_data.type;
-      if (Object.prototype.hasOwnProperty.call(question_data, 'raw_text')) {
-        finalResolvedQuestion.raw_text = question_data.raw_text;
-      }
-      return res.json({ success: true, question: finalResolvedQuestion });
-    } else {
-      return res.status(500).json({ success: false, error: 'Failed to parse model output' });
+    const parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
+    const parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
+    const originalText = getOriginalQuestionText(question_data, source_context);
+    const restoredText = restoreVisionText(originalText || prepared.text, prepared) || originalText;
+    const candidate31 = res31.status === 'fulfilled'
+      ? normalizeResolvedCandidate(question_data, parsed31, restoredText)
+      : null;
+    const candidate35 = res35.status === 'fulfilled'
+      ? normalizeResolvedCandidate(question_data, parsed35, restoredText)
+      : null;
+    const validCandidates = [candidate31, candidate35].filter(Boolean) as Array<NonNullable<typeof candidate31>>;
+    if (validCandidates.length === 0) {
+      return res.status(502).json({
+        success: false,
+        error: 'Both independent solvers returned invalid or incomplete question data.'
+      });
     }
+
+    const goldenQuestion = question_data?.verification?.answer_source === 'golden_key'
+      ? normalizeQuestion(question_data)
+      : null;
+    const hasGolden = Boolean(goldenQuestion?.valid);
+    const bothValid = Boolean(candidate31 && candidate35);
+    const solversAgree = canonicalResolvedCandidatesAgree(candidate31, candidate35);
+    let selected = candidate35 || candidate31!;
+    let reviewRequired = false;
+    let reason = '';
+
+    if (hasGolden && goldenQuestion?.valid) {
+      const goldenAnswer = goldenQuestion.question.answer;
+      const allMatchGolden = bothValid && validCandidates.every(candidate => (
+        candidate.normalized.type === goldenQuestion.question.type
+        && JSON.stringify(candidate.normalized.answer) === JSON.stringify(goldenAnswer)
+      ));
+      reviewRequired = !allMatchGolden;
+      reason = allMatchGolden
+        ? 'Both independent solvers agree with the authoritative golden answer.'
+        : 'At least one independent solver disagrees with the authoritative golden answer; the golden answer was preserved.';
+      selected = {
+        ...selected,
+        stored: {
+          ...selected.stored,
+          answer: goldenAnswer,
+          type: goldenQuestion.question.type,
+          options: goldenQuestion.question.options
+        },
+        normalized: goldenQuestion.question
+      };
+    } else if (bothValid && solversAgree) {
+      reason = 'Both independent solvers produced the same canonical answer.';
+    } else if (!bothValid) {
+      reviewRequired = true;
+      reason = 'Only one independent solver produced a valid result; teacher review is required.';
+    } else {
+      reviewRequired = true;
+      reason = 'Independent solvers disagreed; no answer was selected automatically.';
+    }
+
+    const candidateSummaries = [
+      candidate31 ? { model: 'gemini-3.1-flash-lite', answer: candidate31.normalized.answer } : { model: 'gemini-3.1-flash-lite', status: 'failed_or_invalid' },
+      candidate35 ? { model: 'gemini-3.5-flash-lite', answer: candidate35.normalized.answer } : { model: 'gemini-3.5-flash-lite', status: 'failed_or_invalid' }
+    ];
+    const finalResolvedQuestion: any = {
+      ...withoutPriorAnswerState(question_data),
+      ...selected.stored,
+      question: restoredText,
+      verification: {
+        answer_source: hasGolden ? 'golden_key' : (reviewRequired ? 'manual' : 'solver_consensus'),
+        verification_status: reviewRequired ? 'review_required' : 'verified',
+        reason,
+        solver_models: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite']
+      },
+      qa_metadata: {
+        candidate_answers: candidateSummaries
+      }
+    };
+    if (reviewRequired && !hasGolden && bothValid && !solversAgree) {
+      finalResolvedQuestion.answer = '';
+    }
+    if (Object.prototype.hasOwnProperty.call(question_data, 'raw_text')) {
+      finalResolvedQuestion.raw_text = question_data.raw_text;
+    }
+    return res.status(reviewRequired ? 409 : 200).json({
+      success: !reviewRequired,
+      review_required: reviewRequired,
+      reason,
+      question: finalResolvedQuestion
+    });
 
   } catch (err: any) {
     if (respondAiWorkLimit(res, err)) return;
@@ -1156,7 +1426,7 @@ CRITICAL RULES:
    - If the Target Type is 'graphing', the options array MUST be empty [], and the 'answer' field should be a concise description of the expected graph.
 2. MATH & LATEX RULES (For Math or Science subjects):
    - {latex_rules}
-   - CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside the feedback/question with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\$$40). Do NOT use asterisks for math.
+   - CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside the feedback/question with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$). Do NOT use asterisks for math.
    - Do NOT wrap plain English words or names (e.g. 'Right', 'Isosceles', 'John') in LaTeX tags.
 3. PRESERVE IMAGES:
    - If the input question contains a token starting with '[IMAGE_PROVIDED_IN_VISION_CONTEXT', preserve that complete token inside your output 'question' text field exactly.

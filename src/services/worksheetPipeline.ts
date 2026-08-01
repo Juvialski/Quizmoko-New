@@ -729,7 +729,8 @@ export function adjudicateWorksheetSolverCandidates(
   const review = (reason: string, code: WorksheetDiagnosticCode): WorksheetConsensusResult => {
     diagnostics.push(diagnostic(code, reason, sourceId));
     const verification: QuestionVerification = { answer_source: 'manual', verification_status: 'review_required', reason, solver_models: candidates.map(candidate => candidate.model) };
-    return { publishable: false, question: { ...base, verification, worksheet_qa: { solver_candidates: traces, adjudicator_reason: adjudicator?.reason } }, verification, worksheet_qa: { solver_candidates: traces, adjudicator_reason: adjudicator?.reason }, diagnostics };
+    const provisional = valid[0]?.question ?? base;
+    return { publishable: false, question: { ...provisional, verification, worksheet_qa: { solver_candidates: traces, adjudicator_reason: adjudicator?.reason } }, verification, worksheet_qa: { solver_candidates: traces, adjudicator_reason: adjudicator?.reason }, diagnostics };
   };
 
   if (candidates.length < 2 || valid.length !== candidates.length) {

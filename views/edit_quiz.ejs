@@ -1215,6 +1215,10 @@
                 }
                 const block = document.createElement('div');
                 block.className = 'question-block';
+                block.id = `question-block-${qIndex}`;
+                if (q?.verification?.verification_status === 'review_required') {
+                    block.style.borderColor = 'var(--m-red)';
+                }
                 const rawSourceQuestionId = q?.source?.original_index ?? q?.original_index ?? q?.source_id;
                 const sourceQuestionId = rawSourceQuestionId === undefined || rawSourceQuestionId === null
                     ? ''
@@ -2185,7 +2189,8 @@
             delete quizData['api_key'];
             const savePayload = {
                 ...quizData,
-                questions: quizData.questions.map(question => ({ ...question }))
+                questions: quizData.questions.map(question => ({ ...question })),
+                allow_review_required: quizData.is_draft === true
             };
             delete savePayload.api_key;
 
@@ -2230,6 +2235,14 @@
             }
         }
         renderQuestions();
+        const firstReviewIndex = quizData.questions.findIndex(question =>
+            question?.verification?.verification_status === 'review_required'
+        );
+        if (firstReviewIndex >= 0) {
+            window.setTimeout(() => {
+                document.getElementById(`question-block-${firstReviewIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 250);
+        }
     </script>
     <script>lucide.createIcons();</script>
 </body>

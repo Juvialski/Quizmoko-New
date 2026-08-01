@@ -774,6 +774,8 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
     try {
       const totalQuestions = questions.length;
       const finalQuestions: any[] = [];
+      const reviewRequiredIds: string[] = [];
+      const reviewDiagnostics: WorksheetDiagnostic[] = [];
 
       setWorksheetProgress(session_id, {
         message: '🤖 Initializing Solve and Check Engine...',
@@ -800,7 +802,7 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         },
         onBatchComplete: progress => {
           setWorksheetProgress(session_id, {
-            message: `✅ Verified ${progress.completed}/${totalQuestions} questions.`,
+            message: `✅ Processed ${progress.completed}/${totalQuestions} questions.`,
             percentage: Math.round(15 + (progress.completed / totalQuestions) * 75),
             status: 'processing'
           });
@@ -809,10 +811,8 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
       for (let index = 0; index < consensusResults.length; index++) {
         const result = consensusResults[index];
         if (!result.publishable) {
-          throw new WorksheetReviewRequiredError(
-            `Question ${getWorksheetSourceId(questions[index]) || index + 1} requires teacher review.`,
-            result.diagnostics
-          );
+          reviewRequiredIds.push(getWorksheetSourceId(questions[index]) || String(index + 1));
+          reviewDiagnostics.push(...result.diagnostics);
         }
         finalQuestions.push({
           ...result.question,
@@ -824,14 +824,19 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
       const requireSolution = require_solution === true || require_solution === 'true';
       const publication = validateWorksheetQuizForPublication(finalQuestions, {
         require_solution: requireSolution,
-        require_verification: true
+        require_verification: true,
+        allow_review_required: reviewRequiredIds.length > 0
       });
-      if (!publication.valid) {
+      if (!publication.valid && reviewRequiredIds.length === 0) {
         throw new WorksheetReviewRequiredError(
           'Worksheet quiz did not pass final publication validation.',
           publication.diagnostics
         );
       }
+      const quizQuestions = publication.questions.length === finalQuestions.length
+        ? publication.questions
+        : finalQuestions;
+      const isDraft = reviewRequiredIds.length > 0 || !publication.valid;
       const uniqueTitle = getUniqueQuizTitle(topic || 'Worksheet Quiz');
       const newQuizId = `quiz_${Date.now()}`;
       const newQuiz: any = {
@@ -843,7 +848,13 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         quiz_mode: quiz_mode || 'back_and_forth',
         require_solution: requireSolution,
         worksheet_source: { extracted_questions: worksheetSourceSnapshot(questions) },
-        questions: publication.questions,
+        questions: quizQuestions,
+        is_draft: isDraft,
+        review_required_ids: reviewRequiredIds,
+        worksheet_validation: {
+          review_required: reviewRequiredIds,
+          diagnostics: [...reviewDiagnostics, ...publication.diagnostics]
+        },
         created_at: new Date().toISOString()
       };
 
@@ -852,10 +863,13 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
       await syncDocToFirestore('quizzes', newQuizId, newQuiz);
 
       setWorksheetProgress(session_id, {
-        message: '🚀 Quiz created! Redirecting...',
+        message: isDraft
+          ? `📝 Draft created. Review question${reviewRequiredIds.length === 1 ? '' : 's'} ${reviewRequiredIds.join(', ')}.`
+          : '🚀 Quiz created! Redirecting...',
         percentage: 100,
         status: 'completed',
-        quiz_id: newQuizId
+        quiz_id: newQuizId,
+        ...(isDraft ? { review_required: true, review_required_ids: reviewRequiredIds } : {})
       });
     } catch (err: any) {
       setWorksheetProgress(session_id, {

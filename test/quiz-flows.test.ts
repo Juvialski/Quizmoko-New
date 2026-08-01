@@ -703,6 +703,34 @@ describe('authoritative grading HTTP flow', () => {
     }
   });
 
+  test('review-required worksheet drafts are protected from student access', async () => {
+    const quizId = uniqueId('quiz_review_draft');
+    cleanupQuizIds.add(quizId);
+    quizzes.set(quizId, {
+      id: quizId,
+      title: 'Worksheet draft',
+      is_draft: true,
+      review_required_ids: ['1'],
+      questions: [question({
+        id: '1',
+        verification: {
+          answer_source: 'manual',
+          verification_status: 'review_required',
+          reason: 'Independent solvers disagreed.'
+        }
+      })]
+    } as any);
+
+    const apiResponse = await fetch(`${baseUrl}/api/quiz/${quizId}`);
+    assert.equal(apiResponse.status, 409);
+    const apiPayload = await apiResponse.json() as any;
+    assert.match(apiPayload.error, /teacher review/i);
+
+    const pageResponse = await fetch(`${baseUrl}/quiz/${quizId}`);
+    assert.equal(pageResponse.status, 409);
+    assert.match(await pageResponse.text(), /teacher review/i);
+  });
+
   test('newer individual grade remains authoritative when an older revision arrives afterward', async () => {
     const quizId = uniqueId('quiz_grade_order');
     const sessionId = uniqueId('sess_grade_order');
@@ -1247,6 +1275,7 @@ describe('worksheet independent solver/checker consensus', () => {
     ]);
     assert.equal(failure.publishable, false);
     assert.equal(failure.verification.verification_status, 'review_required');
+    assert.equal(failure.question.answer, 'B');
     assert.ok(failure.diagnostics.some(item => item.code === 'solver_failure'));
     assert.equal(failure.worksheet_qa.solver_candidates?.[1].status, 'failed');
 
@@ -1263,6 +1292,7 @@ describe('worksheet independent solver/checker consensus', () => {
     const candidates = [candidate('solver-a', 'A'), candidate('solver-b', 'B')];
     const absent = adjudicateWorksheetSolverCandidates(base, candidates);
     assert.equal(absent.publishable, false);
+    assert.equal(absent.question.answer, 'A');
     assert.ok(absent.diagnostics.some(item => item.code === 'solver_disagreement'));
 
     const failed = adjudicateWorksheetSolverCandidates(base, candidates, {

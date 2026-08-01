@@ -129,6 +129,21 @@ function canManageQuiz(user: any, quiz: any): boolean {
   return !quiz.user_id && user.uid === 'teacher_test';
 }
 
+function quizReviewRequiredIds(quiz: any): string[] {
+  if (!quiz || !Array.isArray(quiz.questions)) return [];
+  return quiz.questions
+    .map((question: any, index: number) => (
+      question?.verification?.verification_status === 'review_required'
+        ? String(question?.source?.original_index ?? question?.source_id ?? question?.id ?? index + 1)
+        : ''
+    ))
+    .filter(Boolean);
+}
+
+function quizIsDraft(quiz: any): boolean {
+  return quiz?.is_draft === true || quizReviewRequiredIds(quiz).length > 0;
+}
+
 function rejectQuizAccess(res: any) {
   return res.status(403).json({ success: false, error: 'You do not have access to this quiz' });
 }
@@ -319,6 +334,9 @@ router.get('/quiz/:quiz_id', (req, res) => {
   if (!quiz) {
     return res.status(404).send('Quiz not found');
   }
+  if (quizIsDraft(quiz)) {
+    return res.status(409).send('This quiz is still a draft and requires teacher review before students can open it.');
+  }
   res.render('quiz', { quiz: quizForTaking(quiz), quiz_id: req.params.quiz_id });
 });
 
@@ -335,6 +353,9 @@ router.get('/api/quiz/:quiz_id', (req, res) => {
   const quiz = quizzes.get(req.params.quiz_id);
   if (!quiz) {
     return res.status(404).json({ error: 'Quiz not found' });
+  }
+  if (quizIsDraft(quiz)) {
+    return res.status(409).json({ error: 'Quiz requires teacher review before it can be opened.' });
   }
   res.json(publicQuiz(quiz));
 });
@@ -360,6 +381,10 @@ router.post(['/update/:quiz_id', '/api/quiz/:quiz_id/update'], tokenRequired, as
     user_id: existing.user_id,
     created_at: existing.created_at || new Date().toISOString()
   });
+  const remainingReviewIds = quizReviewRequiredIds(updated);
+  updated.is_draft = remainingReviewIds.length > 0;
+  updated.review_required_ids = remainingReviewIds;
+  if (!updated.is_draft) delete updated.worksheet_validation;
   quizzes.set(quizId, updated);
   savePersistentData();
   try {

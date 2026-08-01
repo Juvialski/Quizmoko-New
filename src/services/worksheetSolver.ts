@@ -1,5 +1,6 @@
 import { Type } from '@google/genai';
 import { getGeminiClient, getRealModelName, safeParseJSON } from './gemini.ts';
+import { hasBalancedLatexDelimiters } from './latex.ts';
 import {
   adjudicateWorksheetSolverCandidates,
   areCanonicalWorksheetAnswersEquivalent,
@@ -52,7 +53,7 @@ const SINGLE_CHECKER_SCHEMA = {
 };
 
 const MANDATORY_MATH_FEEDBACK_RULE =
-  'CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$). Do NOT use asterisks for math.';
+  'CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with balanced LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$). Every opening $ must have a closing $. Do NOT use asterisks for math.';
 
 export const WORKSHEET_MODEL_TIMEOUT_MS = 45_000;
 export const WORKSHEET_JOB_TIMEOUT_MS = 4 * 60_000;
@@ -125,7 +126,7 @@ function retryableModelFailure(error: unknown): boolean {
   const name = String((error as any)?.name || '');
   if (name === 'AbortError' || name === 'TimeoutError') return true;
   const message = String((error as any)?.message || error || '').toLowerCase();
-  return /timeout|timed out|temporar|rate limit|quota|network|fetch|connection|socket|econn|invalid json|omitted|coverage|source_id|source_index|solver result/.test(message);
+  return /timeout|timed out|temporar|rate limit|quota|network|fetch|connection|socket|econn|invalid json|omitted|coverage|source_id|source_index|solver result|latex delimiter/.test(message);
 }
 
 function sleep(milliseconds: number): Promise<void> {
@@ -189,6 +190,10 @@ export function parseWorksheetSolverBatchOutput(
     const expectedSourceId = getWorksheetSourceId(expectedQuestions[sourceIndex]);
     if (!expectedSourceId || getWorksheetSourceId(output) !== expectedSourceId) {
       throw new Error(`Solver returned the wrong source_id for source_index ${sourceIndex}.`);
+    }
+    const latexFields = [output.answer, output.solution, ...(Array.isArray(output.options) ? output.options : [])];
+    if (latexFields.some(field => typeof field === 'string' && !hasBalancedLatexDelimiters(field))) {
+      throw new Error(`Solver returned an unbalanced LaTeX delimiter for source_id ${expectedSourceId}.`);
     }
     byIndex.set(sourceIndex, output);
   });

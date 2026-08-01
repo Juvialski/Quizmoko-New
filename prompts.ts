@@ -20,6 +20,7 @@ MATH & LATEX RULES:
 14. PRESERVE HTML: If you see tags like <div class="resizable-image-wrapper">, you MUST preserve them exactly.
 15. IDENTIFICATION EXCEPTION: For Identification answer keys ONLY, DO NOT use LaTeX enclosure or dollar signs. Keep them as plain text or numbers. If the answer is numerical, the answer key MUST be strictly a raw number (integer or decimal, e.g. -42, 0.75) with NO units (like 'm', 'meters', 'kg', '$', '%', etc.) or plaintext letters.
 16. STRICT ENCLOSURE: For all other question types and ALL answer options, you MUST follow the math enclosure rules for ALL equations and expressions.
+17. BALANCED DELIMITERS (MANDATORY): Every inline math expression MUST begin and end with exactly one '$'. Before returning JSON, verify every field has balanced dollar delimiters. For alternatives, write '$b = 6$ or $b = -6$'. NEVER write 'b = 6$ or $b = -6', and never remove only the first or last delimiter.
 `;
 
 export const NON_MATH_RULES = `
@@ -281,6 +282,7 @@ CRITICAL RULES:
 10. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using a real newline in the 'answer' field.
 11. Return ONLY a strict JSON array with exactly one object per input question and exact source coverage. Each object must contain: 'options', 'answer', 'type', 'source_index', 'source_id', and 'solution'. Preserve source_index and source_id exactly from the input. Use a real newline inside a JSON string when needed, never the two literal characters backslash and n.
 12. CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$). Do NOT use asterisks for math.
+13. FINAL LATEX CHECK: Verify that every '$' delimiter in every returned field is balanced. Mixed text and alternatives must use complete pairs, e.g. '$b = 6$ or $b = -6$'.
 `;
 
 export const WORKSHEET_SOLVER_PROMPT_NON_MATH = `You are an expert educator. PROVIDE ANSWERS for these worksheet questions.
@@ -306,6 +308,7 @@ CRITICAL RULES:
 8. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using a real newline in the 'answer' field.
 9. Return ONLY a strict JSON array with exactly one object per input question and exact source coverage. Each object must contain: 'options', 'answer', 'type', 'source_index', 'source_id', and 'solution'. Preserve source_index and source_id exactly from the input. Use a real newline inside a JSON string when needed, never the two literal characters backslash and n.
 10. When mathematical feedback is required, CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$). Do NOT use asterisks for math.
+11. FINAL LATEX CHECK: Verify that every '$' delimiter in every returned field is balanced. Never output a dangling opening or closing dollar delimiter.
 `;
 
 export const CRITIC_PROMPT = `You are a strict educational QA reviewer.

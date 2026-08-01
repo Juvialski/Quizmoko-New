@@ -7,7 +7,7 @@ import gradingRoutes from '../src/routes/gradingRoutes.ts';
 import quizRoutes from '../src/routes/quizRoutes.ts';
 import { stripStudentSuppliedAiKeys } from '../src/middleware/auth.ts';
 import { liveSessions, quizzes, results, users } from '../src/store/db.ts';
-import { normalizeAiLatexText } from '../src/services/latex.ts';
+import { hasBalancedLatexDelimiters, normalizeAiLatexText } from '../src/services/latex.ts';
 import { updateLiveSession } from '../src/services/socket.ts';
 import {
   gradeQuestionLocally,
@@ -140,19 +140,22 @@ describe('live score and LaTeX display safety', () => {
     }
   });
 
-  test('repairs currency and raw percentages without changing valid math', () => {
+  test('preserves AI LaTeX verbatim instead of applying aggressive repairs', () => {
     assert.equal(
       normalizeAiLatexText('Each bag costs $13.89. The tax is 8.25%.'),
-      'Each bag costs $\\text{\\$13.89}$. The tax is $8.25\\%$.'
+      'Each bag costs $13.89. The tax is 8.25%.'
     );
     assert.equal(
       normalizeAiLatexText('The total is $\\$$40.'),
-      'The total is $\\text{\\$40}$.'
+      'The total is $\\$$40.'
     );
     assert.equal(
       normalizeAiLatexText('Keep $15\\%$ and $x^2$ unchanged.'),
       'Keep $15\\%$ and $x^2$ unchanged.'
     );
+    assert.equal(hasBalancedLatexDelimiters('$b = 6$ or $b = -6$'), true);
+    assert.equal(hasBalancedLatexDelimiters('b = 6$ or $b = -6'), false);
+    assert.equal(hasBalancedLatexDelimiters('$\\text{\\$40}$'), true);
   });
 });
 
@@ -296,6 +299,20 @@ describe('canonical deterministic grading', () => {
     });
     assert.equal(fraction.valid, true);
     if (fraction.valid) assert.equal(fraction.question.type, 'open_ended');
+  });
+
+  test('preserves balanced LaTeX delimiters in open-ended answers during storage', () => {
+    const answer = '$b = 6$ or $b = -6$';
+    const normalized = normalizeQuestionForStorage({
+      question: 'Solve the absolute-value equation.',
+      type: 'open_ended',
+      options: [],
+      answer
+    });
+    assert.equal(normalized.valid, true);
+    if (!normalized.valid) return;
+    assert.equal(normalized.question.answer, answer);
+    assert.equal(normalized.question.type, 'open_ended');
   });
 
   test('handles blank answers, aliases, canonical storage, points, and shared rounding', () => {
@@ -1701,5 +1718,47 @@ describe('worksheet bounded batch solving', () => {
     assert.equal(result.publishable, false);
     assert.equal(result.verification.verification_status, 'review_required');
     assert.ok(result.diagnostics.some(item => item.code === 'solver_failure'));
+  });
+
+  test('rejects malformed LaTeX and retries the model instead of rewriting it', async () => {
+    const question = worksheetQuestion('latex-retry', {
+      type: 'open_ended',
+      options: [],
+      answer: ''
+    });
+    const attempts = new Map<string, number>();
+    const ai = {
+      models: {
+        async generateContent(request: any) {
+          const model = String(request.model);
+          const attempt = (attempts.get(model) || 0) + 1;
+          attempts.set(model, attempt);
+          const [item] = promptQuestions(request);
+          return {
+            text: JSON.stringify([{
+              options: [],
+              answer: attempt === 1 ? 'b = 6$ or $b = -6' : '$b = 6$ or $b = -6$',
+              type: 'open_ended',
+              source_index: 0,
+              source_id: item.source_id,
+              solution: 'The two balanced solutions are $b = 6$ and $b = -6$.'
+            }])
+          };
+        }
+      }
+    } as any;
+
+    const [result] = await solveWorksheetBatchWithConsensus({
+      ai,
+      questions: [question],
+      subject: 'Mathematics',
+      topic: 'LaTeX retry',
+      requestedModel: 'gemini-3.5-flash-lite',
+      deadlineAt: Date.now() + 2_000
+    });
+
+    assert.deepEqual([...attempts.values()], [2, 2]);
+    assert.equal(result.publishable, true);
+    assert.equal(result.question.answer, '$b = 6$ or $b = -6$');
   });
 });

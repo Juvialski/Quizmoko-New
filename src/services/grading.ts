@@ -354,11 +354,13 @@ function readAnswerPolicy(question: Record<string, unknown>): NumericAnswerPolic
     : undefined;
 }
 
-function normalizeScalarAnswer(value: unknown): AnswerNormalizationResult {
+function normalizeScalarAnswer(value: unknown, stripMathMarkup = false): AnswerNormalizationResult {
   if (Array.isArray(value) || (value !== null && typeof value === 'object')) {
     return { valid: false, errors: [validationError('invalid_answer', 'This question requires one scalar answer.', 'answer', value)] };
   }
-  const normalized = stripLatex(value).normalize('NFKC').replace(/\s+/g, ' ').trim();
+  const normalized = (stripMathMarkup ? stripLatex(value) : answerToString(value))
+    .normalize('NFKC')
+    .trim();
   if (!normalized) {
     return { valid: false, errors: [validationError('missing_answer', 'A correct answer is required.', 'answer', value)] };
   }
@@ -373,7 +375,7 @@ function normalizeExpectedAnswer(
   if (type === 'multiple_choice') return mapChoiceToLetter(options, value);
   if (type === 'multiple_choice_multi') return normalizeMultiSelection(options, value);
   if (type === 'true_false') return normalizeTrueFalse(options, value);
-  const scalar = normalizeScalarAnswer(value);
+  const scalar = normalizeScalarAnswer(value, type === 'identification');
   if (type !== 'identification' || !scalar.valid || typeof scalar.answer !== 'string') return scalar;
   const numeric = normalizePlainNumericIdentificationAnswer(scalar.answer);
   return numeric === null ? scalar : { valid: true, answer: numeric, errors: [] };

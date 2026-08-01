@@ -11,7 +11,7 @@ import {
 } from '../store/db.ts';
 import { getRealModelName, safeParseJSON } from '../services/gemini.ts';
 import { getQuizCreatorGeminiClients } from '../services/quizCreatorAi.ts';
-import { normalizeAiLatexText } from '../services/latex.ts';
+import { hasBalancedLatexDelimiters, normalizeAiLatexText } from '../services/latex.ts';
 import {
   canonicalQuestionType,
   getCorrectAnswer,
@@ -1389,6 +1389,7 @@ Student answer: ${JSON.stringify(answer)}
 Correct answer: ${JSON.stringify(getCorrectAnswer(question))}
 
 CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, equations, counts, measurements, percentages, and standalone numbers (except for Identification answers) inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$, $15\\%$, $-42$, $10$ meters). Do NOT use asterisks for math.
+LATEX DELIMITER CHECK: Every inline expression must have exactly one opening and one closing '$'. Verify all delimiters are balanced before returning JSON. Write '$b = 6$ or $b = -6$', never 'b = 6$ or $b = -6'.
 Return only {"explanation":"..."}.`;
         const response = await ai.models.generateContent({
           model: getRealModelName(body.model_name || 'gemini-3.5-flash-lite'),
@@ -1403,7 +1404,12 @@ Return only {"explanation":"..."}.`;
           }
         });
         const parsed = safeParseJSON(response.text || '');
-        if (parsed && typeof parsed.explanation === 'string' && parsed.explanation.trim()) {
+        if (
+          parsed
+          && typeof parsed.explanation === 'string'
+          && parsed.explanation.trim()
+          && hasBalancedLatexDelimiters(parsed.explanation)
+        ) {
           return res.json({
             success: true,
             explanation: normalizeAiLatexText(parsed.explanation.slice(0, MAX_FEEDBACK_LENGTH))

@@ -1,7 +1,7 @@
 import { Type } from '@google/genai';
 import { getRealModelName, safeParseJSON } from './gemini.ts';
 import { canonicalQuestionType, getCorrectAnswer } from './grading.ts';
-import { normalizeAiLatexText } from './latex.ts';
+import { hasBalancedLatexDelimiters, normalizeAiLatexText } from './latex.ts';
 
 export type SemanticGradeStatus =
   | 'graded'
@@ -66,6 +66,14 @@ export function normalizeSemanticModelGrade(value: unknown): SemanticGradeOutcom
       error: 'The semantic grader omitted required feedback.'
     };
   }
+  if (!hasBalancedLatexDelimiters(record.feedback)) {
+    return {
+      gradeStatus: 'invalid_response',
+      feedback: '',
+      retryable: false,
+      error: 'The semantic grader returned unbalanced LaTeX delimiters.'
+    };
+  }
 
   const scoreFraction = quantizeFraction(record.score_fraction);
   return {
@@ -128,6 +136,7 @@ Student response: ${JSON.stringify(
 Return a score_fraction from 0 to 1 proportional to demonstrated correctness and brief feedback. Full correctness is exactly 1; partial correctness is strictly between 0 and 1; no demonstrated correctness is 0. The server derives is_correct from score_fraction, so do not use a boolean to contradict the score.
 
 CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, equations, counts, measurements, percentages, and standalone numbers (except for Identification answers) inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$, $15\\%$, $-42$, $10$ meters). Do NOT use asterisks for math.
+LATEX DELIMITER CHECK: Every inline expression must have one opening and one closing '$'. Before returning JSON, verify all delimiters are balanced. Write '$b = 6$ or $b = -6$', never 'b = 6$ or $b = -6'.
 Do not wrap plain text words or labels in LaTeX. Return only the schema-defined JSON object.`;
 }
 

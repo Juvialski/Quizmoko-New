@@ -135,6 +135,17 @@ function normalizedTypeToken(value: unknown): string {
     .replace(/\s+/g, ' ');
 }
 
+export function normalizePlainNumericIdentificationAnswer(value: unknown): string | null {
+  const normalized = stripLatex(value).normalize('NFKC').replace(/\s+/g, '').trim();
+  if (!/^[-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+)$/.test(normalized)) return null;
+  let rawNumber = normalized.replace(/,/g, '');
+  if (rawNumber.startsWith('+.')) rawNumber = `0${rawNumber.slice(1)}`;
+  else if (rawNumber.startsWith('-.')) rawNumber = `-0${rawNumber.slice(1)}`;
+  else if (rawNumber.startsWith('.')) rawNumber = `0${rawNumber}`;
+  else if (rawNumber.startsWith('+')) rawNumber = rawNumber.slice(1);
+  return rawNumber;
+}
+
 function resolveQuestionType(question: Record<string, unknown>): {
   type?: CanonicalQuestionType;
   explicit: boolean;
@@ -144,7 +155,11 @@ function resolveQuestionType(question: Record<string, unknown>): {
   if (!explicit) {
     return { type: getQuestionOptions(question).length > 0 ? 'multiple_choice' : 'identification', explicit: false };
   }
-  return { type: TYPE_ALIASES[normalizedTypeToken(raw)], explicit: true };
+  const declaredType = TYPE_ALIASES[normalizedTypeToken(raw)];
+  const numericIdentification = declaredType === 'open_ended'
+    && getQuestionOptions(question).length === 0
+    && normalizePlainNumericIdentificationAnswer(getCorrectAnswer(question)) !== null;
+  return { type: numericIdentification ? 'identification' : declaredType, explicit: true };
 }
 
 export function canonicalQuestionType(question: unknown): CanonicalQuestionType | 'unsupported' {
@@ -358,7 +373,10 @@ function normalizeExpectedAnswer(
   if (type === 'multiple_choice') return mapChoiceToLetter(options, value);
   if (type === 'multiple_choice_multi') return normalizeMultiSelection(options, value);
   if (type === 'true_false') return normalizeTrueFalse(options, value);
-  return normalizeScalarAnswer(value);
+  const scalar = normalizeScalarAnswer(value);
+  if (type !== 'identification' || !scalar.valid || typeof scalar.answer !== 'string') return scalar;
+  const numeric = normalizePlainNumericIdentificationAnswer(scalar.answer);
+  return numeric === null ? scalar : { valid: true, answer: numeric, errors: [] };
 }
 
 function simpleHash(value: string): string {

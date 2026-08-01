@@ -307,7 +307,8 @@ function strictQuestionType(value: unknown): CanonicalWorksheetQuestionType | nu
     .replace(/\s+/g, ' ');
   const mapped = TYPE_ALIASES[raw];
   if (!mapped) return null;
-  return canonicalQuestionType({ ...value, type: mapped }) === mapped ? mapped : null;
+  const canonical = canonicalQuestionType({ ...value, type: mapped });
+  return canonical === 'unsupported' ? null : canonical;
 }
 
 function sourceFromQuestion(value: Record<string, unknown>): WorksheetQuestionSource | null {

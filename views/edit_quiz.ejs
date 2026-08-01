@@ -614,6 +614,30 @@
             }
         }
 
+        function normalizePlainNumericIdentificationAnswer(value) {
+            let normalized = String(value ?? '').trim()
+                .replace(/^\s*\$+|\$+\s*$/g, '')
+                .replace(/\s+/g, '');
+            if (!/^[-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+)$/.test(normalized)) return null;
+            normalized = normalized.replace(/,/g, '');
+            if (normalized.startsWith('+.')) normalized = `0${normalized.slice(1)}`;
+            else if (normalized.startsWith('-.')) normalized = `-0${normalized.slice(1)}`;
+            else if (normalized.startsWith('.')) normalized = `0${normalized}`;
+            else if (normalized.startsWith('+')) normalized = normalized.slice(1);
+            return normalized;
+        }
+
+        function enforceNumericIdentification(question) {
+            if (!question || question.type !== 'open_ended' || (Array.isArray(question.options) && question.options.length > 0)) return false;
+            const numericAnswer = normalizePlainNumericIdentificationAnswer(question.answer);
+            if (numericAnswer === null) return false;
+            question.type = 'identification';
+            question.options = [];
+            question.answer = numericAnswer;
+            question.grading_mode = 'deterministic';
+            return true;
+        }
+
         function renderMath(element) {
             if (window.MathJax && window.MathJax.typesetPromise) {
                 if (element.mathTimeout) clearTimeout(element.mathTimeout);
@@ -1182,6 +1206,7 @@
                 }
                 q.question = String(q.question || q.raw_text || '');
                 q.options = Array.isArray(q.options) ? q.options.map(option => String(option ?? '')) : [];
+                enforceNumericIdentification(q);
                 if (!q.type) {
                     const trueFalseOptions = q.options.map(option => option.replace(/^[A-B][).]\s*/i, '').trim().toLowerCase());
                     q.type = trueFalseOptions.length === 2 && trueFalseOptions.includes('true') && trueFalseOptions.includes('false')
@@ -1213,7 +1238,7 @@
                                 <option value="multiple_choice" ${q.type === 'multiple_choice' ? 'selected' : ''}>Multiple Choice</option>
                                 <option value="multiple_choice_multi" ${q.type === 'multiple_choice_multi' ? 'selected' : ''}>Multiple Choice (Multi-Answers)</option>
                                 <option value="true_false" ${q.type === 'true_false' ? 'selected' : ''}>True/False</option>
-                                <option value="identification" ${q.type === 'identification' ? 'selected' : ''}>Identification (Integer)</option>
+                                <option value="identification" ${q.type === 'identification' ? 'selected' : ''}>Identification (Exact Answer)</option>
                                 <option value="open_ended" ${q.type === 'open_ended' ? 'selected' : ''}>Open-ended</option>
                                 <option value="graphing" ${q.type === 'graphing' ? 'selected' : ''}>Graphing</option>
                             </select>
@@ -1323,7 +1348,7 @@
                 ansLabel.style.justifyContent = 'space-between';
                 ansLabel.style.alignItems = 'center';
 
-                let ansLabelText = q.type === 'identification' ? 'CORRECT ANSWER (EXACT WORD)' : 'CORRECT ANSWER LETTER';
+                let ansLabelText = q.type === 'identification' ? 'CORRECT ANSWER (EXACT VALUE)' : 'CORRECT ANSWER LETTER';
                 if (q.type === 'multiple_choice_multi') ansLabelText = 'CORRECT ANSWER LETTERS (E.G. A, C)';
 
                 ansLabel.innerHTML = `
@@ -1498,6 +1523,19 @@
         async function reprocessQuestionType(qIndex, targetType) {
             const q = quizData.questions[qIndex];
             if (q.type === targetType) return;
+
+            if (targetType === 'identification') {
+                const numericAnswer = normalizePlainNumericIdentificationAnswer(q.answer);
+                if (numericAnswer !== null && (!Array.isArray(q.options) || q.options.length === 0)) {
+                    q.type = 'identification';
+                    q.options = [];
+                    q.answer = numericAnswer;
+                    q.grading_mode = 'deterministic';
+                    renderQuestions();
+                    markQuestionChanged(qIndex);
+                    return;
+                }
+            }
 
             const model = quizData.model_name || 'gemini-3.5-flash-lite';
             const apiKey = await getUsableKey(model, 1);

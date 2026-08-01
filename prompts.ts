@@ -272,7 +272,7 @@ CRITICAL RULES:
 3. {latex_rules}
 4. MULTI-ANSWER RULE: For questions classified as 'multiple_choice_multi', the 'answer' field MUST be a comma-separated list of ALL correct letters (e.g., "A, C" or "A, B, D").
 5. DYNAMIC TYPE CLASSIFICATION (CRITICAL):
-   - 'identification': ONLY if the answer is a single **number** (integer, decimal, e.g. -42, 0.75) OR a single comparison symbol (<, >, or =). (DO NOT use for fractions, algebraic expressions, equations, or formulas; fractions, algebraic expressions, equations, or formulas MUST be classified as 'open_ended').
+   - 'identification': MANDATORY if the final answer is a single number (integer or decimal, e.g. -42, 19, 0.75) OR a single comparison symbol (<, >, or =). Override an input type of 'open_ended' and return 'identification' whenever the solved answer is one integer or decimal. (DO NOT use for fractions, algebraic expressions, equations, or formulas; those MUST be classified as 'open_ended').
    - 'open_ended': If the question requires a descriptive sentence, a multi-part list, a fraction, a mathematical expression, or an equation/formula.
 6. CONCISE ANSWERS (CRITICAL FOR IDENTIFICATION): For 'identification' questions, the 'answer' field MUST be strictly a raw numerical value (integer or decimal) with NO units (e.g., NO 'meters', 'm', 'kg', 'sec', 's', '$', '%', etc.) or alphabetical symbols. Keep only the raw digits and sign, e.g. -42, 0.75, 120. Output ONLY the raw final numerical value with absolutely no explanations, steps, labels, or unit strings.
 7. ACCURACY: Verify the result internally before responding. Never output scratchpad reasoning, hidden chain-of-thought, or thinking tags. Put only a concise, student-safe worked explanation in 'solution'.
@@ -299,7 +299,7 @@ CRITICAL RULES:
 3. NO LATEX: NEVER use '$' or '$$' tags in the 'options', or 'answer' fields, EXCEPT for centered LaTeX array tables wrapped in $$ ... $$.
 4. MULTI-ANSWER RULE: For questions classified as 'multiple_choice_multi', the 'answer' field MUST be a comma-separated list of ALL correct letters (e.g., "A, C" or "A, B, D").
 5. DYNAMIC TYPE CLASSIFICATION (CRITICAL):
-   - 'identification': If the answer is exactly ONE word, short phrase, or number (excluding fractions). You MUST classify single-value answers as 'identification'.
+   - 'identification': If the answer is exactly ONE word, short phrase, integer, or decimal (excluding fractions). You MUST override an input type of 'open_ended' and classify every single integer or decimal answer as 'identification'.
    - 'open_ended': ONLY if the question requires a descriptive response, a sentence, or an essay-style answer.
 6. CONCISE ANSWERS (CRITICAL FOR IDENTIFICATION): For 'identification' questions, DO NOT include explanations, units, or sentences in the 'answer' field. If the answer is numerical, output ONLY the raw number (e.g., -42 instead of -42 m, 15 instead of 15%). Output ONLY the raw final word/number.
 7. ACCURACY: Verify facts internally before responding. Never output scratchpad reasoning, hidden chain-of-thought, or thinking tags. Put only a concise, student-safe worked explanation in 'solution'.

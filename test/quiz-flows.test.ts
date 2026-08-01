@@ -272,6 +272,32 @@ describe('canonical deterministic grading', () => {
     assert.equal(gradeQuestionLocally(id("can't"), 'cant').isCorrect, false);
   });
 
+  test('forces integer and decimal open-ended keys into deterministic identification', () => {
+    for (const [rawAnswer, expectedAnswer] of [['$19$', '19'], ['$-0.75$', '-0.75'], ['.5', '0.5']]) {
+      const normalized = normalizeQuestionForStorage({
+        question: 'Compute the exact value.',
+        type: 'open_ended',
+        options: [],
+        answer: rawAnswer
+      });
+      assert.equal(normalized.valid, true);
+      if (!normalized.valid) continue;
+      assert.equal(normalized.question.type, 'identification');
+      assert.equal(normalized.question.answer, expectedAnswer);
+      assert.equal(normalized.question.grading_mode, 'deterministic');
+      assert.equal(gradeQuestionLocally(normalized.question, expectedAnswer).requiresSemanticGrading, false);
+    }
+
+    const fraction = normalizeQuestionForStorage({
+      question: 'Give the exact fraction.',
+      type: 'open_ended',
+      options: [],
+      answer: '$3/4$'
+    });
+    assert.equal(fraction.valid, true);
+    if (fraction.valid) assert.equal(fraction.question.type, 'open_ended');
+  });
+
   test('handles blank answers, aliases, canonical storage, points, and shared rounding', () => {
     const blank = gradeQuestionLocally(question({ points: 2.5 }), 'No Answer');
     assert.equal(blank.gradeStatus, 'graded');

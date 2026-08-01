@@ -39,6 +39,9 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Added `isAiStudioSandbox()` helper in `src/services/firebaseAdmin.ts` to detect AI Studio preview Cloud Run instances while preserving standard operation on Render (`process.env.RENDER`).
   - Completely blocked all Firebase Admin credentials, Firestore initialization, Firestore reads, and Firestore writes in AI Studio sandbox.
   - Disabled local disk JSON file persistence loading and saving in sandbox mode to operate strictly in-memory, ensuring zero external DB read/writes occur in sandbox while deployed app on Render operates normally.
+* **[2026-07-31]** Fixed AI grading and feedback over-triggering (unsolicited AI explanations) during quiz taking:
+  - Restricted AI semantic grading (`requiresSemanticGrading`) strictly to `open_ended` and `graphing` questions.
+  - Disabled fallback AI grading for failed identification, multiple choice, multi-select, and true/false questions to prevent unsolicited explanations and conserve API usage. All non-open-ended/non-graphing questions are now strictly graded locally without calling Gemini.
 
 
 

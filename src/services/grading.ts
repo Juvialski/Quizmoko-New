@@ -251,7 +251,7 @@ export function gradeQuestionLocally(question: any, studentAnswer: any, hasSnaps
         return { isCorrect: true, scoreFraction: 1, questionType, correctAnswer, requiresSemanticGrading: false };
       }
     }
-    return { isCorrect: false, scoreFraction: 0, questionType, correctAnswer, requiresSemanticGrading: true };
+    return { isCorrect: false, scoreFraction: 0, questionType, correctAnswer, requiresSemanticGrading: false };
   }
 
   // For open_ended, graphing, essay, etc.:
@@ -269,11 +269,13 @@ export function gradeQuestionLocally(question: any, studentAnswer: any, hasSnaps
     }
   }
 
+  const isAiType = questionType === 'open_ended' || questionType === 'graphing';
+
   return {
     isCorrect: false,
     scoreFraction: 0,
     questionType,
     correctAnswer,
-    requiresSemanticGrading: true
+    requiresSemanticGrading: isAiType
   };
 }

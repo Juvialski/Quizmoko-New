@@ -1595,6 +1595,58 @@ describe('worksheet bounded batch solving', () => {
     assert.match(result.verification.reason || '', /primary candidate/i);
   });
 
+  test('retries only review-required questions as focused single-question batches', async () => {
+    const questions = [
+      worksheetQuestion('1', { answer: '' }),
+      worksheetQuestion('2', { answer: '' })
+    ];
+    let adjudications = 0;
+    let calls = 0;
+    const ai = {
+      models: {
+        async generateContent(request: any) {
+          calls += 1;
+          const prompt = String(request?.contents?.[0] || '');
+          if (prompt.includes('senior educational adjudicator')) {
+            adjudications += 1;
+            return adjudications === 1
+              ? { text: JSON.stringify({ verified: false, reason: 'Retry this item independently.' }) }
+              : {
+                  text: JSON.stringify({
+                    verified: true,
+                    accepted_model: 'gemini-3.5-flash-lite',
+                    reason: 'Focused retry verified the primary answer.'
+                  })
+                };
+          }
+          const output = solvedBatch(request);
+          output.forEach((item: any) => {
+            if (item.source_id === '2') {
+              item.answer = request.model === 'gemini-3.5-flash-lite' ? 'A' : 'B';
+            }
+          });
+          return { text: JSON.stringify(output) };
+        }
+      }
+    } as any;
+
+    const results = await solveWorksheetQuestionsInBatches({
+      ai,
+      questions,
+      batchSize: 2,
+      subject: 'Mathematics',
+      topic: 'Focused retry test',
+      requestedModel: 'gemini-3.5-flash-lite',
+      deadlineAt: Date.now() + 2_000,
+      retryReviewRequired: true
+    });
+
+    assert.equal(calls, 6);
+    assert.equal(adjudications, 2);
+    assert.ok(results.every(result => result.publishable));
+    assert.deepEqual(results.map(result => result.question.answer), ['B', 'A']);
+  });
+
   test('retries malformed solver output and never accepts one-model coverage', async () => {
     const question = worksheetQuestion('invalid-model-1', { answer: '' });
     let malformedCalls = 0;

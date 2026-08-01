@@ -560,11 +560,13 @@ function reconcileExtractedPageResults(pages: ExtractedWorksheetPage[]): {
   unresolvedFragments: unknown[];
 } {
   const reconciliation = reconcileWorksheetPages(pages);
+  const questions = reconciliation.questions.map(question => ({
+    ...question,
+    raw_text: String(question.raw_text || question.question || '').trim()
+  }));
+  sortQuestionsByIndex(questions);
   return {
-    questions: reconciliation.questions.map(question => ({
-      ...question,
-      raw_text: String(question.raw_text || question.question || '').trim()
-    })),
+    questions,
     diagnostics: reconciliation.diagnostics,
     unresolvedFragments: reconciliation.unresolved_fragments
   };
@@ -572,6 +574,16 @@ function reconcileExtractedPageResults(pages: ExtractedWorksheetPage[]): {
 
 function worksheetSourceSnapshot(questions: readonly unknown[]): Record<string, unknown>[] {
   return questions.map(question => stripWorksheetSolverState(question));
+}
+
+function worksheetBatchSourceLabel(
+  questions: readonly unknown[],
+  batchStart: number,
+  batchEnd: number
+): string {
+  const first = getWorksheetSourceId(questions[batchStart]) || String(batchStart + 1);
+  const last = getWorksheetSourceId(questions[Math.max(batchStart, batchEnd - 1)]) || String(batchEnd);
+  return first === last ? `source question ${first}` : `source questions ${first}-${last}`;
 }
 
 router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (req: AuthRequest, res) => {
@@ -726,6 +738,7 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
       error: `Question ${invalidQuestionIndex + 1} has no readable question text. Re-extract the worksheet before solving.`
     });
   }
+  sortQuestionsByIndex(questions);
   const ai = getGeminiClient(api_key);
   if (!ai) {
     return res.status(400).json({
@@ -777,9 +790,10 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         topic: String(topic || 'Worksheet Quiz'),
         requestedModel: String(model_name || 'gemini-3.5-flash-lite'),
         deadlineAt: Date.now() + WORKSHEET_JOB_TIMEOUT_MS,
+        retryReviewRequired: true,
         onBatchStart: progress => {
           setWorksheetProgress(session_id, {
-            message: `🤖 Batch-solving Q${progress.batch_start + 1}-${progress.batch_end}/${totalQuestions} with two independent models...`,
+            message: `🤖 Batch-solving ${worksheetBatchSourceLabel(questions, progress.batch_start, progress.batch_end)} (${progress.batch_end}/${totalQuestions}) with two independent models...`,
             percentage: Math.round(15 + (progress.completed / totalQuestions) * 75),
             status: 'processing'
           });
@@ -800,7 +814,11 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
             result.diagnostics
           );
         }
-        finalQuestions.push(result.question);
+        finalQuestions.push({
+          ...result.question,
+          source_index: index,
+          source_id: getWorksheetSourceId(questions[index])
+        });
       }
 
       const requireSolution = require_solution === true || require_solution === 'true';
@@ -1437,6 +1455,7 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
       );
     }
     let sourceQuestions = questions.map((question: any) => ({ ...question }));
+    sortQuestionsByIndex(sourceQuestions);
     const hasGoldenReference = golden_reference
       && typeof golden_reference === 'object'
       && (Array.isArray(golden_reference) || Object.keys(golden_reference).length > 0);
@@ -1492,9 +1511,10 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
           topic: String(topic || 'Matched Quiz'),
           requestedModel: String(model_name || 'gemini-3.5-flash-lite'),
           deadlineAt: Date.now() + WORKSHEET_JOB_TIMEOUT_MS,
+          retryReviewRequired: true,
           onBatchStart: progress => {
             setWorksheetProgress(session_id, {
-              message: `🤖 Batch-solving Q${progress.batch_start + 1}-${progress.batch_end}/${totalQs} with two independent models...`,
+              message: `🤖 Batch-solving ${worksheetBatchSourceLabel(sourceQuestions, progress.batch_start, progress.batch_end)} (${progress.batch_end}/${totalQs}) with two independent models...`,
               percentage: Math.round(20 + (progress.completed / totalQs) * 75),
               status: 'processing'
             });
@@ -1515,7 +1535,11 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
               result.diagnostics
             );
           }
-          finalQuestions.push(result.question);
+          finalQuestions.push({
+            ...result.question,
+            source_index: index,
+            source_id: getWorksheetSourceId(sourceQuestions[index])
+          });
         }
     } else {
       const unansweredIndex = finalQuestions.findIndex((question: any) => !String(question?.answer ?? '').trim());

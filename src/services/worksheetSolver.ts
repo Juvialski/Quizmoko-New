@@ -77,6 +77,7 @@ export interface SolveWorksheetBatchesInput {
   requestedModel: string;
   deadlineAt?: number;
   concurrency?: number;
+  retryReviewRequired?: boolean;
   onBatchStart?: (progress: WorksheetBatchProgress) => void;
   onBatchComplete?: (progress: WorksheetBatchProgress, results: readonly WorksheetConsensusResult[]) => void;
 }
@@ -486,5 +487,33 @@ export async function solveWorksheetQuestionsInBatches(
   };
 
   await Promise.all(Array.from({ length: workerCount }, worker));
+
+  if (input.retryReviewRequired) {
+    const retryIndices = outputs
+      .map((result, index) => result && !result.publishable ? index : -1)
+      .filter(index => index >= 0);
+    let nextRetry = 0;
+    const retryWorker = async () => {
+      while (true) {
+        const retryPosition = nextRetry++;
+        if (retryPosition >= retryIndices.length || Date.now() >= deadlineAt) return;
+        const index = retryIndices[retryPosition];
+        const [retryResult] = await solveWorksheetBatchWithConsensus({
+          ai: input.ai,
+          questions: [input.questions[index]],
+          subject: input.subject,
+          topic: input.topic,
+          requestedModel: input.requestedModel,
+          deadlineAt
+        });
+        if (retryResult?.publishable) outputs[index] = retryResult;
+      }
+    };
+    await Promise.all(Array.from(
+      { length: Math.min(2, retryIndices.length) },
+      retryWorker
+    ));
+  }
+
   return outputs;
 }

@@ -508,6 +508,21 @@
         let unresolvedFragments = [];
         let generationDiagnostics = [];
 
+        function getSourceQuestionId(question, fallback = '') {
+            const value = question?.source?.original_index
+                ?? question?.original_index
+                ?? question?.source_id
+                ?? fallback;
+            return String(value ?? '').trim();
+        }
+
+        function sortExtractedQuestions() {
+            const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+            const sortableId = question => getSourceQuestionId(question)
+                .replace(/^(?:(?:question|q)\s*[:#.-]?\s*|#\s*)/i, '');
+            extractedQuestions.sort((a, b) => collator.compare(sortableId(a), sortableId(b)));
+        }
+
         function normalizeWorksheetDiagnostics(value) {
             if (!Array.isArray(value)) return [];
             return value.slice(0, 200).filter(item => item && typeof item === 'object').map(item => ({
@@ -826,6 +841,7 @@
         }
 
         function renderPreview() {
+            sortExtractedQuestions();
             const list = document.getElementById('questions-list');
             list.innerHTML = '';
             if (extractedQuestions.length > 0) {
@@ -855,9 +871,7 @@
                 }
 
                 const targetText = q.question || q.raw_text || '';
-                const sourceQuestionId = String(
-                    q?.source?.original_index ?? q?.original_index ?? q?.source_id ?? (i + 1)
-                ).trim() || String(i + 1);
+                const sourceQuestionId = getSourceQuestionId(q, i + 1) || String(i + 1);
                 const imgMatch = targetText.match(/<div class="resizable-image-wrapper">.*?src="([^"]+)".*?<\/div>\s*<\/div>/is);
                 const hasScreenshot = !!imgMatch;
 

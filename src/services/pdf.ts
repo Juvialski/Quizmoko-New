@@ -10,7 +10,7 @@ export function sortQuestionsByIndex(questions: any[]) {
   
   const parseIndex = (idxStr: any): { num: number; suffix: string } => {
     const str = String(idxStr || '').trim();
-    const match = str.match(/^(\d+)(.*)$/);
+    const match = str.match(/^(?:(?:question|q)\s*[:#.-]?\s*|#\s*)?(\d+)(.*)$/i);
     if (match) {
       return {
         num: parseInt(match[1], 10),
@@ -21,8 +21,12 @@ export function sortQuestionsByIndex(questions: any[]) {
   };
 
   questions.sort((a: any, b: any) => {
-    const parseA = parseIndex(a.original_index);
-    const parseB = parseIndex(b.original_index);
+    const sourceId = (value: any) => value?.source?.original_index
+      ?? value?.original_index
+      ?? value?.source_id
+      ?? value?.id;
+    const parseA = parseIndex(sourceId(a));
+    const parseB = parseIndex(sourceId(b));
     if (parseA.num !== parseB.num) {
       return parseA.num - parseB.num;
     }

@@ -1190,9 +1190,13 @@
                 }
                 const block = document.createElement('div');
                 block.className = 'question-block';
-                const numericSourceIndex = Number(q.source_index);
-                const sourceQuestionLabel = Number.isInteger(numericSourceIndex) && numericSourceIndex >= 0
-                    ? `<span style="font-size: 11px; color: var(--primary); font-weight: 700;">(ORIGINAL: SOURCE Q${numericSourceIndex + 1})</span>`
+                const rawSourceQuestionId = q?.source?.original_index ?? q?.original_index ?? q?.source_id;
+                const sourceQuestionId = rawSourceQuestionId === undefined || rawSourceQuestionId === null
+                    ? ''
+                    : String(rawSourceQuestionId).trim();
+                const displayQuestionId = sourceQuestionId || String(qIndex + 1);
+                const positionLabel = sourceQuestionId && sourceQuestionId !== String(qIndex + 1)
+                    ? '<span data-quiz-position style="font-size: 11px; color: var(--primary); font-weight: 700;"></span>'
                     : '';
                  
                 const header = document.createElement('div');
@@ -1200,8 +1204,8 @@
                 header.innerHTML = `
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <div style="display: flex; align-items: baseline; gap: 12px;">
-                            <strong style="font-size: 20px; color: var(--on-dark); font-weight: 700; text-transform: uppercase;">QUESTION ${qIndex + 1}</strong>
-                            ${sourceQuestionLabel}
+                            <strong data-question-heading style="font-size: 20px; color: var(--on-dark); font-weight: 700; text-transform: uppercase;"></strong>
+                            ${positionLabel}
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
                             <label style="margin: 0; font-size: 11px; color: var(--on-dark); font-weight: 700;">TYPE:</label>
@@ -1244,6 +1248,9 @@
                         ` : ''}
                     </div>
                 `;
+                header.querySelector('[data-question-heading]').textContent = `QUESTION ${displayQuestionId}`;
+                const quizPosition = header.querySelector('[data-quiz-position]');
+                if (quizPosition) quizPosition.textContent = `(QUIZ POSITION ${qIndex + 1})`;
                 leftCol.appendChild(qTextLabel);
                 
                 const qTextInput = document.createElement('textarea'); 

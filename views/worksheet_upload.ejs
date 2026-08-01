@@ -757,6 +757,9 @@
             extractedQuestions.forEach((q, i) => {
                 const item = document.createElement('div');
                 item.className = 'question-item';
+                const sourceQuestionId = String(
+                    q?.source?.original_index ?? q?.original_index ?? q?.source_id ?? (i + 1)
+                ).trim() || String(i + 1);
 
                 // --- NEW: TYPE SELECTION DROPDOWN ---
                 const typeOptions = [
@@ -782,7 +785,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <div style="display: flex; align-items: center;">
                             ${typeSelectorHtml}
-                            <span style="font-weight: 800; color: var(--on-dark); font-size: 13px;">Question ${i + 1}</span>
+                            <span data-source-question-label style="font-weight: 800; color: var(--on-dark); font-size: 13px;"></span>
                         </div>
                         <div style="display: flex; gap: 8px;">
                             ${hasScreenshot ? `<button onclick="openCropRefiner(${i})" class="btn-secondary" style="font-size: 10px; padding: 4px 8px; border-color: var(--warning); color: var(--warning);"><i data-lucide="scissors" class="icon-sm"></i>️ REFINE CROP</button>` : ''}
@@ -793,6 +796,7 @@
 
                     ${hasScreenshot ? `<div style="margin-top: 12px; padding: 12px; background: var(--canvas); border-radius: var(--radius-sm); border: 1px solid var(--hairline); text-align: center;">${imgMatch[0]}</div>` : ''}
                 `;
+                item.querySelector('[data-source-question-label]').textContent = `Question ${sourceQuestionId}`;
                 list.appendChild(item);
             });
 

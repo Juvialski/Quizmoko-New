@@ -855,6 +855,9 @@
                 }
 
                 const targetText = q.question || q.raw_text || '';
+                const sourceQuestionId = String(
+                    q?.source?.original_index ?? q?.original_index ?? q?.source_id ?? (i + 1)
+                ).trim() || String(i + 1);
                 const imgMatch = targetText.match(/<div class="resizable-image-wrapper">.*?src="([^"]+)".*?<\/div>\s*<\/div>/is);
                 const hasScreenshot = !!imgMatch;
 
@@ -862,7 +865,7 @@
                 item.className = 'question-item';
                 item.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <div style="font-weight: 800; color: var(--on-dark); font-size: 13px;">Question ${i + 1}</div>
+                        <div data-source-question-label style="font-weight: 800; color: var(--on-dark); font-size: 13px;"></div>
                         <div style="display: flex; gap: 8px;">
                             ${hasScreenshot ? `<button onclick="openCropRefiner(${i})" class="btn-secondary" style="font-size: 10px; padding: 4px 8px; border-color: var(--warning); color: var(--warning);"><i data-lucide="scissors" class="icon-sm"></i>️ REFINE CROP</button>` : ''}
                         </div>
@@ -877,6 +880,7 @@
                         <div contenteditable='true' onblur='updateAnswerText(${i}, this.innerText)'>${q.answer}</div>
                     </div>
                 `;
+                item.querySelector('[data-source-question-label]').textContent = `Question ${sourceQuestionId}`;
                 list.appendChild(item);
             });
 

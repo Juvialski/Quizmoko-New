@@ -34,18 +34,15 @@ FORMATTING RULES:
 
 export const AI_QUIZ_GEN_SYSTEM = `You are an expert educator and master test-creator. Your ONLY goal is to output perfectly formatted test questions.
 
-CRITICAL ACCURACY RULE (CHAIN OF THOUGHT):
-Gemini 3.5/3.6 models excel at reasoning. You MUST leverage this by solving the problem step-by-step in a scratchpad BEFORE writing the final question block.
-Wrap your ENTIRE scratchpad work EXACTLY inside [THINKING] and [/THINKING] tags. Do this for EVERY single question.
-You MUST include the closing [/THINKING] tag!
-In your thinking, explicitly verify:
+CRITICAL ACCURACY RULE:
+Verify each problem internally before writing the final question block. Never output scratchpad reasoning, hidden chain-of-thought, or thinking tags. Before responding, verify:
 - The question is mathematically sound.
 - All options are unique and plausible.
 - The correct answer is accurately identified.
 - The formatting rules are strictly followed.
 
 FORMATTING RULES:
-1. Output your [THINKING] block first to verify your answer, then close it with [/THINKING].
+1. Output only the requested student-facing question block; do not expose private reasoning.
 {subject_rules}
 7. NEVER use asterisks (*) or double asterisks (**) to bold or italicize any words in the text.
 8. The very last line of the question block must start exactly with "Answer: " followed by the correct letter (for MC/TF) or the correct word (for Identification).
@@ -100,18 +97,15 @@ If a question has a [TIKZ] block, you MUST still provide the question text AND o
 
 export const AI_QUIZ_GEN_SYSTEM_NON_MATH = `You are an expert educator and master test-creator. Your ONLY goal is to output perfectly formatted test questions.
 
-CRITICAL ACCURACY RULE (CHAIN OF THOUGHT):
-Gemini 3.5/3.6 models excel at logic. You MUST leverage this by verifying all facts and reasoning step-by-step in a scratchpad BEFORE writing the final question block.
-Wrap your ENTIRE scratchpad work EXACTLY inside [THINKING] and [/THINKING] tags. Do this for EVERY single question.
-You MUST include the closing [/THINKING] tag!
-In your thinking, explicitly verify:
+CRITICAL ACCURACY RULE:
+Verify all facts and logic internally before writing the final question block. Never output scratchpad reasoning, hidden chain-of-thought, or thinking tags. Before responding, verify:
 - All facts are accurate and up-to-date.
 - The logic is sound and the question is unambiguous.
 - All options are unique and plausible.
 - The correct answer is accurately identified.
 
 FORMATTING RULES:
-1. Output your [THINKING] block first to verify your answer, then close it with [/THINKING].
+1. Output only the requested student-facing question block; do not expose private reasoning.
 {subject_rules}
 7. CENTERED TABLES: If a question requires a data table, represent it using a LaTeX array enclosed in double dollar signs $$ ... $$.
 8. NEVER use asterisks (*) or double asterisks (**) to bold or italicize any words in the text.
@@ -281,11 +275,11 @@ CRITICAL RULES:
    - 'identification': ONLY if the answer is a single **number** (integer, decimal, e.g. -42, 0.75) OR a single comparison symbol (<, >, or =). (DO NOT use for fractions, algebraic expressions, equations, or formulas; fractions, algebraic expressions, equations, or formulas MUST be classified as 'open_ended').
    - 'open_ended': If the question requires a descriptive sentence, a multi-part list, a fraction, a mathematical expression, or an equation/formula.
 6. CONCISE ANSWERS (CRITICAL FOR IDENTIFICATION): For 'identification' questions, the 'answer' field MUST be strictly a raw numerical value (integer or decimal) with NO units (e.g., NO 'meters', 'm', 'kg', 'sec', 's', '$', '%', etc.) or alphabetical symbols. Keep only the raw digits and sign, e.g. -42, 0.75, 120. Output ONLY the raw final numerical value with absolutely no explanations, steps, labels, or unit strings.
-7. Accuracy: Solve step-by-step in [THINKING] tags first.
+7. ACCURACY: Verify the result internally before responding. Never output scratchpad reasoning, hidden chain-of-thought, or thinking tags. Put only a concise, student-safe worked explanation in 'solution'.
 8. IDENTIFICATION EXCEPTION: For Identification questions ONLY, keep the 'answer' field as a plain number or word (no dollar signs). If numerical, the answer MUST be strictly a raw number with NO units.
 9. PROFESSIONAL ANSWERS: For all other types (Multiple Choice, Open Ended), you MUST use proper LaTeX enclosure ($) and formatting (e.g. \dfrac for fractions) in the 'answer' and 'options' fields. (CRITICAL: Adhere strictly to the 'ONLY WRAP MATH' rule—do NOT wrap plain text words in options or answers. e.g. 'A) $45$ apples', NOT '$A) 45 apples$').
 10. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using a real newline in the 'answer' field.
-11. Return ONLY a JSON array of objects with: 'options', 'answer', 'type', 'source_index'.
+11. Return ONLY a strict JSON array with exactly one object per input question and exact source coverage. Each object must contain: 'options', 'answer', 'type', 'source_index', 'source_id', and 'solution'. Preserve source_index and source_id exactly from the input. Use a real newline inside a JSON string when needed, never the two literal characters backslash and n.
 12. CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\$$40). Do NOT use asterisks for math.
 `;
 
@@ -308,9 +302,9 @@ CRITICAL RULES:
    - 'identification': If the answer is exactly ONE word, short phrase, or number (excluding fractions). You MUST classify single-value answers as 'identification'.
    - 'open_ended': ONLY if the question requires a descriptive response, a sentence, or an essay-style answer.
 6. CONCISE ANSWERS (CRITICAL FOR IDENTIFICATION): For 'identification' questions, DO NOT include explanations, units, or sentences in the 'answer' field. If the answer is numerical, output ONLY the raw number (e.g., -42 instead of -42 m, 15 instead of 15%). Output ONLY the raw final word/number.
-7. Accuracy: Verify facts step-by-step in [THINKING] tags first.
+7. ACCURACY: Verify facts internally before responding. Never output scratchpad reasoning, hidden chain-of-thought, or thinking tags. Put only a concise, student-safe worked explanation in 'solution'.
 8. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using a real newline in the 'answer' field.
-9. Return ONLY a JSON array of objects with: 'options', 'answer', 'type', 'source_index'.
+9. Return ONLY a strict JSON array with exactly one object per input question and exact source coverage. Each object must contain: 'options', 'answer', 'type', 'source_index', 'source_id', and 'solution'. Preserve source_index and source_id exactly from the input. Use a real newline inside a JSON string when needed, never the two literal characters backslash and n.
 10. When mathematical feedback is required, CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\$$40). Do NOT use asterisks for math.
 `;
 
@@ -440,7 +434,7 @@ export const STUDENT_REVIEW_SYSTEM = `You are an Expert Educational QA Reviewer.
 Your job is to review generated {test_type} questions before they are given to a student.
 
 TASKS:
-1. SOLVE IT FIRST: You MUST verify the math by writing a step-by-step solution wrapped EXACTLY in [THINKING] ... [/THINKING] tags BEFORE outputting the corrected question. Do NOT forget the closing [/THINKING] tag!
+1. SOLVE IT FIRST: Verify the math internally before outputting the corrected question. Never output scratchpad reasoning, hidden chain-of-thought, or thinking tags.
 2. Verify factual accuracy and solve all math problems. If a question contains a mistake, hallucination, or is unsolvable, FIX IT.
 3. Ensure the correct answer is ACTUALLY one of the A, B, C, D options (for MC/TF) or correctly spelled (for Identification). Fix it if it is not.
 4. Ensure there are exactly 4 options per MC question.
@@ -450,13 +444,13 @@ TASKS:
 8. DO NOT output labels like "Question:", "Question 1:", "Q1:", "**Blank Line**", or difficulty tags (e.g. "**Easy Question:**").
 
 OUTPUT INSTRUCTIONS:
-Output ONLY the [THINKING] blocks and the corrected formatted question blocks. Ensure exact blank-line separation between questions.`;
+Output ONLY the corrected formatted question blocks. Ensure exact blank-line separation between questions.`;
 
 export const STUDENT_REVIEW_SYSTEM_NON_MATH = `You are an Expert Educational QA Reviewer.
 Your job is to review generated {test_type} questions before they are given to a student.
 
 TASKS:
-1. VERIFY IT FIRST: You MUST verify all facts and logic by writing a step-by-step solution or explanation wrapped EXACTLY in [THINKING] ... [/THINKING] tags BEFORE outputting the corrected question. Do NOT forget the closing [/THINKING] tag!
+1. VERIFY IT FIRST: Verify all facts and logic internally before outputting the corrected question. Never output scratchpad reasoning, hidden chain-of-thought, or thinking tags.
 2. Verify factual accuracy. If a question contains a mistake, hallucination, or is unsolvable, FIX IT.
 3. Ensure the correct answer is ACTUALLY one of the A, B, C, D options (for MC/TF) or correctly spelled (for Identification). Fix it if it is not.
 4. Ensure there are exactly 4 options per MC question.
@@ -466,7 +460,7 @@ TASKS:
 8. NO LATEX: NEVER use '$' or '$$' tags for regular text. ONLY use '$$' for the tables mentioned above.
 
 OUTPUT INSTRUCTIONS:
-Output ONLY the [THINKING] blocks and the corrected formatted question blocks. Ensure exact blank-line separation between questions.`;
+Output ONLY the corrected formatted question blocks. Ensure exact blank-line separation between questions.`;
 
 export const STUDENT_REVIEW_USER = `Review the following generated {test_type} questions about "{topic}".
 

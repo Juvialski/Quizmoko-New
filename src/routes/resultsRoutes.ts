@@ -1,8 +1,7 @@
 import { Router } from 'express';
-import { Type } from '@google/genai';
 import { optionalAuth, tokenRequired } from '../middleware/auth.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
-import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
+import { getQuizCreatorGeminiClients } from '../services/quizCreatorAi.ts';
 import {
   quizzes,
   results,
@@ -14,8 +13,20 @@ import {
 import {
   canonicalQuestionType,
   getCorrectAnswer,
-  gradeQuestionLocally
+  gradeQuestionLocally,
+  normalizeGradeScore,
+  normalizeQuestion,
+  scoreQuizDetails
 } from '../services/grading.ts';
+import { gradeSemanticQuestion } from '../services/semanticGrading.ts';
+import {
+  createAnswerDigest,
+  createGradeProof,
+  createQuestionDigest,
+  createSnapshotDigest,
+  sanitizeSnapshotsForDigest
+} from '../services/gradeProof.ts';
+import { withAttemptLock } from '../services/resultSession.ts';
 import {
   createResultAccessToken,
   resultAccessCookieName,
@@ -134,7 +145,9 @@ function withResultAliases(rawResult: any, fallbackId = ''): any {
   const createdAt = rawResult?.created_at ?? rawResult?.timestamp ?? new Date().toISOString();
   const accuracy = rawResult?.accuracy_pct !== undefined && rawResult?.accuracy_pct !== null
     ? finiteNumber(rawResult.accuracy_pct, 0)
-    : (total > 0 ? (score / total) * 100 : 0);
+    : (total > 0
+        ? Math.round((((score / total) * 100) + Number.EPSILON) * 10_000) / 10_000
+        : 0);
 
   return {
     ...safeResult,
@@ -153,17 +166,38 @@ function withResultAliases(rawResult: any, fallbackId = ''): any {
 
 function recalculateResult(rawResult: any): any {
   const details = resultDetails(rawResult);
-  const score = details.reduce((sum, item) => (
-    sum + (item ? finiteNumber(item.score_fraction, item.is_correct ? 1 : 0) : 0)
-  ), 0);
-  const total = resultTotal(rawResult, details);
+  const quiz = quizzes.get(rawResult?.quiz_id);
+  // Finalized attempts are historical records: formatting or metadata repairs
+  // must not silently rescore them against a later edit of the quiz.  A teacher
+  // recheck updates the selected detail explicitly before this calculation.
+  const summary = rawResult?.is_in_progress === true && quiz
+    ? scoreQuizDetails(quiz.questions, details)
+    : null;
+  const historical = details.reduce((acc, item) => {
+    if (!item) return acc;
+    const points = Math.max(0, finiteNumber(item.points, 1));
+    acc.max += points;
+    if (!item.grade_status || item.grade_status === 'graded') {
+      const fraction = normalizeGradeScore(item.score_fraction ?? (item.is_correct ? 1 : 0)) ?? 0;
+      acc.earned += Math.round((points * fraction + Number.EPSILON) * 10_000) / 10_000;
+    }
+    return acc;
+  }, { earned: 0, max: 0 });
+  const score = summary?.earned_points
+    ?? Math.round((historical.earned + Number.EPSILON) * 10_000) / 10_000;
+  const total = summary?.max_points
+    ?? Math.round((historical.max + Number.EPSILON) * 10_000) / 10_000;
   rawResult.total_score = score;
   rawResult.max_score = total;
   rawResult.graded_details = details;
   rawResult.score = score;
   rawResult.total = total;
   rawResult.details = details;
-  rawResult.accuracy_pct = total > 0 ? (score / total) * 100 : 0;
+  rawResult.accuracy_pct = summary?.accuracy_pct ?? (
+    total > 0
+      ? Math.round((((score / total) * 100) + Number.EPSILON) * 10_000) / 10_000
+      : 0
+  );
   return rawResult;
 }
 
@@ -195,207 +229,233 @@ router.post('/api/results/:result_id/edit_answer', tokenRequired, async (req: Au
     return res.status(400).json({ success: false, error: 'Invalid question index' });
   }
 
-  const detail = details[questionIndex];
-  if (Object.prototype.hasOwnProperty.call(req.body || {}, 'new_correct_answer')) {
-    detail.correct_answer = req.body.new_correct_answer;
-  } else if (Object.prototype.hasOwnProperty.call(req.body || {}, 'new_answer')) {
-    // Preserve the legacy contract where new_answer meant the submitted answer.
-    detail.user_answer = req.body.new_answer;
-  } else {
-    return res.status(400).json({ success: false, error: 'Missing new answer value' });
-  }
-  if (req.body?.is_correct !== undefined) detail.is_correct = Boolean(req.body.is_correct);
-
-  recalculateResult(result);
-  results.set(req.params.result_id, result);
-  savePersistentData();
-  await syncDocToFirestore('results', req.params.result_id, result);
-  return res.json({ success: true, result: withResultAliases(result, req.params.result_id) });
+  // Legacy clients used this route to write a new key/correctness flag directly
+  // into a result.  Keep the route discoverable, but never accept grade-bearing
+  // fields from a browser.  Teachers must correct the authoritative quiz and use
+  // the server-side recheck workflow.
+  return res.status(409).json({
+    success: false,
+    error: 'Direct result answer-key and correctness edits are disabled. Correct the authoritative quiz for future attempts; a historical regrade requires the explicit version-change acknowledgement in Re-check.'
+  });
 });
 
-router.post('/api/results/:result_id/recheck', optionalAuth, async (req: AuthRequest, res) => {
-  const result = results.get(req.params.result_id) as any;
-  if (!result) {
-    return res.status(404).json({ success: false, error: 'Result not found' });
-  }
-  if (!hasResultAccess(req, result, req.params.result_id)) {
+router.post('/api/results/:result_id/recheck', tokenRequired, async (req: AuthRequest, res) => {
+  const original = results.get(req.params.result_id) as any;
+  if (!original) return res.status(404).json({ success: false, error: 'Result not found' });
+  if (!canManageResult(req.user, original)) {
     return res.status(403).json({ success: false, error: 'You do not have access to this result' });
   }
 
   const questionIndex = Number(req.body?.q_index);
-  const details = resultDetails(result);
-  const detail = details[questionIndex];
-  if (!Number.isInteger(questionIndex) || questionIndex < 0 || !detail) {
+  if (!Number.isInteger(questionIndex) || questionIndex < 0) {
     return res.status(400).json({ success: false, error: 'Invalid question index' });
   }
 
-  const quizQuestion: any = quizzes.get(result.quiz_id)?.questions?.[questionIndex] || {};
-  const originalAnswer = getCorrectAnswer(quizQuestion);
-  const detailAnswer = detail.correct_answer;
-  const answerKey = (detailAnswer && String(detailAnswer).trim() !== '' && detailAnswer !== 'Grading Error')
-    ? detailAnswer
-    : (originalAnswer && String(originalAnswer).trim() !== '' && originalAnswer !== 'Grading Error' ? originalAnswer : '');
+  const attemptSessionId = String(original.session_id || original.id || req.params.result_id);
+  return withAttemptLock(original.quiz_id, attemptSessionId, async () => {
+    const latest = results.get(req.params.result_id) as any;
+    if (!latest || !canManageResult(req.user, latest)) {
+      return res.status(404).json({ success: false, error: 'Result not found' });
+    }
+    const working = structuredClone(latest);
+    const details = resultDetails(working);
+    const detail = details[questionIndex];
+    if (!detail) return res.status(400).json({ success: false, error: 'Invalid question index' });
 
-  const gradingQuestion = {
-    ...quizQuestion,
-    type: detail.type || quizQuestion.type,
-    answer: answerKey
-  };
-  const grade = gradeQuestionLocally(gradingQuestion, detail.user_answer);
+    const quiz = quizzes.get(working.quiz_id);
+    const quizQuestion = quiz?.questions?.[questionIndex];
+    const normalized = normalizeQuestion(quizQuestion);
+    if (!quiz || !quizQuestion || !normalized.valid) {
+      return res.status(422).json({
+        success: false,
+        grade_status: 'invalid_response',
+        error: 'The authoritative quiz question is missing or invalid and cannot be regraded.',
+        validation_errors: normalized.valid ? [] : normalized.errors
+      });
+    }
 
-  const customApiKey = typeof req.body?.api_key === 'string' ? req.body.api_key.trim() : '';
-  const clientsToTry: any[] = [];
-  if (customApiKey) {
+    const questionDigest = createQuestionDigest(normalized.question);
+    const previousQuestionDigest = typeof detail.question_digest === 'string'
+      ? detail.question_digest
+      : '';
+    const questionVersionNeedsAcknowledgement = (
+      !previousQuestionDigest || previousQuestionDigest !== questionDigest
+    );
+    if (
+      questionVersionNeedsAcknowledgement
+      && req.body?.acknowledge_question_change !== true
+    ) {
+      return res.status(409).json({
+        success: false,
+        review_required: true,
+        grade_status: 'invalid_response',
+        error: 'The historical question version is missing or differs from the current quiz. Teacher acknowledgement is required before changing the finalized grade.'
+      });
+    }
+
+    const rawSnapshots = working.solution_snapshots?.[questionIndex]
+      ?? working.solution_snapshots?.[String(questionIndex)]
+      ?? [];
+    if (!Array.isArray(rawSnapshots)) {
+      return res.status(422).json({
+        success: false,
+        grade_status: 'invalid_response',
+        error: 'Stored solution snapshots are malformed and require teacher review.'
+      });
+    }
+    const solutionSnapshots = sanitizeSnapshotsForDigest(rawSnapshots);
+    if (solutionSnapshots.length !== rawSnapshots.length) {
+      return res.status(422).json({
+        success: false,
+        grade_status: 'invalid_response',
+        error: 'Stored solution snapshots are invalid or exceed the supported proof limit.'
+      });
+    }
+
+    const hasCanonicalAnswer = Boolean(
+      working.answers
+      && typeof working.answers === 'object'
+      && Object.prototype.hasOwnProperty.call(working.answers, String(questionIndex))
+    );
+    const studentAnswer = hasCanonicalAnswer
+      ? working.answers[String(questionIndex)]
+      : detail.user_answer;
+    const answerRevision = Number(
+      working.answer_revisions?.[String(questionIndex)] ?? detail.answer_revision ?? 0
+    );
+    if (!Number.isSafeInteger(answerRevision) || answerRevision < 0) {
+      return res.status(422).json({
+        success: false,
+        grade_status: 'invalid_response',
+        error: 'The stored answer revision is invalid and requires teacher review.'
+      });
+    }
+
+    const localGrade = gradeQuestionLocally(
+      normalized.question,
+      studentAnswer,
+      solutionSnapshots.length > 0
+    );
+    if (localGrade.gradeStatus === 'invalid_response') {
+      return res.status(422).json({
+        success: false,
+        grade_status: localGrade.gradeStatus,
+        retryable: false,
+        error: 'The authoritative question cannot be graded until its validation errors are resolved.',
+        validation_errors: localGrade.errors
+      });
+    }
+
+    let scoreFraction = normalizeGradeScore(localGrade.scoreFraction) ?? 0;
+    let feedback = '';
+    let gradeProof: string | undefined;
+    if (localGrade.gradeStatus !== 'graded') {
+      const semanticGrade = await gradeSemanticQuestion({
+        clients: getQuizCreatorGeminiClients(quiz),
+        question: normalized.question,
+        studentAnswer,
+        solutionSnapshots,
+        modelName: (quiz as any).model_name,
+        maxModelAttempts: 3
+      });
+      if (semanticGrade.gradeStatus !== 'graded') {
+        return res.status(semanticGrade.retryable ? 503 : 422).json({
+          success: false,
+          grade_status: semanticGrade.gradeStatus,
+          retryable: semanticGrade.retryable,
+          error: semanticGrade.error || semanticGrade.feedback,
+          feedback: semanticGrade.feedback
+        });
+      }
+      const normalizedScore = normalizeGradeScore(semanticGrade.scoreFraction);
+      if (normalizedScore === null) {
+        return res.status(422).json({
+          success: false,
+          grade_status: 'invalid_response',
+          retryable: false,
+          error: 'The semantic grader returned an invalid score.'
+        });
+      }
+      scoreFraction = normalizedScore;
+      feedback = semanticGrade.feedback;
+      gradeProof = createGradeProof({
+        quizId: working.quiz_id,
+        sessionId: attemptSessionId,
+        questionIndex,
+        answerRevision,
+        question: normalized.question,
+        studentAnswer,
+        solutionSnapshots,
+        gradeStatus: 'graded',
+        scoreFraction,
+        feedback
+      });
+    }
+
+    const answerDigest = createAnswerDigest(studentAnswer);
+    const snapshotDigest = createSnapshotDigest(solutionSnapshots);
+    Object.assign(detail, {
+      user_answer: studentAnswer,
+      grade_status: 'graded',
+      is_correct: scoreFraction === 1,
+      score_fraction: scoreFraction,
+      points: normalized.question.points,
+      earned_points: Math.round(
+        (normalized.question.points * scoreFraction + Number.EPSILON) * 10_000
+      ) / 10_000,
+      type: normalized.question.type,
+      correct_answer: normalized.question.answer,
+      ai_feedback: feedback,
+      answer_revision: answerRevision,
+      answer_digest: answerDigest,
+      snapshot_digest: snapshotDigest,
+      question_digest: questionDigest
+    });
+    if (questionVersionNeedsAcknowledgement) {
+      detail.regrade_audit = {
+        action: previousQuestionDigest
+          ? 'teacher_acknowledged_question_version_change'
+          : 'teacher_acknowledged_unknown_historical_question_version',
+        previous_question_digest: previousQuestionDigest || null,
+        question_digest: questionDigest,
+        actor_uid: req.user?.uid || '',
+        at: new Date().toISOString()
+      };
+    }
+    if (gradeProof) detail.grade_proof = gradeProof;
+    else delete detail.grade_proof;
+
+    working.answers = { ...(working.answers || {}), [String(questionIndex)]: studentAnswer };
+    working.answer_revisions = {
+      ...(working.answer_revisions || {}),
+      [String(questionIndex)]: answerRevision
+    };
+    working.graded_details = details;
+    working.details = details;
+    recalculateResult(working);
+    working.updated_at = new Date().toISOString();
+
+    results.set(req.params.result_id, working);
+    savePersistentData();
     try {
-      const customClient = getGeminiClient(customApiKey);
-      if (customClient) clientsToTry.push(customClient);
-    } catch (err) {
-      console.warn('Recheck custom API key error, falling back to default:', err);
+      await syncDocToFirestore('results', req.params.result_id, working);
+    } catch (error) {
+      results.set(req.params.result_id, latest);
+      savePersistentData();
+      throw error;
     }
-  }
-  try {
-    const defaultClient = getGeminiClient();
-    if (defaultClient && (!clientsToTry.length || defaultClient !== clientsToTry[0])) {
-      clientsToTry.push(defaultClient);
-    }
-  } catch (err) {
-    console.error('Recheck failed to resolve default Gemini client:', err);
-  }
 
-  if (clientsToTry.length > 0) {
-    try {
-      const quiz = quizzes.get(result.quiz_id);
-      const qText = gradingQuestion.question || gradingQuestion.raw_text || gradingQuestion.statement || '';
-      const imageParts: any[] = [];
-      const visionText = qText.replace(
-        /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-z0-9.+-]+);base64,([^"']+)["'][^>]*>/gi,
-        (_match: string, mimeType: string, data: string) => {
-          if (imageParts.length < 5 && data.length <= 12 * 1024 * 1024) {
-            imageParts.push({ inlineData: { data, mimeType } });
-          }
-          return '[IMAGE_PROVIDED_IN_VISION_CONTEXT]';
-        }
-      );
-      const qType = canonicalQuestionType(gradingQuestion);
-
-      const snapshots = result.solution_snapshots?.[questionIndex] || result.solution_snapshots?.[String(questionIndex)];
-      const hasSnapshots = Array.isArray(snapshots) && snapshots.length > 0;
-
-      const prompt = `You are an expert teacher grading a quiz.
-Question Type: ${qType}
-Question: ${JSON.stringify(visionText)}
-Correct Answer Key: ${JSON.stringify(gradingQuestion.answer || 'Open-ended evaluation / evaluate based on question requirement')}
-Student's Response: ${JSON.stringify(detail.user_answer || (hasSnapshots ? '[Whiteboard solution image attached in vision context]' : 'No text response'))}
-
-Evaluate the student's response thoroughly and fairly based on the answer key:
-1. FULL CREDIT (score_fraction = 1.0, is_correct = true): If the student's response is fully correct or mathematically/semantically equivalent to the answer key or question requirement.
-2. PARTIAL CREDIT (score_fraction between 0.1 and 0.9): If the question has multiple parts, sub-questions, steps, or multi-answer items and the student answered SOME parts correctly.
-   - Example: For a question with 2 sub-questions, if the student gets 1 correct and 1 incorrect, award a score_fraction of 0.5.
-   - Example: For a question with 3 parts where 2 are correct, award a score_fraction of 0.67.
-   - Example: If the answer is partially right or missing only minor required details, award partial credit proportional to correctness (e.g., 0.5 for half correct).
-   - Set "is_correct" to false if credit is partial (< 1.0).
-3. NO CREDIT (score_fraction = 0.0, is_correct = false): If the student's response is entirely incorrect, blank, or irrelevant.
-
-In "feedback", provide a brief 1-2 sentence explanation. If partial credit was awarded, clearly state which parts were correct and which parts need correction.
-CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\$$40). Do NOT use asterisks for math.
-Do NOT wrap plain English words or labels in LaTeX tags.
-Return your response STRICTLY as a JSON object with keys: "is_correct" (boolean), "score_fraction" (number from 0.0 to 1.0), and "feedback" (string).`;
-
-      const parts: any[] = [{ text: prompt }, ...imageParts];
-
-      if (Array.isArray(snapshots)) {
-        let snapshotChars = 0;
-        for (const snap of snapshots.slice(0, 5)) {
-          if (typeof snap !== 'string') continue;
-          const match = snap.match(/^data:(image\/[a-z0-9.+-]+);base64,([\s\S]+)$/i);
-          if (
-            match
-            && /^(?:image\/(?:png|jpe?g|gif|webp))$/i.test(match[1])
-            && snapshotChars + match[2].length <= 12 * 1024 * 1024
-          ) {
-            parts.push({ inlineData: { data: match[2], mimeType: match[1] } });
-            snapshotChars += match[2].length;
-          }
-        }
-      }
-
-      const primaryModel = getRealModelName((quiz as any)?.model_name || 'gemini-3.5-flash-lite');
-      const fallbackCandidates = [
-        'gemini-3.5-flash-lite',
-        'gemini-3.1-flash-lite',
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-2.5-flash'
-      ];
-      const modelsToTry = [primaryModel, ...fallbackCandidates.filter(m => m !== primaryModel)];
-
-      let gradeSuccess = false;
-      for (const client of clientsToTry) {
-        if (gradeSuccess) break;
-        for (const modelName of modelsToTry) {
-          try {
-            const response = await client.models.generateContent({
-              model: modelName,
-              contents: [{ role: 'user', parts }],
-              config: {
-                responseMimeType: 'application/json',
-                responseSchema: {
-                  type: Type.OBJECT,
-                  properties: {
-                    is_correct: { type: Type.BOOLEAN },
-                    score_fraction: { type: Type.NUMBER },
-                    feedback: { type: Type.STRING }
-                  },
-                  required: ['is_correct', 'score_fraction', 'feedback']
-                }
-              }
-            });
-
-            const parsed = safeParseJSON(response.text ? response.text.trim() : '{}');
-            if (parsed && (typeof parsed.is_correct === 'boolean' || typeof parsed.score_fraction === 'number')) {
-              let sf = typeof parsed.score_fraction === 'number'
-                ? parsed.score_fraction
-                : (parsed.is_correct ? 1 : 0);
-              sf = Math.max(0, Math.min(1, sf));
-              grade.scoreFraction = sf;
-              grade.isCorrect = typeof parsed.is_correct === 'boolean' ? parsed.is_correct : (sf === 1);
-              if (sf === 1) grade.isCorrect = true;
-              if (typeof parsed.feedback === 'string') {
-                detail.ai_feedback = parsed.feedback;
-              }
-              gradeSuccess = true;
-              break;
-            }
-          } catch (modelErr) {
-            console.warn(`Recheck AI grading failed with model ${modelName}, trying fallback:`, modelErr);
-          }
-        }
-      }
-
-      if (!gradeSuccess && grade.requiresSemanticGrading) {
-        detail.ai_feedback = grade.isCorrect ? '' : 'AI semantic grading was temporarily unavailable across models; exact-match grading was used.';
-      }
-    } catch (e) {
-      console.error('Recheck AI grading error:', e);
-    }
-  }
-
-  detail.is_correct = grade.isCorrect;
-  detail.score_fraction = grade.scoreFraction;
-  detail.type = grade.questionType;
-  detail.correct_answer = answerKey || grade.correctAnswer;
-  recalculateResult(result);
-  results.set(req.params.result_id, result);
-  savePersistentData();
-  await syncDocToFirestore('results', req.params.result_id, result);
-
-  return res.json({
-    success: true,
-    is_correct: grade.isCorrect,
-    score_fraction: grade.scoreFraction,
-    correct_answer: detail.correct_answer,
-    ai_feedback: detail.ai_feedback || '',
-    result: withResultAliases(result, req.params.result_id)
+    return res.json({
+      success: true,
+      grade_status: 'graded',
+      is_correct: detail.is_correct,
+      score_fraction: detail.score_fraction,
+      earned_points: detail.earned_points,
+      max_points: detail.points,
+      correct_answer: detail.correct_answer,
+      ai_feedback: detail.ai_feedback,
+      result: withResultAliases(working, req.params.result_id)
+    });
   });
 });
 
@@ -497,7 +557,7 @@ router.get('/results/:id', tokenRequired, (req: AuthRequest, res) => {
       student_name: normalized.student_name || 'Student',
       score: normalized.score,
       total: normalized.total,
-      accuracy_pct: Math.round(normalized.accuracy_pct),
+      accuracy_pct: finiteNumber(normalized.accuracy_pct, 0),
       details: normalized.details,
       created_at: displayTimestamp,
       timestamp: displayTimestamp,

@@ -4,9 +4,10 @@
 - Runtime: Node.js (ESM "type": "module") executed via tsx
 - Core Server: Modular Express.js server with clean entry point (server.ts) routing to modular controllers in /src/routes/, state & persistence in /src/store/db.ts, services in /src/services/, types in /src/types.ts, and auth middleware in /src/middleware/auth.ts
 - Frontend / Templating: EJS views (/views/*.ejs) and EJS partial templates (quiz_body.ejs, edit_top.ejs, ai_generator.ejs, etc.) styled with Tailwind CSS and MathJax/KaTeX LaTeX rendering
-- AI Service Layer: @google/genai TypeScript SDK initialized in /src/services/gemini.ts with structured prompt configurations in prompts.ts
+- AI Service Layer: @google/genai TypeScript SDK initialized in /src/services/gemini.ts with structured prompt configurations in prompts.ts; semantic grading is isolated in /src/services/semanticGrading.ts
+- Grading Domain: canonical question normalization/scoring lives in /src/services/grading.ts, signed grade identity in /src/services/gradeProof.ts, and per-attempt ordering guards in /src/services/resultSession.ts
 - Data & Persistence: Firebase Firestore (firebase-admin, firebase/firestore), Firestore security rules (firestore.rules), in-memory Map stores, and JSON persistence in /src/store/db.ts with /data/*.json fallbacks
-- Document & Asset Processing: pdfjs-dist, exceljs, sharp, archiver, multer processed via /src/services/pdf.ts and route handlers
+- Document & Asset Processing: pdfjs-dist, exceljs, sharp, archiver, multer processed via /src/services/pdf.ts; worksheet validation/consensus rules are centralized in /src/services/worksheetPipeline.ts
 
 ---
 ## Global Rules & Constraints (QuizMoKo)
@@ -44,7 +45,22 @@ These instructions contain critical rules and project conventions to prevent reg
 - Slim Entry Point: `server.ts` MUST remain a concise entry point (~60 lines) that mounts Express middleware, registers modular routers, and boots HTTP/Socket.IO servers. Never put raw endpoint implementations back directly into `server.ts`.
 - Subsystem Separation: Data persistence and Firestore sync belong in `/src/store/db.ts`. TypeScript interfaces belong in `/src/types.ts`. Shared business logic and helper engines belong in `/src/services/` (`gemini.ts`, `pdf.ts`, `socket.ts`).
 
-### 7. Continuous Agent Evolution (Self-Updating Rule)
+### 7. Authoritative Grading & Result Integrity
+- Canonical Domain Contract: Normalize and validate every quiz question through `src/services/grading.ts` before publication or grading. The server-stored canonical answer, type, and points are authoritative; never trust client-supplied correctness, answer keys, points, feedback, or totals.
+- Deterministic Before Semantic: Multiple choice, multi-select, true/false, and identification use the shared deterministic scorer. Only questions explicitly requiring semantic judgment may call Gemini. Semantic failures remain `pending`, `retryable_error`, or `invalid_response`; never convert infrastructure/model failures into an academic zero.
+- Score Contract: `score_fraction` in the inclusive range 0..1 is the sole correctness source. Derive `is_correct` from `score_fraction === 1`, calculate `earned_points = points * score_fraction`, and round stored/displayed aggregates to four decimal places.
+- Attempt Identity: Bind grades to quiz ID, session ID, question index, canonical question digest, canonical answer digest, solution-snapshot digest, and monotonically increasing answer revision. A same-revision identity change is a conflict. Signed semantic proofs must cover the entire identity and expire; deterministic grades must be recomputed from canonical data.
+- Ordered Persistence: Progressive writes may only advance the canonical per-question revision and must recheck the high-water mark immediately before persistence. Final submission must run under the attempt lock, reject stale identities, be idempotent for its stable session/result ID, and become immutable after successful durable persistence.
+- Deployment Boundary: `SESSION_SECRET` is mandatory and stable in production. Attempt locks and revision high-water guards are process-local, so deploy exactly one writable QuizMoKo server process unless/until a durable transactional compare-and-swap guard is implemented in the persistence layer.
+- Creator-Key Isolation: Public/student grading, explanation, final-submit, and progressive endpoints must never accept or use a browser/request-supplied AI API key. Semantic checking and teacher rechecks resolve Gemini only from the authoritative quiz creator's server-side teacher/admin profile. API-key storage endpoints must reject student accounts, and student quiz views must not read or transmit browser API keys.
+
+### 8. Worksheet Publication Contract
+- Stable Identity: Every extracted worksheet item must have a unique stable string ID retained through extraction, solving, review, publication, and provenance. Reject duplicate IDs and do not use array position as the semantic identity.
+- Golden Source & Independent Consensus: Preserve original question text and images as immutable golden source material. Independent solver calls must receive only the golden question context, never another solver's answer. Agreement must pass the shared type-aware comparator; disagreement or invalid output remains review-required.
+- Strict Publication Gate: Apply the same canonical question validator used by normal quiz authoring. Enforce exact option counts, answer membership, valid types/points, full ID coverage, cross-page fragment handling, and explicit teacher approval for unresolved diagnostics before publishing.
+- Private Provenance: Store solver evidence, confidence, disagreement, fragment, and verification metadata for teacher review, but strip those fields and all answer-key material from public quiz payloads.
+
+### 9. Continuous Agent Evolution (Self-Updating Rule)
 - Automatic Manifest & Rule Update: At the end of every session where an architectural refactor, directory reorganization, new rule, or major pattern is established, you MUST update this `AGENTS.md` file immediately (including Workspace Overview, guidelines, and role responsibilities) so that future agents maintain total alignment.
 - Evolution Log: In addition to updating `AGENTS.md`, append a concise summary of the change, constraint, or learning to `AGENT_EVOLUTION_LOG.md` for historical tracking.
 

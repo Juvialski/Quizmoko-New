@@ -15,7 +15,7 @@ MATH & LATEX RULES:
 9. VISUAL SCALING: Use \\left( and \\right) for any math expressions inside parentheses.
 10. CENTERED MATH: If a formula is standalone or a complex table/array exists, wrap it in double dollar signs $$ ... $$.
 11. COMPARISON PLACEHOLDERS: For questions asking to compare two values, use \\bigcirc inside the LaTeX expression. Example: $5 \\bigcirc 10$.
-12. CURRENCY FORMATTING: Format monetary values using LaTeX (e.g., $\\text{\\$3,000}$ or $\\$$3,000 or $\\$$540). Standalone dollar amounts must ALWAYS be enclosed in LaTeX (e.g., $\\$$3,000 or $\\$$540), NEVER as plain text '$3,000' or '$540'.
+12. CURRENCY FORMATTING: Format each monetary value as one valid LaTeX expression (e.g., $\\text{\\$3,000}$ or $\\text{\\$540}$). Never emit a raw currency dollar sign such as '$3,000', and never nest dollar delimiters.
 13. NO TEXT BOLDING: Never use ** or __ for bolding or italics.
 14. PRESERVE HTML: If you see tags like <div class="resizable-image-wrapper">, you MUST preserve them exactly.
 15. IDENTIFICATION EXCEPTION: For Identification answer keys ONLY, DO NOT use LaTeX enclosure or dollar signs. Keep them as plain text or numbers. If the answer is numerical, the answer key MUST be strictly a raw number (integer or decimal, e.g. -42, 0.75) with NO units (like 'm', 'meters', 'kg', '$', '%', etc.) or plaintext letters.
@@ -280,7 +280,7 @@ CRITICAL RULES:
 9. PROFESSIONAL ANSWERS: For all other types (Multiple Choice, Open Ended), you MUST use proper LaTeX enclosure ($) and formatting (e.g. \dfrac for fractions) in the 'answer' and 'options' fields. (CRITICAL: Adhere strictly to the 'ONLY WRAP MATH' rule—do NOT wrap plain text words in options or answers. e.g. 'A) $45$ apples', NOT '$A) 45 apples$').
 10. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using a real newline in the 'answer' field.
 11. Return ONLY a strict JSON array with exactly one object per input question and exact source coverage. Each object must contain: 'options', 'answer', 'type', 'source_index', 'source_id', and 'solution'. Preserve source_index and source_id exactly from the input. Use a real newline inside a JSON string when needed, never the two literal characters backslash and n.
-12. CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\$$40). Do NOT use asterisks for math.
+12. CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$). Do NOT use asterisks for math.
 `;
 
 export const WORKSHEET_SOLVER_PROMPT_NON_MATH = `You are an expert educator. PROVIDE ANSWERS for these worksheet questions.
@@ -305,7 +305,7 @@ CRITICAL RULES:
 7. ACCURACY: Verify facts internally before responding. Never output scratchpad reasoning, hidden chain-of-thought, or thinking tags. Put only a concise, student-safe worked explanation in 'solution'.
 8. MULTI-PART ANSWERS: If a question has sub-parts (e.g., a, b, c), you MUST provide the answers for each part on a NEW LINE using a real newline in the 'answer' field.
 9. Return ONLY a strict JSON array with exactly one object per input question and exact source coverage. Each object must contain: 'options', 'answer', 'type', 'source_index', 'source_id', and 'solution'. Preserve source_index and source_id exactly from the input. Use a real newline inside a JSON string when needed, never the two literal characters backslash and n.
-10. When mathematical feedback is required, CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\$$40). Do NOT use asterisks for math.
+10. When mathematical feedback is required, CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$). Do NOT use asterisks for math.
 `;
 
 export const CRITIC_PROMPT = `You are a strict educational QA reviewer.

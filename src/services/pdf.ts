@@ -36,6 +36,11 @@ export async function cropImageBoundingBox(fileBuffer: Buffer, bbox: any): Promi
     const [ymin, xmin, ymax, xmax] = bbox.map((n: any) => Number(n));
     if (isNaN(ymin) || isNaN(xmin) || isNaN(ymax) || isNaN(xmax)) return null;
 
+    const sharpOptions = { limitInputPixels: 40_000_000 };
+    const meta = await sharp(fileBuffer, sharpOptions).metadata();
+    const width = meta.width || 1000;
+    const height = meta.height || 1000;
+
     let scale = 1000;
     if (ymin <= 1 && xmin <= 1 && ymax <= 1 && xmax <= 1) scale = 1;
     else if (ymin <= 100 && xmin <= 100 && ymax <= 100 && xmax <= 100) scale = 100;
@@ -57,11 +62,6 @@ export async function cropImageBoundingBox(fileBuffer: Buffer, bbox: any): Promi
       console.log(`[CROP] Bounding box is too small, empty, or covers entire page (${boxW}x${boxH}). Skipping crop.`);
       return null;
     }
-
-    const sharpOptions = { limitInputPixels: 40_000_000 };
-    const meta = await sharp(fileBuffer, sharpOptions).metadata();
-    const width = meta.width || 1000;
-    const height = meta.height || 1000;
 
     const padX = Math.min(80, Math.max(30, Math.round(boxW * 0.15 + 35)));
     const padY = Math.min(80, Math.max(30, Math.round(boxH * 0.15 + 35)));

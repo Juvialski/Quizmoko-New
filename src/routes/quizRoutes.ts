@@ -14,8 +14,7 @@ import {
 } from '../store/db.ts';
 import {
   canonicalQuestionType,
-  getQuestionOptions,
-  normalizeQuestionForStorage
+  getQuestionOptions
 } from '../services/grading.ts';
 
 const router = Router();
@@ -60,14 +59,7 @@ const PUBLIC_QUIZ_ANSWER_FIELDS = [
   'correctAnswers',
   'solutions',
   'solution',
-  'explanation',
-  // Worksheet provenance and QA records are teacher-side data.  They can
-  // contain golden/solver candidates even when the top-level answer was
-  // removed, so omit the complete records from every public taking payload.
-  'worksheet_source',
-  'worksheet_validation',
-  'verification_summary',
-  'qa_metadata'
+  'explanation'
 ];
 const PUBLIC_QUESTION_ANSWER_FIELDS = [
   ...ANSWER_KEY_FIELDS,
@@ -79,15 +71,7 @@ const PUBLIC_QUESTION_ANSWER_FIELDS = [
   'solution_steps',
   'solutionSteps',
   'worked_solution',
-  'workedSolution',
-  'source',
-  'verification',
-  'question_verification',
-  'qa_metadata',
-  'golden_answer',
-  'solver_answer',
-  'checker_answer',
-  'candidate_answers'
+  'workedSolution'
 ];
 
 async function deleteQuizWithResults(quizId: string): Promise<number> {
@@ -139,8 +123,6 @@ function validateQuizUpdate(body: any): { valid: boolean; error?: string; value?
   }
 
   const value = sanitizeQuiz(body);
-  const allowReviewRequired = body.allow_review_required === true;
-  delete value.allow_review_required;
   if (value.title !== undefined) {
     if (typeof value.title !== 'string' || !value.title.trim() || value.title.length > 200) {
       return { valid: false, error: 'title must be a non-empty string of at most 200 characters' };
@@ -174,25 +156,25 @@ function validateQuizUpdate(body: any): { valid: boolean; error?: string; value?
     if (value.questions.length > 2_000) {
       return { valid: false, error: 'questions cannot contain more than 2000 items' };
     }
-    const normalizedQuestions: any[] = [];
     for (let index = 0; index < value.questions.length; index += 1) {
-      const normalized = normalizeQuestionForStorage(value.questions[index]);
-      if (!normalized.valid) {
-        const message = normalized.errors.map(error => error.message).join(' ');
-        return { valid: false, error: `questions[${index}] is invalid: ${message}` };
+      const question = value.questions[index];
+      if (!question || typeof question !== 'object' || Array.isArray(question)) {
+        return { valid: false, error: `questions[${index}] must be an object` };
       }
-      if (
-        normalized.question.verification?.verification_status === 'review_required'
-        && !allowReviewRequired
-      ) {
-        return {
-          valid: false,
-          error: `questions[${index}] requires teacher review before this quiz can be published`
-        };
+      const text = question.question ?? question.prompt ?? question.text;
+      if (typeof text !== 'string' || !text.trim()) {
+        return { valid: false, error: `questions[${index}] must include non-empty question text` };
       }
-      normalizedQuestions.push(normalized.question);
+      if (question.options !== undefined && !Array.isArray(question.options)) {
+        return { valid: false, error: `questions[${index}].options must be an array` };
+      }
+      if (question.options?.some((option: any) => typeof option !== 'string')) {
+        return { valid: false, error: `questions[${index}].options must contain only strings` };
+      }
+      if (question.type !== undefined && typeof question.type !== 'string') {
+        return { valid: false, error: `questions[${index}].type must be a string` };
+      }
     }
-    value.questions = normalizedQuestions;
   }
 
   return { valid: true, value };

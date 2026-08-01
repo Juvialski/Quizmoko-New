@@ -812,8 +812,7 @@
                 finalPausedTime += Math.round((now - pauseStartTime) / 1000);
             }
             const timeActive = Math.max(0, totalDuration - finalPausedTime);
-            const maxScore = maximumQuizScore();
-            const accuracyPct = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+            const accuracyPct = quizData.questions.length > 0 ? (totalScore / quizData.questions.length) * 100 : 0;
             return { timeActive, finalPausedTime, totalDuration, accuracyPct };
         }
 
@@ -824,199 +823,11 @@
         let progressiveResults = [];
         let totalScore = 0;
         let isGrading = false; // Guard for confirm button
-        let pendingGradings = 0; // Derived from pendingGradingTokens; never decremented directly.
+        let pendingGradings = 0; // TRACK BACKGROUND GRADING
         let resultId = null;
         let resultAccessToken = null;
-        let answerRevisions = {};
-        let answerDigests = {};
-        let snapshotDigests = {};
-        let sessionRevision = 0;
-        let whiteboardDirtyQuestions = {};
-        let gradingRequestSequence = 0;
-        let progressiveSaveChain = Promise.resolve();
-        let progressiveSaveDebounce = null;
-        let lastSubmissionStatus = 'completed';
-        const gradingRequests = new Map();
-        const pendingGradingTokens = new Set();
-        const snapshotCaptureTimers = new Map();
-        const MAX_ATTEMPT_SNAPSHOT_CHARS = 10 * 1024 * 1024;
 
         const STORAGE_KEY = `quiz_state_${quizId}`;
-
-        function stableDigestValue(value, depth = 0) {
-            if (depth > 20) return '[MAX_DEPTH]';
-            if (value === null || value === undefined) return null;
-            if (typeof value === 'string' || typeof value === 'boolean') return value;
-            if (typeof value === 'number') return Number.isFinite(value) ? value : String(value);
-            if (Array.isArray(value)) return value.map(item => stableDigestValue(item, depth + 1));
-            if (typeof value === 'object') {
-                const normalized = {};
-                Object.keys(value).sort().forEach(key => {
-                    normalized[key] = stableDigestValue(value[key], depth + 1);
-                });
-                return normalized;
-            }
-            return String(value);
-        }
-
-        async function stableSha256Digest(value) {
-            if (!window.crypto || !window.crypto.subtle) {
-                throw new Error('Secure SHA-256 support is required to grade this quiz.');
-            }
-            const serialized = JSON.stringify(stableDigestValue(value));
-            const digestBuffer = await window.crypto.subtle.digest(
-                'SHA-256',
-                new TextEncoder().encode(serialized)
-            );
-            let binary = '';
-            new Uint8Array(digestBuffer).forEach(byte => { binary += String.fromCharCode(byte); });
-            return window.btoa(binary)
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=+$/g, '');
-        }
-
-        function sanitizeAnswerForServer(value) {
-            if (value === null || value === undefined) return value;
-            if (typeof value === 'string') return value.slice(0, 50000);
-            if (typeof value === 'number') return Number.isFinite(value) ? value : '';
-            if (typeof value === 'boolean') return value;
-            if (Array.isArray(value)) {
-                return value.slice(0, 100).map(item => (
-                    typeof item === 'string' ? item.slice(0, 2000) : sanitizeAnswerForServer(item)
-                ));
-            }
-            return String(value).slice(0, 50000);
-        }
-
-        function snapshotCharsPerQuestion() {
-            const questionCount = quizData && Array.isArray(quizData.questions)
-                ? Math.max(1, quizData.questions.length)
-                : 1;
-            // Full-attempt persistence has a 10 MB aggregate limit. Giving every
-            // question a stable share keeps individual and final proof identities equal.
-            return Math.max(1, Math.floor(MAX_ATTEMPT_SNAPSHOT_CHARS / questionCount));
-        }
-
-        function sanitizeSnapshotsForServer(value, maxAggregateChars = snapshotCharsPerQuestion()) {
-            if (!Array.isArray(value)) return [];
-            const snapshots = [];
-            let aggregateChars = 0;
-            const boundedLimit = Number.isFinite(Number(maxAggregateChars))
-                ? Math.max(1, Math.min(MAX_ATTEMPT_SNAPSHOT_CHARS, Number(maxAggregateChars)))
-                : snapshotCharsPerQuestion();
-            for (const snapshot of value.slice(0, 5)) {
-                if (typeof snapshot !== 'string'
-                    || !/^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(snapshot)
-                    || aggregateChars + snapshot.length > boundedLimit) {
-                    continue;
-                }
-                snapshots.push(snapshot);
-                aggregateChars += snapshot.length;
-            }
-            return snapshots;
-        }
-
-        function questionPoints(index) {
-            const points = Number(quizData.questions[index] && quizData.questions[index].points);
-            return Number.isFinite(points) && points > 0 ? points : 1;
-        }
-
-        function maximumQuizScore() {
-            return quizData.questions.reduce((sum, _question, index) => sum + questionPoints(index), 0);
-        }
-
-        function isAuthoritativelyGraded(result) {
-            if (!result || result.grade_status !== 'graded') return false;
-            const scoreFraction = Number(result.score_fraction);
-            return Number.isFinite(scoreFraction) && scoreFraction >= 0 && scoreFraction <= 1;
-        }
-
-        function recalculateLiveScore() {
-            totalScore = progressiveResults.reduce((sum, result, index) => {
-                if (!isAuthoritativelyGraded(result)) return sum;
-                const earned = Number(result.earned_points);
-                return sum + (Number.isFinite(earned)
-                    ? earned
-                    : questionPoints(index) * Number(result.score_fraction));
-            }, 0);
-            const liveScoreElem = document.getElementById('live-score');
-            if (liveScoreElem) liveScoreElem.innerText = totalScore.toFixed(2);
-            return totalScore;
-        }
-
-        function syncPendingGradingCount() {
-            pendingGradings = pendingGradingTokens.size;
-        }
-
-        function beginPendingGrading(qIndex, revision) {
-            const token = `${qIndex}:${revision}:${++gradingRequestSequence}`;
-            pendingGradingTokens.add(token);
-            syncPendingGradingCount();
-            return token;
-        }
-
-        function settlePendingGrading(token) {
-            if (token && pendingGradingTokens.delete(token)) syncPendingGradingCount();
-        }
-
-        function abortQuestionGrading(qIndex) {
-            const request = gradingRequests.get(qIndex);
-            if (!request) return;
-            gradingRequests.delete(qIndex);
-            settlePendingGrading(request.pendingToken);
-            request.controller.abort();
-        }
-
-        function currentAnswerRevision(qIndex) {
-            const revision = Number(answerRevisions[qIndex]);
-            return Number.isInteger(revision) && revision >= 0 ? revision : 0;
-        }
-
-        function invalidateQuestionGrade(qIndex, snapshotsChanged = false) {
-            abortQuestionGrading(qIndex);
-            answerRevisions[qIndex] = currentAnswerRevision(qIndex) + 1;
-            answerDigests[qIndex] = null;
-            if (snapshotsChanged) {
-                delete solutionSnapshots[qIndex];
-                snapshotDigests[qIndex] = null;
-                whiteboardDirtyQuestions[qIndex] = true;
-                isWhiteboardDirty = true;
-            }
-            progressiveResults[qIndex] = {
-                question: quizData.questions[qIndex] ? quizData.questions[qIndex].question : '',
-                type: quizData.questions[qIndex] ? quizData.questions[qIndex].type : '',
-                user_answer: Object.prototype.hasOwnProperty.call(answers, qIndex) ? answers[qIndex] : '',
-                grade_status: 'pending',
-                retryable: false,
-                answer_revision: answerRevisions[qIndex]
-            };
-            recalculateLiveScore();
-            const feedbackCont = document.getElementById('instant-feedback');
-            if (qIndex === currentIndex
-                && quizData.quiz_mode !== 'back_and_forth'
-                && feedbackCont
-                && feedbackCont.style.display !== 'none') {
-                renderInstantFeedbackResult(progressiveResults[qIndex], qIndex >= quizData.questions.length - 1);
-            }
-            saveQuizState();
-            scheduleProgressiveSave();
-        }
-
-        function commitAnswerChange(qIndex, value) {
-            value = sanitizeAnswerForServer(value);
-            const previous = Object.prototype.hasOwnProperty.call(answers, qIndex) ? answers[qIndex] : '';
-            if (JSON.stringify(stableDigestValue(previous)) === JSON.stringify(stableDigestValue(value))) return false;
-            answers[qIndex] = value;
-            if (qIndex === currentIndex) currentSelectedOption = value;
-            invalidateQuestionGrade(qIndex, false);
-            return true;
-        }
-
-        function commitWhiteboardChange(qIndex) {
-            invalidateQuestionGrade(qIndex, true);
-            scheduleSnapshotCapture(qIndex);
-        }
 
         function saveQuizState() {
             if (isSubmitting) return;
@@ -1026,10 +837,9 @@
                 answers, questionPages,
                 totalScore: parseFloat(totalScore) || 0,
                 progressiveResults, sessionId,
-                answerRevisions, answerDigests, snapshotDigests, sessionRevision,
                 timeRemaining: parseInt(timeRemaining) || 0,
                 studentWhiteboardPreference, // PERSIST STUDENT PREFERENCE
-                isWhiteboardDirty, whiteboardDirtyQuestions, quizStartTime, totalPausedTime
+                isWhiteboardDirty, quizStartTime, totalPausedTime
             };
             try {
                 // PNG snapshots stay in memory; persisting base64 canvases regularly
@@ -1040,124 +850,32 @@
             }
         }
 
-        async function buildProgressivePayload(saveRevision) {
-            const answersSnapshot = stableDigestValue(Object.fromEntries(
-                quizData.questions.map((_question, index) => [
-                    index,
-                    Object.prototype.hasOwnProperty.call(answers, index)
-                        ? sanitizeAnswerForServer(answers[index])
-                        : 'No Answer'
-                ])
-            ));
-            const completeSnapshots = {};
-            quizData.questions.forEach((_question, index) => {
-                if (!Array.isArray(solutionSnapshots[index])
-                    && Array.isArray(questionPages[index])
-                    && questionPages[index].some(questionPageHasContent)) {
-                    solutionSnapshots[index] = renderQuestionSnapshots(index);
-                }
-                if (Array.isArray(solutionSnapshots[index])) {
-                    completeSnapshots[index] = sanitizeSnapshotsForServer(solutionSnapshots[index]);
-                }
-            });
-            const snapshotsSnapshot = stableDigestValue(completeSnapshots);
-            const revisionsSnapshot = stableDigestValue(Object.fromEntries(
-                quizData.questions.map((_question, index) => [index, currentAnswerRevision(index)])
-            ));
-            const resultsSnapshot = stableDigestValue(progressiveResults);
-            const answerDigestEntries = await Promise.all(quizData.questions.map(async (_question, index) => {
-                const answer = Object.prototype.hasOwnProperty.call(answersSnapshot, index) ? answersSnapshot[index] : 'No Answer';
-                return [index, await stableSha256Digest(answer)];
-            }));
-            const snapshotDigestEntries = await Promise.all(quizData.questions.map(async (_question, index) => {
-                if (Object.prototype.hasOwnProperty.call(snapshotsSnapshot, index)) {
-                    const snapshots = Array.isArray(snapshotsSnapshot[index]) ? snapshotsSnapshot[index] : [];
-                    return [index, await stableSha256Digest(snapshots)];
-                }
-                return typeof snapshotDigests[index] === 'string' && snapshotDigests[index]
-                    ? [index, snapshotDigests[index]]
-                    : null;
-            }));
-            const payloadAnswerDigests = Object.fromEntries(answerDigestEntries);
-            const payloadSnapshotDigests = Object.fromEntries(snapshotDigestEntries.filter(Boolean));
-
-            quizData.questions.forEach((_question, index) => {
-                if (currentAnswerRevision(index) === Number(revisionsSnapshot[index] || 0)) {
-                    answerDigests[index] = payloadAnswerDigests[index];
-                    if (typeof payloadSnapshotDigests[index] === 'string') {
-                        snapshotDigests[index] = payloadSnapshotDigests[index];
-                    }
-                }
-            });
-            saveQuizState();
-
-            const metrics = getCurrentTimeMetrics();
-            return {
-                quiz_id: quizId,
-                session_id: sessionId,
-                student_name: studentName,
-                session_revision: saveRevision,
-                answers: answersSnapshot,
-                answer_revisions: revisionsSnapshot,
-                answer_digests: payloadAnswerDigests,
-                snapshot_digests: payloadSnapshotDigests,
-                progressive_results: Array.isArray(resultsSnapshot) ? resultsSnapshot : [],
-                solution_snapshots: snapshotsSnapshot,
-                score: recalculateLiveScore(),
-                time_active_seconds: metrics.timeActive,
-                time_paused_seconds: metrics.finalPausedTime,
-                total_duration_seconds: metrics.totalDuration,
-                accuracy_pct: maximumQuizScore() > 0 ? (totalScore / maximumQuizScore()) * 100 : 0
-            };
-        }
-
-        function scheduleProgressiveSave(delay = 250) {
-            if (isSubmitting || !studentName || studentName === 'Anonymous' || studentName === 'undefined') return;
-            if (progressiveSaveDebounce) clearTimeout(progressiveSaveDebounce);
-            progressiveSaveDebounce = setTimeout(() => {
-                progressiveSaveDebounce = null;
-                void saveProgressToServer().catch(error => {
-                    console.warn('[QUIZ] Progressive server save failed:', error);
-                });
-            }, delay);
-        }
-
-        function saveProgressToServer({ force = false } = {}) {
-            if (isSubmitting && !force) return Promise.resolve(null);
+        function saveProgressToServer() {
+            if (isSubmitting) return;
             if (!studentName || studentName === 'Anonymous' || studentName === 'undefined') {
-                return Promise.resolve(null);
+                return;
             }
-            const saveRevision = ++sessionRevision;
-            saveQuizState();
-            const payloadPromise = buildProgressivePayload(saveRevision);
-            const operation = progressiveSaveChain
-                .catch(() => undefined)
-                .then(async () => {
-                    const payload = await payloadPromise;
-                    const controller = new AbortController();
-                    const timeout = setTimeout(() => controller.abort(), 10000);
-                    try {
-                        const response = await fetch('/api/save_progressive_result', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            signal: controller.signal,
-                            body: JSON.stringify(payload)
-                        });
-                        const data = await response.json().catch(() => ({}));
-                        if (!response.ok || data.success === false) {
-                            throw new Error(data.error || `Progress save failed (HTTP ${response.status})`);
-                        }
-                        const acknowledgedRevision = Number(data.current_session_revision ?? data.session_revision);
-                        if (Number.isInteger(acknowledgedRevision) && acknowledgedRevision >= 0) {
-                            sessionRevision = Math.max(sessionRevision, acknowledgedRevision);
-                        }
-                        return data;
-                    } finally {
-                        clearTimeout(timeout);
-                    }
-                });
-            progressiveSaveChain = operation.catch(() => undefined);
-            return operation;
+            const metrics = getCurrentTimeMetrics();
+            const accuracyPct = totalScore ? (totalScore / quizData.questions.length) * 100 : 0;
+
+            fetch('/api/save_progressive_result', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    quiz_id: quizId,
+                    session_id: sessionId,
+                    student_name: studentName,
+                    progressive_results: progressiveResults,
+                    solution_snapshots: solutionSnapshots,
+                    score: totalScore,
+                    time_active_seconds: metrics.timeActive,
+                    time_paused_seconds: metrics.finalPausedTime,
+                    total_duration_seconds: metrics.totalDuration,
+                    accuracy_pct: accuracyPct
+                })
+            }).catch(e => console.warn('[QUIZ] Progressive server save failed:', e));
         }
 
         function loadQuizState() {
@@ -1167,17 +885,8 @@
                 const state = JSON.parse(saved);
                 studentName = state.studentName || 'Anonymous';
                 currentIndex = Math.max(0, Math.min(parseInt(state.currentIndex) || 0, Math.max(0, quizData.questions.length - 1)));
-                const restoredAnswers = state.answers && typeof state.answers === 'object' ? state.answers : {};
-                answers = {};
-                quizData.questions.forEach((_question, index) => {
-                    if (Object.prototype.hasOwnProperty.call(restoredAnswers, index)) {
-                        answers[index] = sanitizeAnswerForServer(restoredAnswers[index]);
-                    }
-                });
-                answerRevisions = state.answerRevisions && typeof state.answerRevisions === 'object' ? state.answerRevisions : {};
-                answerDigests = state.answerDigests && typeof state.answerDigests === 'object' ? state.answerDigests : {};
-                snapshotDigests = state.snapshotDigests && typeof state.snapshotDigests === 'object' ? state.snapshotDigests : {};
-                sessionRevision = Number.isInteger(Number(state.sessionRevision)) ? Math.max(0, Number(state.sessionRevision)) : 0;
+                answers = state.answers || {};
+                totalScore = parseFloat(state.totalScore) || 0;
                 const restoredPages = state.questionPages && typeof state.questionPages === 'object' ? state.questionPages : {};
                 questionPages = {};
                 quizData.questions.forEach((_, index) => {
@@ -1187,190 +896,55 @@
                         : [{ strokes: [], texts: [] }];
                 });
                 const restoredResults = Array.isArray(state.progressiveResults) ? state.progressiveResults : [];
-                progressiveResults = quizData.questions.map((question, index) => {
-                    const result = restoredResults[index];
-                    const validStatus = result
-                        && ['graded', 'pending', 'retryable_error', 'invalid_response'].includes(result.grade_status)
-                        && (result.grade_status !== 'graded' || isAuthoritativelyGraded(result));
-                    const validIdentity = validStatus
-                        && Number(result.answer_revision) === currentAnswerRevision(index)
-                        && typeof result.answer_digest === 'string'
-                        && result.answer_digest === answerDigests[index]
-                        && typeof result.snapshot_digest === 'string'
-                        && result.snapshot_digest === snapshotDigests[index];
-                    if (validIdentity) return result;
-                    if (!Object.prototype.hasOwnProperty.call(answers, index)) return null;
-                    return {
-                        question: question.question,
-                        type: question.type,
-                        user_answer: answers[index],
-                        grade_status: 'pending',
-                        retryable: false,
-                        answer_revision: currentAnswerRevision(index)
-                    };
-                });
+                progressiveResults = quizData.questions.map((_, index) => restoredResults[index] || null);
                 solutionSnapshots = {};
                 if (state.sessionId) sessionId = state.sessionId;
                 if (state.timeRemaining !== undefined) timeRemaining = parseInt(state.timeRemaining) || 0;
                 if (state.studentWhiteboardPreference !== undefined) studentWhiteboardPreference = state.studentWhiteboardPreference;
                 if (state.isWhiteboardDirty !== undefined) isWhiteboardDirty = state.isWhiteboardDirty;
-                whiteboardDirtyQuestions = state.whiteboardDirtyQuestions && typeof state.whiteboardDirtyQuestions === 'object'
-                    ? state.whiteboardDirtyQuestions
-                    : (isWhiteboardDirty ? { [currentIndex]: true } : {});
                 if (state.quizStartTime) quizStartTime = state.quizStartTime;
                 if (state.totalPausedTime !== undefined) totalPausedTime = parseInt(state.totalPausedTime) || 0;
-                recalculateLiveScore();
+
+                // RECALCULATE PENDING GRADINGS: questions answered but not yet graded
+                pendingGradings = 0;
+                for (let i = 0; i < currentIndex; i++) {
+                    if (progressiveResults[i] === null) {
+                        pendingGradings++;
+                        // RE-TRIGGER GRADING FOR STUCK QUESTIONS
+                        const apiKey = localStorage.getItem('gemini_api_key') || '';
+                        fetch('/api/grade_individual', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                quiz_id: quizId,
+                                session_id: sessionId,
+                                student_name: studentName,
+                                q_index: i,
+                                student_answer: Object.prototype.hasOwnProperty.call(answers, i) ? answers[i] : '',
+                                solution_snapshots: solutionSnapshots[i] || [],
+                                api_key: apiKey
+                            })
+                        }).then(res => res.json()).then(data => {
+                            if (data.success) {
+                                progressiveResults[i] = {
+                                    question: quizData.questions[i].question,
+                                    user_answer: Object.prototype.hasOwnProperty.call(answers, i) ? answers[i] : 'No Answer',
+                                    correct_answer: data.correct_answer,
+                                    is_correct: data.is_correct,
+                                    ai_feedback: data.ai_feedback,
+                                    score_fraction: data.score_fraction,
+                                    grade_proof: data.grade_proof
+                                };
+                                // Note: totalScore will be synced on next submitQuiz or handleAnswer
+                            }
+                        }).catch(e => console.error('Grading re-trigger failed:', e))
+                        .finally(() => { pendingGradings--; });
+                    }
+                }
                 console.log(`[QUIZ] Restored state. Pending gradings: ${pendingGradings}`);
 
                 return true;
             } catch (e) { return false; }
-        }
-
-        async function loadProgressiveResultFromServer() {
-            if (!studentName || studentName === 'Anonymous' || !sessionId) return false;
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 8000);
-            try {
-                const response = await fetch('/api/load_progressive_result', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: controller.signal,
-                    body: JSON.stringify({ quiz_id: quizId, session_id: sessionId })
-                });
-                const data = await response.json().catch(() => ({}));
-                if (response.status === 404 || data.found === false) return false;
-                if (!response.ok || data.success === false) {
-                    throw new Error(data.error || `Progress restore failed (HTTP ${response.status})`);
-                }
-                if (data.finalized === true) {
-                    resultId = data.result_id || null;
-                    localStorage.removeItem(STORAGE_KEY);
-                    document.getElementById('start-screen').style.display = 'none';
-                    document.getElementById('quiz-screen').style.display = 'none';
-                    document.getElementById('result-screen').style.display = 'block';
-                    document.getElementById('score-text').innerText = 'Quiz already finalized';
-                    document.getElementById('save-status-msg').innerText = 'This session is closed. Progressive changes will not be sent.';
-                    document.getElementById('pdf-btn').style.display = 'none';
-                    return 'finalized';
-                }
-
-                const progress = data.progress && typeof data.progress === 'object'
-                    ? data.progress
-                    : (data.result && typeof data.result === 'object' ? data.result : data);
-                const remoteAnswers = progress.answers && typeof progress.answers === 'object' ? progress.answers : {};
-                const remoteRevisions = progress.answer_revisions && typeof progress.answer_revisions === 'object' ? progress.answer_revisions : {};
-                const remoteAnswerDigests = progress.answer_digests && typeof progress.answer_digests === 'object' ? progress.answer_digests : {};
-                const remoteSnapshotDigests = progress.snapshot_digests && typeof progress.snapshot_digests === 'object' ? progress.snapshot_digests : {};
-                const remoteSnapshots = progress.solution_snapshots && typeof progress.solution_snapshots === 'object' ? progress.solution_snapshots : {};
-                const remoteDetails = Array.isArray(progress.progressive_results)
-                    ? progress.progressive_results
-                    : (Array.isArray(progress.graded_details) ? progress.graded_details : []);
-
-                for (let index = 0; index < quizData.questions.length; index++) {
-                    const remoteRevision = Number(remoteRevisions[index]);
-                    if (!Number.isInteger(remoteRevision) || remoteRevision < 0) continue;
-                    const localRevision = currentAnswerRevision(index);
-                    if (remoteRevision < localRevision) continue;
-                    if (remoteRevision === localRevision && whiteboardDirtyQuestions[index]) continue;
-
-                    const candidate = remoteDetails[index] && typeof remoteDetails[index] === 'object'
-                        ? remoteDetails[index]
-                        : null;
-                    const remoteHasAnswer = Object.prototype.hasOwnProperty.call(remoteAnswers, index);
-                    const answer = sanitizeAnswerForServer(remoteHasAnswer
-                        ? remoteAnswers[index]
-                        : (candidate && Object.prototype.hasOwnProperty.call(candidate, 'user_answer') ? candidate.user_answer : ''));
-                    const snapshots = sanitizeSnapshotsForServer(remoteSnapshots[index]);
-                    const [computedAnswerDigest, computedSnapshotDigest] = await Promise.all([
-                        stableSha256Digest(answer),
-                        stableSha256Digest(snapshots)
-                    ]);
-
-                    const untouchedQuestion = remoteRevision === 0
-                        && answer === 'No Answer'
-                        && snapshots.length === 0;
-                    if (untouchedQuestion) {
-                        delete answers[index];
-                        answerRevisions[index] = 0;
-                        answerDigests[index] = computedAnswerDigest;
-                        snapshotDigests[index] = computedSnapshotDigest;
-                        solutionSnapshots[index] = [];
-                        progressiveResults[index] = null;
-                        whiteboardDirtyQuestions[index] = false;
-                        continue;
-                    }
-
-                    answers[index] = answer;
-                    answerRevisions[index] = remoteRevision;
-                    answerDigests[index] = computedAnswerDigest;
-                    snapshotDigests[index] = computedSnapshotDigest;
-                    solutionSnapshots[index] = snapshots;
-                    whiteboardDirtyQuestions[index] = false;
-
-                    const candidateStatusIsValid = candidate
-                        && ['graded', 'pending', 'retryable_error', 'invalid_response'].includes(candidate.grade_status)
-                        && (candidate.grade_status !== 'graded' || isAuthoritativelyGraded(candidate));
-                    const identityMatches = candidateStatusIsValid
-                        && Number(candidate.answer_revision) === remoteRevision
-                        && candidate.answer_digest === computedAnswerDigest
-                        && candidate.snapshot_digest === computedSnapshotDigest
-                        && (!remoteAnswerDigests[index] || remoteAnswerDigests[index] === computedAnswerDigest)
-                        && (!remoteSnapshotDigests[index] || remoteSnapshotDigests[index] === computedSnapshotDigest);
-                    if (identityMatches) {
-                        progressiveResults[index] = { ...candidate, user_answer: answer };
-                    } else {
-                        progressiveResults[index] = {
-                            question: quizData.questions[index].question,
-                            type: quizData.questions[index].type,
-                            user_answer: answer,
-                            grade_status: 'pending',
-                            retryable: false,
-                            answer_revision: remoteRevision,
-                            answer_digest: computedAnswerDigest,
-                            snapshot_digest: computedSnapshotDigest
-                        };
-                    }
-                }
-
-                const remoteSessionRevision = Number(progress.session_revision);
-                if (Number.isInteger(remoteSessionRevision) && remoteSessionRevision >= 0) {
-                    sessionRevision = Math.max(sessionRevision, remoteSessionRevision);
-                }
-                recalculateLiveScore();
-                saveQuizState();
-                return true;
-            } catch (error) {
-                if (error && error.name !== 'AbortError') {
-                    console.warn('[QUIZ] Could not restore server progress:', error);
-                }
-                return false;
-            } finally {
-                clearTimeout(timeout);
-            }
-        }
-
-        function resumePendingGradings() {
-            const pendingIndexes = [];
-            quizData.questions.forEach((_question, index) => {
-                const hasAnswer = Object.prototype.hasOwnProperty.call(answers, index) && String(answers[index] ?? '').length > 0;
-                const hasSnapshots = Array.isArray(solutionSnapshots[index]) && solutionSnapshots[index].length > 0;
-                const result = progressiveResults[index];
-                if ((hasAnswer || hasSnapshots) && (!result || result.grade_status === 'pending')) {
-                    pendingIndexes.push(index);
-                }
-            });
-            const workerCount = Math.min(3, pendingIndexes.length);
-            const workers = Array.from({ length: workerCount }, async () => {
-                while (pendingIndexes.length > 0) {
-                    const index = pendingIndexes.shift();
-                    try {
-                        await requestQuestionGrade(index);
-                    } catch (error) {
-                        console.warn(`[QUIZ] Could not resume grading Q${index + 1}:`, error);
-                    }
-                }
-            });
-            void Promise.allSettled(workers);
         }
 
         // --- CRITICAL FIX: Initialize questionPages and progressiveResults immediately ---
@@ -1378,7 +952,6 @@
             quizData.questions.forEach((_, i) => {
                 questionPages[i] = [{ strokes: [], texts: [] }];
                 progressiveResults[i] = null; // Prepare slots for background grading
-                answerRevisions[i] = 0;
             });
         } else {
             console.error('[QUIZ] Critical Error: quizData.questions is missing or not an array!', quizData);
@@ -1741,9 +1314,7 @@
                     scoreTracker.style.display = (quizData.quiz_mode === 'sequential') ? 'inline-flex' : 'none';
                 }
 
-                currentSelectedOption = Object.prototype.hasOwnProperty.call(answers, currentIndex)
-                    ? answers[currentIndex]
-                    : null; // RESTORE PREVIOUS ANSWER
+                currentSelectedOption = answers[currentIndex] || null; // RESTORE PREVIOUS ANSWER
 
                 const btnConfirm = document.getElementById('btn-confirm');
                 const bfControls = document.getElementById('bf-nav-controls');
@@ -1782,10 +1353,9 @@
                 if (q.type === 'open_ended') {
                     const ta = document.createElement('textarea');
                     ta.placeholder = 'Explain...';
-                    ta.maxLength = 50000;
                     ta.value = answers[currentIndex] || ''; // RESTORE ANSWER ON RELOAD
                     ta.oninput = e => {
-                        commitAnswerChange(currentIndex, e.target.value);
+                        currentSelectedOption = e.target.value;
                         if (quizData.quiz_mode !== 'back_and_forth') {
                             btnConfirm.style.display = e.target.value.trim().length > 0 ? 'inline-flex' : 'none';
                         }
@@ -1796,7 +1366,6 @@
                     const inp = document.createElement('input');
                     inp.type = 'text';
                     inp.placeholder = 'Answer...';
-                    inp.maxLength = 50000;
                     if (q.type === 'identification' && quizData.subject === 'Math') {
                         inp.inputMode = 'decimal';
                     }
@@ -1805,7 +1374,7 @@
                         if (q.type === 'identification' && quizData.subject === 'Math') {
                             e.target.value = e.target.value.replace(/[^0-9.\-\/]/g, '');
                         }
-                        commitAnswerChange(currentIndex, e.target.value);
+                        currentSelectedOption = e.target.value;
                         if (quizData.quiz_mode !== 'back_and_forth') {
                             btnConfirm.style.display = e.target.value.trim() ? 'inline-flex' : 'none';
                         }
@@ -1837,13 +1406,13 @@
                                     .map(btn => btn.innerText.trim().toUpperCase()[0])
                                     .sort()
                                     .join(', ');
-                                commitAnswerChange(currentIndex, selected);
+                                currentSelectedOption = selected;
                                 btnConfirm.style.display = selected.length > 0 ? 'inline-flex' : 'none';
                                 if (quizData.quiz_mode === 'back_and_forth') {
                                     btnNext.disabled = false;
                                 }
                             } else {
-                                commitAnswerChange(currentIndex, o);
+                                currentSelectedOption = o;
                                 document.querySelectorAll('.option-btn').forEach(x => x.classList.remove('selected'));
                                 b.classList.add('selected');
                                 if (quizData.quiz_mode !== 'back_and_forth') {
@@ -1861,7 +1430,59 @@
                     const result = progressiveResults[currentIndex];
                     const btnConfirm = document.getElementById('btn-confirm');
                     if (btnConfirm) btnConfirm.style.display = 'none';
-                    renderInstantFeedbackResult(result, currentIndex >= quizData.questions.length - 1);
+
+                    const feedbackCont = document.getElementById('instant-feedback');
+                    const statusElem = document.getElementById('feedback-status');
+                    const textElem = document.getElementById('feedback-text');
+                    const retryBtn = document.getElementById('btn-retry-grading');
+
+                    if (feedbackCont && statusElem && textElem) {
+                        feedbackCont.style.display = 'block';
+                        feedbackCont.classList.remove('feedback-correct', 'feedback-wrong');
+
+                        if (result.is_correct) {
+                            feedbackCont.classList.add('feedback-correct');
+                            statusElem.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> CORRECT!';
+                            if (retryBtn) retryBtn.style.display = 'none';
+                        } else {
+                            feedbackCont.classList.add('feedback-wrong');
+                            statusElem.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> INCORRECT';
+                            
+                            if (retryBtn) {
+                                const isNotFullyCorrect = !result.is_correct || (Number(result.score_fraction) < 1);
+                                const fb = (result.ai_feedback || '').toLowerCase();
+                                const isFallbackFeedback = fb.includes('unavailable') || fb.includes('exact-match') || fb.includes('error') || fb.includes('failed');
+                                if (isNotFullyCorrect || isFallbackFeedback || result.correct_answer === 'Grading Error') {
+                                    retryBtn.style.display = 'inline-flex';
+                                } else {
+                                    retryBtn.style.display = 'none';
+                                }
+                            }
+                        }
+
+                        let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(result.correct_answer)}</div>`;
+                        if (result.ai_feedback && result.ai_feedback.trim()) {
+                            feedbackHtml += `<br><br><i data-lucide="bot" class="icon-sm"></i> <em>${formatText(result.ai_feedback)}</em>`;
+                        }
+                        textElem.innerHTML = feedbackHtml;
+                        renderMath('instant-feedback');
+                        if (window.lucide) lucide.createIcons();
+
+                        // Disable options / input elements
+                        const inputs = document.getElementById('options-container').querySelectorAll('button, input, textarea');
+                        inputs.forEach(el => {
+                            el.disabled = true;
+                            el.style.opacity = '0.6';
+                            el.style.pointerEvents = 'none';
+                        });
+
+                        // Handle Final Question Navigation
+                        const isLast = currentIndex >= quizData.questions.length - 1;
+                        if (isLast) {
+                            const nextBtn = feedbackCont.querySelector('.btn-next-question');
+                            if (nextBtn) nextBtn.innerHTML = '<i data-lucide="flag" class="icon-sm"></i> FINISH QUIZ';
+                        }
+                    }
                 }
             } catch (err) {
                 console.error('Critical error loading question:', err);
@@ -1877,7 +1498,7 @@
             const prevVal = answers[currentIndex];
 
             // SMART GRADING: Trigger only if answer changed OR no result yet
-            if (currentVal !== prevVal || !isAuthoritativelyGraded(progressiveResults[currentIndex]) || whiteboardDirtyQuestions[currentIndex]) {
+            if (currentVal !== prevVal || progressiveResults[currentIndex] === null || isWhiteboardDirty) {
                 console.log('[BF-MODE] Answer changed or new. Triggering grading...');
                 confirmSelection();
             } else {
@@ -1900,7 +1521,7 @@
                 const prevVal = answers[currentIndex];
 
                 // SMART GRADING: Trigger only if answer changed OR no result yet
-                if (currentVal !== prevVal || !isAuthoritativelyGraded(progressiveResults[currentIndex]) || whiteboardDirtyQuestions[currentIndex]) {
+                if (currentVal !== prevVal || progressiveResults[currentIndex] === null || isWhiteboardDirty) {
                     console.log('[BF-MODE] Answer changed (Prev). Triggering grading...');
                     confirmSelection(-1);
                 } else {
@@ -1980,415 +1601,196 @@
             handleAnswer(currentSelectedOption ?? '', direction, btn);
         }
 
-        function questionPageHasContent(page) {
-            return !!page && (
-                (Array.isArray(page.strokes) && page.strokes.length > 0)
-                || (Array.isArray(page.texts) && page.texts.length > 0)
-            );
-        }
-
-        function renderQuestionSnapshots(qIndex) {
-            const pages = Array.isArray(questionPages[qIndex]) ? questionPages[qIndex] : [];
-            const meaningfulPages = pages.filter(questionPageHasContent);
-            if (meaningfulPages.length === 0) return [];
-            const q = quizData.questions[qIndex] || {};
-            const width = canvas && canvas.width > 0 ? canvas.width : 1200;
-            const height = canvas && canvas.height > 0 ? canvas.height : 800;
-            return meaningfulPages.map(page => {
-                const temp = document.createElement('canvas');
-                temp.width = width;
-                temp.height = height;
-                const tempContext = temp.getContext('2d');
-                tempContext.fillStyle = '#ffffff';
-                tempContext.fillRect(0, 0, temp.width, temp.height);
-                if (q.type === 'graphing') {
-                    tempContext.beginPath();
-                    tempContext.strokeStyle = '#e2e8f0';
-                    tempContext.lineWidth = 1;
-                    for (let x = 0; x <= temp.width; x += 40) {
-                        tempContext.moveTo(x, 0);
-                        tempContext.lineTo(x, temp.height);
-                    }
-                    for (let y = 0; y <= temp.height; y += 40) {
-                        tempContext.moveTo(0, y);
-                        tempContext.lineTo(temp.width, y);
-                    }
-                    tempContext.stroke();
-                }
-                renderToCanvas(page, tempContext);
-                return temp.toDataURL('image/png');
-            });
-        }
-
-        async function captureQuestionSnapshots(qIndex) {
-            const scheduledTimer = snapshotCaptureTimers.get(qIndex);
-            if (scheduledTimer) {
-                clearTimeout(scheduledTimer);
-                snapshotCaptureTimers.delete(qIndex);
-            }
-            const revision = currentAnswerRevision(qIndex);
-            const snapshots = sanitizeSnapshotsForServer(renderQuestionSnapshots(qIndex));
-            const snapshotDigest = await stableSha256Digest(snapshots);
-            if (currentAnswerRevision(qIndex) !== revision) return null;
-            solutionSnapshots[qIndex] = snapshots;
-            snapshotDigests[qIndex] = snapshotDigest;
-            whiteboardDirtyQuestions[qIndex] = false;
-            if (qIndex === currentIndex) isWhiteboardDirty = false;
-            scheduleProgressiveSave();
-            return snapshots;
-        }
-
-        function scheduleSnapshotCapture(qIndex, delay = 250) {
-            const prior = snapshotCaptureTimers.get(qIndex);
-            if (prior) clearTimeout(prior);
-            snapshotCaptureTimers.set(qIndex, setTimeout(() => {
-                snapshotCaptureTimers.delete(qIndex);
-                void captureQuestionSnapshots(qIndex).catch(error => {
-                    console.warn(`[QUIZ] Could not snapshot question ${qIndex + 1}:`, error);
-                });
-            }, delay));
-        }
-
-        async function prepareAttemptIdentity(qIndex, answer, snapshots) {
-            const revision = currentAnswerRevision(qIndex);
-            snapshots = sanitizeSnapshotsForServer(snapshots);
-            const [answerDigest, snapshotDigest] = await Promise.all([
-                stableSha256Digest(answer),
-                stableSha256Digest(snapshots)
-            ]);
-            if (currentAnswerRevision(qIndex) !== revision) return null;
-            answerDigests[qIndex] = answerDigest;
-            snapshotDigests[qIndex] = snapshotDigest;
-            return {
-                questionIndex: qIndex,
-                revision,
-                answerDigest,
-                snapshotDigest,
-                answer,
-                snapshots
-            };
-        }
-
-        function responseMatchesAttempt(data, identity) {
-            if (!data || typeof data !== 'object') return false;
-            const responseQuestionIndex = Number(data.question_index ?? data.q_index);
-            return Number.isInteger(responseQuestionIndex)
-                && responseQuestionIndex === identity.questionIndex
-                && Number(data.answer_revision) === identity.revision
-                && data.answer_digest === identity.answerDigest
-                && data.snapshot_digest === identity.snapshotDigest
-                && currentAnswerRevision(identity.questionIndex) === identity.revision
-                && answerDigests[identity.questionIndex] === identity.answerDigest
-                && snapshotDigests[identity.questionIndex] === identity.snapshotDigest;
-        }
-
-        function applyGradeResponse(qIndex, data, identity) {
-            if (!responseMatchesAttempt(data, identity)) {
-                console.warn(`[QUIZ] Discarded stale or mismatched grading response for Q${qIndex + 1}.`);
-                return null;
-            }
-            const allowedStatuses = new Set(['graded', 'pending', 'retryable_error', 'invalid_response']);
-            const reportedStatus = allowedStatuses.has(data.grade_status) ? data.grade_status : 'invalid_response';
-            const reportedScore = Number(data.score_fraction);
-            const gradeStatus = reportedStatus === 'graded'
-                && (!Number.isFinite(reportedScore) || reportedScore < 0 || reportedScore > 1)
-                    ? 'invalid_response'
-                    : reportedStatus;
-            const baseResult = {
-                question: quizData.questions[qIndex].question,
-                type: quizData.questions[qIndex].type,
-                user_answer: identity.answer,
-                grade_status: gradeStatus,
-                retryable: gradeStatus === 'retryable_error' && data.retryable === true,
-                answer_revision: identity.revision,
-                answer_digest: identity.answerDigest,
-                snapshot_digest: identity.snapshotDigest,
-                ai_feedback: typeof data.feedback === 'string'
-                    ? data.feedback
-                    : (typeof data.ai_feedback === 'string' ? data.ai_feedback : '')
-            };
-
-            if (gradeStatus === 'graded' && Number.isFinite(Number(data.score_fraction))) {
-                const scoreFraction = Math.max(0, Math.min(1, Number(data.score_fraction)));
-                const earnedPoints = Number(data.earned_points);
-                progressiveResults[qIndex] = {
-                    ...baseResult,
-                    correct_answer: data.correct_answer ?? null,
-                    is_correct: scoreFraction === 1,
-                    score_fraction: scoreFraction,
-                    earned_points: Number.isFinite(earnedPoints)
-                        ? earnedPoints
-                        : questionPoints(qIndex) * scoreFraction,
-                    grade_proof: typeof data.grade_proof === 'string' ? data.grade_proof : null
-                };
-            } else {
-                progressiveResults[qIndex] = baseResult;
-            }
-            recalculateLiveScore();
-            if (gradeStatus === 'graded') sendPing('Score Synced');
-            saveQuizState();
-            scheduleProgressiveSave();
-            return progressiveResults[qIndex];
-        }
-
-        function applyGradeRequestError(qIndex, identity, message, retryable = true) {
-            if (currentAnswerRevision(qIndex) !== identity.revision) return null;
-            const result = {
-                question: quizData.questions[qIndex].question,
-                type: quizData.questions[qIndex].type,
-                user_answer: identity.answer,
-                grade_status: retryable ? 'retryable_error' : 'invalid_response',
-                retryable,
-                answer_revision: identity.revision,
-                answer_digest: identity.answerDigest,
-                snapshot_digest: identity.snapshotDigest,
-                ai_feedback: message
-            };
-            progressiveResults[qIndex] = result;
-            recalculateLiveScore();
-            saveQuizState();
-            scheduleProgressiveSave();
-            return result;
-        }
-
-        async function requestQuestionGrade(qIndex, { snapshots = null } = {}) {
-            abortQuestionGrading(qIndex);
-            const startingRevision = currentAnswerRevision(qIndex);
-            const answer = Object.prototype.hasOwnProperty.call(answers, qIndex)
-                ? sanitizeAnswerForServer(answers[qIndex])
-                : '';
-            if (Object.prototype.hasOwnProperty.call(answers, qIndex)) answers[qIndex] = answer;
-            const controller = new AbortController();
-            let timedOut = false;
-            const gradingTimeout = setTimeout(() => {
-                timedOut = true;
-                controller.abort();
-            }, 60000);
-            const pendingToken = beginPendingGrading(qIndex, startingRevision);
-            const requestToken = `${pendingToken}:request`;
-            let identity = null;
-            gradingRequests.set(qIndex, { controller, pendingToken, requestToken, identity: null });
-            progressiveResults[qIndex] = {
-                question: quizData.questions[qIndex].question,
-                type: quizData.questions[qIndex].type,
-                user_answer: answer,
-                grade_status: 'pending',
-                retryable: false,
-                answer_revision: startingRevision
-            };
-            recalculateLiveScore();
-            saveQuizState();
-
-            try {
-                let attemptSnapshots = snapshots;
-                if (!Array.isArray(attemptSnapshots)) {
-                    if (whiteboardDirtyQuestions[qIndex] || !Array.isArray(solutionSnapshots[qIndex])) {
-                        attemptSnapshots = await captureQuestionSnapshots(qIndex);
-                        if (attemptSnapshots === null) return null;
-                    } else {
-                        attemptSnapshots = solutionSnapshots[qIndex];
-                    }
-                } else {
-                    solutionSnapshots[qIndex] = sanitizeSnapshotsForServer(attemptSnapshots);
-                }
-                const activeBeforeDigest = gradingRequests.get(qIndex);
-                if (!activeBeforeDigest
-                    || activeBeforeDigest.requestToken !== requestToken
-                    || currentAnswerRevision(qIndex) !== startingRevision) return null;
-                identity = await prepareAttemptIdentity(qIndex, answer, attemptSnapshots || []);
-                if (!identity) return null;
-                const activeBeforeFetch = gradingRequests.get(qIndex);
-                if (!activeBeforeFetch || activeBeforeFetch.requestToken !== requestToken) return null;
-                activeBeforeFetch.identity = identity;
-                progressiveResults[qIndex] = {
-                    ...progressiveResults[qIndex],
-                    answer_digest: identity.answerDigest,
-                    snapshot_digest: identity.snapshotDigest
-                };
-                saveQuizState();
-
-                const metrics = getCurrentTimeMetrics();
-                const response = await fetch('/api/grade_individual', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: controller.signal,
-                    body: JSON.stringify({
-                        quiz_id: quizId,
-                        session_id: sessionId,
-                        session_revision: sessionRevision,
-                        student_name: studentName,
-                        q_index: qIndex,
-                        question_index: qIndex,
-                        student_answer: answer,
-                        solution_snapshots: identity.snapshots,
-                        answer_revision: identity.revision,
-                        answer_digest: identity.answerDigest,
-                        snapshot_digest: identity.snapshotDigest,
-                        time_active_seconds: metrics.timeActive,
-                        time_paused_seconds: metrics.finalPausedTime,
-                        total_duration_seconds: metrics.totalDuration,
-                        accuracy_pct: metrics.accuracyPct
-                    })
-                });
-                const data = await response.json().catch(() => ({}));
-                const active = gradingRequests.get(qIndex);
-                if (!active || active.requestToken !== requestToken) return null;
-                if (!response.ok || data.success === false) {
-                    if (data.stale === true) {
-                        console.warn(`[QUIZ] Server rejected stale grading revision for Q${qIndex + 1}.`);
-                        return null;
-                    }
-                    if (responseMatchesAttempt(data, identity)) {
-                        return applyGradeResponse(qIndex, data, identity);
-                    }
-                    return applyGradeRequestError(
-                        qIndex,
-                        identity,
-                        data.error || `Grading failed (HTTP ${response.status})`,
-                        data.retryable === true || response.status === 429 || response.status >= 500
-                    );
-                }
-                return applyGradeResponse(qIndex, data, identity);
-            } catch (error) {
-                if (error && error.name === 'AbortError' && !timedOut) return null;
-                const active = gradingRequests.get(qIndex);
-                if (!active || active.requestToken !== requestToken) return null;
-                const fallbackIdentity = identity || {
-                    revision: startingRevision,
-                    answer,
-                    answerDigest: answerDigests[qIndex] || '',
-                    snapshotDigest: snapshotDigests[qIndex] || ''
-                };
-                const errorMessage = String(error && error.message || 'Unknown grading failure');
-                const retryableFailure = timedOut
-                    || (error && error.name === 'TypeError' && /fetch|network|load failed/i.test(errorMessage));
-                return applyGradeRequestError(
-                    qIndex,
-                    fallbackIdentity,
-                    timedOut
-                        ? 'Grading timed out. Please retry.'
-                        : (retryableFailure
-                            ? `Grading is temporarily unavailable: ${errorMessage}`
-                            : `Grading could not be verified: ${errorMessage}`),
-                    retryableFailure
-                );
-            } finally {
-                clearTimeout(gradingTimeout);
-                const active = gradingRequests.get(qIndex);
-                if (active && active.requestToken === requestToken) gradingRequests.delete(qIndex);
-                settlePendingGrading(pendingToken);
-            }
-        }
-
-        function renderInstantFeedbackResult(result, isLast = false) {
-            const feedbackCont = document.getElementById('instant-feedback');
-            const statusElem = document.getElementById('feedback-status');
-            const textElem = document.getElementById('feedback-text');
-            const retryBtn = document.getElementById('btn-retry-grading');
-            if (!feedbackCont || !statusElem || !textElem) return;
-
-            const reportedStatus = result && result.grade_status ? result.grade_status : 'pending';
-            const gradeStatus = reportedStatus === 'graded' && !isAuthoritativelyGraded(result)
-                ? 'invalid_response'
-                : reportedStatus;
-            feedbackCont.style.display = 'block';
-            feedbackCont.classList.remove('feedback-correct', 'feedback-wrong');
-            if (retryBtn) retryBtn.style.display = 'none';
-
-            if (gradeStatus === 'graded') {
-                const scoreFraction = Number(result.score_fraction);
-                if (scoreFraction === 1) {
-                    feedbackCont.classList.add('feedback-correct');
-                    statusElem.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> CORRECT!';
-                } else if (scoreFraction > 0) {
-                    feedbackCont.classList.add('feedback-wrong');
-                    statusElem.innerHTML = '<i data-lucide="minus-circle" class="icon-sm"></i> PARTIAL CREDIT';
-                } else {
-                    feedbackCont.classList.add('feedback-wrong');
-                    statusElem.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> INCORRECT';
-                }
-            } else if (gradeStatus === 'retryable_error') {
-                statusElem.innerHTML = '<i data-lucide="clock" class="icon-sm"></i> GRADING TEMPORARILY UNAVAILABLE';
-                if (retryBtn && result.retryable === true) retryBtn.style.display = 'inline-flex';
-            } else if (gradeStatus === 'invalid_response') {
-                statusElem.innerHTML = '<i data-lucide="alert-triangle" class="icon-sm"></i> GRADING COULD NOT BE VERIFIED';
-            } else {
-                statusElem.innerHTML = '<i data-lucide="clock" class="icon-sm"></i> GRADING PENDING';
-            }
-
-            let feedbackHtml = '';
-            if (gradeStatus === 'graded' && result.correct_answer !== null && result.correct_answer !== undefined) {
-                feedbackHtml += `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(result.correct_answer)}</div>`;
-            }
-            if (result && result.ai_feedback && result.ai_feedback.trim()) {
-                feedbackHtml += `${feedbackHtml ? '<br><br>' : ''}<i data-lucide="bot" class="icon-sm"></i> <em>${formatText(result.ai_feedback)}</em>`;
-            }
-            if (!feedbackHtml) feedbackHtml = gradeStatus === 'graded' ? 'Your answer has been checked.' : 'Your answer has not been counted as incorrect. Please wait or retry when offered.';
-            textElem.innerHTML = feedbackHtml;
-
-            if (gradeStatus === 'graded') {
-                const inputs = document.getElementById('options-container').querySelectorAll('button, input, textarea');
-                inputs.forEach(element => {
-                    element.disabled = true;
-                    element.style.opacity = '0.6';
-                    element.style.pointerEvents = 'none';
-                });
-            }
-            if (isLast) {
-                const nextBtn = feedbackCont.querySelector('.btn-next-question');
-                if (nextBtn) nextBtn.innerHTML = '<i data-lucide="flag" class="icon-sm"></i> FINISH QUIZ';
-            }
-            renderMath('instant-feedback');
-            if (window.lucide) lucide.createIcons();
-        }
-
         async function handleAnswer(val, direction = 1, btn = null) {
-            const qIndex = currentIndex;
             try {
                 if (timerInterval) clearInterval(timerInterval);
                 timerInterval = null;
                 isGrading = true;
-                commitAnswerChange(qIndex, val);
-                const isBF = quizData.quiz_mode === 'back_and_forth';
-                const gradingPromise = requestQuestionGrade(qIndex);
+                pendingGradings++;
 
+                const qIndex = currentIndex;
+                const q = quizData.questions[qIndex];
+                const isGraphing = q.type === 'graphing';
+
+                // 1. Snapshot logic
+                let snapshots = [];
+                if (document.getElementById('right-panel').style.display !== 'none' && canvas) {
+                    try {
+                        saveCurrentPage();
+                        snapshots = questionPages[qIndex].map(pg => {
+                            const temp = document.createElement('canvas');
+                            temp.width = canvas.width; temp.height = canvas.height;
+                            const tCtx = temp.getContext('2d');
+                            tCtx.fillStyle = '#ffffff';
+                            tCtx.fillRect(0,0,temp.width,temp.height);
+                            if (isGraphing) {
+                                tCtx.beginPath(); tCtx.strokeStyle = '#e2e8f0'; tCtx.lineWidth = 1;
+                                for (let x = 0; x <= temp.width; x += 40) { tCtx.moveTo(x, 0); tCtx.lineTo(x, temp.height); }
+                                for (let y = 0; y <= temp.height; y += 40) { tCtx.moveTo(0, y); tCtx.lineTo(temp.width, y); }
+                                tCtx.stroke();
+                            }
+                            renderToCanvas(pg, tCtx);
+                            return temp.toDataURL('image/png');
+                        });
+                        solutionSnapshots[qIndex] = snapshots;
+                    } catch (snapErr) { console.error('Snapshot error:', snapErr); }
+                }
+
+                // 2. SAVE STATE (BUT DO NOT ADVANCE INDEX YET FOR SEQUENTIAL MODE)
+                answers[qIndex] = val;
+                const isBF = quizData.quiz_mode === 'back_and_forth';
                 if (isBF) {
                     currentIndex += direction;
+                }
+                saveQuizState();
+
+                // 3. BACKGROUND GRADING (Trigger immediately, but we'll await it later if it's the last question)
+                const metrics = getCurrentTimeMetrics();
+                const apiKey = localStorage.getItem('gemini_api_key') || '';
+                const gradingPromise = fetch('/api/grade_individual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quiz_id: quizId,
+                        session_id: sessionId,
+                        student_name: studentName,
+                        q_index: qIndex,
+                        student_answer: val,
+                        solution_snapshots: snapshots,
+                        time_active_seconds: metrics.timeActive,
+                        time_paused_seconds: metrics.finalPausedTime,
+                        total_duration_seconds: metrics.totalDuration,
+                        accuracy_pct: metrics.accuracyPct,
+                        api_key: apiKey
+                    })
+                }).then(async res => {
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Grading failed');
+
+                    console.log(`[QUIZ] Background Grading Complete for Q${qIndex+1}:`, data);
+                    progressiveResults[qIndex] = {
+                        question: q.question,
+                        user_answer: val ?? 'No Answer',
+                        correct_answer: data.correct_answer,
+                        is_correct: data.is_correct,
+                        ai_feedback: data.ai_feedback,
+                        score_fraction: Number(data.score_fraction) || 0,
+                        grade_proof: data.grade_proof
+                    };
+
+                    // RECALCULATE TOTAL SCORE FROM ALL GRADED ITEMS
+                    totalScore = progressiveResults.reduce((sum, res) => sum + (res ? (Number(res.score_fraction) || 0) : 0), 0);
+                    const liveScoreElem = document.getElementById('live-score');
+                    if (liveScoreElem) liveScoreElem.innerText = totalScore.toFixed(2);
+
+                    sendPing('Score Synced');
                     saveQuizState();
+                    saveProgressToServer();
+                }).catch(e => {
+                    console.error('BG Grading Error:', e);
+                    progressiveResults[qIndex] = {
+                        question: q.question,
+                        user_answer: val,
+                        correct_answer: 'Grading Error',
+                        is_correct: false,
+                        score_fraction: 0,
+                        ai_feedback: 'Error: ' + e.message
+                    };
+                    saveQuizState();
+                    saveProgressToServer();
+                }).finally(() => {
+                    pendingGradings--;
+                });
+
+                const isLast = qIndex >= quizData.questions.length - 1;
+
+                if (isBF) {
+                    // Back-and-Forth Mode: Advance instantly (Original behavior)
                     sendPing('Navigating');
                     if (currentIndex >= 0 && currentIndex < quizData.questions.length) {
-                        isWhiteboardDirty = !!whiteboardDirtyQuestions[currentIndex];
+                        // Unified Timer: Do NOT reset timeRemaining in BF mode
+                        isWhiteboardDirty = false;
                         loadQuestion();
                     } else {
-                        void submitQuiz();
+                        submitQuiz();
                     }
-                    return;
-                }
+                } else {
+                    // Sequential Mode: Show Instant Evaluation
+                    sendPing('Evaluating');
+                    const btnConfirm = document.getElementById('btn-confirm');
+                    if (btnConfirm) btnConfirm.style.display = 'none';
+                    const feedbackCont = document.getElementById('instant-feedback');
+                    const statusElem = document.getElementById('feedback-status');
+                    const textElem = document.getElementById('feedback-text');
 
-                sendPing('Evaluating');
-                const btnConfirm = document.getElementById('btn-confirm');
-                if (btnConfirm) btnConfirm.style.display = 'none';
-                renderInstantFeedbackResult({ grade_status: 'pending', retryable: false }, qIndex >= quizData.questions.length - 1);
-                await gradingPromise;
-                renderInstantFeedbackResult(progressiveResults[qIndex], qIndex >= quizData.questions.length - 1);
-                document.getElementById('instant-feedback').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    feedbackCont.style.display = 'block';
+                    statusElem.innerText = '⌛ EVALUATING...';
+                    textElem.innerText = 'Please wait while we check your answer...';
+                    feedbackCont.classList.remove('feedback-correct', 'feedback-wrong');
+
+                    // WAIT FOR GRADING
+                    await gradingPromise;
+
+                    const result = progressiveResults[qIndex];
+                    const retryBtn = document.getElementById('btn-retry-grading');
+
+                    if (result.is_correct) {
+                        feedbackCont.classList.add('feedback-correct');
+                        statusElem.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> CORRECT!';
+                        if (retryBtn) retryBtn.style.display = 'none';
+                    } else {
+                        feedbackCont.classList.add('feedback-wrong');
+                        statusElem.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> INCORRECT';
+
+                        if (retryBtn) {
+                            const isNotFullyCorrect = !result.is_correct || (Number(result.score_fraction) < 1);
+                            const fb = (result.ai_feedback || '').toLowerCase();
+                            const isFallbackFeedback = fb.includes('unavailable') || fb.includes('exact-match') || fb.includes('error') || fb.includes('failed');
+                            if (isNotFullyCorrect || isFallbackFeedback || result.correct_answer === 'Grading Error') {
+                                retryBtn.style.display = 'inline-flex';
+                            } else {
+                                retryBtn.style.display = 'none';
+                            }
+                        }
+                    }
+
+                    let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(result.correct_answer)}</div>`;
+                    if (result.ai_feedback && result.ai_feedback.trim()) {
+                        feedbackHtml += `<br><br><i data-lucide="bot" class="icon-sm"></i> <em>${formatText(result.ai_feedback)}</em>`;
+                    }
+                    textElem.innerHTML = feedbackHtml;
+                    renderMath('instant-feedback');
+                    if (window.lucide) lucide.createIcons();
+
+                    // Disable interaction with options - CRITICAL: Select all relevant elements
+                    const inputs = document.getElementById('options-container').querySelectorAll('button, input, textarea');
+                    inputs.forEach(el => {
+                        el.disabled = true;
+                        el.style.opacity = '0.6';
+                        el.style.pointerEvents = 'none';
+                    });
+
+                    // Scroll feedback into view
+                    document.getElementById('instant-feedback').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    // Handle Final Question Navigation
+                    if (isLast) {
+                        const nextBtn = feedbackCont.querySelector('.btn-next-question');
+                        if (nextBtn) nextBtn.innerHTML = '<i data-lucide="flag" class="icon-sm"></i> FINISH QUIZ';
+                    }
+                }
             } catch (fatalErr) {
                 console.error('FATAL UI CRASH:', fatalErr);
-                const revision = currentAnswerRevision(qIndex);
-                const identity = {
-                    revision,
-                    answer: Object.prototype.hasOwnProperty.call(answers, qIndex) ? answers[qIndex] : '',
-                    answerDigest: answerDigests[qIndex] || '',
-                    snapshotDigest: snapshotDigests[qIndex] || ''
-                };
-                applyGradeRequestError(qIndex, identity, `Grading could not be verified: ${fatalErr.message}`, false);
+                // alert('Something went wrong: ' + fatalErr.message);
                 if (quizData.quiz_mode === 'back_and_forth') {
                     currentIndex += direction;
-                    if (currentIndex >= 0 && currentIndex < quizData.questions.length) loadQuestion();
-                    else void submitQuiz();
                 } else {
-                    renderInstantFeedbackResult(progressiveResults[qIndex], qIndex >= quizData.questions.length - 1);
+                    currentIndex++;
                 }
+
+                if (currentIndex >= 0 && currentIndex < quizData.questions.length) loadQuestion();
+                else submitQuiz();
+                pendingGradings--;
             } finally {
                 isGrading = false;
             }
@@ -2407,7 +1809,7 @@
             if (retryBtn) retryBtn.style.display = 'none';
 
             currentIndex++; // Advance index here for sequential mode
-            isWhiteboardDirty = !!whiteboardDirtyQuestions[currentIndex];
+            isWhiteboardDirty = false;
             timeRemaining = quizData.time_limit;
             timerInterval = null;
             startTimer();
@@ -2417,20 +1819,97 @@
         async function retryGrading() {
             const retryBtn = document.getElementById('btn-retry-grading');
             if (!retryBtn) return;
-            const currentResult = progressiveResults[currentIndex];
-            if (!currentResult || currentResult.grade_status !== 'retryable_error' || currentResult.retryable !== true) return;
 
             const originalText = retryBtn.innerText;
             retryBtn.innerText = '⌛ RE-CHECKING...';
             retryBtn.disabled = true;
+
             const qIndex = currentIndex;
+            const q = quizData.questions[qIndex];
+            const val = Object.prototype.hasOwnProperty.call(answers, qIndex) ? answers[qIndex] : '';
+            const snapshots = solutionSnapshots[qIndex] || [];
+            const metrics = getCurrentTimeMetrics();
 
             try {
-                await requestQuestionGrade(qIndex);
-                renderInstantFeedbackResult(progressiveResults[qIndex], qIndex >= quizData.questions.length - 1);
+                const apiKey = localStorage.getItem('gemini_api_key') || '';
+                const res = await fetch('/api/grade_individual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quiz_id: quizId,
+                        session_id: sessionId,
+                        student_name: studentName,
+                        q_index: qIndex,
+                        student_answer: val,
+                        solution_snapshots: snapshots,
+                        time_active_seconds: metrics.timeActive,
+                        time_paused_seconds: metrics.finalPausedTime,
+                        total_duration_seconds: metrics.totalDuration,
+                        accuracy_pct: metrics.accuracyPct,
+                        api_key: apiKey
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Grading failed');
+
+                console.log(`[QUIZ] Retry Grading Complete for Q${qIndex+1}:`, data);
+                progressiveResults[qIndex] = {
+                    question: q.question,
+                    user_answer: val ?? 'No Answer',
+                    correct_answer: data.correct_answer,
+                    is_correct: data.is_correct,
+                    ai_feedback: data.ai_feedback,
+                    score_fraction: Number(data.score_fraction) || 0,
+                    grade_proof: data.grade_proof
+                };
+
+                // RECALCULATE TOTAL SCORE & UPDATE UI
+                totalScore = progressiveResults.reduce((sum, r) => sum + (r ? (Number(r.score_fraction) || 0) : 0), 0);
+                const liveScoreElem = document.getElementById('live-score');
+                if (liveScoreElem) liveScoreElem.innerText = totalScore.toFixed(2);
+
+                // SYNC & PERSIST
+                sendPing('Score Synced');
+                saveQuizState();
+                saveProgressToServer();
+
+                // RE-RENDER FEEDBACK BOX
+                const feedbackCont = document.getElementById('instant-feedback');
+                const statusElem = document.getElementById('feedback-status');
+                const textElem = document.getElementById('feedback-text');
+
+                feedbackCont.classList.remove('feedback-correct', 'feedback-wrong');
+
+                if (data.is_correct) {
+                    feedbackCont.classList.add('feedback-correct');
+                    statusElem.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> CORRECT!';
+                    if (retryBtn) retryBtn.style.display = 'none';
+                } else {
+                    feedbackCont.classList.add('feedback-wrong');
+                    statusElem.innerHTML = '<i data-lucide="x-circle" class="icon-sm"></i> INCORRECT';
+                    if (retryBtn) {
+                        const isNotFullyCorrect = !data.is_correct || (Number(data.score_fraction) < 1);
+                        const fb = (data.ai_feedback || '').toLowerCase();
+                        const isFallbackFeedback = fb.includes('unavailable') || fb.includes('exact-match') || fb.includes('error') || fb.includes('failed');
+                        if (isNotFullyCorrect || isFallbackFeedback || data.correct_answer === 'Grading Error') {
+                            retryBtn.style.display = 'inline-flex';
+                        } else {
+                            retryBtn.style.display = 'none';
+                        }
+                    }
+                }
+
+                let feedbackHtml = `<strong>Correct Answer:</strong><br><div style="margin-top: 5px; font-weight: 700; font-size: 18px;">${formatText(data.correct_answer)}</div><br>`;
+                if (data.ai_feedback) {
+                    feedbackHtml += `<i data-lucide="bot" class="icon-sm"></i> <em>${formatText(data.ai_feedback)}</em>`;
+                }
+                textElem.innerHTML = feedbackHtml;
+                renderMath('instant-feedback');
+
             } catch (e) {
                 console.error('Retry Grading Error:', e);
-                renderInstantFeedbackResult(progressiveResults[qIndex], qIndex >= quizData.questions.length - 1);
+                alert('Retry failed: ' + e.message);
             } finally {
                 retryBtn.innerText = originalText;
                 retryBtn.disabled = false;
@@ -2441,18 +1920,12 @@
             if (isSubmitting) return;
 
             if (status === 'early' && !confirm('Are you sure you want to end the quiz early? Unanswered questions will be marked as incorrect.')) return;
-            lastSubmissionStatus = status;
             isSubmitting = true;
-            let submissionConfirmed = false;
-            let finalCalculatedScore = null;
-            let finalMaximumScore = null;
 
             // SHOW LOADING STATE IMMEDIATELY
             document.getElementById('quiz-screen').style.display = 'none';
             document.getElementById('result-screen').style.display = 'block';
             document.getElementById('score-text').innerText = 'Finalizing Results...';
-            document.getElementById('save-status-msg').innerText = 'Waiting for authoritative server grading.';
-            document.getElementById('pdf-btn').style.display = 'none';
 
             // Anti-Stuck: Clear any active timers
             if (timerInterval) clearInterval(timerInterval);
@@ -2465,84 +1938,43 @@
                 document.getElementById('score-text').innerText = `Finalizing Results (${pendingGradings} left)...`;
                 await new Promise(r => setTimeout(r, 1000));
             }
-            if (progressiveSaveDebounce) {
-                clearTimeout(progressiveSaveDebounce);
-                progressiveSaveDebounce = null;
-            }
-            await progressiveSaveChain.catch(error => {
-                console.warn('[QUIZ] Continuing finalization after a progressive save failure:', error);
-            });
-            Array.from(gradingRequests.keys()).forEach(abortQuestionGrading);
 
             clearInterval(pingInterval); // Stop normal pings immediately
 
-            try {
-            const finalSnapshotPayload = {};
-            const finalSnapshotDigestPayload = {};
-            for (let index = 0; index < quizData.questions.length; index++) {
-                answerRevisions[index] = currentAnswerRevision(index);
-                const hasLocalWork = Array.isArray(questionPages[index]) && questionPages[index].some(questionPageHasContent);
-                if (whiteboardDirtyQuestions[index] || (hasLocalWork && !Array.isArray(solutionSnapshots[index]))) {
-                    await captureQuestionSnapshots(index);
-                }
-                if (Array.isArray(solutionSnapshots[index])) {
-                    solutionSnapshots[index] = sanitizeSnapshotsForServer(solutionSnapshots[index]);
-                    finalSnapshotPayload[index] = solutionSnapshots[index];
-                    finalSnapshotDigestPayload[index] = await stableSha256Digest(solutionSnapshots[index]);
-                } else if (typeof snapshotDigests[index] === 'string' && snapshotDigests[index]) {
-                    // The raster may only exist on the server after a localStorage restore.
-                    // Omitting the image key preserves it; its known digest still binds proof.
-                    finalSnapshotDigestPayload[index] = snapshotDigests[index];
-                } else {
-                    finalSnapshotPayload[index] = [];
-                    finalSnapshotDigestPayload[index] = await stableSha256Digest([]);
-                }
-                answers[index] = Object.prototype.hasOwnProperty.call(answers, index)
-                    ? sanitizeAnswerForServer(answers[index])
-                    : 'No Answer';
-                const answer = answers[index];
-                answerDigests[index] = await stableSha256Digest(answer);
-                snapshotDigests[index] = finalSnapshotDigestPayload[index];
-            }
-
-            // Preserve proofs as hints only. The server independently validates or
-            // regrades every item and is the sole authority for the final score.
+            // Preserve completed server grades and leave all missing items for the
+            // authoritative submit endpoint. The student payload never contains keys.
+            let finalCalculatedScore = 0;
             progressiveResults = quizData.questions.map((q, i) => {
                 const r = progressiveResults[i];
                 const userAns = Object.prototype.hasOwnProperty.call(answers, i) ? answers[i] : 'No Answer';
 
-                if (isAuthoritativelyGraded(r)
-                    && Number(r.answer_revision) === currentAnswerRevision(i)
-                    && r.answer_digest === answerDigests[i]
-                    && r.snapshot_digest === snapshotDigests[i]) {
-                    return { ...r, user_answer: userAns };
+                if (r && Number.isFinite(Number(r.score_fraction))) {
+                    finalCalculatedScore += (Number(r.score_fraction) || 0);
+                    return r;
                 }
 
                 return {
                     question: q.question,
                     type: q.type,
                     user_answer: userAns,
-                    grade_status: 'pending',
-                    retryable: false,
-                    answer_revision: currentAnswerRevision(i),
-                    answer_digest: answerDigests[i],
-                    snapshot_digest: snapshotDigests[i],
-                    ai_feedback: 'Pending authoritative server grading.'
+                    correct_answer: null,
+                    is_correct: false,
+                    score_fraction: 0,
+                    ai_feedback: 'Pending server grading.'
                 };
             });
-            const localLiveScore = recalculateLiveScore();
-            const finalSessionRevision = ++sessionRevision;
 
             document.getElementById('right-panel').style.display = 'none';
             document.querySelector('.quiz-container').classList.remove('split-mode');
 
+            try {
                 // Calculate final time metrics
                 const metrics = getCurrentTimeMetrics();
                 const timeActive = metrics.timeActive;
                 const finalPausedTime = metrics.finalPausedTime;
                 const totalDuration = metrics.totalDuration;
-                const accuracyPct = maximumQuizScore() > 0
-                    ? (localLiveScore / maximumQuizScore()) * 100
+                const accuracyPct = quizData.questions.length > 0
+                    ? (finalCalculatedScore / quizData.questions.length) * 100
                     : 0;
 
                 // 1. URGENT: SEND FINAL STATUS PING FIRST TO CLEAR LIVE DASHBOARD
@@ -2550,7 +1982,7 @@
                 const finalStatus = status === 'early'
                     ? 'Abandoned'
                     : (status === 'terminated' ? 'Terminated by teacher' : 'Completed');
-                sendPing('Finalizing');
+                sendPing(finalStatus);
 
                 // Keep the HTTP fallback for absolute reliability
                 await fetch('/ping', {
@@ -2558,7 +1990,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         quiz_id: quizId, session_id: sessionId, student_name: studentName,
-                        current_q: currentIndex + 1, score: null, status: 'Finalizing'
+                        current_q: currentIndex + 1, score: finalCalculatedScore, status: finalStatus
                     })
                 }).catch(e => console.error('Final status ping fallback failed:', e));
 
@@ -2569,13 +2001,9 @@
                     body: JSON.stringify({
                         quiz_id: quizId, session_id: sessionId, student_name: studentName,
                         answers,
-                        answer_revisions: answerRevisions,
-                        answer_digests: answerDigests,
-                        snapshot_digests: finalSnapshotDigestPayload,
-                        session_revision: finalSessionRevision,
-                        graded_details: progressiveResults,
+                        graded_details: progressiveResults, total_score: finalCalculatedScore,
                         submission_status: status,
-                        solution_snapshots: finalSnapshotPayload,
+                        solution_snapshots: solutionSnapshots,
                         time_active_seconds: timeActive,
                         time_paused_seconds: finalPausedTime,
                         total_duration_seconds: totalDuration,
@@ -2583,77 +2011,39 @@
                     })
                 });
 
-                const data = await response.json().catch(() => ({}));
-                if (!response.ok || !data.success) {
-                    const submissionError = new Error(data.error || `Server error ${response.status}`);
-                    submissionError.retryable = data.retryable === true
-                        || (!data.grading_incomplete && (response.status === 429 || response.status >= 500));
-                    submissionError.gradingIncomplete = data.grading_incomplete === true;
-                    throw submissionError;
-                }
-                const serverDetails = Array.isArray(data.graded_details) ? data.graded_details : data.details;
-                if (!Array.isArray(serverDetails)
-                    || serverDetails.length !== quizData.questions.length
-                    || !serverDetails.every(detail => isAuthoritativelyGraded(detail))
-                    || !Number.isFinite(Number(data.total_score))
-                    || !Number.isFinite(Number(data.max_score))) {
-                    const invalidResultError = new Error('The server did not return a complete authoritative result.');
-                    invalidResultError.retryable = false;
-                    throw invalidResultError;
-                }
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.error || `Server error ${response.status}`);
                 resultId = data.result_id;
                 resultAccessToken = data.result_access_token || null;
-                progressiveResults = serverDetails;
-                finalCalculatedScore = Number(data.total_score);
-                finalMaximumScore = Number(data.max_score);
+                if (Array.isArray(data.graded_details)) {
+                    progressiveResults = data.graded_details;
+                }
+                finalCalculatedScore = Number.isFinite(Number(data.total_score))
+                    ? Number(data.total_score)
+                    : finalCalculatedScore;
                 totalScore = finalCalculatedScore;
-                submissionConfirmed = true;
-                sendPing(finalStatus);
-                document.getElementById('save-status-msg').innerText = 'Score successfully submitted.';
-                document.getElementById('pdf-btn').style.display = 'inline-flex';
                 localStorage.removeItem(STORAGE_KEY);
             } catch (err) {
                 console.error('Submission failed:', err);
-                isSubmitting = false;
-                sendPing('Grading incomplete');
-                document.getElementById('score-text').innerText = 'Result not finalized';
-                const failureMessage = String(err && err.message || 'Finalization failed.');
-                const canRetry = err && err.retryable === true
-                    || (err && err.retryable === undefined
-                        && err.name === 'TypeError'
-                        && /fetch|network|load failed/i.test(failureMessage));
-                const retryMarkup = canRetry
-                    ? `<br><br><button class="btn-confirm" style="display:inline-flex; width:auto;" onclick="submitQuiz(lastSubmissionStatus)">
-                        <i data-lucide="refresh-cw" class="icon-sm"></i> RETRY FINALIZATION
-                    </button>`
-                    : '';
-                document.getElementById('save-status-msg').innerHTML = `
-                    <span style="color:var(--m-red)"><i data-lucide="alert-triangle" class="icon-sm"></i> ${formatText(failureMessage)}</span>${retryMarkup}`;
-                document.getElementById('review-container').innerHTML = '<p style="color:var(--warning);">No score is confirmed until authoritative grading completes on the server. Your answers remain available for retry.</p>';
-                if (window.lucide) lucide.createIcons();
+                if (document.getElementById('save-status-msg')) {
+                    document.getElementById('save-status-msg').innerHTML = `<span style="color:var(--m-red)"><i data-lucide="alert-triangle" class="icon-sm"></i>️ Save error: ${formatText(err.message)}. Please screenshot this result.</span>`;
+                }
             } finally {
-                if (!submissionConfirmed) return;
-                document.getElementById('score-text').innerText = `${finalCalculatedScore.toFixed(2)} / ${finalMaximumScore.toFixed(2)}`;
+                // ALWAYS show the results UI regardless of save success
+                document.getElementById('score-text').innerText = `${finalCalculatedScore.toFixed(2)} / ${quizData.questions.length}`;
                 const rev = document.getElementById('review-container'); rev.innerHTML = '';
                 progressiveResults.forEach((item, i) => {
                     const b = document.createElement('div'); b.className = `review-block`;
 
-                    const isGraded = item && item.grade_status === 'graded';
-                    const sfVal = isGraded && Number.isFinite(Number(item.score_fraction)) ? Number(item.score_fraction) : 0;
-                    const statusClass = !isGraded ? 'status-partial' : (sfVal >= 1 ? 'status-correct' : (sfVal > 0 ? 'status-partial' : 'status-wrong'));
-                    const statusText = !isGraded
-                        ? '<i data-lucide="clock" class="icon-sm"></i> Pending'
-                        : (sfVal >= 1 ? '<i data-lucide="check" class="icon-sm"></i> Correct' : (sfVal > 0 ? `<i data-lucide="minus" class="icon-sm"></i> Partial (${(sfVal * 100).toFixed(0)}%)` : '<i data-lucide="x" class="icon-sm"></i> Incorrect'));
-                    const maxItemPoints = questionPoints(i);
-                    const earnedItemPoints = isGraded && Number.isFinite(Number(item.earned_points))
-                        ? Number(item.earned_points)
-                        : maxItemPoints * sfVal;
+                    const sfVal = Number(item.score_fraction !== undefined ? item.score_fraction : (item.is_correct ? 1 : 0));
+                    const statusClass = sfVal >= 1 ? 'status-correct' : (sfVal > 0 ? 'status-partial' : 'status-wrong');
+                    const statusText = sfVal >= 1 ? '<i data-lucide="check" class="icon-sm"></i> Correct' : (sfVal > 0 ? `<i data-lucide="minus" class="icon-sm"></i> Partial (${(sfVal * 100).toFixed(0)}%)` : '<i data-lucide="x" class="icon-sm"></i> Incorrect');
 
                     let html = `
                         <div class="status-badge ${statusClass}">${statusText}</div>
                         <div style="font-weight: 800; color: var(--primary); display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
                             <span>QUESTION ${i+1}</span>
-                            <span style="font-size: 14px; background: var(--surface-card); padding: 4px 10px; border-radius: 8px;">Points: ${earnedItemPoints.toFixed(2)} / ${maxItemPoints.toFixed(2)}</span>
+                            <span style="font-size: 14px; background: var(--surface-card); padding: 4px 10px; border-radius: 8px;">Points: ${sfVal.toFixed(2)} / 1.0</span>
                         </div>
                         <div style="font-size: 18px; margin-bottom: 20px;">${formatText(item.question)}</div>
                     `;
@@ -2686,7 +2076,7 @@
                         html += `<div style="margin-top: 15px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 4px; font-size: 13px;"><i data-lucide="bot" class="icon-sm"></i> ${formatText(item.ai_feedback)}</div>`;
                     }
 
-                    if (isGraded && sfVal < 1) {
+                    if (!item.is_correct) {
                         html += `
                                 <button class="wb-btn" style="margin-top: 15px; width: 100%; border-color: var(--primary); color: var(--primary);"
                                 onclick="explainMistakeStudent(this, ${i})">
@@ -2701,8 +2091,9 @@
                 });
                 renderMath('review-container');
 
-                // Vector editing state is no longer needed after a confirmed result.
-                // Keep the bounded snapshot cache available for proof-bound tutor requests.
+                // --- CLEAR LOCAL RAM LAST ---
+                // We wipe large base64 snapshots only AFTER the UI has finished rendering them
+                solutionSnapshots = {};
                 questionPages = {};
                 saveQuizState();
             }
@@ -2737,15 +2128,11 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     quiz_id: quizId,
-                    session_id: sessionId,
                     q_index: idx,
-                    question_index: idx,
-                    answer_revision: Number(item.answer_revision) || 0,
                     grade_proof: item.grade_proof,
                     question: item.question,
                     user_answer: item.user_answer,
-                    correct_answer: item.correct_answer,
-                    solution_snapshots: solutionSnapshots[idx] || []
+                    correct_answer: item.correct_answer
                 })
             })
             .then(res => res.json()).then(data => {
@@ -2802,7 +2189,8 @@
             canvas.onpointerup = () => {
                 if (isDrawing && currentStroke) {
                     questionPages[currentIndex][currentPageIndex].strokes.push(currentStroke);
-                    commitWhiteboardChange(currentIndex);
+                    isWhiteboardDirty = true; // MARK DIRTY
+                    saveQuizState();
                 }
                 isDrawing = false;
                 currentStroke = null;
@@ -2834,9 +2222,10 @@
         function addNewPage() {
             questionPages[currentIndex].push({ strokes: [], texts: [] });
             currentPageIndex = questionPages[currentIndex].length - 1;
-            commitWhiteboardChange(currentIndex);
+            isWhiteboardDirty = true; // MARK DIRTY
             redrawCanvas();
             updatePageUI();
+            saveQuizState();
         }
         function nextPage() { if (currentPageIndex < questionPages[currentIndex].length - 1) { currentPageIndex++; redrawCanvas(); updatePageUI(); } }
         function prevPage() { if (currentPageIndex > 0) { currentPageIndex--; redrawCanvas(); updatePageUI(); } }
@@ -2847,16 +2236,18 @@
             questionPages[currentIndex][currentPageIndex].texts.push({ content: textInput.value, x: parseInt(textCont.style.left), y: parseInt(textCont.style.top), color: textInput.style.color, size: textInput.style.fontSize });
             textCont.style.display = 'none';
             textInput.value = '';
-            commitWhiteboardChange(currentIndex);
+            isWhiteboardDirty = true; // MARK DIRTY
             redrawCanvas();
+            saveQuizState();
         }
         function setTool(t) { if (document.getElementById('wb-text-container').style.display === 'block') finalizeText(); currentTool = t; document.querySelectorAll('.wb-btn[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t)); }
         function toggleWBGrid() { const c = document.getElementById('canvas-holder'), b = document.getElementById('wb-grid-toggle'), g = c.classList.toggle('grid-mode'); b.innerText = g ? '⬜ Grid: On' : '⬛ Grid: Off'; b.classList.toggle('active', g); }
         function clearCanvas() {
             questionPages[currentIndex][currentPageIndex] = { strokes: [], texts: [] };
-            commitWhiteboardChange(currentIndex);
+            isWhiteboardDirty = true; // MARK DIRTY
             redrawCanvas();
             document.getElementById('wb-text-container').style.display = 'none';
+            saveQuizState();
         }
         function addText() { setTool('text'); }
         function setLineWidth(w) {
@@ -2904,14 +2295,11 @@
             }
         }
 
-        window.onload = async () => {
+        window.onload = () => {
             if (loadQuizState()) {
                 console.log('[QUIZ] Restoring session for:', studentName);
-                const restoredProgress = await loadProgressiveResultFromServer();
-                if (restoredProgress === 'finalized') return;
                 sendPing('Resumed');
                 startQuizUI();
-                resumePendingGradings();
             }
         };
     </script>

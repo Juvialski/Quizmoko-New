@@ -16,7 +16,6 @@ import {
   type AuthRequest
 } from '../middleware/auth.ts';
 import { loginLimiter } from '../middleware/rateLimit.ts';
-import { canUserManageApiKeys } from '../services/quizCreatorAi.ts';
 
 const router = Router();
 const VALID_ROLES = new Set<User['role']>(['admin', 'teacher', 'student']);
@@ -195,12 +194,6 @@ router.post('/api/user/save_api_key', tokenRequired, asyncRoute(async (req: Auth
   const { api_key } = req.body || {};
   if (!req.user?.uid) {
     return res.status(401).json({ success: false, error: 'Unauthorized' });
-  }
-  if (!canUserManageApiKeys(req.user)) {
-    return res.status(403).json({
-      success: false,
-      error: 'Only teachers and administrators can configure AI API keys.'
-    });
   }
   const user = users.get(req.user.uid);
   if (!user) {

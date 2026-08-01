@@ -189,20 +189,6 @@
         .golden-key-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 16px; }
         .golden-item { background: var(--surface-soft); border: 1px solid var(--hairline); padding: 8px; border-radius: 4px; font-size: 11px; text-align: center; }
         .golden-item b { color: var(--warning); display: block; font-size: 14px; margin-bottom: 2px; }
-        .worksheet-review-panel {
-            display: none; margin-bottom: 20px; padding: 16px; border: 1px solid var(--warning);
-            border-radius: var(--radius-sm); background: rgba(251, 191, 36, 0.08);
-        }
-        .worksheet-review-list {
-            margin: 10px 0 0; padding-left: 20px; color: var(--body-strong); font-size: 12px;
-            max-height: 220px; overflow-y: auto;
-        }
-        .worksheet-review-list li { margin-bottom: 7px; line-height: 1.45; }
-        .worksheet-review-approval {
-            display: none; align-items: flex-start; gap: 10px; margin-top: 14px; padding: 12px;
-            border-radius: var(--radius-sm); border: 1px solid rgba(251, 191, 36, 0.45);
-            background: var(--surface-soft);
-        }
 
         /* Cropper Modal */
         #cropper-modal {
@@ -331,20 +317,6 @@
 
             <div id="right-col">
                 <div id="extraction-preview" class="card" style="margin-top: 0; display: none;">
-
-                    <div id="worksheet-review-panel" class="worksheet-review-panel" role="alert" aria-live="polite">
-                        <h3 style="margin-bottom: 6px; color: var(--warning); display: flex; align-items: center; gap: 8px;">
-                            <i data-lucide="alert-triangle" class="icon-sm"></i> Worksheet Review Required
-                        </h3>
-                        <p id="worksheet-review-summary" style="font-size: 12px; color: var(--body); margin: 0;"></p>
-                        <ul id="worksheet-review-list" class="worksheet-review-list"></ul>
-                        <label id="worksheet-review-approval" class="worksheet-review-approval" for="allow-review-required">
-                            <input type="checkbox" id="allow-review-required" style="width: 20px; height: 20px; min-width: 20px; margin-top: 1px; cursor: pointer;">
-                            <span style="font-size: 12px; line-height: 1.5; color: var(--body-strong); text-transform: none; letter-spacing: normal;">
-                                I reviewed these extraction issues and explicitly approve creating the quiz. Questions must still pass structural and answer validation.
-                            </span>
-                        </label>
-                    </div>
 
                     <div class="card golden-key-card" id="golden-key-card" style="display: none;">
                         <h3 style="margin-bottom: 8px; color: var(--warning); display: flex; align-items: center; gap: 8px;"><i data-lucide="shield" class="icon-sm"></i>️ Golden Reference Key <span style="font-size: 10px; background: var(--warning); color: black; padding: 2px 6px; border-radius: 4px;">EXTRACTED</span></h3>
@@ -504,89 +476,6 @@
         let extractedQuestions = [];
         let missingIndices = [];
         let goldenReference = {};
-        let extractionDiagnostics = [];
-        let unresolvedFragments = [];
-        let generationDiagnostics = [];
-
-        function normalizeWorksheetDiagnostics(value) {
-            if (!Array.isArray(value)) return [];
-            return value.slice(0, 200).filter(item => item && typeof item === 'object').map(item => ({
-                code: String(item.code || 'review_required').slice(0, 80),
-                severity: item.severity === 'warning' ? 'warning' : 'error',
-                message: String(item.message || 'Worksheet review is required.').slice(0, 600),
-                source_id: item.source_id === undefined ? '' : String(item.source_id).slice(0, 160),
-                source_file: item.source_file === undefined ? '' : String(item.source_file).slice(0, 240),
-                page_number: Number.isInteger(Number(item.page_number)) ? Number(item.page_number) : undefined
-            }));
-        }
-
-        function normalizeUnresolvedFragments(value) {
-            if (!Array.isArray(value)) return [];
-            return value.slice(0, 100).filter(item => item && typeof item === 'object').map(item => ({
-                kind: ['choices', 'text', 'image'].includes(String(item.kind)) ? String(item.kind) : 'text',
-                target_source_id: item.target_source_id === undefined ? '' : String(item.target_source_id).slice(0, 160),
-                source_file: item.source_file === undefined ? '' : String(item.source_file).slice(0, 240),
-                page_number: Number.isInteger(Number(item.page_number)) ? Number(item.page_number) : undefined,
-                reason: String(item.reason || 'This fragment could not be reconciled.').slice(0, 600),
-                text: item.text === undefined ? '' : String(item.text).slice(0, 500),
-                options: Array.isArray(item.options) ? item.options.slice(0, 20).map(option => String(option).slice(0, 240)) : []
-            }));
-        }
-
-        function hasBlockingWorksheetWarnings() {
-            return unresolvedFragments.length > 0
-                || extractionDiagnostics.some(item => item.severity === 'error')
-                || generationDiagnostics.some(item => item.severity === 'error');
-        }
-
-        function renderWorksheetReviewWarnings() {
-            const panel = document.getElementById('worksheet-review-panel');
-            const summary = document.getElementById('worksheet-review-summary');
-            const list = document.getElementById('worksheet-review-list');
-            const approval = document.getElementById('worksheet-review-approval');
-            const approvalCheckbox = document.getElementById('allow-review-required');
-            const combined = [...extractionDiagnostics, ...generationDiagnostics];
-            const seen = new Set();
-            const diagnostics = combined.filter(item => {
-                const key = [item.code, item.severity, item.source_id, item.source_file, item.page_number, item.message].join('|');
-                if (seen.has(key)) return false;
-                seen.add(key);
-                return true;
-            });
-
-            list.innerHTML = '';
-            if (diagnostics.length === 0 && unresolvedFragments.length === 0) {
-                panel.style.display = 'none';
-                approval.style.display = 'none';
-                approvalCheckbox.checked = false;
-                return;
-            }
-
-            diagnostics.forEach(item => {
-                const li = document.createElement('li');
-                const location = [item.source_id ? `Question ${item.source_id}` : '', item.source_file, item.page_number ? `page ${item.page_number}` : '']
-                    .filter(Boolean).join(', ');
-                li.textContent = `${item.severity === 'error' ? 'Error' : 'Warning'}${location ? ` (${location})` : ''}: ${item.message}`;
-                list.appendChild(li);
-            });
-            unresolvedFragments.forEach(fragment => {
-                const li = document.createElement('li');
-                const location = [fragment.target_source_id ? `Question ${fragment.target_source_id}` : '', fragment.source_file, fragment.page_number ? `page ${fragment.page_number}` : '']
-                    .filter(Boolean).join(', ');
-                const preview = fragment.text || fragment.options.join(' | ');
-                li.textContent = `Unresolved ${fragment.kind} fragment${location ? ` (${location})` : ''}: ${fragment.reason}${preview ? ` — ${preview}` : ''}`;
-                list.appendChild(li);
-            });
-
-            const blocking = hasBlockingWorksheetWarnings();
-            summary.textContent = blocking
-                ? 'The server will not publish this worksheet until these items are resolved or you explicitly approve them below.'
-                : 'Review these extraction warnings before creating the quiz.';
-            panel.style.display = 'block';
-            approval.style.display = blocking ? 'flex' : 'none';
-            if (!blocking) approvalCheckbox.checked = false;
-            if (window.lucide) lucide.createIcons();
-        }
 
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme');
@@ -652,43 +541,21 @@
             try {
                 const res = await fetch('/api/extract_worksheet_with_answers', { method: 'POST', body: formData });
                 clearInterval(pollInterval);
-                const data = await res.json().catch(() => ({}));
 
                 if (!res.ok) {
-                    extractedQuestions = Array.isArray(data.questions) ? data.questions : [];
-                    missingIndices = Array.isArray(data.missing_indices) ? data.missing_indices : [];
-                    goldenReference = data.golden_reference && typeof data.golden_reference === 'object'
-                        ? data.golden_reference
-                        : {};
-                    extractionDiagnostics = normalizeWorksheetDiagnostics(data.diagnostics);
-                    unresolvedFragments = normalizeUnresolvedFragments(data.unresolved_fragments);
-                    generationDiagnostics = [];
-                    document.getElementById('allow-review-required').checked = false;
-                    renderPreview();
-                    renderGoldenKey();
-                    renderWorksheetReviewWarnings();
-                    if (extractionDiagnostics.length > 0 || unresolvedFragments.length > 0) {
-                        document.getElementById('empty-preview').style.display = 'none';
-                        document.getElementById('extraction-preview').style.display = 'block';
-                    } else {
-                        document.getElementById('extraction-preview').style.display = 'none';
-                        document.getElementById('empty-preview').style.display = 'block';
-                    }
-                    const msg = data.error || `Server Error (${res.status})`;
+                    const errorData = await res.json().catch(() => ({}));
+                    const msg = errorData.error || `Server Error (${res.status})`;
                     throw new Error(msg);
                 }
+
+                const data = await res.json();
 
                 if (data.success) {
                     extractedQuestions = data.questions;
                     missingIndices = data.missing_indices || [];
                     goldenReference = data.golden_reference || {};
-                    extractionDiagnostics = normalizeWorksheetDiagnostics(data.diagnostics);
-                    unresolvedFragments = normalizeUnresolvedFragments(data.unresolved_fragments);
-                    generationDiagnostics = [];
-                    document.getElementById('allow-review-required').checked = false;
                     renderPreview();
                     renderGoldenKey();
-                    renderWorksheetReviewWarnings();
 
                     const missingAlert = document.getElementById('missing-alert');
                     if (missingIndices.length > 0) {
@@ -708,10 +575,7 @@
                 console.error(err);
                 alert('Extraction failed: ' + err.message);
             }
-            finally {
-                clearInterval(pollInterval);
-                overlay.style.display = 'none';
-            }
+            finally { overlay.style.display = 'none'; }
         }
 
         async function handleTargetedRetry() {
@@ -789,9 +653,7 @@
 
         function renderGoldenKey() {
             const grid = document.getElementById('golden-key-grid');
-            const card = document.getElementById('golden-key-card');
             grid.innerHTML = '';
-            card.style.display = 'none';
             
             const parseIndex = (idxStr) => {
                 const str = String(idxStr || '').trim();
@@ -815,7 +677,7 @@
             });
 
             if (nums.length > 0) {
-                card.style.display = 'block';
+                document.getElementById('golden-key-card').style.display = 'block';
                 nums.forEach(num => {
                     const item = document.createElement('div');
                     item.className = 'golden-item';
@@ -975,11 +837,6 @@
             const model = document.getElementById('model_select').value;
             const apiKey = await getUsableKey(model, 1);
             if (!apiKey) return alert('No API Key.');
-            const reviewApproved = document.getElementById('allow-review-required').checked;
-            if (hasBlockingWorksheetWarnings() && !reviewApproved) {
-                renderWorksheetReviewWarnings();
-                return alert('Review the worksheet warnings and explicitly approve them before creating the quiz.');
-            }
 
             const sessionId = 'gen_ans_' + Math.random().toString(36).substring(2, 15);
             progressText.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> Finalizing Quiz...';
@@ -1014,32 +871,15 @@
                         quiz_mode: document.getElementById('quiz_mode').value,
                         model_name: model,
                         api_key: apiKey,
-                        session_id: sessionId,
-                        worksheet_diagnostics: extractionDiagnostics,
-                        unresolved_fragments: unresolvedFragments,
-                        allow_review_required: reviewApproved
+                        session_id: sessionId
                     })
                 });
-                const data = await res.json().catch(() => ({}));
-                if (res.ok && data.success) {
-                    window.location.href = `/edit/${data.quiz_id}`;
-                    return;
-                }
-
-                generationDiagnostics = normalizeWorksheetDiagnostics(data.diagnostics);
-                if (Array.isArray(data.unresolved_fragments)) {
-                    unresolvedFragments = normalizeUnresolvedFragments(data.unresolved_fragments);
-                }
-                renderWorksheetReviewWarnings();
-                const details = generationDiagnostics.slice(0, 5).map(item => item.message).join('\n• ');
-                alert(`${data.error || `Quiz finalization failed (${res.status}).`}${details ? `\n\n• ${details}` : ''}`);
-            } catch (e) {
-                alert('Error generating quiz: ' + (e?.message || 'Network request failed.'));
-            }
-            finally {
+                const data = await res.json();
                 clearInterval(pollInterval);
-                overlay.style.display = 'none';
-            }
+                if (data.success) { window.location.href = `/edit/${data.quiz_id}`; }
+                else { alert('Failed: ' + data.error); }
+            } catch (e) { alert('Error generating quiz.'); }
+            finally { overlay.style.display = 'none'; }
         }
     </script>
     <script>lucide.createIcons();</script>

@@ -1,6 +1,6 @@
 import { Type } from '@google/genai';
 import { getRealModelName, safeParseJSON } from './gemini.ts';
-import { canonicalQuestionType, getCorrectAnswer } from './grading.ts';
+import { canonicalQuestionType, getCorrectAnswer, isSemanticQuestion } from './grading.ts';
 import { hasBalancedLatexDelimiters, normalizeAiLatexText } from './latex.ts';
 
 export type SemanticGradeStatus =
@@ -143,6 +143,14 @@ Do not wrap plain text words or labels in LaTeX. Return only the schema-defined 
 export async function gradeSemanticQuestion(
   input: SemanticGradeInput
 ): Promise<SemanticGradeOutcome> {
+  if (!isSemanticQuestion(input.question)) {
+    return {
+      gradeStatus: 'invalid_response',
+      feedback: '',
+      retryable: false,
+      error: 'AI grading is available only for open-ended and graphing questions.'
+    };
+  }
   const clients = input.clients.filter(Boolean);
   if (clients.length === 0) {
     return {

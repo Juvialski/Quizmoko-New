@@ -271,7 +271,10 @@ describe('canonical deterministic grading', () => {
       answer_policy: { required_unit: 'm', allow_omitted_unit: true }
     }), '5').isCorrect, true);
 
-    assert.equal(gradeQuestionLocally(id('x^2'), 'x2').gradeStatus, 'pending');
+    const algebraicExact = gradeQuestionLocally(id('x^2'), 'x2');
+    assert.equal(algebraicExact.gradeStatus, 'graded');
+    assert.equal(algebraicExact.requiresSemanticGrading, false);
+    assert.equal(algebraicExact.isCorrect, false);
     assert.equal(gradeQuestionLocally(id("can't"), 'cant').isCorrect, false);
   });
 
@@ -384,8 +387,27 @@ describe('canonical deterministic grading', () => {
       type: 'identification',
       answer: 'x + 3'
     }, '3+x');
-    assert.equal(algebra.gradeStatus, 'pending');
-    assert.equal(algebra.authoritative, false);
+    assert.equal(algebra.gradeStatus, 'graded');
+    assert.equal(algebra.authoritative, true);
+    assert.equal(algebra.requiresSemanticGrading, false);
+    assert.equal(algebra.isCorrect, false);
+
+    let exactAnswerAiCalls = 0;
+    const blockedExactAnswerGrade = await gradeSemanticQuestion({
+      clients: [{ models: { generateContent: async () => {
+        exactAnswerAiCalls += 1;
+        return { text: '{"score_fraction":1,"feedback":"Correct."}' };
+      } } }],
+      question: {
+        question: 'Give an equivalent expression.',
+        type: 'identification',
+        answer: 'x + 3',
+        grading_mode: 'semantic'
+      },
+      studentAnswer: '3+x'
+    });
+    assert.equal(blockedExactAnswerGrade.gradeStatus, 'invalid_response');
+    assert.equal(exactAnswerAiCalls, 0);
 
     const unavailable = await gradeSemanticQuestion({
       clients: [],
@@ -729,6 +751,33 @@ describe('authoritative grading HTTP flow', () => {
     const pageResponse = await fetch(`${baseUrl}/quiz/${quizId}`);
     assert.equal(pageResponse.status, 409);
     assert.match(await pageResponse.text(), /teacher review/i);
+  });
+
+  test('AI explanations are skipped for exact-answer question types', async () => {
+    const quizId = uniqueId('quiz_exact_no_feedback');
+    cleanupQuizIds.add(quizId);
+    quizzes.set(quizId, {
+      id: quizId,
+      title: 'No exact-answer AI feedback',
+      questions: [{
+        question: 'What is 2 + 2?',
+        type: 'identification',
+        answer: '4',
+        grading_mode: 'semantic'
+      }]
+    } as any);
+
+    const { response, payload } = await post('/api/explain', {
+      quiz_id: quizId,
+      session_id: uniqueId('session'),
+      question_index: 0,
+      answer_revision: 1,
+      user_answer: '3'
+    });
+    assert.equal(response.status, 400);
+    assert.equal(payload.success, false);
+    assert.equal(payload.ai_skipped, true);
+    assert.match(payload.error, /only for open-ended and graphing/i);
   });
 
   test('newer individual grade remains authoritative when an older revision arrives afterward', async () => {

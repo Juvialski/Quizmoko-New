@@ -923,6 +923,19 @@
             return Number.isFinite(points) && points > 0 ? points : 1;
         }
 
+        function supportsAiFeedback(question) {
+            if (!question || typeof question !== 'object') return false;
+            const type = String(question.type || question.question_type || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[\s-]+/g, '_');
+            if (type !== 'open_ended' && type !== 'graphing') return false;
+            const gradingMode = String(question.grading_mode || question.gradingMode || '')
+                .trim()
+                .toLowerCase();
+            return gradingMode !== 'deterministic' && gradingMode !== 'exact';
+        }
+
         function maximumQuizScore() {
             return quizData.questions.reduce((sum, _question, index) => sum + questionPoints(index), 0);
         }
@@ -2093,6 +2106,7 @@
                 && (!Number.isFinite(reportedScore) || reportedScore < 0 || reportedScore > 1)
                     ? 'invalid_response'
                     : reportedStatus;
+            const allowsAiFeedback = supportsAiFeedback(quizData.questions[qIndex]);
             const baseResult = {
                 question: quizData.questions[qIndex].question,
                 type: quizData.questions[qIndex].type,
@@ -2102,9 +2116,11 @@
                 answer_revision: identity.revision,
                 answer_digest: identity.answerDigest,
                 snapshot_digest: identity.snapshotDigest,
-                ai_feedback: typeof data.feedback === 'string'
-                    ? data.feedback
-                    : (typeof data.ai_feedback === 'string' ? data.ai_feedback : '')
+                ai_feedback: allowsAiFeedback
+                    ? (typeof data.feedback === 'string'
+                        ? data.feedback
+                        : (typeof data.ai_feedback === 'string' ? data.ai_feedback : ''))
+                    : ''
             };
 
             if (gradeStatus === 'graded' && Number.isFinite(Number(data.score_fraction))) {
@@ -2681,11 +2697,12 @@
                         </div>
                     `;
 
-                    if (item.ai_feedback) {
+                    const allowsAiFeedback = supportsAiFeedback(quizData.questions[i]);
+                    if (allowsAiFeedback && item.ai_feedback) {
                         html += `<div style="margin-top: 15px; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 4px; font-size: 13px;"><i data-lucide="bot" class="icon-sm"></i> ${formatText(item.ai_feedback)}</div>`;
                     }
 
-                    if (isGraded && sfVal < 1) {
+                    if (allowsAiFeedback && isGraded && sfVal < 1) {
                         html += `
                                 <button class="wb-btn" style="margin-top: 15px; width: 100%; border-color: var(--primary); color: var(--primary);"
                                 onclick="explainMistakeStudent(this, ${i})">
@@ -2719,6 +2736,7 @@
 
         function explainMistakeStudent(btn, idx) {
             const item = progressiveResults[idx];
+            if (!supportsAiFeedback(quizData.questions[idx])) return;
 
             // SYNCHRONIZATION: Reuse existing detailed feedback if available
             if (item.ai_feedback && item.ai_feedback.length > 20) {

@@ -16,6 +16,7 @@ import {
   canonicalQuestionType,
   getCorrectAnswer,
   gradeQuestionLocally,
+  isSemanticQuestion,
   normalizeGradeScore,
   normalizeQuestion,
   sanitizeStudentAnswer,
@@ -1364,6 +1365,13 @@ router.post(
     const question = quiz && Number.isInteger(questionIndex) && questionIndex >= 0
       ? quiz.questions?.[questionIndex]
       : null;
+    if (!question || !isSemanticQuestion(question)) {
+      return res.status(400).json({
+        success: false,
+        ai_skipped: true,
+        error: 'AI explanations are available only for open-ended and graphing questions.'
+      });
+    }
     const answer = sanitizeStudentAnswer(body.user_answer);
     const snapshots = sanitizeSnapshotsForDigest(body.solution_snapshots);
     const verified = question && validRecordId(sessionId) && answerRevision !== null

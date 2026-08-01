@@ -174,18 +174,14 @@ export function isSemanticQuestion(question: unknown): boolean {
   }
   if (!question || typeof question !== 'object' || Array.isArray(question)) return false;
   const record = question as Record<string, unknown>;
-  const gradingMode = normalizedTypeToken(record.grading_mode ?? record.gradingMode);
-  if (gradingMode === 'semantic' || gradingMode === 'ai') return true;
-  if (gradingMode === 'deterministic' || gradingMode === 'exact') return false;
   const type = canonicalQuestionType(record);
-  if (type === 'open_ended' || type === 'graphing') return true;
-  if (type !== 'identification') return false;
-
-  // Legacy algebraic identification keys cannot safely be compared by regex or
-  // punctuation removal. Numeric and ordinary textual keys remain deterministic.
-  const expected = stripLatex(getCorrectAnswer(record)).normalize('NFKC').trim();
-  if (!expected || parseNumericAnswer(expected)) return false;
-  return /[=<>^]|\\(?:sqrt|sin|cos|tan|log)|(?:[a-z]\s*[+*/-]\s*(?:[a-z]|\d))|(?:\d\s*[a-z])|(?:[a-z]\s*\()/i.test(expected);
+  // AI grading is reserved strictly for response types that require semantic
+  // judgment. Exact-answer types always stay on the deterministic scorer even
+  // when legacy data incorrectly marks their grading mode as semantic.
+  if (type !== 'open_ended' && type !== 'graphing') return false;
+  const gradingMode = normalizedTypeToken(record.grading_mode ?? record.gradingMode);
+  if (gradingMode === 'deterministic' || gradingMode === 'exact') return false;
+  return true;
 }
 
 export function stripLatex(value: unknown): string {

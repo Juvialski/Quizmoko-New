@@ -403,7 +403,9 @@
                     <h3 style="margin:0; font-size: 18px; text-transform: none;">
                         <i data-lucide="sparkles" style="display:inline-block; vertical-align:middle; margin-right:8px; width:20px;"></i> AI Generator
                     </h3>
+                    <% if (user && (user.role === 'teacher' || user.role === 'admin')) { %>
                     <button type="button" onclick="openApiKeyModal()" class="btn-secondary" id="api-key-btn"><i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key</button>
+                    <% } %>
                 </div>
 
                 
@@ -700,6 +702,7 @@
         <button onclick="toggleMergeMode()" style="background: transparent; border: 1px solid var(--hairline); color: var(--on-dark); padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;"><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
     </div>
 
+    <% if (user && (user.role === 'teacher' || user.role === 'admin')) { %>
     <!-- API KEY MODAL -->
     <div id="apiKeyModal" class="modal-overlay">
         <div class="modal-card">
@@ -727,6 +730,7 @@
             <button onclick="closeApiKeyModal()" class="btn-secondary" id="modal-cancel-btn" style="width: 100%; margin-top: 12px; padding: 14px; display: none;"><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
         </div>
     </div>
+    <% } %>
 
     <!-- OLLAMA INSTRUCTIONS MODAL -->
     <div id="ollamaModal" class="modal-overlay">
@@ -793,10 +797,12 @@
     </div>
 
     <script>
+        const canManageApiKeys = <%- JSON.stringify(Boolean(user && (user.role === 'teacher' || user.role === 'admin'))) %>;
         let serverAiConfigured = false;
         let serverOllamaConfigured = false;
 
         function getStoredGeminiKeys() {
+            if (!canManageApiKeys) return [];
             try {
                 const parsed = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
                 return Array.isArray(parsed)
@@ -854,6 +860,7 @@
         const cancelBtn = document.getElementById('modal-cancel-btn');
 
         function openApiKeyModal() {
+            if (!canManageApiKeys || !apiKeyModal) return;
             const keys = getStoredGeminiKeys();
             modalApiInput.value = keys[0] || localStorage.getItem('gemini_api_key') || '';
             modalApiInput2.value = keys[1] || '';
@@ -941,6 +948,7 @@
         }
 
         function saveApiKey() {
+            if (!canManageApiKeys || !modalApiInput) return;
             const key1 = modalApiInput.value.trim();
             const key2 = modalApiInput2.value.trim();
             const key3 = modalApiInput3.value.trim();
@@ -1005,6 +1013,11 @@
                 document.getElementById('aiDisclaimer').style.display = 'none';
             }
 
+            if (!canManageApiKeys) {
+                checkAndRunTour();
+                return;
+            }
+
             // Check API Key
             const savedKeys = getStoredGeminiKeys();
             const savedKey = localStorage.getItem('gemini_api_key');
@@ -1041,7 +1054,7 @@
         function checkAndRunTour() {
             if (localStorage.getItem('tour_completed') === 'true') return;
 
-            const isTeacher = true;
+            const isTeacher = canManageApiKeys;
             const driver = window.driver.js.driver;
             
             const steps = [
@@ -1050,6 +1063,11 @@
                 { element: '#subject-folder-group', popover: { title: 'Organize', description: 'Assign your quiz to a folder or subject so it’s easy to find later.' } },
                 { element: '#api-key-btn', popover: { title: 'Settings', description: 'You can always update your API Key right here.' } }
             ];
+
+            if (!isTeacher) {
+                const keyStepIndex = steps.findIndex(step => step.element === '#api-key-btn');
+                if (keyStepIndex >= 0) steps.splice(keyStepIndex, 1);
+            }
 
             if (isTeacher) {
                 steps.push({ element: '#saved-quizzes-card', popover: { title: 'Your Library', description: 'All your generated quizzes will be saved here safely.' } });

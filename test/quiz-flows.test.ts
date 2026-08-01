@@ -5,6 +5,7 @@ import { after, before, describe, test } from 'node:test';
 import express from 'express';
 import gradingRoutes from '../src/routes/gradingRoutes.ts';
 import quizRoutes from '../src/routes/quizRoutes.ts';
+import { stripStudentSuppliedAiKeys } from '../src/middleware/auth.ts';
 import { quizzes, results, users } from '../src/store/db.ts';
 import {
   gradeQuestionLocally,
@@ -84,6 +85,13 @@ describe('quiz creator AI-key isolation', () => {
       assert.equal(canUserManageApiKeys(users.get(studentId)), false);
       assert.equal(getQuizCreatorApiKey({ user_id: creatorId }), 'creator-server-key');
       assert.equal(getQuizCreatorApiKey({ user_id: studentId }), '');
+      const studentBody = {
+        api_key: 'student-key',
+        geminiApiKey: 'student-key-alias',
+        answer: 'preserved'
+      };
+      stripStudentSuppliedAiKeys(studentBody, users.get(studentId));
+      assert.deepEqual(studentBody, { answer: 'preserved' });
     } finally {
       users.delete(creatorId);
       users.delete(studentId);

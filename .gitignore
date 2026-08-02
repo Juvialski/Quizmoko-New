@@ -1,12 +1,38 @@
-__pycache__/
-*.db
-quizzes.db
-serviceAccountKey.json
-venv/
-env/
+# Environment variables and secrets
 .env
-.artifacts/
-tmp/appmap/
-*.appmap.json
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local runtime data
+data/*.json
+!data/.gitkeep
+
+# Editors and operating systems
 .idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Agent-generated artifacts
 *.artifact.md

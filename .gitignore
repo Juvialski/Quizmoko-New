@@ -8,3 +8,5 @@ env/
 .artifacts/
 tmp/appmap/
 *.appmap.json
+.idea/
+*.artifact.md

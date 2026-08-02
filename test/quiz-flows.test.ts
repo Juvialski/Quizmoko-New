@@ -1664,11 +1664,13 @@ describe('worksheet bounded batch solving', () => {
         timeoutMs: 15,
         maxAttempts: 1,
         operation: signal => new Promise((_resolve, reject) => {
-          signal.addEventListener('abort', () => {
+          const check = () => {
             const error = new Error('request aborted');
             error.name = 'AbortError';
             reject(error);
-          }, { once: true });
+          };
+          if (signal.aborted) check();
+          else signal.addEventListener('abort', check, { once: true });
         })
       }),
       /hung solver failed after 1 bounded attempt/

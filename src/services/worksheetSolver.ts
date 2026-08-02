@@ -131,8 +131,7 @@ function retryableModelFailure(error: unknown): boolean {
 
 function sleep(milliseconds: number): Promise<void> {
   return new Promise(resolve => {
-    const timer = setTimeout(resolve, milliseconds);
-    timer.unref?.();
+    setTimeout(resolve, milliseconds);
   });
 }
 
@@ -151,7 +150,6 @@ export async function runBoundedWorksheetModelRequest<T>(input: {
     const controller = new AbortController();
     const timeoutMs = Math.max(1, Math.min(input.timeoutMs ?? WORKSHEET_MODEL_TIMEOUT_MS, remaining));
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    timer.unref?.();
     try {
       return await input.operation(controller.signal);
     } catch (error) {

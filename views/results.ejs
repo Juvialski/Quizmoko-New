@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/quizmoko-ui.css">
+    <script src="/js/quizmoko-theme.js"></script>
     
     <!-- MATHJAX FOR EQUATIONS -->
     <script>
@@ -20,43 +22,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        :root {
-            --canvas: #090d16;
-            --surface-card: #131927;
-            --surface-elevated: #1c2436;
-            --surface-soft: #1e293b;
-            --on-dark: #f8fafc;
-            --body: #94a3b8;
-            --body-strong: #e2e8f0;
-            --hairline: rgba(255, 255, 255, 0.05);
-            --primary: #818cf8;
-            --m-blue-light: #6366f1;
-            --m-blue-dark: #4f46e5;
-            --m-red: #fb7185;
-            --success: #34d399;
-            --warning: #fbbf24;
-            --radius-md: 16px;
-            --radius-sm: 8px;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-        }
-        
-        [data-theme="light"] {
-            --canvas: #fafafa;
-            --surface-card: #ffffff;
-            --surface-elevated: #f4f4f5;
-            --surface-soft: #f4f4f5;
-            --on-dark: #0f172a;
-            --body: #52525b;
-            --body-strong: #18181b;
-            --hairline: rgba(0, 0, 0, 0.05);
-            --primary: #6366f1;
-            --m-blue-light: #4f46e5;
-            --m-blue-dark: #4338ca;
-            --m-red: #e11d48;
-            --success: #10b981;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
-        }
-
         body { 
             font-family: 'Inter', sans-serif; 
             margin: 0; 
@@ -70,7 +35,7 @@
         .back-link { text-decoration: none; color: var(--primary); font-weight: 700; font-size: 14px; margin-bottom: 32px; display: inline-block; transition: 0.2s;}
         .back-link:hover { opacity: 0.8; }
         
-        .card { background: var(--surface-card); padding: 32px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); }
+        .results-card { background: var(--surface-card); padding: 32px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); }
         h1 { color: var(--on-dark); font-weight: 800; letter-spacing: -1px; margin-top: 0; }
         .m-stripe-divider { height: 4px; width: 80px; background: var(--primary); border-radius: 2px; margin-bottom: 32px; margin-top: 10px; }
         
@@ -111,44 +76,14 @@
 
     
         
-        /* Unified Buttons */
-        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
-        
-        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
-        
-        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn:hover { border-color: var(--primary); color: var(--primary); }
 
-        
-        /* Unified Inputs */
-        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
-            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
-        }
-        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
-        textarea { height: 60px; resize: vertical; } 
-        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
-
-        /* Lucide Icons Standard Styling */
-        .icon-sm, i[data-lucide], svg.lucide {
-            width: 16px !important;
-            height: 16px !important;
-            display: inline-block !important;
-            vertical-align: middle !important;
-            margin-right: 4px;
-        }
-        svg.lucide {
-            stroke-width: 2;
-        }
 
         /* Responsive Mobile Styles */
         @media (max-width: 768px) {
             body {
                 padding: 16px 12px !important;
             }
-            .card {
+            .results-card {
                 padding: 16px !important;
             }
             .table-responsive-wrapper {
@@ -165,10 +100,6 @@
             }
         }
     </style>
-    <script>
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-    </script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -176,7 +107,7 @@
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <a href="/" class="back-link">← BACK TO DASHBOARD</a>
-            <button onclick="toggleTheme()" style="background:transparent; border:none; font-size:24px; cursor:pointer;"><i data-lucide="moon"></i></button>
+            <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
         </div>
 
         
@@ -231,25 +162,25 @@ if (results && results.length > 0) {
 %>
 
 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
-    <div class="card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
+    <div class="results-card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
         <div style="font-size: 12px; font-weight: 700; color: var(--body); text-transform: uppercase;">Class Avg</div>
         <div style="font-size: 32px; font-weight: 800; color: var(--primary);"><%= classAvg %>%</div>
     </div>
-    <div class="card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
+    <div class="results-card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
         <div style="font-size: 12px; font-weight: 700; color: var(--body); text-transform: uppercase;">Completion</div>
         <div style="font-size: 32px; font-weight: 800; color: var(--success);"><%= completionRate %>%</div>
     </div>
-    <div class="card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
+    <div class="results-card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
         <div style="font-size: 12px; font-weight: 700; color: var(--body); text-transform: uppercase;">Avg Time</div>
         <div style="font-size: 32px; font-weight: 800; color: var(--on-dark);"><%= Math.floor(avgTime/60) %>m <%= avgTime%60 %>s</div>
     </div>
-    <div class="card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
+    <div class="results-card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
         <div style="font-size: 12px; font-weight: 700; color: var(--body); text-transform: uppercase;">Hardest</div>
         <div style="font-size: 32px; font-weight: 800; color: var(--warning);"><%= hardestQ %></div>
     </div>
 </div>
 
-<div class="card">
+<div class="results-card">
     <div class="table-responsive-wrapper">
         <table>
                 <thead>
@@ -395,13 +326,6 @@ if (results && results.length > 0) {
     </div>
 
     <script>
-        function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-        }
-
         function toggleDetails(id) {
             const row = document.getElementById('details-' + id);
             row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
@@ -581,7 +505,7 @@ if (results && results.length > 0) {
                 }
                 btn.style.display = 'none'; const box = btn.nextElementSibling; box.style.display = 'block';
                 box.innerHTML = `<strong><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + formatDisplayText(data.explanation);
-                if (window.lucide) lucide.createIcons();
+                window.refreshQuizmokoIcons?.();
                 if (window.QuizMoKoMath) window.QuizMoKoMath.typeset(box);
             } catch (error) {
                 const box = btn.nextElementSibling;
@@ -681,6 +605,6 @@ if (results && results.length > 0) {
             }
         })();
     </script>
-    <script>lucide.createIcons();</script>
+    <script>window.refreshQuizmokoIcons?.();</script>
 </body>
 </html>

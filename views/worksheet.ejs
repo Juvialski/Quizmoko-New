@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title><%= typeof quiz.title !== 'undefined' ? quiz.title : '' %> - Printable Worksheet</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/quizmoko-ui.css">
+    <script src="/js/quizmoko-theme.js"></script>
     
     <!-- Configure MathJax -->
     <script>
@@ -21,55 +23,6 @@
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
     <style>
-        :root {
-            --canvas: #090d16;
-            --surface-card: #131927;
-            --surface-elevated: #1c2436;
-            --surface-soft: #1e293b;
-            --on-dark: #f8fafc;
-            --body: #94a3b8;
-            --body-strong: #e2e8f0;
-            --hairline: rgba(255, 255, 255, 0.05);
-            --primary: #818cf8;
-            --m-blue-light: #6366f1;
-            --m-blue-dark: #4f46e5;
-            --m-red: #fb7185;
-            --success: #34d399;
-            --warning: #fbbf24;
-            --radius-md: 16px;
-            --radius-sm: 8px;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-        }
-        
-        [data-theme="light"] {
-            --canvas: #fafafa;
-            --surface-card: #ffffff;
-            --surface-elevated: #f4f4f5;
-            --surface-soft: #f4f4f5;
-            --on-dark: #0f172a;
-            --body: #52525b;
-            --body-strong: #18181b;
-            --hairline: rgba(0, 0, 0, 0.05);
-            --primary: #6366f1;
-            --m-blue-light: #4f46e5;
-            --m-blue-dark: #4338ca;
-            --m-red: #e11d48;
-            --success: #10b981;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
-        }
-
-        /* Lucide Icons Standard Styling */
-        .icon-sm, i[data-lucide], svg.lucide {
-            width: 16px !important;
-            height: 16px !important;
-            display: inline-block !important;
-            vertical-align: middle !important;
-            margin-right: 4px;
-        }
-        svg.lucide {
-            stroke-width: 2;
-        }
-
         body { 
             font-family: 'Inter', sans-serif; 
             margin: 0; 
@@ -157,13 +110,13 @@
             page-break-inside: avoid;
         }
         
-        .editable-area[contenteditable="true'] { outline: none; }
+        .editable-area[contenteditable="true"] { outline: none; }
         
         /* --- Dashboard Controls Section --- */
         .controls {
             max-width: 1000px; margin: 0 auto 32px auto; background: var(--surface-card); padding: 32px; 
             border: 1px solid var(--hairline); display: flex; gap: 24px; flex-direction: column;
-            border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline);
+            border-radius: var(--radius-md); box-shadow: var(--shadow);
         }
         
         .controls-header { display: flex; align-items: center; margin-bottom: 0px;}
@@ -171,13 +124,7 @@
         .m-stripe-divider { height: 4px; width: 60px; background: var(--primary); border-radius: 2px; margin-left: 16px; }
         
         .button-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-        .btn {
-            padding: 14px; background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); font-size: 13px; cursor: pointer;
-            border-radius: var(--radius-sm); font-weight: 600; transition: 0.2s;
-        }
-        .btn:hover { border-color: var(--primary); color: var(--primary); }
-        .btn-primary { background: var(--primary); color: white; border: none; }
-        .btn-primary:hover { opacity: 0.9; color: white; transform: translateY(-1px); }
+
         
         .style-controls { display: flex; gap: 24px; background: var(--surface-soft); padding: 24px; border: 1px solid var(--hairline); align-items: center; flex-wrap: wrap; justify-content: space-between;}
         .control-group { flex: 1; display: flex; align-items: center; gap: 16px; min-width: 180px;}
@@ -220,31 +167,9 @@
         }
     
         
-        /* Unified Buttons */
-        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
-        
-        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
-        
-        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn:hover { border-color: var(--primary); color: var(--primary); }
 
-        
-        /* Unified Inputs */
-        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
-            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
-        }
-        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
-        textarea { height: 60px; resize: vertical; } 
-        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
     </style>
-    <script>
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-    </script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -256,7 +181,7 @@
                 <h3>DOCUMENT CONTROLS</h3>
                 
             </div>
-            <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8;"><i data-lucide="moon"></i></button>
+            <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
         </div>
         <div class="button-group">
             <button class="btn" onclick="window.print()"><i data-lucide="printer" class="icon-sm"></i>️ PRINT / SAVE AS PDF</button>
@@ -289,10 +214,10 @@
             <div class="control-group">
                 <label class="control-label">FONT:</label>
                 <select id="fontStyle" class="control-select" onchange="updateTypography()">
-                    <option value=''Times New Roman', Times, serif' selected>Times New Roman</option>
+                    <option value="'Times New Roman', Times, serif" selected>Times New Roman</option>
                     <option value="Arial, Helvetica, sans-serif">Arial</option>
                     <option value="Georgia, serif">Georgia</option>
-                    <option value=''Courier New', Courier, monospace'>Courier New</option>
+                    <option value="'Courier New', Courier, monospace">Courier New</option>
                     <option value="Verdana, Geneva, sans-serif">Verdana</option>
                 </select>
             </div>
@@ -354,13 +279,6 @@
 
     <!-- Original Preserved Scripts -->
     <script>
-        function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-        }
-        
         function updatePageLayout() {
             const sizeSelect = document.getElementById('paperSize');
             const orientation = document.getElementById('paperOrientation').value;
@@ -557,6 +475,6 @@
             document.body.removeChild(downloadLink);
         }
     </script>
-    
+    <script>window.refreshQuizmokoIcons?.();</script>
 </body>
 </html>

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Live Tracking - <%= typeof title !== 'undefined' ? title : '' %></title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/quizmoko-ui.css">
+    <script src="/js/quizmoko-theme.js"></script>
     
     <!-- Configure MathJax for live rendering of math in the preview -->
     <script>
@@ -16,55 +18,6 @@
     <script src="/socket.io/socket.io.js"></script>
 
     <style>
-        :root {
-            --canvas: #090d16;
-            --surface-card: #131927;
-            --surface-elevated: #1c2436;
-            --surface-soft: #1e293b;
-            --on-dark: #f8fafc;
-            --body: #94a3b8;
-            --body-strong: #e2e8f0;
-            --hairline: rgba(255, 255, 255, 0.05);
-            --primary: #818cf8;
-            --m-blue-light: #6366f1;
-            --m-blue-dark: #4f46e5;
-            --m-red: #fb7185;
-            --success: #34d399;
-            --warning: #fbbf24;
-            --radius-md: 16px;
-            --radius-sm: 8px;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-        }
-        
-        [data-theme="light"] {
-            --canvas: #fafafa;
-            --surface-card: #ffffff;
-            --surface-elevated: #f4f4f5;
-            --surface-soft: #f4f4f5;
-            --on-dark: #0f172a;
-            --body: #52525b;
-            --body-strong: #18181b;
-            --hairline: rgba(0, 0, 0, 0.05);
-            --primary: #6366f1;
-            --m-blue-light: #4f46e5;
-            --m-blue-dark: #4338ca;
-            --m-red: #e11d48;
-            --success: #10b981;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
-        }
-
-        /* Lucide Icons Standard Styling */
-        .icon-sm, i[data-lucide], svg.lucide {
-            width: 16px !important;
-            height: 16px !important;
-            display: inline-block !important;
-            vertical-align: middle !important;
-            margin-right: 4px;
-        }
-        svg.lucide {
-            stroke-width: 2;
-        }
-
         body { 
             font-family: 'Inter', sans-serif; 
             margin: 0; 
@@ -76,7 +29,7 @@
         }
         .container { max-width: 1440px; margin: auto; }
         
-        .card { background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); }
+        .live-results-card { padding: 40px; }
         
         h1 { margin-top: 0; font-size: 32px; color: var(--on-dark); font-weight: 700; letter-spacing: -0.5px; display: flex; align-items: center;}
         .m-stripe-divider { height: 4px; width: 60px; background: var(--primary); border-radius: 2px; margin-bottom: 24px; }
@@ -110,7 +63,7 @@
         summary.question-preview::-webkit-details-marker { display: none; }
         summary.question-preview:hover { border-color: var(--primary); }
         
-        .full-question-box { background: var(--surface-card); border: 1px solid var(--hairline); padding: 16px; border-radius: var(--radius-sm); margin-top: 8px; font-size: 13px; white-space: normal; color: var(--on-dark); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); font-family: 'Inter', sans-serif;}
+        .full-question-box { background: var(--surface-card); border: 1px solid var(--hairline); padding: 16px; border-radius: var(--radius-sm); margin-top: 8px; font-size: 13px; white-space: normal; color: var(--on-dark); box-shadow: var(--shadow); font-family: 'Inter', sans-serif;}
         .full-question-box .resizable-image-wrapper { margin: 10px 0; display: flex; justify-content: flex-start;}
         .full-question-box img { max-width: 100%; height: auto; background: white; padding: 5px; border-radius: 4px; }
 
@@ -121,32 +74,14 @@
         }
     
         
-        /* Unified Buttons */
-        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
-        
-        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
-        
-        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn:hover { border-color: var(--primary); color: var(--primary); }
 
-        
-        /* Unified Inputs */
-        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
-            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
-        }
-        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
-        textarea { height: 60px; resize: vertical; } 
-        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
         /* Responsive Mobile Live View Styles */
         @media (max-width: 768px) {
             body {
                 padding: 16px 12px !important;
             }
-            .card {
+            .live-results-card {
                 padding: 16px !important;
             }
             table {
@@ -159,10 +94,6 @@
             }
         }
     </style>
-    <script>
-        const savedTheme = localStorage.getItem('theme') || 'dark';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-    </script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -173,11 +104,11 @@
             <div style="display: flex; gap: 16px; align-items: center;">
                 <button id="pause-btn" onclick="togglePause()" class="score-badge" style="background-color: var(--warning); color: var(--canvas); border: none; cursor: pointer; padding: 8px 16px;">⏸️ Pause Timers</button>
                 <button id="terminate-btn" onclick="terminateQuiz()" class="score-badge" style="background-color: var(--m-red); color: white; border: none; cursor: pointer; padding: 8px 16px;"><i data-lucide="stop-circle" class="icon-sm"></i> Terminate Quiz</button>
-                <button onclick="toggleTheme()" title="Toggle Theme" style="background: transparent; border: none; font-size: 24px; cursor: pointer; opacity: 0.8;"><i data-lucide="moon"></i></button>
+                <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
             </div>
         </div>
         
-        <div class="card">
+        <div class="card live-results-card">
             <h1><span class="pulse"></span> <i data-lucide="radio" class="icon-sm"></i> LIVE: <%= typeof title !== 'undefined' ? title : '' %></h1>
             
             <p style="color: var(--body); font-size: 12px; margin-top: -5px; text-transform: uppercase; letter-spacing: 1.5px;">TABLE UPDATES AUTOMATICALLY EVERY 2 SECONDS.</p>
@@ -271,13 +202,6 @@
             useWS = false;
         }
 
-        function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-        }
-        
         let isPaused = false;
         let sessionsCache = {};
 
@@ -529,9 +453,7 @@
             if (window.MathJax) {
                 MathJax.typesetPromise([tbody]).catch(err => console.error(err));
             }
-            if (window.lucide) {
-                lucide.createIcons();
-            }
+            window.refreshQuizmokoIcons();
         }
 
         function initialFetch() {
@@ -557,6 +479,6 @@
         // only carry pause/termination signals and never expose the full class list.
         setInterval(initialFetch, 2000);
     </script>
-    <script>lucide.createIcons();</script>
+    <script>window.refreshQuizmokoIcons();</script>
 </body>
 </html>

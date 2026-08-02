@@ -7,60 +7,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/quizmoko-ui.css">
+    <script src="/js/quizmoko-theme.js"></script>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 
     <style>
         * { box-sizing: border-box; }
-        :root {
-            --canvas: #090d16;
-            --surface-card: #131927;
-            --surface-elevated: #1c2436;
-            --surface-soft: #1e293b;
-            --on-dark: #f8fafc;
-            --body: #94a3b8;
-            --body-strong: #e2e8f0;
-            --hairline: rgba(255, 255, 255, 0.05);
-            --primary: #818cf8;
-            --m-blue-light: #6366f1;
-            --m-blue-dark: #4f46e5;
-            --m-red: #fb7185;
-            --success: #34d399;
-            --warning: #fbbf24;
-            --radius-md: 16px;
-            --radius-sm: 8px;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-        }
-        
-        [data-theme="light"] {
-            --canvas: #fafafa;
-            --surface-card: #ffffff;
-            --surface-elevated: #f4f4f5;
-            --surface-soft: #f4f4f5;
-            --on-dark: #0f172a;
-            --body: #52525b;
-            --body-strong: #18181b;
-            --hairline: rgba(0, 0, 0, 0.05);
-            --primary: #6366f1;
-            --m-blue-light: #4f46e5;
-            --m-blue-dark: #4338ca;
-            --m-red: #e11d48;
-            --success: #10b981;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
-        }
-
-        /* Lucide Icons Standard Styling */
-        .icon-sm, i[data-lucide], svg.lucide {
-            width: 16px !important;
-            height: 16px !important;
-            display: inline-block !important;
-            vertical-align: middle !important;
-            margin-right: 4px;
-        }
-        svg.lucide {
-            stroke-width: 2;
-        }
 
         body { 
             font-family: 'Inter', sans-serif; 
@@ -74,32 +28,23 @@
         .container { max-width: 1440px; margin: auto; }
         .dashboard-container { display: grid; grid-template-columns: 1fr; gap: 32px; align-items: start; }
         @media (min-width: 1024px) { .dashboard-container { grid-template-columns: 450px 1fr; } .sticky-col { position: sticky; top: 24px; } }
+        @media (max-width: 992px), (max-height: 700px) {
+            .dashboard-container { grid-template-columns: 1fr !important; }
+            .sticky-col { position: static !important; }
+        }
 
-        .mode-tabs { display: flex; background: var(--surface-soft); border: 1px solid var(--hairline); border-radius: var(--radius-md) var(--radius-md) 0 0; padding: 8px; gap: 4px; }
-        .mode-tab { flex: 1; padding: 10px 4px; text-align: center; font-size: 11px; font-weight: 700; color: var(--body); cursor: pointer; border-radius: var(--radius-sm); transition: 0.2s; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .mode-tab:hover { background: var(--surface-elevated); color: var(--on-dark); }
+        .mode-tabs { display: flex; background: var(--surface-soft); border: 1px solid var(--hairline); border-radius: var(--radius-md) var(--radius-md) 0 0; padding: 8px; gap: 4px; flex-wrap: wrap; }
+        .mode-tab { flex: 1; min-width: 80px; padding: 10px 4px; text-align: center; font-size: 11px; font-weight: 700; color: var(--body); cursor: pointer; border-radius: var(--radius-sm); transition: 0.2s; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .mode-tab:hover { background: var(--surface-elevated); color: var(--body-strong); }
         .mode-tab.active { background: var(--primary); color: white; }
 
-        .card { background: var(--surface-card); padding: 24px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); margin-bottom: 24px; }
+        .worksheet-panel { margin-bottom: 24px; }
         h1, h2, h3 { color: var(--on-dark); margin-top: 0; }
         .m-stripe { height: 4px; width: 60px; background: var(--primary); border-radius: 2px; margin-bottom: 24px; }
 
         .dropzone { border: 2px dashed var(--hairline); border-radius: var(--radius-md); padding: 20px; text-align: center; background: var(--surface-soft); cursor: pointer; transition: 0.2s; position: relative; min-height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .dropzone:hover { border-color: var(--primary); background: rgba(99, 102, 241, 0.05); }
         .dropzone input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-
-        .btn { padding: 14px 24px; border-radius: var(--radius-sm); border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: inherit; font-size: 14px; width: 100%; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); }
-
-        label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; color: var(--body); }
-        input, select, textarea {
-            width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline);
-            background: var(--surface-soft); color: var(--on-dark); font-family: inherit;
-            transition: all 0.2s ease;
-        }
-        input:focus, select:focus, textarea:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
-        textarea { height: 80px; resize: vertical; }
 
         #progress-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
         .progress-box { width: 300px; height: 8px; background: var(--hairline); border-radius: 4px; overflow: hidden; margin-top: 20px; }
@@ -111,25 +56,7 @@
         .meta-item b { color: var(--on-dark); }
     
         
-        /* Unified Buttons */
-        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
-        
-        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
-        
-        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn:hover { border-color: var(--primary); color: var(--primary); }
 
-        
-        /* Unified Inputs */
-        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
-            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
-        }
-        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
-        textarea { height: 60px; resize: vertical; } 
-        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
 
     </style>
     <!-- Lucide Icons -->
@@ -142,7 +69,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
                 DASHBOARD
             </a>
-            <button onclick="toggleTheme()" style="background: transparent; border: none; font-size: 24px; cursor: pointer;"><i data-lucide="moon"></i></button>
+            <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
         </div>
 
         <div class="dashboard-container">
@@ -153,19 +80,19 @@
                     <a href="/worksheet_answers" class="mode-tab"><span><i data-lucide="key" class="icon-sm"></i></span>ANSWERS</a>
                     <a href="/rmxflash" class="mode-tab active"><span><i data-lucide="zap" class="icon-sm"></i></span>RMXFLASH</a>
                 </div>
-                <div class="card" style="border-radius: 0 0 var(--radius-md) var(--radius-md);">
+                <div class="card worksheet-panel" style="border-radius: 0 0 var(--radius-md) var(--radius-md);">
                     <h1><i data-lucide="zap" class="icon-sm"></i> RMXFlash Mode</h1>
                     <div class="m-stripe"></div>
 
                     <form id="rmx-form" onsubmit="handleExtract(event)">
-                        <label>1. Worksheet (Questions)</label>
+                        <label for="ws-input">1. Worksheet (Questions)</label>
                         <div class="dropzone">
                             <span><i data-lucide="file-text" class="icon-sm"></i> Upload Files</span>
                             <input type="file" id="ws-input" multiple accept='image/*,.pdf' onchange="updateFiles('ws')">
                         </div>
                         <div id="ws-list" style="margin-bottom: 16px; font-size: 11px;"></div>
 
-                        <label>2. Answer Key (Optional)</label>
+                        <label for="ans-input">2. Answer Key (Optional)</label>
                         <div class="dropzone">
                             <span><i data-lucide="key" class="icon-sm"></i> Upload Key</span>
                             <input type="file" id="ans-input" multiple accept='image/*,.pdf' onchange="updateFiles('ans')">
@@ -190,18 +117,18 @@
                         <input type="text" id="test_name" placeholder="Test Name">
                         <input type="text" id="contest" placeholder="Contest">
 
-                        <button type="submit" class="btn btn-primary" id="extract-btn"><i data-lucide="search" class="icon-sm"></i> EXTRACT & PROCESS</button>
+                        <button type="submit" class="btn btn-primary btn-block" id="extract-btn"><i data-lucide="search" class="icon-sm"></i> EXTRACT & PROCESS</button>
                     </form>
                 </div>
             </div>
 
             <div id="preview-col">
-                <div id="empty-state" class="card" style="text-align: center; padding: 80px;">
+                <div id="empty-state" class="card worksheet-panel" style="text-align: center; padding: 80px;">
                     <span style="font-size: 48px;"><i data-lucide="zap" class="icon-sm"></i></span>
                     <h3 style="color: var(--body);">Extraction results will appear here</h3>
                 </div>
 
-                <div id="results-card" class="card" style="display: none;">
+                <div id="results-card" class="card worksheet-panel" style="display: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                         <h2><i data-lucide="eye" class="icon-sm"></i> Preview</h2>
                         <button onclick="exportToExcel()" class="btn btn-primary" style="width: auto;"><i data-lucide="download" class="icon-sm"></i> Export to Excel</button>
@@ -235,14 +162,6 @@
         let extractedQuestions = [];
         let cropper = null;
         let currentCroppingIndex = null;
-
-        function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-        }
-        document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');
 
         function updateFiles(type) {
             const input = document.getElementById(type + '-input');
@@ -323,6 +242,7 @@
                 </div>
                 `;
             }).join('');
+            window.refreshQuizmokoIcons?.();
         }
 
         function openCropRefiner(index) {
@@ -412,10 +332,11 @@
                 alert('Error during export: ' + err.message);
             } finally {
                 btn.innerHTML = '<i data-lucide="download" class="icon-sm"></i> Export to Excel';
+                window.refreshQuizmokoIcons?.();
                 btn.disabled = false;
             }
         }
     </script>
-    <script>lucide.createIcons();</script>
+    <script>window.refreshQuizmokoIcons?.();</script>
 </body>
 </html>

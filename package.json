@@ -12,7 +12,7 @@
     "check": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "npm run check",
-    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts",
+    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts test/ui-consistency.test.ts",
     "build": "npm run check && npm run typecheck",
     "start": "tsx server.ts"
   },
@@ -43,6 +43,7 @@
     "ejs-lint": "^2.0.1",
     "glob": "^13.0.6",
     "jsdom": "^29.1.1",
+    "postcss": "^8.5.25",
     "typescript": "^5.9.3"
   }
 }

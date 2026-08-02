@@ -7,183 +7,49 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --canvas: #090d16;
-            --surface-card: #131927;
-            --surface-elevated: #1c2436;
-            --surface-soft: #1e293b;
-            --on-dark: #f8fafc;
-            --body: #94a3b8;
-            --body-strong: #e2e8f0;
-            --hairline: rgba(255, 255, 255, 0.05);
-            --primary: #818cf8;
-            --m-blue-light: #6366f1;
-            --m-blue-dark: #4f46e5;
-            --m-red: #fb7185;
-            --success: #34d399;
-            --warning: #fbbf24;
-            --radius-md: 16px;
-            --radius-sm: 8px;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-        }
-        
-        [data-theme="light"] {
-            --canvas: #fafafa;
-            --surface-card: #ffffff;
-            --surface-elevated: #f4f4f5;
-            --surface-soft: #f4f4f5;
-            --on-dark: #0f172a;
-            --body: #52525b;
-            --body-strong: #18181b;
-            --hairline: rgba(0, 0, 0, 0.05);
-            --primary: #6366f1;
-            --m-blue-light: #4f46e5;
-            --m-blue-dark: #4338ca;
-            --m-red: #e11d48;
-            --success: #10b981;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
-        }
-
-        body { 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; 
-            padding: 40px 20px; 
-            color: var(--body-strong); 
-            background-color: var(--canvas);
-            font-weight: 400;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        /* Lucide Icons Standard Styling */
-        .icon-sm, i[data-lucide], svg.lucide {
-            width: 16px !important;
-            height: 16px !important;
-            display: inline-block !important;
-            vertical-align: middle !important;
-            margin-right: 4px;
-        }
-        svg.lucide {
-            stroke-width: 2;
-        }
-
-        .container { max-width: 1440px; margin: auto; }
-        .card {
-            background: var(--surface-card);
-            padding: 24px;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--hairline);
-            box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline);
-            margin-bottom: 24px;
-        }
-
-        h1, h2 { color: var(--on-dark); }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 16px;
-            border-bottom: 1px solid var(--hairline);
-        }
-
-        th {
-            color: var(--body);
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .status-active { background: rgba(52, 211, 153, 0.1); color: var(--success); border: 1px solid var(--success); }
-        .status-blocked { background: rgba(251, 113, 133, 0.1); color: var(--m-red); border: 1px solid var(--m-red); }
-
-        .btn {
-            padding: 8px 16px;
-            border-radius: var(--radius-sm);
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            border: 1px solid var(--hairline);
-        }
-
-        .btn-block { color: var(--m-red); background: transparent; }
-        .btn-block:hover { background: var(--m-red); color: white; }
-
-        .btn-unblock { color: var(--success); background: transparent; }
-        .btn-unblock:hover { background: var(--success); color: white; }
-
-        .back-link {
-            color: var(--body);
-            text-decoration: none;
-            display: inline-block;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-        .back-link:hover { color: var(--on-dark); }
-    
-        
-        /* Unified Buttons */
-        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
-        
-        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
-        
-        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn:hover { border-color: var(--primary); color: var(--primary); }
-
-        
-        /* Unified Inputs */
-        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
-            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
-        }
-        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
-        textarea { height: 60px; resize: vertical; } 
-        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
-
-    </style>
+    <link rel="stylesheet" href="/css/quizmoko-ui.css">
+    <script src="/js/quizmoko-theme.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .back-link { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; text-decoration: none; }
+        .status-badge { padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; display: inline-block; text-transform: capitalize; }
+        .status-active { background: var(--success-bg); color: var(--success); }
+        .status-blocked { background: var(--danger-bg); color: var(--danger); }
+        .btn-unblock { background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
+        .btn-unblock:hover { background: var(--success); color: #fff; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <a href="/" class="back-link">← Back to Dashboard</a>
-        <div class="card">
-            <h1><i data-lucide="shield" class="icon-sm"></i>️ Admin Dashboard</h1>
-            <p style="color: var(--body);">Manage registered users and monitor application usage.</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <a href="/" class="back-link">← Back to Dashboard</a>
+            <button type="button" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to light theme" class="btn btn-secondary btn-sm" title="Toggle Theme"><i data-lucide="moon" class="icon-sm"></i> <span>Theme</span></button>
+        </div>
+        <div class="card" style="margin-bottom: 20px;">
+            <h1 style="display: flex; align-items: center; gap: 8px;"><i data-lucide="shield" class="icon-md"></i> Admin Dashboard</h1>
+            <p style="color: var(--body); margin-bottom: 0;">Manage registered users and monitor application usage.</p>
         </div>
 
         <div class="card">
             <h2>Registered Users</h2>
             <div id="users-loading">Loading users...</div>
-            <table id="users-table" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>Email</th>
-                        <th>UID</th>
-                        <th>Status</th>
-                        <th>Total AI Calls</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="users-body">
-                    <!-- Rows will be injected here -->
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table id="users-table" class="data-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>UID</th>
+                            <th>Status</th>
+                            <th>Total AI Calls</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-body">
+                        <!-- Rows will be injected here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -232,8 +98,8 @@
                     <td style="font-weight: 700; color: var(--primary);">${escapeHtml(user.total_usage ?? 0)}</td>
                     <td>
                         ${isActive ?
-                            '<button class="btn btn-block" type="button">Block User</button>' :
-                            '<button class="btn btn-unblock" type="button">Unblock User</button>'
+                            '<button class="btn btn-danger btn-user-block btn-sm" type="button">Block User</button>' :
+                            '<button class="btn btn-success btn-user-unblock btn-sm" type="button">Unblock User</button>'
                         }
                     </td>
                 `;
@@ -272,6 +138,6 @@
 
         window.onload = fetchUsers;
     </script>
-    <script>lucide.createIcons();</script>
+    <script>window.refreshQuizmokoIcons?.();</script>
 </body>
 </html>

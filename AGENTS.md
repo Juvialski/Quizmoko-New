@@ -3,7 +3,7 @@
 ## Workspace Overview: QuizMoKo
 - Runtime: Node.js (ESM "type": "module") executed via tsx
 - Core Server: Modular Express.js server with clean entry point (server.ts) routing to modular controllers in /src/routes/, state & persistence in /src/store/db.ts, services in /src/services/, types in /src/types.ts, and auth middleware in /src/middleware/auth.ts
-- Frontend / Templating: EJS views (/views/*.ejs) and EJS partial templates (quiz_body.ejs, edit_top.ejs, ai_generator.ejs, etc.) styled with Tailwind CSS and MathJax/KaTeX LaTeX rendering
+- Frontend / Templating: EJS views (/views/*.ejs) and EJS partial templates (quiz_body.ejs, edit_top.ejs, ai_generator.ejs, etc.) styled with shared UI tokens in /public/css/quizmoko-ui.css, theme management in /public/js/quizmoko-theme.js, and MathJax/KaTeX LaTeX rendering
 - AI Service Layer: @google/genai TypeScript SDK initialized in /src/services/gemini.ts with structured prompt configurations in prompts.ts; semantic grading is isolated in /src/services/semanticGrading.ts and bounded worksheet batch orchestration in /src/services/worksheetSolver.ts
 - Grading Domain: canonical question normalization/scoring lives in /src/services/grading.ts, signed grade identity in /src/services/gradeProof.ts, and per-attempt ordering guards in /src/services/resultSession.ts
 - Data & Persistence: Firebase Firestore (firebase-admin, firebase/firestore), Firestore security rules (firestore.rules), in-memory Map stores, and JSON persistence in /src/store/db.ts with /data/*.json fallbacks

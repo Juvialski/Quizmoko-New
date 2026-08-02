@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
 
+    <link rel="stylesheet" href="/css/quizmoko-ui.css">
+    <script src="/js/quizmoko-theme.js"></script>
+
     <!-- MATHJAX FOR EQUATIONS -->
     <script>
       window.MathJax = {
@@ -22,50 +25,6 @@
     <style>
         * { box-sizing: border-box; }
 
-        :root {
-            --canvas: #090d16;
-            --surface-card: #131927;
-            --surface-elevated: #1c2436;
-            --surface-soft: #1e293b;
-            --on-dark: #f8fafc;
-            --body: #94a3b8;
-            --body-strong: #e2e8f0;
-            --hairline: rgba(255, 255, 255, 0.05);
-            --primary: #818cf8;
-            --m-blue-light: #6366f1;
-            --m-blue-dark: #4f46e5;
-            --m-red: #fb7185;
-            --success: #34d399;
-            --warning: #fbbf24;
-            --radius-md: 16px;
-            --radius-sm: 8px;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-        }
-        
-        [data-theme='light'] {
-            --canvas: #fafafa;
-            --surface-card: #ffffff;
-            --surface-elevated: #f4f4f5;
-            --surface-soft: #f4f4f5;
-            --on-dark: #0f172a;
-            --body: #52525b;
-            --body-strong: #18181b;
-            --hairline: rgba(0, 0, 0, 0.05);
-            --primary: #6366f1;
-            --m-blue-light: #4f46e5;
-            --m-blue-dark: #4338ca;
-            --m-red: #e11d48;
-            --success: #10b981;
-            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
-        }
-
-        [data-theme='dark'] {
-            --canvas: #0f172a; --surface-card: #1e293b; --surface-elevated: #0f172a; --surface-soft: #1e293b;
-            --on-dark: #f8fafc; --body: #94a3b8; --body-strong: #f1f5f9; --hairline: #334155;
-            --primary: #818cf8; --m-blue-light: #a5b4fc; --m-blue-dark: #4f46e5; --m-red: #fb7185;
-            --success: #34d399; --warning: #fbbf24;
-        }
-
         body { 
             font-family: 'Inter', sans-serif; 
             margin: 0; 
@@ -77,51 +36,61 @@
         }
         .container { max-width: 1440px; margin: auto; }
 
-        .header-card { background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); text-align: center; margin-bottom: 40px; }
-        h1 { color: var(--on-dark); font-weight: 800; letter-spacing: -1px; margin-top: 0; font-size: 32px; }
+        .header-card { background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow-md); text-align: center; margin-bottom: 40px; }
+        h1 { color: var(--body-strong); font-weight: 800; letter-spacing: -1px; margin-top: 0; font-size: 32px; }
         .m-stripe-divider { height: 4px; width: 80px; background: var(--primary); border-radius: 2px; margin: 20px auto; }
 
         .score-display { font-size: 48px; font-weight: 800; color: var(--success); margin: 20px 0; font-family: monospace; }
         .student-info { font-size: 18px; color: var(--body); }
 
-        .solution-card { background: var(--surface-card); padding: 32px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); margin-bottom: 32px; }
+        .solution-card { background: var(--surface-card); padding: 32px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow-sm); margin-bottom: 32px; }
         .question-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 16px; margin-bottom: 24px; }
         .q-num { font-weight: 800; color: var(--primary); font-size: 20px; }
         .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
-        .status-correct { background: #dcfce7; color: #166534; }
-        .status-partial { background: #ffedd5; color: #9a3412; }
-        .status-wrong { background: #fee2e2; color: #991b1b; }
-        .status-grading { background: #fef9c3; color: #854d0e; }
+        .status-correct { background: var(--success-bg); color: var(--success); }
+        .status-partial { background: var(--warning-bg); color: var(--warning); }
+        .status-wrong { background: var(--danger-bg); color: var(--danger); }
+        .status-grading { background: var(--info-bg); color: var(--info); }
 
-        .question-text { font-size: 19px; color: var(--on-dark); margin-bottom: 24px; padding: 24px; background: var(--surface-elevated); border: 1px solid var(--hairline); border-radius: var(--radius-md); font-weight: 500; white-space: pre-wrap; }
-        .workings-title { font-weight: 700; color: var(--on-dark); margin-top: 32px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-        .workings-img { width: 100%; max-width: 100%; height: auto; max-height: var(--wb-height); border: 1px solid var(--hairline); border-radius: var(--radius-sm); margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); background: white; display: block; object-fit: contain;}
+        .question-text { font-size: 19px; color: var(--body-strong); margin-bottom: 24px; padding: 24px; background: var(--surface-elevated); border: 1px solid var(--hairline); border-radius: var(--radius-md); font-weight: 500; white-space: pre-wrap; }
+        .workings-title { font-weight: 700; color: var(--body-strong); margin-top: 32px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .workings-img { width: 100%; max-width: 100%; height: auto; max-height: var(--wb-height); border: 1px solid var(--hairline); border-radius: var(--radius-sm); margin-bottom: 16px; box-shadow: var(--shadow-sm); background: white; display: block; object-fit: contain;}
         .resizable-image-wrapper { display: flex; justify-content: center; margin: 24px auto; width: 100%; }
-        .image-content-box { background: white; padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); display: inline-block; max-width: 200%; }
+        .image-content-box { background: white; padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border: 1px solid var(--hairline); display: inline-block; max-width: 200%; }
         .resizable-image-wrapper img { width: 100%; height: auto; display: block; margin: 0 auto; border-radius: var(--radius-sm); }
 
         .answer-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; padding: 24px; background: var(--surface-elevated); border-radius: var(--radius-md); border: 1px solid var(--hairline); }
         .ans-box { font-size: 16px; }
         .ans-label { font-weight: 800; color: var(--primary); margin-bottom: 8px; display: block; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
-        .ans-value { color: var(--on-dark); font-weight: 700; font-size: 18px; word-break: break-word; white-space: pre-wrap; }
+        .ans-value { color: var(--body-strong); font-weight: 700; font-size: 18px; word-break: break-word; white-space: pre-wrap; }
 
-        .ai-feedback { margin-top: 24px; padding: 16px; background: rgba(99, 102, 241, 0.05); border-left: 4px solid var(--primary); border-radius: 4px; font-size: 14px; color: var(--on-dark); }
+        .ai-feedback { margin-top: 24px; padding: 16px; background: rgba(99, 102, 241, 0.05); border-left: 4px solid var(--primary); border-radius: 4px; font-size: 14px; color: var(--body-strong); }
         .explanation-box { background: rgba(99, 102, 241, 0.05); border-left: 4px solid var(--primary); padding: 20px; margin-top: 15px; border-radius: 4px; }
-        .wb-btn { padding: 8px 12px; border: 1px solid var(--hairline); background: var(--surface-card); cursor: pointer; border-radius: 4px; font-size: 12px; color: var(--on-dark); font-weight: 600; transition: 0.2s; white-space: nowrap;}
+        .wb-btn { padding: 8px 12px; border: 1px solid var(--hairline); background: var(--surface-card); cursor: pointer; border-radius: 4px; font-size: 12px; color: var(--body-strong); font-weight: 600; transition: 0.2s; white-space: nowrap;}
         .wb-btn:hover { border-color: var(--primary); }
 
         .footer { text-align: center; color: var(--body); font-size: 14px; margin-top: 60px; padding-bottom: 40px; }
 
-        .theme-toggle { position: fixed; bottom: 30px; right: 30px; width: 50px; height: 50px; border-radius: 25px; background: var(--primary); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); z-index: 100; transition: 0.2s; }
-        .theme-toggle:hover { transform: scale(1.1); }
+        .floating-actions { position: fixed; bottom: 20px; right: 20px; z-index: 100; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
 
-        .pdf-btn { position: fixed; bottom: 30px; right: 100px; padding: 0 20px; height: 50px; border-radius: 25px; background: var(--success); color: white; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); z-index: 100; transition: 0.2s; }
+        .theme-toggle { width: 44px; height: 44px; border-radius: 50%; background: var(--primary); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: var(--shadow-md); transition: 0.2s; }
+        .theme-toggle:hover { transform: scale(1.05); }
+
+        .pdf-btn { padding: 0 16px; height: 44px; border-radius: 22px; background: var(--success); color: white; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; box-shadow: var(--shadow-md); transition: 0.2s; }
         .pdf-btn:hover { transform: scale(1.05); background: #059669; }
 
-        .height-control-panel { position: fixed; bottom: 100px; right: 30px; background: var(--surface-card); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow); border: 1px solid var(--hairline); border: 1px solid var(--hairline); z-index: 100; display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
-        .height-control-panel label { font-size: 11px; font-weight: 800; color: var(--body); text-transform: uppercase; letter-spacing: 0.5px; }
+        .height-control-panel { position: fixed; bottom: 80px; right: 20px; background: var(--surface-card); padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--hairline); box-shadow: var(--shadow-lg); z-index: 100; display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+        .height-control-panel label { font-size: 11px; font-weight: 800; color: var(--body); text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }
         .height-slider { width: 100%; cursor: pointer; accent-color: var(--primary); }
-        .height-value { font-size: 14px; font-weight: 700; color: var(--on-dark); }
+        .height-value { font-size: 13px; font-weight: 700; color: var(--body-strong); }
+
+        @media (max-width: 768px) {
+            body { padding: 16px 12px; }
+            .header-card, .solution-card { padding: 20px; }
+            .answer-comparison { grid-template-columns: 1fr; padding: 16px; }
+            .floating-actions { position: relative; bottom: auto; right: auto; margin-top: 20px; justify-content: center; width: 100%; }
+            .height-control-panel { position: relative; bottom: auto; right: auto; margin: 20px auto; width: 100%; max-width: 320px; }
+        }
 
         @media print {
             .container { max-width: 100%; margin: 0; padding: 0; }
@@ -144,43 +113,13 @@
             .ans-label { color: #4f46e5 !important; }
             .ans-value { color: black !important; font-size: 16px; }
             .status-badge { border: 1px solid #ccc; background: white !important; color: black !important; }
-            .theme-toggle, .pdf-btn, .height-control-panel { display: none !important; }
+            .theme-toggle, .pdf-btn, .height-control-panel, .floating-actions { display: none !important; }
             .workings-img { page-break-inside: avoid; max-width: 100%; max-height: var(--wb-height); height: auto; display: block; margin: 10px auto; border: 1px solid #ccc; object-fit: contain; }
             .workings-title { margin-top: 15px; margin-bottom: 5px; font-size: 14px; }
         }
     
         
-        /* Unified Buttons */
-        .btn-primary { background: var(--primary); color: #ffffff; border: none; cursor: pointer; width: 100%; padding: 14px; font-size: 15px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 12px; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 8px;}
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-primary:disabled { background: var(--hairline); color: var(--body); cursor: not-allowed; transform: none; box-shadow: none;}
-        
-        .btn-secondary { background: var(--surface-elevated); color: var(--on-dark); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn-secondary:hover { border-color: var(--primary); color: var(--primary);}
-        
-        .btn { padding: 10px 20px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; transition: 0.2s; background: var(--surface-elevated); color: var(--on-dark); display: inline-flex; align-items: center; justify-content: center; gap: 6px;}
-        .btn:hover { border-color: var(--primary); color: var(--primary); }
 
-        
-        /* Unified Inputs */
-        input[type="text"], input[type="number"], input[type="password"], input[type="email"], textarea, select { 
-            width: 100%; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); box-sizing: border-box; font-family: inherit; font-size: 14px; background: var(--surface-soft); color: var(--on-dark); transition: all 0.2s ease;
-        }
-        input:focus, textarea:focus, select:focus { border-color: var(--primary); background: var(--canvas); outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);}
-        textarea { height: 60px; resize: vertical; } 
-        label { font-weight: 600; display: block; margin-top: 15px; margin-bottom: 6px; font-size: 13px; color: var(--body-strong); }
-
-        /* Lucide Icons Standard Styling */
-        .icon-sm, i[data-lucide], svg.lucide {
-            width: 16px !important;
-            height: 16px !important;
-            display: inline-block !important;
-            vertical-align: middle !important;
-            margin-right: 4px;
-        }
-        svg.lucide {
-            stroke-width: 2;
-        }
 
     </style>
     <!-- Lucide Icons -->
@@ -192,8 +131,10 @@
         <input type="range" min='100' max='800' value="350" class="height-slider" id="height-slider" oninput="updateWbHeight(this.value)">
         <div class="height-value" id="height-val-label">350px</div>
     </div>
-    <button class="pdf-btn" id="main-pdf-btn" onclick="downloadThisPageAsPDF()"><i data-lucide="file-text" class="icon-sm"></i> Save as PDF</button>
-    <button class="theme-toggle" onclick="toggleTheme()"><i data-lucide="moon"></i></button>
+    <div class="floating-actions">
+        <button type="button" class="pdf-btn" id="main-pdf-btn" onclick="downloadThisPageAsPDF()"><i data-lucide="file-text" class="icon-sm"></i> Save as PDF</button>
+        <button type="button" class="theme-toggle" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to light theme" title="Toggle Theme"><i data-lucide="moon"></i></button>
+    </div>
 
     <div class="container">
         <div class="header-card">
@@ -411,12 +352,12 @@
                     box.style.display = 'block';
                     box.innerHTML = `<strong><i data-lucide="bot" class="icon-sm"></i> AI TUTOR:</strong><br><br>` + formatDisplay(data.explanation || 'No explanation returned.');
                     if (window.QuizMoKoMath) window.QuizMoKoMath.typeset(box);
-                    if (window.lucide) lucide.createIcons();
+                    window.refreshQuizmokoIcons?.();
                 }
             }).catch(err => {
                 btn.innerHTML = '<i data-lucide="bot" class="icon-sm"></i> AI Tutor: Explain My Mistake';
                 btn.disabled = false;
-                if (window.lucide) lucide.createIcons();
+                window.refreshQuizmokoIcons?.();
                 alert('Failed to generate explanation. Please try again.');
             });
         }
@@ -553,10 +494,10 @@
                             targetBtn.innerHTML = originalHtml;
                             targetBtn.disabled = false;
                             targetBtn.style.color = 'var(--warning)';
-                            if (window.lucide) lucide.createIcons();
+                            window.refreshQuizmokoIcons?.();
                         }, 2000);
                     }
-                    if (window.lucide) lucide.createIcons();
+                    window.refreshQuizmokoIcons?.();
                 } else if (data.review_required && !acknowledgeQuestionChange) {
                     const approved = confirm(
                         'The authoritative quiz question or answer key changed after this attempt. Regrading will intentionally update this historical result and record your acknowledgement. Continue?'
@@ -572,7 +513,7 @@
                 if (targetBtn && (targetBtn.innerText === '⌛ RE-CHECKING...' || targetBtn.disabled)) {
                     targetBtn.innerHTML = originalHtml;
                     targetBtn.disabled = false;
-                    if (window.lucide) lucide.createIcons();
+                    window.refreshQuizmokoIcons?.();
                 }
             }
         }
@@ -621,17 +562,6 @@
             document.documentElement.style.setProperty('--wb-height', val + 'px');
             document.getElementById('height-val-label').innerText = val + 'px';
         }
-
-        function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-        }
-
-        // Initialize Theme
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
 
         function formatDisplay(val) {
             if (val === null || val === undefined) return '';
@@ -689,7 +619,7 @@
             const originalHtml = btn.innerHTML;
             btn.innerHTML = '<i data-lucide="zap" class="icon-sm"></i> REPAIRING...';
             btn.disabled = true;
-            if (window.lucide) lucide.createIcons();
+            window.refreshQuizmokoIcons?.();
 
             try {
                 // Reset completion flag to allow pollResults to run once more and update UI
@@ -705,7 +635,7 @@
                     btn.style.borderColor = 'var(--success)';
                     btn.style.color = 'var(--success)';
                     btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> REPAIRED';
-                    if (window.lucide) lucide.createIcons();
+                    window.refreshQuizmokoIcons?.();
                 }
             } catch (err) {
                 console.error('Force sync failed:', err);
@@ -716,7 +646,7 @@
                     btn.disabled = false;
                     btn.style.borderColor = 'var(--warning)';
                     btn.style.color = 'var(--warning)';
-                    if (window.lucide) lucide.createIcons();
+                    window.refreshQuizmokoIcons?.();
                 }, 3000);
             }
         }
@@ -804,9 +734,7 @@
                 }
 
                 if (window.QuizMoKoMath) window.QuizMoKoMath.typeset(document.body);
-                if (window.lucide) {
-                    lucide.createIcons();
-                }
+                window.refreshQuizmokoIcons?.();
 
             } catch (e) {
                 console.error('Polling error:', e);
@@ -843,9 +771,7 @@
                     solutionStepBox.style.display = 'block';
                 }
             });
-            if (window.lucide) {
-                lucide.createIcons();
-            }
+            window.refreshQuizmokoIcons?.();
         }
 
         if (initialDetails.some(d => d && d.correct_answer === 'Finalizing...')) {
@@ -887,6 +813,6 @@
             }
         }
     </script>
-    <script>lucide.createIcons();</script>
+    <script>window.refreshQuizmokoIcons?.();</script>
 </body>
 </html>

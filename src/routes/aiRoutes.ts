@@ -1335,11 +1335,25 @@ router.post('/api/bulk_import_questions', tokenRequired, async (req: AuthRequest
 
   if (selectedQuestions.length > 0 && selectedQuestions.length <= 500) {
     if (!Array.isArray(destination.questions)) destination.questions = [];
-    destination.questions.push(...selectedQuestions.map(question => clonePlainValue(question)));
+    const importedQuestions = selectedQuestions.map((question) => {
+      const cloned = clonePlainValue(question);
+      cloned.id = `q_imported_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      if (!cloned.source && cloned.original_index) {
+        delete cloned.original_index;
+      }
+      return cloned;
+    });
+
+    destination.questions.push(...importedQuestions);
     quizzes.set(destinationId, destination);
     savePersistentData();
     await syncDocToFirestore('quizzes', destinationId, destination);
-    return res.json({ success: true, count: selectedQuestions.length });
+    return res.json({
+      success: true,
+      count: importedQuestions.length,
+      imported_questions: importedQuestions,
+      total_questions: destination.questions.length
+    });
   }
   return res.status(400).json({ success: false, error: 'Failed to import questions' });
 });

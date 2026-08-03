@@ -311,10 +311,14 @@
         <div class="modal-card" style="max-width: 700px;">
             <div id="import-step-1">
                 <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Import Questions</h2>
+                <div id="import-success-banner" style="display: none; background: rgba(52, 211, 153, 0.15); border: 1px solid var(--success); color: var(--success); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 13px; font-weight: 600; align-items: center; justify-content: space-between;">
+                    <span id="import-success-msg"></span>
+                    <button type="button" onclick="document.getElementById('import-success-banner').style.display='none'" style="background: transparent; border: none; color: var(--success); cursor: pointer; font-size: 16px; font-weight: bold;">×</button>
+                </div>
                 <p style="color: var(--body); font-size: 14px; margin-bottom: 20px;">Select a source quiz to import questions from.</p>
                 <input type="text" id="import-search" placeholder="Search quizzes..." onkeyup='filterImportQuizzes()' style="margin-bottom: 16px; padding: 12px; font-size: 13px;">
                 <div id="import-quiz-list" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;"></div>
-                <button class="btn btn-secondary" style="width: 100%;" onclick="closeImportModal()">Cancel</button>
+                <button id="import-modal-close-btn" class="btn btn-secondary" style="width: 100%;" onclick="closeImportModal()">Done</button>
             </div>
 
             <div id="import-step-2" style="display: none;">
@@ -1142,8 +1146,9 @@
                 const sourceQuestionId = rawSourceQuestionId === undefined || rawSourceQuestionId === null
                     ? ''
                     : String(rawSourceQuestionId).trim();
-                const displayQuestionId = sourceQuestionId || String(qIndex + 1);
-                const positionLabel = sourceQuestionId && sourceQuestionId !== String(qIndex + 1)
+                const displayQuestionId = String(qIndex + 1);
+                const hasDifferentSource = sourceQuestionId && sourceQuestionId !== String(qIndex + 1);
+                const positionLabel = hasDifferentSource
                     ? '<span data-quiz-position style="font-size: 11px; color: var(--primary); font-weight: 700;"></span>'
                     : '';
                  
@@ -1198,7 +1203,7 @@
                 `;
                 header.querySelector('[data-question-heading]').textContent = `QUESTION ${displayQuestionId}`;
                 const quizPosition = header.querySelector('[data-quiz-position]');
-                if (quizPosition) quizPosition.textContent = `(QUIZ POSITION ${qIndex + 1})`;
+                if (quizPosition) quizPosition.textContent = `(Source Q${sourceQuestionId})`;
                 leftCol.appendChild(qTextLabel);
                 
                 const qTextInput = document.createElement('textarea'); 
@@ -1898,6 +1903,7 @@
 
         // --- BULK IMPORT LOGIC ---
         let importSourceQuizId = null;
+        let importSourceQuizTitle = '';
 
         async function openImportModal() {
             document.getElementById('import-step-1').style.display = 'block';
@@ -1943,10 +1949,14 @@
         }
 
         function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
-        function backToImportStep1() { document.getElementById('import-step-1').style.display = 'block'; document.getElementById('import-step-2').style.display = 'none'; }
+        function backToImportStep1() {
+            document.getElementById('import-step-1').style.display = 'block';
+            document.getElementById('import-step-2').style.display = 'none';
+        }
 
         async function loadQuestionsForImport(id, title) {
             importSourceQuizId = id;
+            importSourceQuizTitle = title;
             document.getElementById('import-source-title').innerText = title;
             document.getElementById('import-step-1').style.display = 'none';
             document.getElementById('import-step-2').style.display = 'block';
@@ -2020,10 +2030,30 @@
                 });
                 const data = await readJsonResponse(res);
                 if (data.success !== false) {
-                    alert(`Successfully imported ${data.count} questions!`);
-                    window.location.reload();
+                    const newQuestions = data.imported_questions || [];
+                    if (newQuestions.length > 0) {
+                        if (!Array.isArray(quizData.questions)) quizData.questions = [];
+                        quizData.questions.push(...newQuestions);
+                    }
+                    renderQuestions();
+                    window.refreshQuizmokoIcons?.();
+
+                    btn.disabled = false;
+                    btn.innerText = 'Confirm Import';
+
+                    const banner = document.getElementById('import-success-banner');
+                    const msgSpan = document.getElementById('import-success-msg');
+                    if (banner && msgSpan) {
+                        msgSpan.textContent = `✓ Successfully imported ${data.count || selectedIndices.length} question(s) from "${importSourceQuizTitle || 'Source Quiz'}". Select another quiz below or click Done.`;
+                        banner.style.display = 'flex';
+                    }
+
+                    const closeBtn = document.getElementById('import-modal-close-btn');
+                    if (closeBtn) closeBtn.textContent = 'Done';
+
+                    backToImportStep1();
                 } else {
-                    alert('Import failed: ' + data.error);
+                    alert('Import failed: ' + (data.error || 'Unknown error'));
                     btn.disabled = false;
                     btn.innerText = 'Confirm Import';
                 }

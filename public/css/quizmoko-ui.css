@@ -166,6 +166,105 @@ a:hover {
   gap: 10px;
 }
 
+/* --------------------------------------------------------------------------
+   3b. Unified Top Header Bar & Mode Dashboard Grid
+   -------------------------------------------------------------------------- */
+.top-header-bar {
+  max-width: 1800px;
+  margin: 0 auto 32px auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0;
+}
+
+.dashboard-container {
+  width: 100%;
+  max-width: 1800px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (min-width: 769px) {
+  .dashboard-container.teacher-view {
+    grid-template-columns: 350px 1fr;
+  }
+  .sticky-col {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .dashboard-container.teacher-view {
+    grid-template-columns: 450px 1fr;
+  }
+}
+
+.mode-tabs {
+  display: flex;
+  background: var(--surface-soft);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: 8px;
+  gap: 4px;
+}
+
+.mode-tab {
+  flex: 1;
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--body);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-normal);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mode-tab:hover {
+  background: var(--surface-elevated);
+  color: var(--body-strong);
+}
+
+.mode-tab.active {
+  background: var(--primary);
+  color: white;
+}
+
+.mode-tab i, .mode-tab svg {
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.btn-logout {
+  background: transparent;
+  color: var(--body-strong);
+  border: 1px solid var(--hairline);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition-fast);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-logout:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 .container, .content-container {
   width: 100%;
   max-width: 1120px;

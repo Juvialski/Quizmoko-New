@@ -25,18 +25,6 @@
             font-weight: 400;
             transition: background-color 0.3s ease, color 0.3s ease;
         }
-        .container { max-width: 1440px; margin: auto; }
-        .dashboard-container { display: grid; grid-template-columns: 1fr; gap: 32px; align-items: start; }
-        @media (min-width: 1024px) { .dashboard-container { grid-template-columns: 450px 1fr; } .sticky-col { position: sticky; top: 24px; } }
-        @media (max-width: 992px), (max-height: 700px) {
-            .dashboard-container { grid-template-columns: 1fr !important; }
-            .sticky-col { position: static !important; }
-        }
-
-        .mode-tabs { display: flex; background: var(--surface-soft); border: 1px solid var(--hairline); border-radius: var(--radius-md) var(--radius-md) 0 0; padding: 8px; gap: 4px; flex-wrap: wrap; }
-        .mode-tab { flex: 1; min-width: 80px; padding: 10px 4px; text-align: center; font-size: 11px; font-weight: 700; color: var(--body); cursor: pointer; border-radius: var(--radius-sm); transition: 0.2s; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .mode-tab:hover { background: var(--surface-elevated); color: var(--body-strong); }
-        .mode-tab.active { background: var(--primary); color: white; }
 
         .worksheet-panel { margin-bottom: 24px; }
         h1, h2, h3 { color: var(--on-dark); margin-top: 0; }
@@ -54,34 +42,50 @@
         .meta-row { display: flex; gap: 16px; margin-bottom: 12px; }
         .meta-item { font-size: 11px; color: var(--body); font-weight: 700; text-transform: uppercase; }
         .meta-item b { color: var(--on-dark); }
-    
-        
-
-
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-            <a href="/" style="color: var(--primary); text-decoration: none; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                DASHBOARD
-            </a>
-            <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
+    <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
+        <div>
+            <h1 style="margin: 0; color: var(--body-strong); font-weight: 700; font-size: 36px; letter-spacing: -0.5px;" id="dashboard-header">
+                <i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> QuizMoKo <span style="font-size:16px; color:var(--body); font-weight:400; letter-spacing: 0; vertical-align: middle;">Teacher</span>
+            </h1>
         </div>
+        <div class="header-nav-actions" style="display: flex; gap: 16px; align-items: center;">
+            <% if (typeof is_admin !== 'undefined' && is_admin) { %>
+            <a href="/admin" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield" class="icon-sm"></i> Admin Panel</a>
+            <% } %>
+            <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
+            <button id="logout-btn" class="btn-logout" onclick="window.location.href='/logout'"><i data-lucide="log-out" class="icon-sm"></i> Logout</button>
+        </div>
+    </div>
 
-        <div class="dashboard-container">
-            <div class="sticky-col">
-                <div class="mode-tabs">
-                    <a href="/" class="mode-tab"><span><i data-lucide="bot" class="icon-sm"></i></span>AI GEN</a>
-                    <a href="/worksheet" class="mode-tab"><span><i data-lucide="file-text" class="icon-sm"></i></span>WORKSHEET</a>
-                    <a href="/worksheet_answers" class="mode-tab"><span><i data-lucide="key" class="icon-sm"></i></span>ANSWERS</a>
-                    <a href="/rmxflash" class="mode-tab active"><span><i data-lucide="zap" class="icon-sm"></i></span>RMXFLASH</a>
-                </div>
-                <div class="card worksheet-panel" style="border-radius: 0 0 var(--radius-md) var(--radius-md);">
-                    <h1><i data-lucide="zap" class="icon-sm"></i> RMXFlash Mode</h1>
+    <div class="dashboard-container teacher-view">
+        <div class="sticky-col">
+            <div class="mode-tabs">
+                <a href="/" class="mode-tab">
+                    <span><i data-lucide="bot" class="icon-sm"></i></span>
+                    AI GEN
+                </a>
+                <a href="/worksheet" class="mode-tab">
+                    <span><i data-lucide="file-text" class="icon-sm"></i></span>
+                    WORKSHEET
+                </a>
+                <a href="/worksheet_answers" class="mode-tab">
+                    <span><i data-lucide="key" class="icon-sm"></i></span>
+                    ANSWERS
+                </a>
+                <% if (typeof is_rmx_authorized === 'undefined' || is_rmx_authorized) { %>
+                <a href="/rmxflash" class="mode-tab active" aria-current="page">
+                    <span><i data-lucide="zap" class="icon-sm"></i></span>
+                    RMXFLASH
+                </a>
+                <% } %>
+            </div>
+            <div class="card worksheet-panel" style="border-top-left-radius: 0; border-top-right-radius: 0;">
+                <h1><i data-lucide="zap" class="icon-sm"></i> RMXFlash Mode</h1>
                     <div class="m-stripe"></div>
 
                     <form id="rmx-form" onsubmit="handleExtract(event)">
@@ -137,7 +141,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <div id="progress-overlay">
         <h2 id="progress-text">AI is working...</h2>

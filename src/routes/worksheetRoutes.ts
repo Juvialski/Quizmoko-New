@@ -1646,16 +1646,28 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
   }
 });
 
-router.get('/worksheet_answers', tokenRequired, (req, res) => {
-  res.render('worksheet_answers_upload');
+router.get('/worksheet_answers', tokenRequired, (req: AuthRequest, res) => {
+  res.render('worksheet_answers_upload', {
+    user: req.user,
+    is_admin: req.user?.role === 'admin',
+    is_rmx_authorized: true
+  });
 });
 
-router.get(['/worksheet', '/worksheet_upload'], tokenRequired, (req, res) => {
-  res.render('worksheet_upload');
+router.get(['/worksheet', '/worksheet_upload'], tokenRequired, (req: AuthRequest, res) => {
+  res.render('worksheet_upload', {
+    user: req.user,
+    is_admin: req.user?.role === 'admin',
+    is_rmx_authorized: true
+  });
 });
 
-router.get('/rmxflash', tokenRequired, (req, res) => {
-  res.render('rmxflash_upload');
+router.get('/rmxflash', tokenRequired, (req: AuthRequest, res) => {
+  res.render('rmxflash_upload', {
+    user: req.user,
+    is_admin: req.user?.role === 'admin',
+    is_rmx_authorized: true
+  });
 });
 
 router.get('/worksheet/:quiz_id', tokenRequired, (req: AuthRequest, res) => {

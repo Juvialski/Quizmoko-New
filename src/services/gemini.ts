@@ -1,10 +1,29 @@
 import { GoogleGenAI } from '@google/genai';
 
+export function sanitizeApiKey(rawKey: string | undefined | null): string | null {
+  if (!rawKey || typeof rawKey !== 'string') return null;
+  const trimmed = rawKey.trim();
+  if (!trimmed) return null;
+  for (let i = 0; i < trimmed.length; i++) {
+    const code = trimmed.charCodeAt(i);
+    if (code < 32 || code > 126) {
+      return null;
+    }
+  }
+  if (trimmed.includes('•') || trimmed.includes('…')) return null;
+  return trimmed;
+}
+
 export function getGeminiClient(customApiKey?: string) {
-  // Google AI Studio exports historically inject API_KEY, while Render and
-  // current local setups conventionally use GEMINI_API_KEY.
-  const apiKey = customApiKey || process.env.GEMINI_API_KEY || process.env.API_KEY;
+  // Sanitize custom key and fallback environment keys so non-ASCII/masked values
+  // do not trigger Web IDL ByteString conversion failures in Node fetch.
+  const validCustomKey = sanitizeApiKey(customApiKey);
+  const validEnvGeminiKey = sanitizeApiKey(process.env.GEMINI_API_KEY);
+  const validEnvApiKey = sanitizeApiKey(process.env.API_KEY);
+
+  const apiKey = validCustomKey || validEnvGeminiKey || validEnvApiKey;
   if (!apiKey) return null;
+
   return new GoogleGenAI({
     apiKey,
     httpOptions: {

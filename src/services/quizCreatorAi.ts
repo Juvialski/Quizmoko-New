@@ -1,6 +1,6 @@
 import type { Quiz, User } from '../types.ts';
 import { users } from '../store/db.ts';
-import { getGeminiClient } from './gemini.ts';
+import { getGeminiClient, sanitizeApiKey } from './gemini.ts';
 
 type GeminiClient = NonNullable<ReturnType<typeof getGeminiClient>>;
 
@@ -20,17 +20,18 @@ export function getQuizCreatorApiKey(
     : 'teacher_test';
   const creator = users.get(creatorId);
   if (!canUserManageApiKeys(creator)) return '';
-  return typeof creator?.stored_custom_key === 'string'
-    ? creator.stored_custom_key.trim().slice(0, 512)
+  const storedKey = typeof creator?.stored_custom_key === 'string'
+    ? creator.stored_custom_key
     : '';
+  return sanitizeApiKey(storedKey) || '';
 }
 
 export function getQuizCreatorGeminiClients(
   quiz: Pick<Quiz, 'user_id'> | null | undefined
 ): GeminiClient[] {
   const apiKey = getQuizCreatorApiKey(quiz);
-  if (!apiKey) return [];
   try {
+    // getGeminiClient will use sanitized creator apiKey or fall back to GEMINI_API_KEY / API_KEY
     const client = getGeminiClient(apiKey);
     return client ? [client] : [];
   } catch (error) {

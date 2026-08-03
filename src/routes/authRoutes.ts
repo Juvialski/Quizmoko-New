@@ -17,6 +17,7 @@ import {
 } from '../middleware/auth.ts';
 import { loginLimiter } from '../middleware/rateLimit.ts';
 import { canUserManageApiKeys } from '../services/quizCreatorAi.ts';
+import { sanitizeApiKey } from '../services/gemini.ts';
 
 const router = Router();
 const VALID_ROLES = new Set<User['role']>(['admin', 'teacher', 'student']);
@@ -202,8 +203,15 @@ router.post('/api/user/save_api_key', tokenRequired, asyncRoute(async (req: Auth
       error: 'An authenticated user account is required to configure AI API keys.'
     });
   }
+  const sanitized = sanitizeApiKey(api_key);
+  if (typeof api_key === 'string' && api_key.trim() !== '' && !sanitized) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid API key format. API keys must contain valid ASCII characters and cannot be masked placeholders.'
+    });
+  }
   const user = users.get(req.user.uid) || { ...req.user };
-  user.stored_custom_key = typeof api_key === 'string' ? api_key.trim().slice(0, 512) : '';
+  user.stored_custom_key = sanitized || '';
   await persistUser(user);
   res.json({ success: true, message: 'API key updated successfully.' });
 }));

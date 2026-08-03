@@ -64,9 +64,11 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Fixed `stripWorksheetSolverState()` in `src/services/worksheetPipeline.ts` to preserve base64 image data in question objects, preventing `worksheet_source.extracted_questions` and quiz questions from losing cropped diagram base64 URLs.
   - Updated `readQuestionText()` in `src/services/worksheetPipeline.ts` to check both `raw_text` and `question` for `resizable-image-wrapper` or `<img` tags, preserving user-edited text alongside cropped diagram HTML throughout solver candidate reconciliation and normalization.
 * **[2026-08-02]** Integrated guarded question-number navigation panel for back-and-forth quiz mode in `views/quiz.ejs`:
-  - Added `#question-jump-panel` and `#question-jump-buttons` rendering numbered question buttons with accessibility attributes (`aria-current`, state labels, scrolling).
+  - Added `#question-jump-panel` and `#question-jump-buttons` rendering numbered question buttons with accessibility attributes (`aria-current`, state labels).
   - Standardized Next, Prev, and direct question-number jump navigation to route through `navigateBackAndForth()`, ensuring unsaved responses trigger grading guards before navigating without revealing correctness status during quiz taking.
-  - Repositioned `#question-jump-panel` to the very bottom of the quiz view below navigation controls, prioritizing question content first and removing header text labels to present a clean grid of question number boxes.
+  - Repositioned `#question-jump-panel` to the bottom of the quiz view below navigation controls, prioritizing main question content first.
+  - Removed pending/needs-attention dot indicators (`.pending::after`, `.needs-attention::after`) for clean visual feedback.
+  - Replaced scroll container and max-height constraints on `.question-jump-list` with a responsive fluid auto-fill grid (`minmax(44px, 1fr)`), expanding the boxes across the full panel width without scrollbars.
   - Added regression test suite verification in `test/ui-consistency.test.ts`.
 
 

@@ -66,6 +66,7 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
 * **[2026-08-02]** Integrated guarded question-number navigation panel for back-and-forth quiz mode in `views/quiz.ejs`:
   - Added `#question-jump-panel` and `#question-jump-buttons` rendering numbered question buttons with accessibility attributes (`aria-current`, state labels, scrolling).
   - Standardized Next, Prev, and direct question-number jump navigation to route through `navigateBackAndForth()`, ensuring unsaved responses trigger grading guards before navigating without revealing correctness status during quiz taking.
+  - Repositioned `#question-jump-panel` to the very bottom of the quiz view below navigation controls, prioritizing question content first and removing header text labels to present a clean grid of question number boxes.
   - Added regression test suite verification in `test/ui-consistency.test.ts`.
 
 

@@ -81,32 +81,12 @@
 
         .question-jump-panel {
             display: none;
-            margin-bottom: 24px;
+            margin-top: 24px;
             padding: 16px;
             border: 1px solid var(--hairline);
             border-radius: var(--radius-md);
             background: var(--surface-soft);
             text-align: left;
-        }
-        .question-jump-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 12px;
-            color: var(--on-dark);
-            font-size: 13px;
-            font-weight: 800;
-        }
-        .question-jump-title {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-        }
-        .question-jump-hint {
-            color: var(--body);
-            font-size: 12px;
-            font-weight: 600;
         }
         .question-jump-list {
             display: grid;
@@ -563,12 +543,7 @@
             }
             .question-jump-panel {
                 padding: 12px !important;
-                margin-bottom: 18px !important;
-            }
-            .question-jump-header {
-                align-items: flex-start;
-                flex-direction: column;
-                gap: 4px;
+                margin-top: 18px !important;
             }
             .question-jump-list {
                 grid-template-columns: repeat(auto-fill, 44px);
@@ -662,13 +637,6 @@
                     <button class="btn-start" onclick="beginQuiz()"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Start Quiz</button>
                 </div>
                 <div id="quiz-screen" style="display:none;">
-                    <div id="question-jump-panel" class="question-jump-panel">
-                        <div class="question-jump-header">
-                            <span class="question-jump-title"><i data-lucide="list-ordered" class="icon-sm"></i> Questions</span>
-                            <span class="question-jump-hint">Select any question. Filled buttons have a saved response.</span>
-                        </div>
-                        <div id="question-jump-buttons" class="question-jump-list" role="navigation" aria-label="Question navigation"></div>
-                    </div>
                     <div id="timer"></div>
                     <div id="question-text"></div>
                     <div id="options-container"></div>
@@ -690,6 +658,10 @@
                     <div id="bf-nav-controls" style="display:none; margin-top: 30px; display: flex; gap: 20px;">
                         <button id="btn-prev" class="btn-nav" onclick="prevQuestion()" style="flex: 1; padding: 18px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--hairline); background: var(--surface-elevated); color: var(--on-dark); transition: 0.2s; font-size: 14px;">⬅️ PREVIOUS</button>
                         <button id="btn-next" class="btn-nav" onclick="nextQuestion()" style="flex: 2; padding: 18px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: white; transition: 0.2s; font-size: 14px;">NEXT / CONFIRM <i data-lucide="arrow-right" class="icon-sm"></i>️</button>
+                    </div>
+
+                    <div id="question-jump-panel" class="question-jump-panel">
+                        <div id="question-jump-buttons" class="question-jump-list" role="navigation" aria-label="Question navigation"></div>
                     </div>
                 </div>
                 <div id="result-screen" style="display:none;">

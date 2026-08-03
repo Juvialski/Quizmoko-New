@@ -777,10 +777,12 @@
             window.refreshQuizmokoIcons?.();
             modalDesc.innerHTML = 'To generate quizzes, provide a Google Gemini API key or use the server-configured Gemini connection.';
 
+            apiKeyModal.classList.add('active');
             apiKeyModal.style.display = 'flex';
         }
 
         function closeApiKeyModal() {
+            apiKeyModal.classList.remove('active');
             apiKeyModal.style.display = 'none';
         }
 

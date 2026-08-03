@@ -497,7 +497,7 @@ textarea.question-editor-field {
   transition: opacity var(--transition-fast);
 }
 
-.modal-overlay.active, .modal-overlay.show {
+.modal-overlay.active, .modal-overlay.show, .modal-overlay[style*="display: flex"], .modal-overlay[style*="display:flex"], .modal-overlay[style*="display: block"], .modal-overlay[style*="display:block"] {
   opacity: 1;
   pointer-events: auto;
 }

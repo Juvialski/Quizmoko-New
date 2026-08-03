@@ -836,12 +836,42 @@
             window.refreshQuizmokoIcons?.();
         }
 
+        function syncAllDomEditors() {
+            const list = document.getElementById('questions-list');
+            if (!list) return;
+            const qEditors = list.querySelectorAll('.question-editor');
+            qEditors.forEach(ed => {
+                const i = parseInt(ed.getAttribute('data-index'), 10);
+                if (!isNaN(i) && extractedQuestions[i]) {
+                    const text = ed.innerText.trim();
+                    const q = extractedQuestions[i];
+                    const targetField = q.question !== undefined ? 'question' : 'raw_text';
+                    const oldText = q[targetField] || '';
+                    const imgMatch = oldText.match(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is);
+                    const newFullText = text + (imgMatch ? '\n' + imgMatch[0] : '');
+                    q[targetField] = newFullText;
+                    if (q.raw_text !== undefined) q.raw_text = newFullText;
+                    if (q.question !== undefined) q.question = newFullText;
+                }
+            });
+            const aEditors = list.querySelectorAll('.answer-editor');
+            aEditors.forEach(ed => {
+                const i = parseInt(ed.getAttribute('data-index'), 10);
+                if (!isNaN(i) && extractedQuestions[i]) {
+                    extractedQuestions[i].answer = ed.innerText.trim();
+                }
+            });
+        }
+
         function updateQuestionText(index, text) {
             const q = extractedQuestions[index];
             const targetField = q.question !== undefined ? 'question' : 'raw_text';
             const oldText = q[targetField] || '';
             const imgMatch = oldText.match(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is);
-            q[targetField] = text + (imgMatch ? '\n' + imgMatch[0] : '');
+            const updatedText = text + (imgMatch ? '\n' + imgMatch[0] : '');
+            q[targetField] = updatedText;
+            if (q.raw_text !== undefined) q.raw_text = updatedText;
+            if (q.question !== undefined) q.question = updatedText;
         }
 
         // --- CROP REFINER LOGIC ---
@@ -849,6 +879,7 @@
         let currentCroppingIndex = null;
 
         function openCropRefiner(index) {
+            syncAllDomEditors();
             currentCroppingIndex = index;
             const q = extractedQuestions[index];
             const targetText = q.question || q.raw_text || '';
@@ -906,14 +937,18 @@
             });
 
             const newBase64 = canvas.toDataURL('image/png');
+            syncAllDomEditors();
             const q = extractedQuestions[currentCroppingIndex];
-            const targetField = q.question !== undefined ? 'question' : 'raw_text';
 
             const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${newBase64}" alt='Source Diagram'></div></div>`;
 
+            const targetField = q.question !== undefined ? 'question' : 'raw_text';
             const oldText = q[targetField] || '';
             const cleanText = oldText.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim();
-            q[targetField] = cleanText + '\n' + imgHtml;
+            const updatedText = cleanText + '\n' + imgHtml;
+            q[targetField] = updatedText;
+            if (q.raw_text !== undefined) q.raw_text = updatedText;
+            if (q.question !== undefined) q.question = updatedText;
 
             renderPreview();
             closeCropperModal();
@@ -923,6 +958,7 @@
         function updateOptionText(qIdx, optIdx, val) { extractedQuestions[qIdx].options[optIdx] = val; }
 
         async function handleGenerate() {
+            syncAllDomEditors();
             const model = document.getElementById('model_select').value;
             const apiKey = await getUsableKey(model, 1);
             if (!apiKey) return alert('No API Key.');

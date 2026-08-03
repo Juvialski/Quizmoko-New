@@ -754,14 +754,34 @@
             window.refreshQuizmokoIcons?.();
         }
 
+        function syncAllDomEditors() {
+            const list = document.getElementById('questions-list');
+            if (!list) return;
+            const editors = list.querySelectorAll('.question-editor');
+            editors.forEach(ed => {
+                const i = parseInt(ed.getAttribute('data-index'), 10);
+                if (!isNaN(i) && extractedQuestions[i]) {
+                    const text = ed.innerText.trim();
+                    const q = extractedQuestions[i];
+                    const oldText = q.raw_text || q.question || '';
+                    const imgMatch = oldText.match(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is);
+                    const newFullText = text + (imgMatch ? '\n' + imgMatch[0] : '');
+                    q.raw_text = newFullText;
+                    q.question = newFullText;
+                }
+            });
+        }
+
         // --- CROP REFINER LOGIC ---
         let cropper = null;
         let currentCroppingIndex = null;
 
         function openCropRefiner(index) {
+            syncAllDomEditors();
             currentCroppingIndex = index;
             const q = extractedQuestions[index];
-            const imgMatch = q.raw_text.match(/src=["']([^"']+)["']/i);
+            const textContent = q.raw_text || q.question || '';
+            const imgMatch = textContent.match(/src=["']([^"']+)["']/i);
             if (!imgMatch) return;
 
             const modal = document.getElementById('cropper-modal');
@@ -813,24 +833,30 @@
             });
 
             const newBase64 = canvas.toDataURL('image/png');
+            syncAllDomEditors();
             const q = extractedQuestions[currentCroppingIndex];
 
             // Replace old image HTML with new one
             const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${newBase64}" alt='Source Diagram'></div></div>`;
 
             // Strip old image wrapper and append new one
-            const cleanText = q.raw_text.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim();
-            q.raw_text = cleanText + '\n' + imgHtml;
+            const oldText = q.raw_text || q.question || '';
+            const cleanText = oldText.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim();
+            const updatedText = cleanText + '\n' + imgHtml;
+            q.raw_text = updatedText;
+            q.question = updatedText;
 
             renderPreview();
             closeCropperModal();
         }
 
         function updateQuestionType(index, type) {
+            syncAllDomEditors();
             extractedQuestions[index].type = type;
         }
 
         function removeQuestion(index) {
+            syncAllDomEditors();
             if (confirm('Remove this question from extraction?')) {
                 extractedQuestions.splice(index, 1);
                 renderPreview();
@@ -839,14 +865,17 @@
 
         function updateQuestionText(index, text) {
             const q = extractedQuestions[index];
-            const oldText = q.raw_text || '';
+            const oldText = q.raw_text || q.question || '';
             const imgMatch = oldText.match(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is);
-            q.raw_text = text + (imgMatch ? '\n' + imgMatch[0] : '');
+            const updatedText = text + (imgMatch ? '\n' + imgMatch[0] : '');
+            q.raw_text = updatedText;
+            q.question = updatedText;
         }
 
         let isSolving = false;
         async function handleSolve() {
             if (isSolving) return;
+            syncAllDomEditors();
             const batchSize = parseInt(document.getElementById('batch_size').value);
             const model = document.getElementById('model_select').value;
             const isLocal = model.startsWith('ollama:');

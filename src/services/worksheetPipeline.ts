@@ -274,7 +274,12 @@ export function worksheetSourceKey(source: WorksheetQuestionSource): string {
 }
 
 function readQuestionText(value: Record<string, unknown>): string {
-  return textValue(value.question ?? value.raw_text ?? value.statement);
+  const raw = textValue(value.raw_text);
+  const q = textValue(value.question);
+  const stmt = textValue(value.statement);
+  if (raw && /resizable-image-wrapper|<img\b/i.test(raw)) return raw;
+  if (q && /resizable-image-wrapper|<img\b/i.test(q)) return q;
+  return q || raw || stmt;
 }
 
 function readOptions(value: unknown): string[] {
@@ -850,10 +855,7 @@ export function stripWorksheetSolverState(value: unknown): Record<string, unknow
   const clean: Record<string, unknown> = {};
   for (const key of ['id', 'source_id', 'original_index', 'question', 'raw_text', 'statement', 'options', 'choices', 'type', 'bounding_box', 'crop_data_url', 'image_url']) {
     if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
-    const fieldValue = value[key];
-    clean[key] = typeof fieldValue === 'string'
-      ? fieldValue.replace(/data:[^;,"']+;base64,[^"']+/gi, '[IMAGE_PROVIDED_IN_VISION_CONTEXT]')
-      : fieldValue;
+    clean[key] = value[key];
   }
   const source = sourceFromQuestion(value);
   if (source) clean.source = source;

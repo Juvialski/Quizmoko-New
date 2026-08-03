@@ -56,8 +56,8 @@
         .btn-save { background-color: var(--primary); color: #ffffff; width: 100%; font-size: 15px; padding: 16px; margin-top: 24px; border: none;}
         .btn-save:hover { opacity: 0.9; color: #fff;}
         
-        .btn-danger { color: var(--m-red); border-color: var(--hairline); font-size: 12px;}
-        .btn-danger:hover { border-color: var(--m-red); }
+        .btn-danger { background-color: rgba(239, 68, 68, 0.12); color: var(--m-red); border: 1px solid var(--m-red); font-size: 12px;}
+        .btn-danger:hover { background-color: rgba(239, 68, 68, 0.25); border-color: var(--m-red); color: var(--m-red); }
         
         .btn-regen { color: var(--warning); border-color: var(--hairline); font-size: 12px; }
         .btn-regen:hover { border-color: var(--warning); }
@@ -1172,7 +1172,7 @@
                         <button class="btn btn-secondary" onclick="resolveQuestionSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--success); color: var(--success); background: transparent;"><i data-lucide="lightbulb" class="icon-sm"></i> Re-solve</button>
                         <button class="btn btn-secondary" onclick="manualPolishSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--primary); color: var(--primary); background: transparent;"><i data-lucide="sparkles" class="icon-sm"></i> Polish</button>
                         <button id="regen-btn-${qIndex}" class="btn btn-regen" onclick="regenerateQuestion(${qIndex})"><i data-lucide="refresh-cw" class="icon-sm"></i> Regenerate</button>
-                        <button class="btn btn-danger" onclick="removeQuestion(${qIndex})"><i data-lucide="trash-2" class="icon-sm"></i>️ Remove</button>
+                        <button class="btn btn-danger" onclick="removeQuestion(${qIndex})"><i data-lucide="trash-2" class="icon-sm"></i> Remove</button>
                     </div>`;
                 block.appendChild(header);
 

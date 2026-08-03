@@ -59,5 +59,9 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Upgraded the dynamic Lucide icon test via Acorn AST to be function-aware, tracing and enforcing that dynamic icon insertions are accompanied by a corresponding `refreshQuizmokoIcons()` call within the exact enclosing function scope rather than an unrelated sibling function.
   - Verified 100% test coverage stability across 68 passing assertions.
 * **[2026-08-01]** Corrected malformed worksheet font-option values in `views/worksheet.ejs` (ensuring properly quoted attributes and values), and added a corresponding robust regression test checking these exact font mappings and asserting that no option inside `#fontStyle` has empty values.
+* **[2026-08-02]** Fixed image cropping and question text editing persistence across worksheet extraction, solver, and edit views:
+  - Created `syncAllDomEditors()` in `views/worksheet_upload.ejs` and `views/worksheet_answers_upload.ejs` to capture in-progress DOM text edits from `.question-editor`, `.answer-editor`, and `.option-editor` elements prior to cropping modal operations, targeted retries, solver execution, and quiz generation.
+  - Fixed `stripWorksheetSolverState()` in `src/services/worksheetPipeline.ts` to preserve base64 image data in question objects, preventing `worksheet_source.extracted_questions` and quiz questions from losing cropped diagram base64 URLs.
+  - Updated `readQuestionText()` in `src/services/worksheetPipeline.ts` to check both `raw_text` and `question` for `resizable-image-wrapper` or `<img` tags, preserving user-edited text alongside cropped diagram HTML throughout solver candidate reconciliation and normalization.
 
 

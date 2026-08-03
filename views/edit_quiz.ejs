@@ -289,7 +289,7 @@
     <!-- Transfer Question Modal -->
     <div id="transferModal" class="modal-overlay">
         <div class="modal-card">
-            <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Transfer Question</h2>
+            <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none; display: inline-flex; align-items: center; gap: 8px;"><i data-lucide="rocket" class="icon-md"></i> Transfer Question</h2>
             <p style="color: var(--body); font-size: 14px; margin-bottom: 20px;">Select a target quiz to copy this question into.</p>
 
             <input type="text" id="transfer-search" placeholder="Search quizzes..." onkeyup='filterTransferQuizzes()' style="margin-bottom: 16px; padding: 12px; font-size: 13px;">
@@ -310,7 +310,7 @@
     <div id="importModal" class="modal-overlay">
         <div class="modal-card" style="max-width: 700px;">
             <div id="import-step-1">
-                <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Import Questions</h2>
+                <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none; display: inline-flex; align-items: center; gap: 8px;"><i data-lucide="rocket" class="icon-md"></i> Import Questions</h2>
                 <div id="import-success-banner" style="display: none; background: rgba(52, 211, 153, 0.15); border: 1px solid var(--success); color: var(--success); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 13px; font-weight: 600; align-items: center; justify-content: space-between;">
                     <span id="import-success-msg"></span>
                     <button type="button" onclick="document.getElementById('import-success-banner').style.display='none'" style="background: transparent; border: none; color: var(--success); cursor: pointer; font-size: 16px; font-weight: bold;">×</button>

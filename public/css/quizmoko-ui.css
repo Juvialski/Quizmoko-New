@@ -636,11 +636,21 @@ textarea.question-editor-field {
   border: 0;
 }
 
+.icon-xs,
+i[data-lucide].icon-xs,
+svg.lucide.icon-xs {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
 .icon-sm,
-i[data-lucide]:not(.icon-md):not(.icon-lg),
-svg.lucide:not(.icon-md):not(.icon-lg) {
-    width: 16px !important;
-    height: 16px !important;
+i[data-lucide].icon-sm,
+svg.lucide.icon-sm {
+    width: 16px;
+    height: 16px;
     display: inline-block;
     vertical-align: middle;
     flex-shrink: 0;
@@ -649,8 +659,8 @@ svg.lucide:not(.icon-md):not(.icon-lg) {
 .icon-md,
 i[data-lucide].icon-md,
 svg.lucide.icon-md {
-    width: 20px !important;
-    height: 20px !important;
+    width: 20px;
+    height: 20px;
     display: inline-block;
     vertical-align: middle;
     flex-shrink: 0;
@@ -659,8 +669,28 @@ svg.lucide.icon-md {
 .icon-lg,
 i[data-lucide].icon-lg,
 svg.lucide.icon-lg {
-    width: 24px !important;
-    height: 24px !important;
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.icon-xl,
+i[data-lucide].icon-xl,
+svg.lucide.icon-xl {
+    width: 28px;
+    height: 28px;
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+/* Fallback default size for data-lucide icons when no size class is specified */
+i[data-lucide]:not(.icon-xs):not(.icon-sm):not(.icon-md):not(.icon-lg):not(.icon-xl),
+svg.lucide:not(.icon-xs):not(.icon-sm):not(.icon-md):not(.icon-lg):not(.icon-xl) {
+    width: 16px;
+    height: 16px;
     display: inline-block;
     vertical-align: middle;
     flex-shrink: 0;

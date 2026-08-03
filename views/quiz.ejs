@@ -616,7 +616,7 @@
                     <div style="height:4px; width:60px; background:var(--primary); margin:20px auto;"></div>
                     <p style="color: var(--body); font-size: 16px;">Time limit: <strong><%= typeof quiz.time_limit !== 'undefined' ? quiz.time_limit : '' %> seconds</strong> per question.</p>
                     <input type="text" id="student-name" placeholder="Enter your full name" required>
-                    <button class="btn-start" onclick="beginQuiz()"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Start Quiz</button>
+                    <button class="btn-start" onclick="beginQuiz()"><i data-lucide="rocket" class="icon-md" style="margin-right:6px;"></i> Start Quiz</button>
                 </div>
                 <div id="quiz-screen" style="display:none;">
                     <div id="timer"></div>

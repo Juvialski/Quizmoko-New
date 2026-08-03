@@ -79,6 +79,93 @@
         .btn-submit-final { background: var(--success); color: white; border: 1px solid transparent; }
         .btn-submit-final:hover { opacity: 0.9; transform: scale(1.02); }
 
+        .question-jump-panel {
+            display: none;
+            margin-bottom: 24px;
+            padding: 16px;
+            border: 1px solid var(--hairline);
+            border-radius: var(--radius-md);
+            background: var(--surface-soft);
+            text-align: left;
+        }
+        .question-jump-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: var(--on-dark);
+            font-size: 13px;
+            font-weight: 800;
+        }
+        .question-jump-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .question-jump-hint {
+            color: var(--body);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .question-jump-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 44px);
+            gap: 8px;
+            max-height: 148px;
+            overflow-y: auto;
+            padding: 2px;
+        }
+        .question-jump-btn {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--hairline);
+            border-radius: 10px;
+            background: var(--surface-card);
+            color: var(--on-dark);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.18s ease;
+        }
+        .question-jump-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+        .question-jump-btn.answered {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+        }
+        .question-jump-btn.current {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+            transform: none;
+        }
+        .question-jump-btn.pending::after,
+        .question-jump-btn.needs-attention::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--warning);
+            border: 1px solid var(--surface-card);
+        }
+        .question-jump-btn.needs-attention::after {
+            background: var(--m-red);
+        }
+
         .resizable-image-wrapper { display: flex; justify-content: center; margin: 24px auto; width: 100%; }
         .image-content-box { background: white; padding: 24px; border-radius: var(--radius-md); box-shadow: var(--shadow); border: 1px solid var(--hairline); display: inline-block; max-width: 200%; }
         .resizable-image-wrapper img { width: 100%; height: auto; display: block; margin: 0 auto; border-radius: var(--radius-sm); }
@@ -474,6 +561,19 @@
                 flex-direction: column !important;
                 gap: 10px !important;
             }
+            .question-jump-panel {
+                padding: 12px !important;
+                margin-bottom: 18px !important;
+            }
+            .question-jump-header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .question-jump-list {
+                grid-template-columns: repeat(auto-fill, 44px);
+                max-height: 200px;
+            }
             .btn-nav {
                 width: 100% !important;
                 padding: 14px !important;
@@ -562,6 +662,13 @@
                     <button class="btn-start" onclick="beginQuiz()"><i data-lucide="rocket" style="display:inline-block; vertical-align:middle; margin-right:6px; width:20px;"></i> Start Quiz</button>
                 </div>
                 <div id="quiz-screen" style="display:none;">
+                    <div id="question-jump-panel" class="question-jump-panel">
+                        <div class="question-jump-header">
+                            <span class="question-jump-title"><i data-lucide="list-ordered" class="icon-sm"></i> Questions</span>
+                            <span class="question-jump-hint">Select any question. Filled buttons have a saved response.</span>
+                        </div>
+                        <div id="question-jump-buttons" class="question-jump-list" role="navigation" aria-label="Question navigation"></div>
+                    </div>
                     <div id="timer"></div>
                     <div id="question-text"></div>
                     <div id="options-container"></div>
@@ -953,6 +1060,7 @@
             }
             saveQuizState();
             scheduleProgressiveSave();
+            updateQuestionJumpButtons();
         }
 
         function commitAnswerChange(qIndex, value) {
@@ -1652,6 +1760,7 @@
             if (quizData.quiz_mode === 'back_and_forth') {
                 document.getElementById('btn-confirm').style.display = 'none';
                 document.getElementById('bf-nav-controls').style.display = 'flex';
+                renderQuestionJumpButtons();
 
                 // Initialize total time if not restored from state AND not synced from server yet
                 if (timeRemaining <= 0) {
@@ -1659,6 +1768,8 @@
                 }
             } else {
                 document.getElementById('bf-nav-controls').style.display = 'none';
+                const questionJumpPanel = document.getElementById('question-jump-panel');
+                if (questionJumpPanel) questionJumpPanel.style.display = 'none';
                 // Initialize per-question time if not restored
                 if (timeRemaining <= 0) {
                     timeRemaining = quizData.time_limit;
@@ -1668,6 +1779,129 @@
             pingInterval = setInterval(() => { if (document.visibilityState !== 'hidden') sendPing('Active'); }, 2000);
             startTimer(); // Start timer here instead of every question
             loadQuestion();
+        }
+
+        function hasQuestionResponse(qIndex) {
+            const hasAnswer = Object.prototype.hasOwnProperty.call(answers, qIndex)
+                && String(answers[qIndex] ?? '').trim().length > 0;
+            const pages = Array.isArray(questionPages[qIndex]) ? questionPages[qIndex] : [];
+            return hasAnswer || pages.some(questionPageHasContent);
+        }
+
+        function renderQuestionJumpButtons() {
+            const panel = document.getElementById('question-jump-panel');
+            const container = document.getElementById('question-jump-buttons');
+            if (!panel || !container) return;
+
+            if (quizData.quiz_mode !== 'back_and_forth') {
+                panel.style.display = 'none';
+                return;
+            }
+
+            panel.style.display = 'block';
+            if (container.children.length !== quizData.questions.length) {
+                container.innerHTML = '';
+                quizData.questions.forEach((_question, index) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'question-jump-btn';
+                    button.dataset.questionIndex = String(index);
+                    button.textContent = String(index + 1);
+                    button.onclick = () => jumpToQuestion(index);
+                    container.appendChild(button);
+                });
+            }
+
+            updateQuestionJumpButtons();
+            window.refreshQuizmokoIcons?.();
+        }
+
+        function updateQuestionJumpButtons() {
+            const container = document.getElementById('question-jump-buttons');
+            if (!container || quizData.quiz_mode !== 'back_and_forth') return;
+            const previousActiveIndex = Number(container.dataset.activeQuestionIndex);
+
+            container.querySelectorAll('.question-jump-btn').forEach(button => {
+                const qIndex = Number(button.dataset.questionIndex);
+                if (!Number.isInteger(qIndex)) return;
+
+                const result = progressiveResults[qIndex];
+                const isCurrent = qIndex === currentIndex;
+                const isAnswered = hasQuestionResponse(qIndex);
+                const isPending = gradingRequests.has(qIndex)
+                    || (result && result.grade_status === 'pending');
+                const needsAttention = !!result
+                    && (result.grade_status === 'retryable_error' || result.grade_status === 'invalid_response');
+
+                button.classList.toggle('current', isCurrent);
+                button.classList.toggle('answered', isAnswered && !isCurrent);
+                button.classList.toggle('pending', isPending && !needsAttention);
+                button.classList.toggle('needs-attention', needsAttention);
+
+                if (isCurrent) button.setAttribute('aria-current', 'step');
+                else button.removeAttribute('aria-current');
+
+                const states = [];
+                if (isCurrent) states.push('current');
+                if (isAnswered) states.push('answered');
+                if (isPending) states.push('grading pending');
+                if (needsAttention) states.push('grading needs attention');
+                const stateLabel = states.length > 0 ? `, ${states.join(', ')}` : ', unanswered';
+                const label = `Question ${qIndex + 1}${stateLabel}`;
+                button.setAttribute('aria-label', label);
+                button.title = label;
+            });
+
+            if (previousActiveIndex !== currentIndex) {
+                container.dataset.activeQuestionIndex = String(currentIndex);
+                const currentButton = container.querySelector(`[data-question-index="${currentIndex}"]`);
+                currentButton?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            }
+        }
+
+        function goToQuestion(targetIndex) {
+            const normalizedTarget = Number(targetIndex);
+            if (!Number.isInteger(normalizedTarget) || normalizedTarget < 0) return;
+            if (normalizedTarget >= quizData.questions.length) {
+                void submitQuiz();
+                return;
+            }
+
+            currentIndex = normalizedTarget;
+            isWhiteboardDirty = !!whiteboardDirtyQuestions[currentIndex];
+            saveQuizState();
+            loadQuestion();
+            sendPing('Navigating');
+        }
+
+        function shouldGradeQuestionBeforeNavigation(qIndex) {
+            if (gradingRequests.has(qIndex)) return false;
+            return !isAuthoritativelyGraded(progressiveResults[qIndex])
+                || !!whiteboardDirtyQuestions[qIndex];
+        }
+
+        function navigateBackAndForth(targetIndex, triggerButton = null) {
+            if (quizData.quiz_mode !== 'back_and_forth' || isGrading) return;
+            const normalizedTarget = Number(targetIndex);
+            if (!Number.isInteger(normalizedTarget)
+                || normalizedTarget < 0
+                || normalizedTarget > quizData.questions.length
+                || normalizedTarget === currentIndex) return;
+
+            if (shouldGradeQuestionBeforeNavigation(currentIndex)) {
+                if (triggerButton) {
+                    triggerButton.innerText = '⌛ SAVING...';
+                    triggerButton.disabled = true;
+                }
+                void handleAnswer(currentSelectedOption ?? '', normalizedTarget, triggerButton);
+                return;
+            }
+
+            goToQuestion(normalizedTarget);
+        }
+
+        function jumpToQuestion(targetIndex) {
+            navigateBackAndForth(targetIndex);
         }
 
         function loadQuestion() {
@@ -1710,6 +1944,7 @@
                 }
 
                 document.getElementById('q-num').innerText = currentIndex + 1;
+                updateQuestionJumpButtons();
                 const q = quizData.questions[currentIndex];
 
                 currentPageIndex = 0;
@@ -1807,6 +2042,7 @@
                     if (btnConfirm) btnConfirm.style.display = 'none';
                     renderInstantFeedbackResult(result, currentIndex >= quizData.questions.length - 1);
                 }
+                updateQuestionJumpButtons();
             } catch (err) {
                 console.error('Critical error loading question:', err);
                 currentIndex++;
@@ -1815,45 +2051,13 @@
         }
 
         function nextQuestion() {
-            if (isGrading) return;
-
-            const currentVal = currentSelectedOption || '';
-            const prevVal = answers[currentIndex];
-
-            // SMART GRADING: Trigger only if answer changed OR no result yet
-            if (currentVal !== prevVal || !isAuthoritativelyGraded(progressiveResults[currentIndex]) || whiteboardDirtyQuestions[currentIndex]) {
-                console.log('[BF-MODE] Answer changed or new. Triggering grading...');
-                confirmSelection();
-            } else {
-                console.log('[BF-MODE] No change. Just navigating.');
-                if (currentIndex < quizData.questions.length - 1) {
-                    currentIndex++;
-                    saveQuizState();
-                    loadQuestion();
-                    sendPing('Navigating');
-                } else {
-                    submitQuiz();
-                }
-            }
+            const btnNext = document.getElementById('btn-next');
+            navigateBackAndForth(currentIndex + 1, btnNext);
         }
 
         function prevQuestion() {
-            if (isGrading) return;
-            if (currentIndex > 0) {
-                const currentVal = currentSelectedOption || '';
-                const prevVal = answers[currentIndex];
-
-                // SMART GRADING: Trigger only if answer changed OR no result yet
-                if (currentVal !== prevVal || !isAuthoritativelyGraded(progressiveResults[currentIndex]) || whiteboardDirtyQuestions[currentIndex]) {
-                    console.log('[BF-MODE] Answer changed (Prev). Triggering grading...');
-                    confirmSelection(-1);
-                } else {
-                    currentIndex--;
-                    saveQuizState();
-                    loadQuestion();
-                    sendPing('Navigating');
-                }
-            }
+            const btnPrev = document.getElementById('btn-prev');
+            navigateBackAndForth(currentIndex - 1, btnPrev);
         }
 
         function updatePauseUI() {
@@ -1911,17 +2115,16 @@
             if (isGrading) return;
 
             const isBF = quizData.quiz_mode === 'back_and_forth';
-            let btn;
-
             if (isBF) {
-                btn = direction === 1 ? document.getElementById('btn-next') : document.getElementById('btn-prev');
-            } else {
-                btn = document.getElementById('btn-confirm');
+                const btn = direction === 1 ? document.getElementById('btn-next') : document.getElementById('btn-prev');
+                navigateBackAndForth(currentIndex + direction, btn);
+                return;
             }
 
+            const btn = document.getElementById('btn-confirm');
             btn.innerText = '⌛ SAVING...';
             btn.disabled = true;
-            handleAnswer(currentSelectedOption ?? '', direction, btn);
+            void handleAnswer(currentSelectedOption ?? '', null, btn);
         }
 
         function questionPageHasContent(page) {
@@ -2075,6 +2278,7 @@
             if (gradeStatus === 'graded') sendPing('Score Synced');
             saveQuizState();
             scheduleProgressiveSave();
+            updateQuestionJumpButtons();
             return progressiveResults[qIndex];
         }
 
@@ -2095,6 +2299,7 @@
             recalculateLiveScore();
             saveQuizState();
             scheduleProgressiveSave();
+            updateQuestionJumpButtons();
             return result;
         }
 
@@ -2125,6 +2330,7 @@
             };
             recalculateLiveScore();
             saveQuizState();
+            updateQuestionJumpButtons();
 
             try {
                 let attemptSnapshots = snapshots;
@@ -2224,6 +2430,7 @@
                 const active = gradingRequests.get(qIndex);
                 if (active && active.requestToken === requestToken) gradingRequests.delete(qIndex);
                 settlePendingGrading(pendingToken);
+                updateQuestionJumpButtons();
             }
         }
 
@@ -2289,7 +2496,7 @@
             window.refreshQuizmokoIcons?.();
         }
 
-        async function handleAnswer(val, direction = 1, btn = null) {
+        async function handleAnswer(val, navigationTarget = null, btn = null) {
             const qIndex = currentIndex;
             try {
                 if (timerInterval) clearInterval(timerInterval);
@@ -2300,15 +2507,10 @@
                 const gradingPromise = requestQuestionGrade(qIndex);
 
                 if (isBF) {
-                    currentIndex += direction;
-                    saveQuizState();
-                    sendPing('Navigating');
-                    if (currentIndex >= 0 && currentIndex < quizData.questions.length) {
-                        isWhiteboardDirty = !!whiteboardDirtyQuestions[currentIndex];
-                        loadQuestion();
-                    } else {
-                        void submitQuiz();
-                    }
+                    const targetIndex = Number.isInteger(Number(navigationTarget))
+                        ? Number(navigationTarget)
+                        : qIndex + 1;
+                    goToQuestion(targetIndex);
                     return;
                 }
 
@@ -2330,9 +2532,10 @@
                 };
                 applyGradeRequestError(qIndex, identity, `Grading could not be verified: ${fatalErr.message}`, false);
                 if (quizData.quiz_mode === 'back_and_forth') {
-                    currentIndex += direction;
-                    if (currentIndex >= 0 && currentIndex < quizData.questions.length) loadQuestion();
-                    else void submitQuiz();
+                    const targetIndex = Number.isInteger(Number(navigationTarget))
+                        ? Number(navigationTarget)
+                        : qIndex + 1;
+                    goToQuestion(targetIndex);
                 } else {
                     renderInstantFeedbackResult(progressiveResults[qIndex], qIndex >= quizData.questions.length - 1);
                 }

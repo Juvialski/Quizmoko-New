@@ -604,3 +604,32 @@ test('UI Consistency - Worksheet font selector options verification', () => {
   }
 });
 
+
+test('UI Consistency - Back-and-forth question buttons preserve guarded grading navigation', () => {
+  const filePath = path.join(VIEWS_DIR, 'quiz.ejs');
+  const content = fs.readFileSync(filePath, 'utf-8');
+
+  assert.ok(
+    content.includes('id="question-jump-panel"') && content.includes('id="question-jump-buttons"'),
+    'Back-and-forth quizzes must render the question-number navigation panel'
+  );
+  assert.ok(
+    content.includes('function jumpToQuestion(targetIndex)')
+      && content.includes('navigateBackAndForth(targetIndex);'),
+    'Question-number buttons must use the shared guarded navigation function'
+  );
+  assert.ok(
+    content.includes('function shouldGradeQuestionBeforeNavigation(qIndex)')
+      && content.includes('requestQuestionGrade(qIndex)'),
+    'Guarded navigation must retain the individual grading request flow'
+  );
+  assert.ok(
+    content.includes('navigateBackAndForth(currentIndex + 1, btnNext)')
+      && content.includes('navigateBackAndForth(currentIndex - 1, btnPrev)'),
+    'Previous and Next buttons must use the same guarded navigation path as question-number buttons'
+  );
+  assert.ok(
+    !content.includes("question-jump-btn.correct") && !content.includes("question-jump-btn.incorrect"),
+    'Question-number navigation must not reveal correctness in back-and-forth mode'
+  );
+});

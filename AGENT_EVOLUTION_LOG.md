@@ -63,5 +63,9 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Created `syncAllDomEditors()` in `views/worksheet_upload.ejs` and `views/worksheet_answers_upload.ejs` to capture in-progress DOM text edits from `.question-editor`, `.answer-editor`, and `.option-editor` elements prior to cropping modal operations, targeted retries, solver execution, and quiz generation.
   - Fixed `stripWorksheetSolverState()` in `src/services/worksheetPipeline.ts` to preserve base64 image data in question objects, preventing `worksheet_source.extracted_questions` and quiz questions from losing cropped diagram base64 URLs.
   - Updated `readQuestionText()` in `src/services/worksheetPipeline.ts` to check both `raw_text` and `question` for `resizable-image-wrapper` or `<img` tags, preserving user-edited text alongside cropped diagram HTML throughout solver candidate reconciliation and normalization.
+* **[2026-08-02]** Integrated guarded question-number navigation panel for back-and-forth quiz mode in `views/quiz.ejs`:
+  - Added `#question-jump-panel` and `#question-jump-buttons` rendering numbered question buttons with accessibility attributes (`aria-current`, state labels, scrolling).
+  - Standardized Next, Prev, and direct question-number jump navigation to route through `navigateBackAndForth()`, ensuring unsaved responses trigger grading guards before navigating without revealing correctness status during quiz taking.
+  - Added regression test suite verification in `test/ui-consistency.test.ts`.
 
 

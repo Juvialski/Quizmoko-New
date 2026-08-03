@@ -533,7 +533,7 @@
             
             <% if (grouped_quizzes) { %>
                 <div style="display: flex; gap: 12px; margin-bottom: 32px;" id="search-merge-bar">
-                    <input type="text" id="searchInput" onkeyup='filterQuizzes()' placeholder="Search quizzes..." class="search-bar" style="border-radius: var(--radius-sm);">
+                    <input type="search" id="searchInput" name="search_quizzes_query" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeyup='filterQuizzes()' oninput='filterQuizzes()' placeholder="Search quizzes..." class="search-bar" style="border-radius: var(--radius-sm);">
                     <button id="mergeModeBtn" onclick="toggleMergeMode()" class="btn-primary" style="width: auto; margin-top: 0; white-space: nowrap; padding: 14px 24px;"><i data-lucide="link" class="icon-sm"></i> Merge Mode</button>
                 </div>
                 
@@ -1335,6 +1335,20 @@
                 chevron.classList.add('open');
             }
         }
+
+        function clearSearchAutofill() {
+            let searchInputElem = document.getElementById('searchInput');
+            if (!searchInputElem) return;
+            let val = searchInputElem.value;
+            if (val && (val.includes('@') || val === '<%= typeof user !== "undefined" && user && user.email ? user.email : "" %>')) {
+                searchInputElem.value = '';
+                filterQuizzes();
+            }
+        }
+        window.addEventListener('DOMContentLoaded', clearSearchAutofill);
+        window.addEventListener('pageshow', clearSearchAutofill);
+        setTimeout(clearSearchAutofill, 50);
+        setTimeout(clearSearchAutofill, 300);
 
         function filterQuizzes() {
             let searchInputElem = document.getElementById('searchInput');

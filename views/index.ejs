@@ -313,7 +313,7 @@
                     <h3 style="margin:0; font-size: 18px; text-transform: none;">
                         <i data-lucide="sparkles" class="icon-sm"></i> AI Generator
                     </h3>
-                    <% if (user && (user.role === 'teacher' || user.role === 'admin')) { %>
+                    <% if (user) { %>
                     <button type="button" onclick="openApiKeyModal()" class="btn-secondary" id="api-key-btn"><i data-lucide="key" class="icon-sm"></i> API Key</button>
                     <% } %>
                 </div>
@@ -612,18 +612,19 @@
         <button onclick="toggleMergeMode()" style="background: transparent; border: 1px solid var(--hairline); color: var(--on-dark); padding: 12px 24px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer;"><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
     </div>
 
-    <% if (user && (user.role === 'teacher' || user.role === 'admin')) { %>
+    <% if (user) { %>
     <!-- API KEY MODAL -->
     <div id="apiKeyModal" class="modal-overlay">
         <div class="modal-card">
             <h2 id="api-key-modal-title" style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="key" style="display:inline-block; vertical-align:middle; margin-right:6px; width:16px;"></i> API Key Setup</h2>
             
-            <p id="api-key-modal-desc" style="color: var(--body); font-size: 14px; margin-bottom: 24px; line-height: 1.5;">To generate quizzes, you need to provide a Google Gemini API Key.</p>
+            <p id="api-key-modal-desc" style="color: var(--body); font-size: 14px; margin-bottom: 24px; line-height: 1.5;">To generate quizzes and access AI tools, provide your Google Gemini API Key.</p>
             
             <div id="gemini_key_container">
                 <div style="background: var(--surface-soft); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 24px; font-size: 12px; color: var(--body-strong); line-height: 1.5;">
-                    <strong style="color: var(--on-dark);">SECURITY:</strong> Do not share your key. It is saved locally in your browser.<br>
-                    <a href="https://aistudio.google.com/app/apikey" target='_blank' style="color: var(--m-blue-light); font-weight: 700; display: inline-block; margin-top: 8px; text-decoration: none;">GET FREE KEY ↗</a>
+                    <strong style="color: var(--on-dark);">SECURITY & REPLACEMENT:</strong> Do not share your key. It is saved locally and synced to your server profile.<br>
+                    <span style="color: var(--muted); display: block; margin-top: 4px;">If your old key was revoked or flagged as leaked by Google, generate a fresh free key on Google AI Studio and paste it below to restore full access.</span>
+                    <a href="https://aistudio.google.com/app/apikey" target='_blank' style="color: var(--m-blue-light); font-weight: 700; display: inline-block; margin-top: 8px; text-decoration: none;">GET FREE KEY ON GOOGLE AI STUDIO ↗</a>
                 </div>
 
                 <label style="margin-top: 0;">Primary API Key</label>
@@ -707,7 +708,7 @@
     </div>
 
     <script>
-        const canManageApiKeys = <%- JSON.stringify(Boolean(user && (user.role === 'teacher' || user.role === 'admin'))) %>;
+        const canManageApiKeys = <%- JSON.stringify(Boolean(user)) %>;
         let serverAiConfigured = false;
         let serverOllamaConfigured = false;
 
@@ -909,9 +910,14 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ api_key: key1 })
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    console.log('API key synced successfully to server profile.');
+                }
             }).catch(err => console.error('Error syncing API key to server:', err));
 
             closeApiKeyModal();
+            alert('API key updated successfully!');
             fetchUsageStats();
 
             // Check if it's their first time for the tour

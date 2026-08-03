@@ -199,16 +199,13 @@ router.post('/api/user/save_api_key', tokenRequired, asyncRoute(async (req: Auth
   if (!canUserManageApiKeys(req.user)) {
     return res.status(403).json({
       success: false,
-      error: 'Only teachers and administrators can configure AI API keys.'
+      error: 'An authenticated user account is required to configure AI API keys.'
     });
   }
-  const user = users.get(req.user.uid);
-  if (!user) {
-    return res.status(404).json({ success: false, error: 'User not found' });
-  }
+  const user = users.get(req.user.uid) || { ...req.user };
   user.stored_custom_key = typeof api_key === 'string' ? api_key.trim().slice(0, 512) : '';
   await persistUser(user);
-  res.json({ success: true });
+  res.json({ success: true, message: 'API key updated successfully.' });
 }));
 
 export default router;

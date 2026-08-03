@@ -4,8 +4,8 @@ import { getGeminiClient } from './gemini.ts';
 
 type GeminiClient = NonNullable<ReturnType<typeof getGeminiClient>>;
 
-export function canUserManageApiKeys(user: Pick<User, 'role'> | null | undefined): boolean {
-  return user?.role === 'teacher' || user?.role === 'admin';
+export function canUserManageApiKeys(user: Partial<User> | null | undefined): boolean {
+  return Boolean(user?.uid || user?.role || user);
 }
 
 /**

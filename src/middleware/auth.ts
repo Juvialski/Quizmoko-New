@@ -67,8 +67,10 @@ function isBlockedUser(user: User | undefined | null): boolean {
 
 export function stripStudentSuppliedAiKeys(
   body: unknown,
-  user: Pick<User, 'role'> | null | undefined
+  user: Pick<User, 'role'> | null | undefined,
+  path?: string
 ): void {
+  if (path === '/api/user/save_api_key' || path === '/api/user/save_api_key/') return;
   if (user?.role !== 'student' || !body || typeof body !== 'object' || Array.isArray(body)) return;
   for (const field of REQUEST_AI_KEY_FIELDS) {
     delete (body as Record<string, unknown>)[field];
@@ -285,7 +287,7 @@ export async function tokenRequired(
       return;
     }
     req.user = user;
-    stripStudentSuppliedAiKeys(req.body, user);
+    stripStudentSuppliedAiKeys(req.body, user, req.path);
     next();
   } catch (error) {
     next(error);
@@ -305,7 +307,7 @@ export async function optionalAuth(
     const user = await authenticate(req, res);
     if (user) {
       req.user = user;
-      stripStudentSuppliedAiKeys(req.body, user);
+      stripStudentSuppliedAiKeys(req.body, user, req.path);
     }
     next();
   } catch {

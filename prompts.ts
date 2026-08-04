@@ -2,25 +2,13 @@
 
 export const SHARED_LATEX_RULES = `
 MATH & LATEX RULES:
-1. NO CHOPPED MATH (CRITICAL): Wrap ENTIRE equations, formulas, and expressions in a SINGLE pair of '$' tags. NEVER wrap numbers, variables, or operators individually if they are part of one formula.
-   - CORRECT: $x - 13 = 20$, $8n + 2 = 90$, $\\dfrac{32}{y} = 2$
-   - INCORRECT: $x$ - $13$ = $20$, $8n$ + $2$ = $90$, $\\dfrac{$32$}{$y$} = $2$
-2. NO NESTING: NEVER put dollar signs inside other dollar signs.
-3. ONLY WRAP MATH: DO NOT wrap plain text words, labels, sentences, or categories (e.g., 'Right', 'Isosceles', 'Triangle', 'No', 'Yes', 'True', 'False') in '$' tags. If text and math are mixed (e.g., 'No, 48 > 45'), ONLY wrap the math part (e.g., 'No, $48 > 45$'). DO NOT wrap full sentences.
-4. STANDALONE NUMBERS & MEASUREMENTS (CRITICAL FOR CONSISTENCY): Wrap EVERY standalone number, count, measurement, percentage, temperature, or mathematical value in LaTeX '$' tags (e.g., $10$ meters, $32$ meters, $0.75$, $15\\%$, $25^\\circ\\text{C}$, $100$, $-42$). NEVER output a bare number without dollar signs in math questions, choices, or solutions. Keep text labels outside the math block (e.g., use '$10$ meters' or '$10\\text{ meters}$', NOT '10 meters').
-5. INCLUDE OPERATORS: Signs like +, -, *, /, and = MUST be inside the '$' tags.
-6. MULTIPLICATION SYMBOL: Always use \\times for multiplication (e.g., $8 \\times 9 = 72$). NEVER use asterisks (*) or the letter 'x'.
-7. PROFESSIONAL FRACTIONS: Always use \\dfrac{n}{d} for EVERY fraction or division expression (e.g., $\\dfrac{1}{2}$, $\\dfrac{8}{4}$). NEVER use slashes ('/') or dashes ('-').
-8. DIVISION SYMBOL: For simple division in text, use \\div (e.g., $10 \\div 2 = 5$). NEVER use slashes like '10/2'.
-9. VISUAL SCALING: Use \\left( and \\right) for any math expressions inside parentheses.
-10. CENTERED MATH: If a formula is standalone or a complex table/array exists, wrap it in double dollar signs $$ ... $$.
-11. COMPARISON PLACEHOLDERS: For questions asking to compare two values, use \\bigcirc inside the LaTeX expression. Example: $5 \\bigcirc 10$.
-12. CURRENCY FORMATTING: Format each monetary value as one valid LaTeX expression (e.g., $\\text{\\$3,000}$ or $\\text{\\$540}$). Never emit a raw currency dollar sign such as '$3,000', and never nest dollar delimiters.
-13. NO TEXT BOLDING: Never use ** or __ for bolding or italics.
-14. PRESERVE HTML: If you see tags like <div class="resizable-image-wrapper">, you MUST preserve them exactly.
-15. IDENTIFICATION EXCEPTION: For Identification answer keys ONLY, DO NOT use LaTeX enclosure or dollar signs. Keep them as plain text or numbers. If the answer is numerical, the answer key MUST be strictly a raw number (integer or decimal, e.g. -42, 0.75) with NO units (like 'm', 'meters', 'kg', '$', '%', etc.) or plaintext letters.
-16. STRICT ENCLOSURE: For all other question types and ALL answer options, you MUST follow the math enclosure rules for ALL equations and expressions.
-17. BALANCED DELIMITERS (MANDATORY): Every inline math expression MUST begin and end with exactly one '$'. Before returning JSON, verify every field has balanced dollar delimiters. For alternatives, write '$b = 6$ or $b = -6$'. NEVER write 'b = 6$ or $b = -6', and never remove only the first or last delimiter.
+1. NATURAL LATEX FORMATTING: Wrap complete equations, formulas, and expressions in LaTeX dollar signs ($...$ for inline math, $$...$$ for centered math). For example: $-2(3x - 4)$ or $7x - 21$.
+2. DO NOT CHOP MATH OR INSERT EXTRA SPACES: Never split single math expressions into separate dollar tags for each character or number, and do not add unnatural spaces inside formulas (e.g. write $-2(3x-4)$, NOT $- 2 ( 3 x - 4 )$).
+3. DO NOT WRAP PLAIN ENGLISH WORDS: Only wrap actual math, numbers in math context, and equations. Do not wrap regular English text or labels in dollar signs.
+4. BALANCED DELIMITERS: Every opening '$' must have a matching closing '$'.
+5. PRESERVE ORIGINAL EXPRESSIONS: Preserve natural equations, symbols, fractions, and operators as written without unnecessary artificial rewrites.
+6. PRESERVE HTML: If you see HTML tags like <div class="resizable-image-wrapper">, preserve them untouched.
+7. IDENTIFICATION EXCEPTION: For Identification answer keys ONLY, DO NOT use LaTeX enclosure or dollar signs. Keep them as plain text or numbers. If the answer is numerical, the answer key MUST be strictly a raw number (integer or decimal, e.g. -42, 0.75) with NO units.
 `;
 
 export const NON_MATH_RULES = `
@@ -187,9 +175,10 @@ CRITICAL RULES:
      Question 7: "Simplify: m^3 * m^4"
      Question 8: "Simplify: m^6 / m^2"
    - Standalone text blocks of instructions or headings must never be extracted as separate questions. Instead, distribute them to ALL questions they apply to.
-3. NO SPLITTING SUB-PARTS (CRITICAL): ONE MAIN NUMBER = ONE QUESTION. If a question has sub-parts (e.g., 11a, 11b), you MUST keep them together in a single 'raw_text' block. NEVER extract sub-parts as separate items in the JSON array.
-   - Example: '11. a) Define X. b) Define Y.' must be ONE object with both parts in 'raw_text'.
-   - NEWLINE RULE: Ensure each sub-part (a, b, c) starts on a real new line in 'raw_text'. Do not output the two characters backslash and n.
+3. NO SPLITTING SUB-PARTS (CRITICAL): ONE MAIN NUMBER = ONE QUESTION.
+   - If a main question number has multiple sub-parts (for example: 9a and 9b, 9.a and 9.b, 11a/11b/11c, or parts a, b, c under question 9), you MUST extract all sub-parts together inside a SINGLE question object (with "original_index": "9").
+   - NEVER create separate objects in the JSON array for sub-parts like "9a" and "9b".
+   - Put all sub-parts inside the same 'raw_text' string for Question #9, separating each sub-part (e.g., "a. Expand...", "b. Factor...") onto a new line using a real newline character.
 4. INLINE CHOICE DETECTION: If a question contains a list of choices within its text (e.g., 'A integers B whole numbers...'), you MUST extract these into the 'options' array. Do NOT leave them inside the 'raw_text' if they represent the selectable choices.
 5. MULTI-PAGE CHOICE DETECTION (CRITICAL): If you see a list of choices (A, B, C, D) that do not immediately follow a question, but belong to questions in the PREVIOUS segment, you MUST still extract them. If a question is clearly Multiple Choice but its options are missing, look ahead or acknowledge they may be in the next segment.
 6. LITERAL TRANSCRIPTION: The 'raw_text' must be a transcript of the WRITTEN text only.
@@ -226,9 +215,10 @@ CRITICAL RULES:
 2. GROUP CONTEXT & INSTRUCTIONS (STRICT): If a group of questions is preceded by shared information, passages, general instructions, or headings (e.g., 'Read the following paragraph...', 'For problems 1-5...', 'Identify the nouns in the following sentences:', 'Passage A: ...'), you MUST prepend this ENTIRE context/instruction to the beginning of the 'raw_text' of EVERY SINGLE question in that group!
    - DO NOT just prepend it to the first question in the group. EVERY question in that group must contain the instruction/passage so that each question is fully self-contained.
    - Standalone text blocks of instructions, passages, or headings must never be extracted as separate questions. Instead, distribute them to ALL questions they apply to.
-3. NO SPLITTING SUB-PARTS (CRITICAL): ONE MAIN NUMBER = ONE QUESTION. If a question has sub-parts (e.g., 11a, 11b), you MUST keep them together in a single 'raw_text' block. NEVER extract sub-parts as separate items in the JSON array.
-   - Example: '11. a) Define X. b) Define Y.' must be ONE object with both parts in 'raw_text'.
-   - NEWLINE RULE: Ensure each sub-part (a, b, c) starts on a real new line in 'raw_text'. Do not output the two characters backslash and n.
+3. NO SPLITTING SUB-PARTS (CRITICAL): ONE MAIN NUMBER = ONE QUESTION.
+   - If a main question number has multiple sub-parts (for example: 9a and 9b, 9.a and 9.b, 11a/11b/11c, or parts a, b, c under question 9), you MUST extract all sub-parts together inside a SINGLE question object (with "original_index": "9").
+   - NEVER create separate objects in the JSON array for sub-parts like "9a" and "9b".
+   - Put all sub-parts inside the same 'raw_text' string for Question #9, separating each sub-part (e.g., "a. Define...", "b. Define...") onto a new line using a real newline character.
 4. INLINE CHOICE DETECTION: If a question contains a list of choices within its text (e.g., 'A nouns B verbs...'), you MUST extract these into the 'options' array. Do NOT leave them inside the 'raw_text' if they represent the selectable choices.
 5. LITERAL TRANSCRIPTION: The 'raw_text' must be a transcript of the WRITTEN text only.
    - NEVER add text not written on the page.
@@ -330,29 +320,16 @@ CRITICAL: If the missing question is part of a section with a general instructio
 CRITICAL: If there's any diagram, drawing, map, or visual illustration associated with the question, include a very generous bounding_box coordinate [ymin, xmin, ymax, xmax] (0 to 1000) so that it is never cut off.
 Return a JSON array of objects with keys: 'raw_text', 'options', 'type', 'original_index', and 'bounding_box'.`;
 
-export const LATEX_POLISH_PROMPT = `You are a meticulous LaTeX math-enclosure assistant.
-Your job is to ensure every math expression, variable, and fraction is perfectly formatted and GROUPED in LaTeX.
+export const LATEX_POLISH_PROMPT = `You are a LaTeX math formatting assistant.
+Your job is to ensure math expressions and equations use clean, natural LaTeX formatting.
 
 CRITICAL RULES:
-1. NO CHOPPED MATH: Wrap ENTIRE equations and formulas in a SINGLE pair of '$' tags. NEVER wrap components individually.
-   - CORRECT: $x - 13 = 20$, $3w = 36$, $5x + 5 = 20$, $8n + 2 = 90$, \\dfrac{32}{y} = 2
-   - INCORRECT: $x$ - $13$ = $20$, $3w$ = $36$, $5x$ + $5$ = $20$, $8n$ + $2$ = $90$, \\dfrac{$32$}{$y$} = $2$
-2. NO NESTING: NEVER put dollar signs inside other dollar signs.
-3. STANDALONE NUMBERS & MEASUREMENTS (CRITICAL FOR CONSISTENCY): Wrap EVERY standalone number, count, measurement, percentage, temperature, or mathematical value in LaTeX '$' tags (e.g., "$10$" meters or "$10\\text{ meters}$", "$32$" meters, "$0.75$", "$15\\%$", "$25^\\circ\\text{C}$", "$100$", "$-42$"). NEVER leave a bare number without dollar signs in the question text or options. Keep text labels outside the math block.
-5. INCLUDE OPERATORS: Signs like +, -, *, /, and = MUST be inside the dollar signs.
-6. MULTIPLICATION SYMBOL: Always use \\times for multiplication (e.g., $8 \\times 9 = 72$). NEVER use asterisks (*) or the letter 'x'.
-7. PROFESSIONAL FRACTIONS: Always use \\dfrac{n}{d} for EVERY fraction or division expression.
-8. DIVISION SYMBOL: For simple division, use \\div.
-7. CENTERED MATH & TABLES: If a formula is standalone or a table exists, convert to a clean LaTeX array or expression enclosed in double dollar signs $$ ... $$.
-8. EXHAUSTIVE: Apply this to ALL question text, options, and answers.
-   - EXCEPTION: For 'identification' type questions, DO NOT apply LaTeX enclosure to the 'answer' field. Keep it plain. In addition, the answer field for 'identification' questions must be strictly a raw number or single-word with NO units (e.g., -42 instead of -42 m, 120 instead of 120 kg).
-9. NO TEXT CHANGE: Do NOT change normal words, scenarios, or labels.
-10. PRESERVE HTML & IMAGES: If you see any HTML tags (like <div> or <img>) in the 'question' or 'raw_text', you MUST preserve them exactly.
-   - DO NOT modify any tag starting with <div class="resizable-image-wrapper">. Keep them UNTOUCHED.
-11. TIKZ MATH SAFETY: In any TikZ code, ensure exponents do not have backslashes before numbers (e.g., x^2, not x^\\2).
-12. TIKZ: Never modify TikZ code inside [TIKZ] tags or Kroki image URLs.
+1. NATURAL LATEX FORMATTING: Wrap complete equations, formulas, and expressions in '$' tags (e.g., $-2(3x - 4)$, $7x - 21$).
+2. DO NOT CHOP MATH OR ADD UNNATURAL SPACES: Do not split math expressions into separate dollar tags for each character, and do not insert spaces inside numbers or parentheses.
+3. DO NOT WRAP PLAIN WORDS: Keep regular text outside of dollar signs.
+4. PRESERVE HTML & IMAGES: If you see any HTML tags (like <div> or <img>) in the 'question' or 'raw_text', you MUST preserve them exactly.
 
-Return ONLY a JSON array matching the input structure exactly.
+Return ONLY a JSON array matching the input structure.
 `;
 
 export const RMX_FLASH_EXTRACTION_PROMPT = `Extract EVERY SINGLE question from this segment.

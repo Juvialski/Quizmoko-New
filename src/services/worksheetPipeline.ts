@@ -613,6 +613,104 @@ function pageImageReference(value: Record<string, unknown>): string {
   return /<img\b[^>]*\bsrc\s*=/i.test(readQuestionText(value)) ? 'embedded-in-question-html' : '';
 }
 
+export function mergeSubpartQuestions<T extends Record<string, any>>(questions: T[]): T[] {
+  if (!Array.isArray(questions) || questions.length <= 1) return questions;
+
+  const parsedItems = questions.map((q, idx) => {
+    const rawId = String(
+      (q.source && typeof q.source === 'object' ? q.source.original_index : undefined)
+      ?? q.original_index
+      ?? q.source_id
+      ?? q.id
+      ?? ''
+    ).trim();
+    const match = rawId.match(/^(?:question|q)?\s*#?\s*(\d+)[\s.-]*\(?([a-z])\)?$/i);
+    if (match) {
+      return { item: q, parentNum: match[1], subPart: match[2].toLowerCase(), origIdx: idx };
+    }
+    return { item: q, parentNum: null, subPart: null, origIdx: idx };
+  });
+
+  const parentGroups = new Map<string, typeof parsedItems>();
+  for (const entry of parsedItems) {
+    if (entry.parentNum) {
+      const list = parentGroups.get(entry.parentNum) || [];
+      list.push(entry);
+      parentGroups.set(entry.parentNum, list);
+    }
+  }
+
+  const merged: T[] = [];
+  const processedIndices = new Set<number>();
+
+  for (let i = 0; i < parsedItems.length; i++) {
+    if (processedIndices.has(i)) continue;
+
+    const current = parsedItems[i];
+    const group = current.parentNum ? parentGroups.get(current.parentNum) : null;
+
+    if (current.parentNum && group && group.length > 1) {
+      group.forEach(g => processedIndices.add(g.origIdx));
+
+      const firstItem = group[0].item;
+      const combinedTexts: string[] = [];
+      const combinedOptions: string[] = [];
+      let combinedBoundingBox: number[] = [];
+
+      group.forEach(g => {
+        let text = String(g.item.raw_text || g.item.question || g.item.statement || '').trim();
+        const partLabel = g.subPart;
+        const hasLabelPrefix = partLabel ? new RegExp(`^\\(?\\s*${partLabel}\\s*\\)?[.:\\-]\\s*`, 'i').test(text) : false;
+        if (!hasLabelPrefix && partLabel) {
+          text = `${partLabel}. ${text}`;
+        }
+        combinedTexts.push(text);
+
+        if (Array.isArray(g.item.options) && g.item.options.length > 0) {
+          combinedOptions.push(...g.item.options);
+        }
+        if (Array.isArray(g.item.bounding_box) && g.item.bounding_box.length === 4) {
+          if (combinedBoundingBox.length === 0) {
+            combinedBoundingBox = [...g.item.bounding_box];
+          } else {
+            combinedBoundingBox = [
+              Math.min(combinedBoundingBox[0], g.item.bounding_box[0]),
+              Math.min(combinedBoundingBox[1], g.item.bounding_box[1]),
+              Math.max(combinedBoundingBox[2], g.item.bounding_box[2]),
+              Math.max(combinedBoundingBox[3], g.item.bounding_box[3])
+            ];
+          }
+        }
+      });
+
+      const fullText = combinedTexts.join('\n');
+      const parentId = current.parentNum;
+
+      const mergedItem: Record<string, any> = {
+        ...firstItem,
+        original_index: parentId,
+        source_id: parentId,
+        raw_text: fullText,
+        question: fullText,
+        statement: fullText,
+        options: combinedOptions,
+        type: firstItem.type === 'multiple_choice' && combinedOptions.length > 0 ? 'multiple_choice' : 'open_ended',
+        source: firstItem.source && typeof firstItem.source === 'object' ? { ...firstItem.source, original_index: parentId } : { original_index: parentId }
+      };
+      if (combinedBoundingBox.length === 4) {
+        mergedItem.bounding_box = combinedBoundingBox;
+      }
+
+      merged.push(mergedItem as T);
+    } else {
+      processedIndices.add(i);
+      merged.push(current.item);
+    }
+  }
+
+  return merged;
+}
+
 export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]): WorksheetReconciliationResult {
   const diagnostics: WorksheetDiagnostic[] = [];
   const unresolved: UnresolvedWorksheetFragment[] = [];
@@ -683,14 +781,16 @@ export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]
     }
   }
 
+  const mergedQuestions = mergeSubpartQuestions(questions);
+
   const textOwners = new Map<string, string>();
-  for (const question of questions) {
+  for (const question of mergedQuestions) {
     const fingerprint = normalizedComparableText(question.question);
     const owner = textOwners.get(fingerprint);
     if (fingerprint && owner && owner !== question.source_id) diagnostics.push(diagnostic('duplicate_question_text', `Questions "${owner}" and "${question.source_id}" have duplicate normalized text.`, question.source_id));
     else if (fingerprint) textOwners.set(fingerprint, question.source_id);
   }
-  return { questions, unresolved_fragments: unresolved, diagnostics };
+  return { questions: mergedQuestions, unresolved_fragments: unresolved, diagnostics };
 }
 
 function candidateRecord(base: Record<string, unknown>, output: unknown): Record<string, unknown> {

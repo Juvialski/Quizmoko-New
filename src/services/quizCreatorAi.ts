@@ -5,7 +5,10 @@ import { getGeminiClient, sanitizeApiKey } from './gemini.ts';
 type GeminiClient = NonNullable<ReturnType<typeof getGeminiClient>>;
 
 export function canUserManageApiKeys(user: Partial<User> | null | undefined): boolean {
-  return Boolean(user?.uid || user?.role || user);
+  if (!user) return false;
+  const role = typeof user.role === 'string' ? user.role.toLowerCase() : '';
+  if (role === 'student') return false;
+  return role === 'admin' || role === 'teacher' || (!role && Boolean(user.uid));
 }
 
 /**

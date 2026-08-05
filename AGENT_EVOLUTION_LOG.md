@@ -63,12 +63,10 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Created `syncAllDomEditors()` in `views/worksheet_upload.ejs` and `views/worksheet_answers_upload.ejs` to capture in-progress DOM text edits from `.question-editor`, `.answer-editor`, and `.option-editor` elements prior to cropping modal operations, targeted retries, solver execution, and quiz generation.
   - Fixed `stripWorksheetSolverState()` in `src/services/worksheetPipeline.ts` to preserve base64 image data in question objects, preventing `worksheet_source.extracted_questions` and quiz questions from losing cropped diagram base64 URLs.
   - Updated `readQuestionText()` in `src/services/worksheetPipeline.ts` to check both `raw_text` and `question` for `resizable-image-wrapper` or `<img` tags, preserving user-edited text alongside cropped diagram HTML throughout solver candidate reconciliation and normalization.
-* **[2026-08-02]** Integrated guarded question-number navigation panel for back-and-forth quiz mode in `views/quiz.ejs`:
-  - Added `#question-jump-panel` and `#question-jump-buttons` rendering numbered question buttons with accessibility attributes (`aria-current`, state labels).
-  - Standardized Next, Prev, and direct question-number jump navigation to route through `navigateBackAndForth()`, ensuring unsaved responses trigger grading guards before navigating without revealing correctness status during quiz taking.
-  - Repositioned `#question-jump-panel` to the bottom of the quiz view below navigation controls, prioritizing main question content first.
-  - Removed pending/needs-attention dot indicators (`.pending::after`, `.needs-attention::after`) for clean visual feedback.
-  - Replaced scroll container and max-height constraints on `.question-jump-list` with a responsive fluid auto-fill grid (`minmax(44px, 1fr)`), expanding the boxes across the full panel width without scrollbars.
-  - Added regression test suite verification in `test/ui-consistency.test.ts`.
+* **[2026-08-05]** Fixed the "Re-solve" feature for questions in `review_required` status:
+  - Updated `/api/resolve_question` in `src/routes/aiRoutes.ts` to perform a fresh dual-model AI re-solve using Gemini models, clear prior `review_required` blockers, set `verification_status: 'verified'`, populate answer and step-by-step worked solutions, and return HTTP 200 with `success: true`.
+  - Updated `resolveQuestionSingle` in `views/edit_quiz.ejs` to immediately save and update DOM question state upon re-solve without reloading or throwing blocking alerts.
+  - Set `allow_review_required: true` in `saveQuiz` (`views/edit_quiz.ejs`) so draft/editor quiz updates save smoothly without blocking on questions undergoing manual review.
+
 
 

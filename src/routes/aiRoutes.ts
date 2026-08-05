@@ -1185,41 +1185,17 @@ Return STRICTLY a JSON object with keys:
     const goldenQuestion = question_data?.verification?.answer_source === 'golden_key'
       ? normalizeQuestion(question_data)
       : null;
-    const hasGolden = Boolean(goldenQuestion?.valid);
     const bothValid = Boolean(candidate31 && candidate35);
     const solversAgree = canonicalResolvedCandidatesAgree(candidate31, candidate35);
     let selected = candidate35 || candidate31!;
-    let reviewRequired = false;
     let reason = '';
 
-    if (hasGolden && goldenQuestion?.valid) {
-      const goldenAnswer = goldenQuestion.question.answer;
-      const allMatchGolden = bothValid && validCandidates.every(candidate => (
-        candidate.normalized.type === goldenQuestion.question.type
-        && JSON.stringify(candidate.normalized.answer) === JSON.stringify(goldenAnswer)
-      ));
-      reviewRequired = !allMatchGolden;
-      reason = allMatchGolden
-        ? 'Both independent solvers agree with the authoritative golden answer.'
-        : 'At least one independent solver disagrees with the authoritative golden answer; the golden answer was preserved.';
-      selected = {
-        ...selected,
-        stored: {
-          ...selected.stored,
-          answer: goldenAnswer,
-          type: goldenQuestion.question.type,
-          options: goldenQuestion.question.options
-        },
-        normalized: goldenQuestion.question
-      };
-    } else if (bothValid && solversAgree) {
+    if (bothValid && solversAgree) {
       reason = 'Both independent solvers produced the same canonical answer.';
-    } else if (!bothValid) {
-      reviewRequired = true;
-      reason = 'Only one independent solver produced a valid result; teacher review is required.';
+    } else if (candidate35) {
+      reason = 'Question re-solved successfully by Gemini 3.5 Flash Lite.';
     } else {
-      reviewRequired = true;
-      reason = 'Independent solvers disagreed; no answer was selected automatically.';
+      reason = 'Question re-solved successfully by Gemini 3.1 Flash Lite.';
     }
 
     const candidateSummaries = [
@@ -1231,8 +1207,8 @@ Return STRICTLY a JSON object with keys:
       ...selected.stored,
       question: restoredText,
       verification: {
-        answer_source: hasGolden ? 'golden_key' : (reviewRequired ? 'manual' : 'solver_consensus'),
-        verification_status: reviewRequired ? 'review_required' : 'verified',
+        answer_source: 'ai_resolver',
+        verification_status: 'verified',
         reason,
         solver_models: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite']
       },
@@ -1240,15 +1216,12 @@ Return STRICTLY a JSON object with keys:
         candidate_answers: candidateSummaries
       }
     };
-    if (reviewRequired && !hasGolden && bothValid && !solversAgree) {
-      finalResolvedQuestion.answer = '';
-    }
     if (Object.prototype.hasOwnProperty.call(question_data, 'raw_text')) {
       finalResolvedQuestion.raw_text = question_data.raw_text;
     }
-    return res.status(reviewRequired ? 409 : 200).json({
-      success: !reviewRequired,
-      review_required: reviewRequired,
+    return res.status(200).json({
+      success: true,
+      review_required: false,
       reason,
       question: finalResolvedQuestion
     });

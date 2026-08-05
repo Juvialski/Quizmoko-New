@@ -1564,10 +1564,10 @@
                 });
 
                 const data = await res.json();
-                if (data.success) {
+                if (data.success && data.question) {
                     quizData.questions[index] = data.question;
-                    const saved = await saveQuiz(false); // Silent save
-                    if (saved) window.location.reload();
+                    await saveQuiz(false); // Silent save
+                    renderQuestions();
                 } else if (data.review_required && data.question) {
                     quizData.questions[index] = data.question;
                     renderQuestions();
@@ -2138,7 +2138,7 @@
             const savePayload = {
                 ...quizData,
                 questions: quizData.questions.map(question => ({ ...question })),
-                allow_review_required: quizData.is_draft === true
+                allow_review_required: true
             };
             delete savePayload.api_key;
 

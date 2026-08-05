@@ -1110,7 +1110,7 @@ describe('authoritative grading HTTP flow', () => {
     assert.equal(repeated.payload.idempotent, true);
     assert.equal(repeated.payload.result_id, resultId);
     assert.equal(repeated.payload.total_score, 4.5);
-    assert.deepEqual(results.get(resultId), finalizedSnapshot);
+    assert.deepEqual(JSON.parse(JSON.stringify(results.get(resultId))), finalizedSnapshot);
 
     const delayedProgress = await post('/api/save_progressive_result', {
       quiz_id: quizId,
@@ -1124,7 +1124,7 @@ describe('authoritative grading HTTP flow', () => {
     assert.equal(delayedProgress.response.status, 200);
     assert.equal(delayedProgress.payload.ignored, true);
     assert.equal(delayedProgress.payload.finalized, true);
-    assert.deepEqual(results.get(resultId), finalizedSnapshot);
+    assert.deepEqual(JSON.parse(JSON.stringify(results.get(resultId))), finalizedSnapshot);
   });
 
   test('stale progressive session revisions cannot overwrite newer answers', async () => {

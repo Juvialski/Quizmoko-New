@@ -776,9 +776,6 @@
                 list.appendChild(item);
             });
 
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise([list]).catch(err => console.error('MathJax error:', err));
-            }
             window.refreshQuizmokoIcons?.();
         }
 

@@ -598,7 +598,7 @@
             // Use the same logic as the Quiz/Edit pages: split by image blocks and replace \n with <br>
             const parts = str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi);
             const formatted = parts.map(part => {
-                if (part.startsWith('<div class="resizable-image-wrapper">')) return part;
+                if (part.startsWith('<div')) return part;
 
                 // Process bullets and line breaks in the text parts
                 // Use a regex to catch both Windows (\r\n) and Unix (\n) line endings
@@ -743,6 +743,7 @@
         }
 
         // Start polling or initial render
+        const quizData = <%- typeof quiz !== 'undefined' && quiz ? JSON.stringify(quiz).replace(/</g, "\\u003c") : 'null' %>;
         const initialDetails = <%- JSON.stringify(result.details || []).replace(/</g, "\\u003c") %>;
         if (Array.isArray(initialDetails)) {
             initialDetails.forEach((item, i) => {

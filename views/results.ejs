@@ -482,7 +482,22 @@ if (results && results.length > 0) {
             if (window.QuizMoKoMath) text = window.QuizMoKoMath.normalizeLatexText(text);
             text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, math) => `$$${math.replace(/\r?\n/g, ' ')}$$`);
             text = text.replace(/\$([\s\S]*?)\$/g, (match, math) => `$${math.replace(/\r?\n/g, ' ')}$`);
-            return sanitizeDisplayHtml(text.split(/\r?\n/).join('<br>'));
+            text = text.replace(/\t/g, '');
+
+            const parts = text.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi);
+            const formatted = parts.map(part => {
+                if (part.startsWith('<div')) return part;
+
+                const lines = part.split(/\r?\n/);
+                return lines.map(line => {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+                        return `• ${trimmedLine.substring(2)}`;
+                    }
+                    return line;
+                }).join('<br>');
+            }).join('');
+            return sanitizeDisplayHtml(formatted);
         }
 
         async function explainMistake(btn, qIdx, resIdx) {

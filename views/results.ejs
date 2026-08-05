@@ -275,28 +275,31 @@ if (results && results.length > 0) {
                                 <% if (item) { %>
                                 <div class="review-block <% if (item.is_correct) { %>review-correct<% } else { %>review-wrong<% } %>">
                                     <div style="font-weight: 700; margin-bottom: 8px;">Question <%= itemIdx + 1 %></div>
-                                    <div style="font-size: 15px;"><%= typeof item.question !== 'undefined' && item.question ? item.question : '' %></div>
+                                    <div class="results-q-text" style="font-size: 15px;" data-raw="<%= typeof item.question !== 'undefined' && item.question ? encodeURIComponent(item.question) : '' %>"></div>
                                     <div style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 4px; font-size: 13px;">
-                                        <b>Your Answer:</b> <%= typeof item.user_answer !== 'undefined' && item.user_answer ? item.user_answer : '' %><br>
+                                        <b>Your Answer:</b> <span class="results-user-ans" data-raw="<%= typeof item.user_answer !== 'undefined' && item.user_answer ? encodeURIComponent(item.user_answer) : '' %>"></span><br>
                                         <b>Correct:</b>
                                         <% if (typeof item.correct_answer === 'object' && item.correct_answer !== null) { %>
                                             <ul style="margin: 5px 0; padding-left: 20px;">
                                                 <% for (let [k, v] of Object.entries(item.correct_answer || {})) { %>
-                                                    <li><b><%= typeof k !== 'undefined' && k ? k : '' %>:</b> <%= typeof v !== 'undefined' ? v : '' %></li>
+                                                    <li><b><%= typeof k !== 'undefined' && k ? k : '' %>:</b> <span class="results-correct-ans" data-raw="<%= typeof v !== 'undefined' ? encodeURIComponent(v) : '' %>"></span></li>
                                                 <% } %>
                                             </ul>
                                         <% } else { %>
-                                            <%= typeof item.correct_answer !== 'undefined' && item.correct_answer ? item.correct_answer : '' %>
+                                            <span class="results-correct-ans" data-raw="<%= typeof item.correct_answer !== 'undefined' && item.correct_answer ? encodeURIComponent(item.correct_answer) : '' %>"></span>
                                         <% } %>
                                         <% const qType = item.type || (typeof quiz !== 'undefined' && quiz && quiz.questions && quiz.questions[itemIdx] ? quiz.questions[itemIdx].type : ''); %>
                                         <% if ((qType === 'open_ended' || qType === 'graphing') && item.ai_feedback && item.ai_feedback.trim()) { %>
-                                            <div class="ai-feedback-box"><i data-lucide="sparkles" class="icon-sm" style="color:var(--primary);"></i> <strong>AI Tutor:</strong><br> <%= typeof item.ai_feedback !== 'undefined' ? item.ai_feedback : '' %></div>
+                                            <div class="ai-feedback-box">
+                                                <i data-lucide="sparkles" class="icon-sm" style="color:var(--primary);"></i> <strong>AI Tutor:</strong><br>
+                                                <div class="results-ai-feedback" data-raw="<%= encodeURIComponent(item.ai_feedback) %>"></div>
+                                            </div>
                                         <% } %>
                                         <% const workedSol = item.solution || (typeof quiz !== 'undefined' && quiz && quiz.questions && quiz.questions[itemIdx] ? quiz.questions[itemIdx].solution : ''); %>
                                         <% if (workedSol && workedSol.trim()) { %>
                                             <div class="ai-feedback-box" style="border-left: 4px solid var(--success); margin-top: 10px;">
                                                 <strong style="color:var(--success);"><i data-lucide="check-circle" class="icon-sm"></i> Step-by-Step Worked Solution:</strong><br>
-                                                <div style="margin-top: 4px; white-space: pre-wrap;"><%= workedSol %></div>
+                                                <div class="results-worked-solution" style="margin-top: 4px;" data-raw="<%= encodeURIComponent(workedSol) %>"></div>
                                             </div>
                                         <% } %>
                                     </div>
@@ -579,6 +582,19 @@ if (results && results.length > 0) {
         }
     </script>
     <script>
+        // Safely decode and format rich content and math
+        document.querySelectorAll('[data-raw]').forEach(el => {
+            const raw = el.getAttribute('data-raw');
+            if (raw) {
+                try {
+                    el.innerHTML = formatDisplayText(decodeURIComponent(raw));
+                } catch (e) {
+                    console.error("Failed to decode raw content:", e);
+                    el.innerHTML = formatDisplayText(raw);
+                }
+            }
+        });
+
         if (window.QuizMoKoMath) window.QuizMoKoMath.typeset(document.body);
     </script>
     <script src="/socket.io/socket.io.js"></script>

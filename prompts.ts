@@ -300,7 +300,7 @@ QUESTIONS TO PROCESS (JSON):
 {questions_json}
 
 CRITICAL RULES:
-1. VISION: Gemini 3.5/3.6 has enhanced vision capabilities. Use them to analyze images or diagrams with extreme precision to provide 100% accurate answers.
+1. VISION: Gemini models have enhanced vision capabilities. Use them to analyze images or diagrams with extreme precision to provide 100% accurate answers.
 2. NO TEXT MODIFICATION: Use the question text PROVIDED in the input JSON for context only.
    - DO NOT return the 'question' or 'raw_text' fields in your output. Return ONLY the answers, options, and metadata.
    - NEVER add descriptions of images (e.g., DO NOT add "with sides 10cm...").
@@ -328,7 +328,7 @@ QUESTIONS TO PROCESS (JSON):
 {questions_json}
 
 CRITICAL RULES:
-1. VISION: Gemini 3.5/3.6 has enhanced vision capabilities. Use them to analyze images or diagrams with extreme precision to provide 100% accurate answers.
+1. VISION: Gemini models have enhanced vision capabilities. Use them to analyze images or diagrams with extreme precision to provide 100% accurate answers.
 2. NO TEXT MODIFICATION: Use the question text PROVIDED in the input JSON for context only.
    - DO NOT return the 'question' or 'raw_text' fields in your output. Return ONLY the answers, options, and metadata.
    - NEVER "improve" or rephrase the question text.

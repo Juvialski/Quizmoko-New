@@ -511,6 +511,9 @@ if (results && results.length > 0) {
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         quiz_id: result.quiz_id,
+                        session_id: result.session_id,
+                        q_index: qIdx,
+                        question_index: qIdx,
                         question: item.question,
                         user_answer: item.user_answer,
                         correct_answer: item.correct_answer,

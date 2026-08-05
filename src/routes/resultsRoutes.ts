@@ -46,6 +46,14 @@ function canManageResult(user: any, result: any): boolean {
   if (!user || !result) return false;
   if (user.role === 'admin') return true;
   if (result.user_id && result.user_id === user.uid) return true;
+  if (
+    user.role === 'student' &&
+    result.student_name &&
+    ((user.name && result.student_name.trim().toLowerCase() === user.name.trim().toLowerCase()) ||
+     (user.email && result.student_name.trim().toLowerCase() === user.email.trim().toLowerCase()))
+  ) {
+    return true;
+  }
   return canManageQuiz(user, quizzes.get(result.quiz_id));
 }
 
@@ -71,9 +79,20 @@ function isLegacyCapabilityResult(result: any, resultId: string): boolean {
 }
 
 function hasResultAccess(req: any, result: any, resultId: string): boolean {
-  return canManageResult(req.user, result)
-    || isLegacyCapabilityResult(result, resultId)
-    || verifyResultAccessToken(requestResultAccessToken(req, resultId), result?.access_token_hash);
+  if (canManageResult(req.user, result)) return true;
+  if (isLegacyCapabilityResult(result, resultId)) return true;
+  if (verifyResultAccessToken(requestResultAccessToken(req, resultId), result?.access_token_hash)) return true;
+  if (req.user && result) {
+    if (result.user_id && result.user_id === req.user.uid) return true;
+    if (
+      result.student_name &&
+      ((req.user.name && result.student_name.trim().toLowerCase() === req.user.name.trim().toLowerCase()) ||
+       (req.user.email && result.student_name.trim().toLowerCase() === req.user.email.trim().toLowerCase()))
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function setResultAccessCookie(req: any, res: any, resultId: string, token: string) {
@@ -540,12 +559,9 @@ router.post('/api/delete_results', tokenRequired, async (req: AuthRequest, res) 
   res.json({ success: true, deleted_count: deletedIds.length, deleted_ids: deletedIds });
 });
 
-router.get('/results/:id', tokenRequired, (req: AuthRequest, res) => {
+router.get('/results/:id', optionalAuth, (req: AuthRequest, res) => {
   const id = req.params.id;
   const rawResult = results.get(id);
-  if (rawResult && !canManageResult(req.user, rawResult)) {
-    return res.status(403).send('You do not have access to this result');
-  }
 
   const formatResult = (r: any) => {
     const normalized = withResultAliases(r, id);
@@ -571,6 +587,13 @@ router.get('/results/:id', tokenRequired, (req: AuthRequest, res) => {
   };
 
   if (rawResult) {
+    if (!hasResultAccess(req, rawResult, id)) {
+      return res.status(403).send('You do not have access to this result');
+    }
+    const token = requestResultAccessToken(req, id);
+    if (token && verifyResultAccessToken(token, rawResult.access_token_hash)) {
+      setResultAccessCookie(req, res, id, token);
+    }
     const formatted = formatResult(rawResult);
     return res.render('results', {
       results: [formatted],
@@ -582,12 +605,22 @@ router.get('/results/:id', tokenRequired, (req: AuthRequest, res) => {
 
   const quiz = quizzes.get(id);
   if (quiz) {
-    if (!canManageQuiz(req.user, quiz)) {
-      return res.status(403).send('You do not have access to this quiz');
+    const isTeacherOrAdmin = canManageQuiz(req.user, quiz);
+    let userResults: any[] = [];
+    if (isTeacherOrAdmin) {
+      userResults = Array.from(results.values()).filter(r => r.quiz_id === id);
+    } else if (req.user) {
+      userResults = Array.from(results.values()).filter(r =>
+        r.quiz_id === id && (
+          (r.user_id && r.user_id === req.user?.uid) ||
+          (r.student_name && req.user?.name && r.student_name.trim().toLowerCase() === req.user.name.trim().toLowerCase()) ||
+          (r.student_name && req.user?.email && r.student_name.trim().toLowerCase() === req.user.email.trim().toLowerCase())
+        )
+      );
     }
-    const allResults = Array.from(results.values()).filter(r => r.quiz_id === id);
-    if (allResults.length > 0) {
-      const formattedResults = allResults
+
+    if (userResults.length > 0) {
+      const formattedResults = userResults
         .map(formatResult)
         .sort((a, b) => getQuizTimestamp(b) - getQuizTimestamp(a));
       return res.render('results', {
@@ -596,8 +629,10 @@ router.get('/results/:id', tokenRequired, (req: AuthRequest, res) => {
         title: quiz.title,
         quiz_id: id
       });
-    } else {
+    } else if (isTeacherOrAdmin || req.user) {
       return res.render('results', { results: [], result: null, title: quiz.title, quiz_id: id });
+    } else {
+      return res.status(403).send('You do not have access to this quiz');
     }
   }
 

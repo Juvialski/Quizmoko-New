@@ -349,6 +349,7 @@ async function persistIndividualProgress(input: {
       id: resultId,
       quiz_id: input.quizId,
       session_id: input.sessionId,
+      user_id: existing?.user_id,
       quiz_title: input.quiz.title,
       student_name: sanitizeStudentName(input.studentName || existing?.student_name),
       total_score: score.earned_points,
@@ -866,8 +867,9 @@ function finalResponse(req: any, res: any, result: any, idempotent: boolean) {
 
 router.post(
   ['/submit', '/api/submit_quiz'],
+  optionalAuth,
   publicRateLimit('submit', 120, 60 * 60 * 1_000),
-  async (req, res) => {
+  async (req: AuthRequest, res) => {
     const body = req.body || {};
     const quizId = body.quiz_id;
     const sessionId = body.session_id;
@@ -1050,6 +1052,7 @@ router.post(
           id: resultId,
           quiz_id: quizId,
           session_id: sessionId,
+          user_id: existing?.user_id || (req.user ? req.user.uid : undefined),
           quiz_title: quiz.title,
           student_name: sanitizeStudentName(body.student_name),
           total_score: score.earned_points,
@@ -1094,6 +1097,7 @@ router.post(
         id: resultId,
         quiz_id: quizId,
         session_id: sessionId,
+        user_id: existing?.user_id || (req.user ? req.user.uid : undefined),
         quiz_title: quiz.title,
         student_name: sanitizeStudentName(body.student_name),
         total_score: score.earned_points,
@@ -1145,8 +1149,9 @@ router.post(
 
 router.post(
   '/api/save_progressive_result',
+  optionalAuth,
   publicRateLimit('progressive', 1_200, 10 * 60 * 1_000),
-  async (req, res) => {
+  async (req: AuthRequest, res) => {
     const body = req.body || {};
     const quizId = body.quiz_id;
     const sessionId = body.session_id;
@@ -1267,6 +1272,7 @@ router.post(
         id: resultId,
         quiz_id: quizId,
         session_id: sessionId,
+        user_id: existing?.user_id || (req.user ? req.user.uid : undefined),
         quiz_title: quiz.title,
         student_name: sanitizeStudentName(body.student_name),
         total_score: score.earned_points,

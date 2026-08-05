@@ -1,14 +1,59 @@
 // Centralized AI Prompts and Formatting Rules for QuizMoKo
 
 export const SHARED_LATEX_RULES = `
-MATH & LATEX RULES:
-1. NATURAL LATEX FORMATTING: Wrap complete equations, formulas, and expressions in LaTeX dollar signs ($...$ for inline math, $$...$$ for centered math). For example: $-2(3x - 4)$ or $7x - 21$.
-2. DO NOT CHOP MATH OR INSERT EXTRA SPACES: Never split single math expressions into separate dollar tags for each character or number, and do not add unnatural spaces inside formulas (e.g. write $-2(3x-4)$, NOT $- 2 ( 3 x - 4 )$).
-3. DO NOT WRAP PLAIN ENGLISH WORDS: Only wrap actual math, numbers in math context, and equations. Do not wrap regular English text or labels in dollar signs.
-4. BALANCED DELIMITERS: Every opening '$' must have a matching closing '$'.
-5. PRESERVE ORIGINAL EXPRESSIONS: Preserve natural equations, symbols, fractions, and operators as written without unnecessary artificial rewrites.
-6. PRESERVE HTML: If you see HTML tags like <div class="resizable-image-wrapper">, preserve them untouched.
-7. IDENTIFICATION EXCEPTION: For Identification answer keys ONLY, DO NOT use LaTeX enclosure or dollar signs. Keep them as plain text or numbers. If the answer is numerical, the answer key MUST be strictly a raw number (integer or decimal, e.g. -42, 0.75) with NO units.
+MATH & LATEX RULES (MANDATORY ENCLOSURE & FORMATTING):
+1. MANDATORY DOLLAR SIGN ENCLOSURE FOR ALL MATH & EQUATIONS (CRITICAL):
+   - You MUST enclose EVERY mathematical expression, formula, equation, fraction, algebraic term, and LaTeX macro inside single dollar signs '$ ... $' (or double dollar signs '$$ ... $$' for centered display math).
+   - NEVER output bare LaTeX commands or expressions (such as \\dfrac, \\frac, \\left, \\right, \\cdot, \\div, \\times, \\sqrt, exponents ^) WITHOUT enclosing the ENTIRE expression in '$ ... $'.
+   - EXAMPLES OF CORRECT ENCLOSURE:
+     * "$(-4)\\left(\\dfrac{1}{2}\\right)(-3)$"
+     * "$\\dfrac{-72xy}{6}$"
+     * "$\\dfrac{2}{3} + \\dfrac{3}{4} \\div \\dfrac{1}{2}$"
+     * "$\\dfrac{1}{2} - \\dfrac{2}{3} \\cdot \\dfrac{3}{4}$"
+     * "$(-2)^2 \\cdot (-2)^3$"
+     * "$\\dfrac{10^3 \\cdot 10^2}{10^4}$"
+     * "$\\dfrac{x}{12} = \\dfrac{2}{3}$"
+   - EXAMPLES OF INCORRECT / FORBIDDEN OUTPUT (NEVER DO THIS):
+     * "(-4)\\left(\\dfrac{1}{2}\\right)(-3)" (MISSING DOLLAR SIGNS)
+     * "\\dfrac{-72xy}{6}" (MISSING DOLLAR SIGNS)
+     * "\\dfrac{x}{12} = \\dfrac{2}{3}" (MISSING DOLLAR SIGNS)
+
+2. MANDATORY DOLLAR SIGN ENCLOSURE FOR STANDALONE NUMBERS, MEASUREMENTS & CURRENCY:
+   - You MUST enclose EVERY standalone number, integer, decimal, count, measurement value, ratio, percentage, or currency in LaTeX '$ ... $' tags.
+   - EXAMPLES OF CORRECT NUMBER ENCLOSURE:
+     * "$70$ CCF"
+     * "$156$ pages"
+     * "$12$ short stories"
+     * "$6$ pages"
+     * "ratio of $3$ to $1$"
+     * "$9$ tellers"
+     * "$45$ packs", "$8$ cards", "$2$ boxes"
+     * "$15\\%$", "$25^\\circ\\text{C}$", "$-42$"
+   - CURRENCY FORMATTING: Format monetary values inside one valid LaTeX expression using \\text{\\$}:
+     * "$\\text{\\$1.081}$" or "$\\text{\\$40}$".
+     * NEVER emit bare currency dollar signs like "$1.081" without LaTeX escaping, and NEVER use nested dollar delimiters.
+
+3. NO CHOPPED MATH (CRITICAL):
+   - Wrap an ENTIRE equation, formula, or expression in a SINGLE pair of '$' tags. Include operators (+, -, *, /, =, \\cdot, \\div, \\times) inside the '$ ... $' block.
+   - CORRECT: "$5x + 5 = 20$", "$8n + 2 = 90$"
+   - INCORRECT: "$5x$ + $5$ = $20$", "$8n$ + $2$ = $90$"
+
+4. NO NESTING:
+   - NEVER put dollar signs inside other dollar signs (e.g., "$\\dfrac{$32$}{$y$}$" is STRICTLY FORBIDDEN).
+
+5. DO NOT WRAP PLAIN ENGLISH WORDS:
+   - Keep plain English sentences, labels, and words outside of '$' tags. Only wrap actual math, numbers, and equations in '$ ... $'.
+   - Example: "Simplify: $\\dfrac{-72xy}{6}$", NOT "$\\text{Simplify: } \\dfrac{-72xy}{6}$".
+
+6. PROFESSIONAL FRACTIONS & OPERATORS:
+   - Always use \\dfrac{n}{d} for fractions, \\times or \\cdot for multiplication, and \\div for division inside math blocks.
+
+7. BALANCED DELIMITERS & REAL NEWLINES:
+   - Every opening '$' MUST have a matching closing '$'.
+   - Use real newlines inside multiline string properties; NEVER output literal string escapes like '\\n$$' or '\\n$'.
+
+8. IDENTIFICATION EXCEPTION:
+   - For Identification answer keys ONLY, DO NOT use LaTeX enclosure or dollar signs. Keep them as raw numbers (e.g. 0.75 or -42 with no units) or plain words.
 `;
 
 export const NON_MATH_RULES = `
@@ -320,16 +365,33 @@ CRITICAL: If the missing question is part of a section with a general instructio
 CRITICAL: If there's any diagram, drawing, map, or visual illustration associated with the question, include a very generous bounding_box coordinate [ymin, xmin, ymax, xmax] (0 to 1000) so that it is never cut off.
 Return a JSON array of objects with keys: 'raw_text', 'options', 'type', 'original_index', and 'bounding_box'.`;
 
-export const LATEX_POLISH_PROMPT = `You are a LaTeX math formatting assistant.
-Your job is to ensure math expressions and equations use clean, natural LaTeX formatting.
+export const LATEX_POLISH_PROMPT = `You are a meticulous LaTeX math-enclosure assistant.
+Your job is to ensure every math expression, formula, fraction, equation, and standalone number is strictly and correctly ENCLOSED in LaTeX dollar signs '$ ... $'.
 
-CRITICAL RULES:
-1. NATURAL LATEX FORMATTING: Wrap complete equations, formulas, and expressions in '$' tags (e.g., $-2(3x - 4)$, $7x - 21$).
-2. DO NOT CHOP MATH OR ADD UNNATURAL SPACES: Do not split math expressions into separate dollar tags for each character, and do not insert spaces inside numbers or parentheses.
-3. DO NOT WRAP PLAIN WORDS: Keep regular text outside of dollar signs.
-4. PRESERVE HTML & IMAGES: If you see any HTML tags (like <div> or <img>) in the 'question' or 'raw_text', you MUST preserve them exactly.
+CRITICAL ENCLOSURE RULES:
+1. MANDATORY ENCLOSURE FOR ALL MATH & FORMULAS (CRITICAL):
+   - Wrap ALL equations, formulas, fractions, algebraic expressions, and LaTeX commands in SINGLE '$' tags (or '$$ ... $$' for centered equations).
+   - NEVER leave LaTeX commands (like \\dfrac, \\left, \\right, \\div, \\cdot, \\times) un-enclosed without '$ ... $'.
+   - EXAMPLES: "$(-4)\\left(\\dfrac{1}{2}\\right)(-3)$", "$\\dfrac{-72xy}{6}$", "$\\dfrac{2}{3} + \\dfrac{3}{4} \\div \\dfrac{1}{2}$", "$\\dfrac{x}{12} = \\dfrac{2}{3}$".
 
-Return ONLY a JSON array matching the input structure.
+2. MANDATORY ENCLOSURE FOR NUMBERS & MEASUREMENTS:
+   - Wrap EVERY standalone number, count, measurement, ratio, percentage, or currency in '$ ... $' tags (e.g. "$70$", "$156$", "$12$", "$6$", "$3$", "$1$", "$9$", "$0.75$", "$\\text{\\$1.081}$").
+   - Surrounding English words remain outside the '$' tags (e.g. "$70$ CCF", "$156$ pages").
+
+3. NO CHOPPED MATH:
+   - Wrap the entire equation in ONE pair of '$' tags including all operators. (e.g., "$5x + 5 = 20$", NOT "$5x$ + $5$ = $20$").
+
+4. NO NESTING & NO PLAIN WORDS ENCLOSED:
+   - Never nest dollar signs inside other dollar signs.
+   - Do NOT wrap plain English text in '$' tags.
+
+5. PRESERVE HTML & IMAGES:
+   - Preserve HTML tags (like <div> or <img>) untouched.
+
+6. IDENTIFICATION EXCEPTION:
+   - For Identification answer keys ONLY, keep them as raw plain numbers without dollar signs.
+
+Return ONLY a JSON array matching the input structure exactly.
 `;
 
 export const RMX_FLASH_EXTRACTION_PROMPT = `Extract EVERY SINGLE question from this segment.
@@ -339,7 +401,6 @@ CRITICAL RULES:
 1. NO SKIPPING: Scan the entire segment and extract every item.
 2. LITERAL EXTRACTION: Do NOT summarize. Extract the EXACT text of the question.
 3. LATEX FORMATTING: Wrap ENTIRE math expressions, numbers, and variables in SINGLE '$' tags.
-3. LATEX FORMATTING: Wrap ENTIRE math expressions, numbers, and variables in SINGLE '
 4. NO NESTING: NEVER put dollar signs inside other dollar signs.
 5. MULTIPLE CHOICE DETECTION:
    - If the question is Multiple Choice, extract the text of all options into the 'choices' array.

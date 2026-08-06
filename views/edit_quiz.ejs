@@ -406,12 +406,9 @@
             const modelStats = (GLOBAL_DAILY_STATS[today] && GLOBAL_DAILY_STATS[today][model]) || {};
 
             const API_LIMITS = {
-                'gemini-3.6-flash': 20,
-                'gemini-3.5-flash': 20,
                 'gemini-3.5-flash-lite': 500,
-                'gemini-3.1-flash-lite': 500,
-                'gemini-2.5-flash': 20
-            }; // Minimum mapping
+                'gemini-3.1-flash-lite': 500
+            };
             const baseLimit = API_LIMITS[model] || 20;
 
             for (const key of keys) {
@@ -483,13 +480,13 @@
         if (quizData && Array.isArray(quizData.questions)) {
             quizData.questions.forEach(q => {
                 if (typeof q.answer === 'string') {
-                    q.answer = q.answer.replace(/\\n/g, '\n');
+                    q.answer = window.QuizMoKoMath ? window.QuizMoKoMath.decodeLegacyNewlines(q.answer) : q.answer;
                 }
                 if (typeof q.question === 'string') {
-                    q.question = q.question.replace(/\\n/g, '\n');
+                    q.question = window.QuizMoKoMath ? window.QuizMoKoMath.decodeLegacyNewlines(q.question) : q.question;
                 }
                 if (Array.isArray(q.options)) {
-                    q.options = q.options.map(opt => typeof opt === 'string' ? opt.replace(/\\n/g, '\n') : opt);
+                    q.options = q.options.map(opt => typeof opt === 'string' && window.QuizMoKoMath ? window.QuizMoKoMath.decodeLegacyNewlines(opt) : opt);
                 }
             });
         } else {
@@ -528,6 +525,35 @@
             if (saveBtn) {
                 saveBtn.style.display = 'inline-flex';
             }
+        }
+
+        function markQuestionNeedsReview(index, reason = 'Question content changed after verification. Confirm the current answer or run Re-solve before publishing.') {
+            const question = quizData.questions[index];
+            if (!question) return;
+            question.verification = {
+                answer_source: 'manual',
+                verification_status: 'review_required',
+                reason,
+                changed_at: new Date().toISOString()
+            };
+            markQuestionChanged(index);
+        }
+
+        function approveQuestionAnswer(index, rerender = true) {
+            const question = quizData.questions[index];
+            if (!question || String(question.answer ?? '').trim() === '') {
+                alert('Enter a valid answer before approving this question.');
+                return false;
+            }
+            question.verification = {
+                answer_source: 'manual',
+                verification_status: 'verified',
+                reason: 'Teacher explicitly reviewed and approved the current question and answer.',
+                verified_at: new Date().toISOString()
+            };
+            if (rerender) renderQuestions();
+            markQuestionChanged(index);
+            return true;
         }
 
         function normalizePlainNumericIdentificationAnswer(value) {
@@ -702,7 +728,7 @@
             }
 
             // 2. Standard Text Formatting (Line breaks and Bullets)
-            let str = String(data).replace(/\\n/g, '\n');
+            let str = window.QuizMoKoMath ? window.QuizMoKoMath.normalizeLatexText(data) : String(data);
             str = cleanNewlinesInMath(str);
             const parts = str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>\s*<\/div>|<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi);
             const formatted = parts.map(part => {
@@ -849,9 +875,8 @@
                     const currentText = quizData.questions[index].question;
                     const { text } = extractImageAndText(currentText);
                     quizData.questions[index].question = text + "\n" + imgHtml;
-
+                    markQuestionNeedsReview(index, 'The attached image changed after verification. Confirm the current answer or run Re-solve.');
                     renderQuestions();
-                    markQuestionChanged(index);
                 };
                 reader.readAsDataURL(file);
             };
@@ -862,8 +887,8 @@
             const currentText = quizData.questions[index].question;
             const { text } = extractImageAndText(currentText);
             quizData.questions[index].question = text; // Just keep the text part
+            markQuestionNeedsReview(index, 'The question image was removed after verification. Confirm the current answer or run Re-solve.');
             renderQuestions();
-            markQuestionChanged(index);
         }
 
         // --- RECROP IMAGE LOGIC ---
@@ -936,10 +961,9 @@
             // Strip old image wrapper and append new one
             const { text } = extractImageAndText(q.question);
             q.question = text + '\n' + imgHtml;
-
+            markQuestionNeedsReview(currentCroppingIndex, 'The question image was recropped after verification. Confirm the current answer or run Re-solve.');
             renderQuestions();
             closeCropperModal();
-            markQuestionChanged(currentCroppingIndex);
         }
 
         async function reRenderTikz(index) {
@@ -1139,7 +1163,7 @@
                 const block = document.createElement('div');
                 block.className = 'question-block';
                 block.id = `question-block-${qIndex}`;
-                if (q?.verification?.verification_status === 'review_required') {
+                if (q?.verification?.verification_status && q.verification.verification_status !== 'verified') {
                     block.style.borderColor = 'var(--m-red)';
                 }
                 const rawSourceQuestionId = q?.source?.original_index ?? q?.original_index ?? q?.source_id;
@@ -1209,12 +1233,6 @@
                 const qTextInput = document.createElement('textarea'); 
                 qTextInput.value = extractedData.text; 
                 qTextInput.dataset.imagePart = extractedData.imagePart; 
-                qTextInput.oninput = (e) => {
-                    const hiddenImage = e.target.dataset.imagePart;
-                    quizData.questions[qIndex].question = e.target.value + (hiddenImage ? '\n' + hiddenImage : '');
-                    updatePreview(qIndex, qPreviewBox);
-                    markQuestionChanged(qIndex);
-                };
                 leftCol.appendChild(qTextInput);
 
                 const optsLabel = document.createElement('label');
@@ -1248,8 +1266,8 @@
                         optInput.style.margin = '0';
                         optInput.oninput = (e) => {
                             quizData.questions[qIndex].options[optIndex] = e.target.value;
+                            markQuestionNeedsReview(qIndex, 'An answer choice changed after verification. Confirm the current answer or run Re-solve.');
                             updatePreview(qIndex, block.querySelector('.live-preview'));
-                            markQuestionChanged(qIndex);
                         };
 
                         const removeBtn = document.createElement('button');
@@ -1281,11 +1299,14 @@
 
                 ansLabel.innerHTML = `
                     <span>${ansLabelText}</span>
-                    <button class="btn" onclick="reformatSingleAnswer(${qIndex}, this)" style="background: var(--surface-soft); color: var(--success); font-size: 10px; padding: 4px 8px; border: 1px solid var(--success); font-weight: 800;">🪄 RE-FORMAT</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn" onclick="approveQuestionAnswer(${qIndex})" style="background: var(--success); color: white; font-size: 10px; padding: 4px 8px; border: 1px solid var(--success); font-weight: 800;">✓ APPROVE ANSWER</button>
+                        <button class="btn" onclick="reformatSingleAnswer(${qIndex}, this)" style="background: var(--surface-soft); color: var(--success); font-size: 10px; padding: 4px 8px; border: 1px solid var(--success); font-weight: 800;">🪄 RE-FORMAT</button>
+                    </div>
                 `;
                 leftCol.appendChild(ansLabel);
 
-                if (q.verification && q.verification.verification_status === 'review_required') {
+                if (q.verification && q.verification.verification_status !== 'verified') {
                     const reviewNotice = document.createElement('div');
                     reviewNotice.style.cssText = 'margin: 6px 0 10px; padding: 9px 11px; border: 1px solid var(--m-red); border-radius: 7px; color: var(--m-red); font-size: 12px; font-weight: 700;';
                     reviewNotice.textContent = `Teacher review required: ${q.verification.reason || 'Independent answer checks did not reach a reliable consensus.'}`;
@@ -1298,12 +1319,7 @@
                 ansInput.style.height = '80px';
                 ansInput.oninput = (e) => {
                     quizData.questions[qIndex].answer = e.target.value;
-                    quizData.questions[qIndex].verification = {
-                        answer_source: 'manual',
-                        verification_status: 'verified',
-                        reason: 'Teacher manually updated and approved the answer.'
-                    };
-                    markQuestionChanged(qIndex);
+                    markQuestionNeedsReview(qIndex, 'The answer changed and is pending explicit teacher approval.');
                     updatePreview(qIndex, block.querySelector('.live-preview'));
                 };
                 leftCol.appendChild(ansInput);
@@ -1339,8 +1355,8 @@
                 qTextInput.oninput = (e) => {
                     const hiddenImage = e.target.dataset.imagePart;
                     quizData.questions[qIndex].question = e.target.value + (hiddenImage ? '\n' + hiddenImage : '');
+                    markQuestionNeedsReview(qIndex, 'Question text changed after verification. Confirm the current answer or run Re-solve.');
                     updatePreview(qIndex, qPreviewBox);
-                    markQuestionChanged(qIndex); // Ensure save button appears when question text changes
                 };
 
                 gridDiv.appendChild(leftCol);
@@ -1362,8 +1378,8 @@
             if (!Array.isArray(q.options)) q.options = [];
             const letter = String.fromCharCode(65 + q.options.length);
             q.options.push(`${letter}) New Choice`);
+            markQuestionNeedsReview(qIndex, 'An answer choice was added after verification. Confirm the current answer or run Re-solve.');
             renderQuestions();
-            markQuestionChanged(qIndex);
         }
 
         function removeOption(qIndex, optIndex) {
@@ -1378,8 +1394,8 @@
                 return `${letter}) ${clean}`;
             });
 
+            markQuestionNeedsReview(qIndex, 'An answer choice was removed after verification. Confirm the current answer or run Re-solve.');
             renderQuestions();
-            markQuestionChanged(qIndex);
         }
 
         function shuffleQuestions() {
@@ -1457,8 +1473,8 @@
                     q.options = [];
                     q.answer = numericAnswer;
                     q.grading_mode = 'deterministic';
+                    markQuestionNeedsReview(qIndex, 'The question type changed after verification. Confirm the current answer or run Re-solve.');
                     renderQuestions();
-                    markQuestionChanged(qIndex);
                     return;
                 }
             }
@@ -2187,7 +2203,7 @@
         }
         renderQuestions();
         const firstReviewIndex = quizData.questions.findIndex(question =>
-            question?.verification?.verification_status === 'review_required'
+            question?.verification?.verification_status && question.verification.verification_status !== 'verified'
         );
         if (firstReviewIndex >= 0) {
             window.setTimeout(() => {

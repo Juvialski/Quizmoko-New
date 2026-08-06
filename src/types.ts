@@ -20,7 +20,7 @@ export interface WorksheetQuestionSource {
 }
 
 export interface QuestionVerification {
-  answer_source: 'golden_key' | 'solver_consensus' | 'manual';
+  answer_source: 'golden_key' | 'solver_consensus' | 'adjudicated' | 'deterministic' | 'ai_resolver' | 'manual';
   verification_status: 'verified' | 'review_required' | 'unverified' | 'invalid';
   reason?: string;
   solver_models?: string[];

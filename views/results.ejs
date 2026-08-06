@@ -478,7 +478,7 @@ if (results && results.length > 0) {
                 return sanitizeDisplayHtml(html + '</ul>');
             }
 
-            let text = String(value).replace(/\\n/g, '\n');
+            let text = String(value);
             if (window.QuizMoKoMath) text = window.QuizMoKoMath.normalizeLatexText(text);
             text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, math) => `$$${math.replace(/\r?\n/g, ' ')}$$`);
             text = text.replace(/\$([\s\S]*?)\$/g, (match, math) => `$${math.replace(/\r?\n/g, ' ')}$`);

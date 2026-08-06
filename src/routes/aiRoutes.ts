@@ -3,7 +3,6 @@ import { Type } from '@google/genai';
 import { tokenRequired } from '../middleware/auth.ts';
 import { generateAiLimiter } from '../middleware/rateLimit.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
-import type { NormalizedQuestion } from '../types.ts';
 import {
   quizzes,
   users,
@@ -12,6 +11,14 @@ import {
   getUniqueQuizTitle
 } from '../store/db.ts';
 import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
+import {
+  generateGeminiContent,
+  GeminiRateLimitError
+} from '../services/geminiRateLimiter.ts';
+import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
+import { duplicateQuestionIds, verifyQuestionBatch } from '../services/aiQuestionVerifier.ts';
+import { applyLatexPatches, createLatexPatchRequests } from '../services/latexPatches.ts';
+import { normalizeAiLatexText, validateQuestionLatex } from '../services/latex.ts';
 import {
   getCorrectAnswer,
   normalizeQuestion,
@@ -28,7 +35,6 @@ import {
   WORKSHEET_SOLVER_PROMPT,
   WORKSHEET_SOLVER_PROMPT_NON_MATH,
   LATEX_POLISH_PROMPT,
-  RECHECK_ANSWERS_PROMPT,
   STRUCTURED_QUIZ_GENERATOR_PROMPT
 } from '../../prompts.ts';
 
@@ -55,7 +61,7 @@ function acquireRequestAiWork(
 }
 
 function respondAiWorkLimit(res: any, error: unknown): boolean {
-  if (!(error instanceof AiWorkLimitError)) return false;
+  if (!(error instanceof AiWorkLimitError) && !(error instanceof GeminiRateLimitError)) return false;
   res.setHeader('Retry-After', String(error.retryAfterSeconds));
   res.status(error.status).json({
     success: false,
@@ -101,7 +107,7 @@ const questionArraySchema = {
   items: {
     type: Type.OBJECT,
     properties: questionProperties,
-    required: ['question', 'options', 'answer', 'type']
+    required: ['question', 'options', 'answer', 'type', 'solution']
   }
 };
 
@@ -126,12 +132,17 @@ const resolvedQuestionSchema = {
   required: ['options', 'answer', 'type', 'solution']
 };
 
-const recheckQuestionArraySchema = {
+const latexPatchSchema = {
   type: Type.ARRAY,
   items: {
     type: Type.OBJECT,
-    properties: questionProperties,
-    required: ['id', 'question', 'options', 'answer', 'type']
+    properties: {
+      id: { type: Type.STRING },
+      field: { type: Type.STRING },
+      original_hash: { type: Type.STRING },
+      replacement: { type: Type.STRING }
+    },
+    required: ['id', 'field', 'original_hash', 'replacement']
   }
 };
 
@@ -246,43 +257,6 @@ function withoutPriorAnswerState(value: any): Record<string, any> {
   return clean;
 }
 
-function normalizeResolvedCandidate(
-  original: any,
-  candidate: any,
-  restoredQuestion: string
-): { stored: any; normalized: NormalizedQuestion } | null {
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null;
-  const cleanOriginal = withoutPriorAnswerState(original);
-  const candidateQuestion: any = {
-    ...cleanOriginal,
-    ...candidate,
-    question: restoredQuestion,
-    options: Array.isArray(candidate.options) && candidate.options.length > 0
-      ? candidate.options
-      : (Array.isArray(original?.options) ? original.options : [])
-  };
-  for (const field of ANSWER_OUTPUT_FIELDS) {
-    if (field !== 'answer' && field !== 'solution') delete candidateQuestion[field];
-  }
-  candidateQuestion.answer = candidate.answer;
-  if (typeof candidate.solution === 'string' && candidate.solution.trim()) {
-    candidateQuestion.solution = candidate.solution.trim();
-  }
-  const storage = normalizeQuestionForStorage(candidateQuestion);
-  if (!storage.valid) return null;
-  return { stored: storage.question, normalized: storage.normalized as any };
-}
-
-function canonicalResolvedCandidatesAgree(
-  left: ReturnType<typeof normalizeResolvedCandidate>,
-  right: ReturnType<typeof normalizeResolvedCandidate>
-): boolean {
-  if (!left || !right) return false;
-  return left.normalized.type === right.normalized.type
-    && JSON.stringify(left.normalized.options) === JSON.stringify(right.normalized.options)
-    && JSON.stringify(left.normalized.answer) === JSON.stringify(right.normalized.answer);
-}
-
 function asBoundedInt(value: unknown, fallback: number, min: number, max: number): number {
   const parsed = Number.parseInt(String(value ?? ''), 10);
   if (!Number.isFinite(parsed)) return fallback;
@@ -343,9 +317,9 @@ function allocateByWeight(total: number, weights: Record<string, number>): Recor
 
 function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: string) {
   if (!raw || typeof raw !== 'object') return null;
-  const question = String(raw.question || raw.raw_text || '').trim()
+  const question = normalizeAiLatexText(raw.question || raw.raw_text || '').trim()
     .replace(/^(?:Question|Q)\s*\d*\s*[:.)-]\s*/i, '');
-  const rawAnswer = String(raw.answer ?? raw.correct_answer_letter ?? '').trim();
+  const rawAnswer = normalizeAiLatexText(raw.answer ?? raw.correct_answer_letter ?? '').trim();
   if (!question || !rawAnswer) return null;
 
   const normalized: any = {
@@ -355,13 +329,15 @@ function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: 
     type: expectedType,
     difficulty
   };
-  if (typeof raw.solution === 'string' && raw.solution.trim()) normalized.solution = raw.solution.trim();
+  if (typeof raw.solution === 'string' && raw.solution.trim()) {
+    normalized.solution = normalizeAiLatexText(raw.solution).trim();
+  }
 
   if (expectedType === 'multiple_choice' || expectedType === 'multiple_choice_multi') {
     const sourceOptions = Array.isArray(raw.options) ? raw.options : [];
     if (sourceOptions.length !== 4) return null;
     normalized.options = sourceOptions.map((option: unknown, index: number) => {
-      const text = String(option ?? '').trim().replace(/^[A-D][).]\s*/i, '');
+      const text = normalizeAiLatexText(option ?? '').trim().replace(/^[A-D][).]\s*/i, '');
       return `${String.fromCharCode(65 + index)}) ${text}`;
     });
     if (normalized.options.some((option: string) => !option.replace(/^[A-D]\)\s*/, '').trim())) return null;
@@ -473,7 +449,7 @@ async function requestOllamaQuestions(ollamaUrl: unknown, model: string, prompt:
               type: { type: 'string' },
               solution: { type: 'string' }
             },
-            required: ['question', 'options', 'answer', 'type']
+            required: ['question', 'options', 'answer', 'type', 'solution']
           }
         }
       })
@@ -647,7 +623,9 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
   let aiLease: AiWorkLease;
   try {
     const plannedBatches = Math.ceil(totalQuestions / batchSize);
-    const plannedCost = Math.max(totalQuestions, plannedBatches * 3);
+    const plannedCost = isOllama
+      ? Math.max(totalQuestions, plannedBatches * 3)
+      : Math.max(totalQuestions * 3, plannedBatches * 4);
     aiLease = acquireRequestAiWork(req, plannedCost, api_key);
   } catch (error) {
     if (error instanceof AiWorkLimitError) {
@@ -695,14 +673,14 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
         if (isOllama) {
           parsed = await requestOllamaQuestions(ollama_url, model, prompt);
         } else {
-          const response = await ai!.models.generateContent({
+          const response = await generateGeminiContent(ai!, {
             model: getRealModelName(model),
             contents: prompt,
-            config: {
+            config: buildAiTaskConfig('question_drafting', {
               responseMimeType: 'application/json',
               responseSchema: questionArraySchema,
               maxOutputTokens: 8192
-            }
+            }) as any
           });
           parsed = safeParseJSON(response.text || '');
         }
@@ -725,8 +703,50 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
       if (!normalizedBatch) {
         throw new Error(`The model could not produce a valid batch beginning at question ${offset + 1}.`);
       }
-      generatedQuestions.push(...normalizedBatch);
+
+      const identifiedBatch = normalizedBatch.map((question, index) => ({
+        ...question,
+        id: String(question.id || `generated_${offset + index + 1}`)
+      }));
+      if (isOllama || !ai) {
+        generatedQuestions.push(...identifiedBatch.map(question => ({
+          ...question,
+          verification: {
+            answer_source: 'manual',
+            verification_status: 'review_required',
+            reason: 'This Ollama draft was not independently verified by both Gemini Flash-Lite solvers.',
+            solver_models: []
+          }
+        })));
+      } else {
+        const verified = await verifyQuestionBatch({
+          ai,
+          questions: identifiedBatch,
+          subject,
+          topic: cleanTopic,
+          preferredModel: model,
+          contextLabel: 'new quiz generation'
+        });
+        generatedQuestions.push(...verified.questions);
+      }
     }
+
+    const duplicateIds = new Set(duplicateQuestionIds(generatedQuestions));
+    if (duplicateIds.size > 0) {
+      for (const question of generatedQuestions) {
+        if (!duplicateIds.has(String(question.id || ''))) continue;
+        question.verification = {
+          ...(question.verification || {}),
+          answer_source: 'manual',
+          verification_status: 'review_required',
+          reason: 'This question is a near-duplicate of another generated question and requires teacher review.'
+        };
+      }
+    }
+    const reviewRequiredIds = generatedQuestions
+      .filter(question => question?.verification?.verification_status !== 'verified')
+      .map(question => String(question.id || ''))
+      .filter(Boolean);
 
     const quizId = `quiz_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const quiz = {
@@ -742,6 +762,12 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
       created_at: new Date().toISOString(),
       model_name: model,
       question_style: String(question_style || 'Mixed'),
+      is_draft: reviewRequiredIds.length > 0,
+      review_required_ids: reviewRequiredIds,
+      verification_summary: {
+        verified: generatedQuestions.length - reviewRequiredIds.length,
+        review_required: reviewRequiredIds.length
+      },
       questions: generatedQuestions
     };
 
@@ -754,6 +780,8 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
         success: true,
         quiz_id: quizId,
         quiz,
+        review_required: reviewRequiredIds.length > 0,
+        review_required_ids: reviewRequiredIds,
         redirect: `/edit/${quizId}`
       });
     }
@@ -807,7 +835,7 @@ router.post('/api/generate_question', tokenRequired, async (req: AuthRequest, re
     const isOllama = String(model_name).toLowerCase().startsWith('ollama:');
     const ai = isOllama ? null : getGeminiClient(api_key);
     if (!isOllama && !ai) return res.status(400).json({ success: false, error: 'No valid API key provided' });
-    aiLease = acquireRequestAiWork(req, 1, api_key);
+    aiLease = acquireRequestAiWork(req, isOllama ? 1 : 4, api_key);
 
     const contents: any[] = [];
     const prepared = prepareVisionText(getOriginalQuestionText(existing_question), contents);
@@ -832,14 +860,14 @@ router.post('/api/generate_question', tokenRequired, async (req: AuthRequest, re
     if (isOllama) {
       parsed = await requestOllamaQuestions(ollama_url, String(model_name), prompt);
     } else {
-      const response = await ai!.models.generateContent({
+      const response = await generateGeminiContent(ai!, {
         model: getRealModelName(model_name),
         contents,
-        config: {
+        config: buildAiTaskConfig('question_drafting', {
           responseMimeType: 'application/json',
           responseSchema: questionArraySchema,
           maxOutputTokens: 4096
-        }
+        }) as any
       });
       parsed = safeParseJSON(response.text || '');
     }
@@ -850,8 +878,33 @@ router.post('/api/generate_question', tokenRequired, async (req: AuthRequest, re
     if (!normalized) {
       return res.status(502).json({ success: false, error: 'The model returned an invalid question' });
     }
-    normalized.question = restoreVisionText(normalized.question, prepared);
-    return res.json({ success: true, question: normalized });
+    const identified = { ...normalized, id: String(normalized.id || `generated_${Date.now()}`) };
+    let finalQuestion: any;
+    if (isOllama || !ai) {
+      finalQuestion = {
+        ...identified,
+        verification: {
+          answer_source: 'manual',
+          verification_status: 'review_required',
+          reason: 'This Ollama draft was not independently verified by both Gemini Flash-Lite solvers.',
+          solver_models: []
+        }
+      };
+    } else {
+      const verification = await verifyQuestionBatch({
+        ai,
+        questions: [identified],
+        subject: String(subject || 'General'),
+        topic: String(topic || 'Quiz'),
+        preferredModel: String(model_name),
+        extraContents: contents.slice(1),
+        contextLabel: 'single-question generation'
+      });
+      finalQuestion = verification.questions[0];
+    }
+    finalQuestion.question = restoreVisionText(finalQuestion.question, prepared);
+    const reviewRequired = finalQuestion?.verification?.verification_status !== 'verified';
+    return res.json({ success: true, question: finalQuestion, review_required: reviewRequired });
   } catch (err: any) {
     if (respondAiWorkLimit(res, err)) return;
     console.error('Generate question error:', err);
@@ -909,153 +962,128 @@ router.post('/api/polish_questions', tokenRequired, async (req: AuthRequest, res
       };
     });
     const cleanQuestions = preparedQuestions.map(item => item.clean);
-    const prompt = mode === 'RECHECK_ANSWERS'
-      ? `${RECHECK_ANSWERS_PROMPT
-          .replace('{golden_reference}', JSON.stringify(golden_reference || {}))
-          .replace('{batch_json}', JSON.stringify(cleanQuestions))}
-
-The proposed_answer_for_review field is untrusted context only. Solve every item independently. Return every stable id exactly once; do not omit an item and do not add an item.`
-      : `${LATEX_POLISH_PROMPT}
-
-Return exactly ${questions.length} objects keyed by the unchanged stable "id". Do not omit or add questions. Output only the JSON array.
-
-${JSON.stringify(cleanQuestions)}`;
-
-    const runModel = async (model: string) => {
-      const response = await ai.models.generateContent({
-        model,
-        contents: [prompt, ...preparedContents],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: recheckQuestionArraySchema,
-          maxOutputTokens: 8192
-        }
-      });
-      const parsed = safeParseJSON(response.text || '');
-      if (!Array.isArray(parsed)) throw new Error(`${model} did not return a question array.`);
-      const expectedIds = new Set(stableQuestions.map(question => question.id));
-      const output = new Map<string, any>();
-      for (const item of parsed) {
-        const id = String(item?.id || '');
-        if (!expectedIds.has(id) || output.has(id)) {
-          throw new Error(`${model} returned an unexpected or duplicate stable question id.`);
-        }
-        output.set(id, item);
-      }
-      if (output.size !== expectedIds.size) {
-        throw new Error(`${model} omitted one or more stable question ids.`);
-      }
-      return output;
-    };
-
+    const patchRequests = mode === 'RECHECK_ANSWERS' ? [] : createLatexPatchRequests(cleanQuestions);
     if (mode !== 'RECHECK_ANSWERS') {
-      const output = await runModel(getRealModelName(model_name));
+      const prompt = `${LATEX_POLISH_PROMPT}
+
+FIELDS TO CHECK:
+${JSON.stringify(patchRequests)}`;
+      const runLatexModel = async (model: string): Promise<any[]> => {
+        const response = await generateGeminiContent(ai, {
+          model,
+          contents: [prompt, ...preparedContents],
+          config: buildAiTaskConfig('latex_polish', {
+            responseMimeType: 'application/json',
+            responseSchema: latexPatchSchema,
+            maxOutputTokens: 8192
+          }) as any
+        });
+        const parsed = safeParseJSON(response.text || '');
+        if (!Array.isArray(parsed)) throw new Error(`${model} did not return a JSON array.`);
+        return parsed;
+      };
+      if (patchRequests.length === 0) {
+        return res.json({
+          success: true,
+          questions: stableQuestions,
+          polish_summary: { requested: 0, applied: 0, rejected: [] }
+        });
+      }
+      const rawPatches = await runLatexModel(getRealModelName(model_name));
+      const patchResult = applyLatexPatches(cleanQuestions, rawPatches);
+      const patchedById = new Map(patchResult.questions.map((question: any) => [String(question.id), question]));
+      const additionalRejected = [...patchResult.rejected];
       const polished = stableQuestions.map((original: any, index: number) => {
-        const item = output.get(original.id);
-        const restored = restoreVisionText(item.question || item.raw_text, preparedQuestions[index].prepared)
+        const patched: any = patchedById.get(original.id) || cleanQuestions[index];
+        const restoredQuestion = restoreVisionText(patched.question, preparedQuestions[index].prepared)
           || getOriginalQuestionText(original);
-        const candidate = normalizeResolvedCandidate(original, item, restored);
-        if (!candidate) throw new Error(`Polished question ${original.id} is invalid.`);
-        return {
+        const restoredRawText = Object.prototype.hasOwnProperty.call(original, 'raw_text')
+          ? (restoreVisionText(patched.raw_text || patched.question, preparedQuestions[index].prepared) || original.raw_text)
+          : undefined;
+        const candidate: any = {
           ...original,
-          ...candidate.stored,
-          question: restored,
-          ...(Object.prototype.hasOwnProperty.call(original, 'raw_text') ? { raw_text: restored } : {})
+          question: restoredQuestion,
+          options: Array.isArray(patched.options) ? patched.options : original.options,
+          answer: patched.answer ?? original.answer,
+          ...(typeof patched.solution === 'string' ? { solution: patched.solution } : {}),
+          ...(restoredRawText !== undefined ? { raw_text: restoredRawText } : {})
         };
+        const storage = normalizeQuestionForStorage(candidate);
+        const latexIssues = storage.valid ? validateQuestionLatex(storage.question) : [];
+        if (!storage.valid || latexIssues.length > 0) {
+          additionalRejected.push({
+            id: original.id,
+            field: 'question',
+            reason: !storage.valid
+              ? 'The patched question failed canonical validation.'
+              : latexIssues[0].message
+          });
+          return original;
+        }
+        return storage.question;
       });
-      return res.json({ success: true, questions: polished });
+      return res.json({
+        success: true,
+        questions: polished,
+        polish_summary: {
+          requested: patchRequests.length,
+          applied: patchResult.applied,
+          rejected: additionalRejected
+        }
+      });
     }
 
-    const primaryModel = getRealModelName(model_name);
-    const peerModel = primaryModel === 'gemini-3.1-flash-lite'
-      ? 'gemini-3.5-flash-lite'
-      : 'gemini-3.1-flash-lite';
-    const [primaryResult, peerResult] = await Promise.allSettled([
-      runModel(primaryModel),
-      runModel(peerModel)
-    ]);
-    if (primaryResult.status === 'rejected' && peerResult.status === 'rejected') {
-      throw new Error('Both independent recheck solvers failed or returned incomplete coverage.');
-    }
-
-    const primaryOutput = primaryResult.status === 'fulfilled' ? primaryResult.value : null;
-    const peerOutput = peerResult.status === 'fulfilled' ? peerResult.value : null;
-    const golden = golden_reference && typeof golden_reference === 'object' ? golden_reference : {};
+    const authoritativeAnswers: Record<string, unknown> = {};
+    const verificationQuestions = cleanQuestions.map((clean: any, index: number) => {
+      const original = stableQuestions[index];
+      const sourceId = String(original?.source?.original_index || original?.original_index || original.id);
+      const goldenValue = Object.prototype.hasOwnProperty.call(golden_reference || {}, sourceId)
+        ? golden_reference[sourceId]
+        : (Object.prototype.hasOwnProperty.call(golden_reference || {}, original.id)
+          ? golden_reference[original.id]
+          : undefined);
+      if (goldenValue !== undefined) authoritativeAnswers[original.id] = goldenValue;
+      return {
+        ...clean,
+        options: Array.isArray(original.options) ? original.options : [],
+        answer: getCorrectAnswer(original),
+        type: original.type,
+        ...(typeof original.solution === 'string' ? { solution: original.solution } : {})
+      };
+    });
+    const verification = await verifyQuestionBatch({
+      ai,
+      questions: verificationQuestions,
+      preferredModel: String(model_name || 'gemini-3.5-flash-lite'),
+      extraContents: preparedContents,
+      contextLabel: 'answer recheck',
+      authoritativeAnswers
+    });
     const summary = {
       changed: [] as string[],
       unchanged: [] as string[],
-      invalid: [] as string[],
+      invalid: [...verification.invalidIds],
       review_required: [] as string[]
     };
-    const resolved = stableQuestions.map((original: any, index: number) => {
-      const restored = getOriginalQuestionText(original);
-      const primary = primaryOutput
-        ? normalizeResolvedCandidate(original, primaryOutput.get(original.id), restored)
-        : null;
-      const peer = peerOutput
-        ? normalizeResolvedCandidate(original, peerOutput.get(original.id), restored)
-        : null;
-      const originalNormalized = normalizeQuestion(original);
-      const sourceId = String(original?.source?.original_index || original?.original_index || original.id);
-      const goldenValue = Object.prototype.hasOwnProperty.call(golden, sourceId)
-        ? golden[sourceId]
-        : (Object.prototype.hasOwnProperty.call(golden, original.id) ? golden[original.id] : undefined);
-      let selected = peer || primary;
-      let reviewRequired = false;
-      let reason = '';
-
-      if (!selected) {
-        summary.invalid.push(original.id);
-        reviewRequired = true;
-        reason = 'Neither independent solver produced a valid complete question.';
-      } else if (goldenValue !== undefined) {
-        const goldenCandidate = normalizeResolvedCandidate(original, { ...selected.stored, answer: goldenValue }, restored);
-        if (!goldenCandidate) {
-          summary.invalid.push(original.id);
-          reviewRequired = true;
-          reason = 'The golden answer does not map unambiguously to this question.';
-        } else {
-          const primaryMatches = primary && JSON.stringify(primary.normalized.answer) === JSON.stringify(goldenCandidate.normalized.answer);
-          const peerMatches = peer && JSON.stringify(peer.normalized.answer) === JSON.stringify(goldenCandidate.normalized.answer);
-          selected = goldenCandidate;
-          reviewRequired = !(primaryMatches && peerMatches);
-          reason = reviewRequired
-            ? 'The authoritative golden answer was preserved, but solver disagreement requires review.'
-            : 'Both independent solvers agree with the authoritative golden answer.';
-        }
-      } else if (primary && peer && canonicalResolvedCandidatesAgree(primary, peer)) {
-        reason = 'Both independent solvers agree on the canonical answer.';
+    const resolved = verification.questions.map((verified: any, index: number) => {
+      const original = stableQuestions[index];
+      const restoredQuestion = restoreVisionText(verified.question, preparedQuestions[index].prepared)
+        || getOriginalQuestionText(original);
+      const output: any = {
+        ...original,
+        ...verified,
+        id: original.id,
+        question: restoredQuestion
+      };
+      if (Object.prototype.hasOwnProperty.call(original, 'raw_text')) output.raw_text = original.raw_text;
+      if (output?.verification?.verification_status !== 'verified') summary.review_required.push(original.id);
+      const before = normalizeQuestion(original);
+      const after = normalizeQuestion(output);
+      if (before.valid && after.valid && JSON.stringify(before.question.answer) === JSON.stringify(after.question.answer)) {
+        summary.unchanged.push(original.id);
       } else {
-        reviewRequired = true;
-        reason = primary && peer
-          ? 'Independent solvers disagree; no stale answer was retained.'
-          : 'Only one independent solver completed successfully.';
+        summary.changed.push(original.id);
       }
-
-      const output: any = selected
-        ? { ...original, ...selected.stored, question: restored }
-        : { ...withoutPriorAnswerState(original), id: original.id, question: restored, options: original.options || [], type: original.type, answer: '' };
-      if (reviewRequired && goldenValue === undefined) output.answer = '';
-      output.verification = {
-        answer_source: goldenValue !== undefined ? 'golden_key' : (reviewRequired ? 'manual' : 'solver_consensus'),
-        verification_status: reviewRequired ? 'review_required' : 'verified',
-        reason,
-        solver_models: [primaryModel, peerModel]
-      };
-      output.qa_metadata = {
-        candidate_answers: [
-          primary ? { model: primaryModel, answer: primary.normalized.answer } : { model: primaryModel, status: 'failed_or_invalid' },
-          peer ? { model: peerModel, answer: peer.normalized.answer } : { model: peerModel, status: 'failed_or_invalid' }
-        ],
-        ...(goldenValue !== undefined ? { golden_answer: goldenValue } : {})
-      };
-      if (reviewRequired) summary.review_required.push(original.id);
-      if (
-        originalNormalized.valid
-        && selected
-        && JSON.stringify(originalNormalized.question.answer) === JSON.stringify(selected.normalized.answer)
-      ) summary.unchanged.push(original.id);
-      else summary.changed.push(original.id);
       return output;
     });
     return res.json({
@@ -1063,10 +1091,7 @@ ${JSON.stringify(cleanQuestions)}`;
       questions: resolved,
       summary,
       review_required: summary.review_required.length > 0,
-      model_failures: [
-        ...(primaryResult.status === 'rejected' ? [{ model: primaryModel, error: primaryResult.reason?.message || 'failed' }] : []),
-        ...(peerResult.status === 'rejected' ? [{ model: peerModel, error: peerResult.reason?.message || 'failed' }] : [])
-      ]
+      model_failures: verification.modelFailures
     });
   } catch (err: any) {
     if (respondAiWorkLimit(res, err)) return;
@@ -1078,154 +1103,82 @@ ${JSON.stringify(cleanQuestions)}`;
 });
 
 router.post('/api/resolve_question', tokenRequired, async (req: AuthRequest, res) => {
-  const { question_data, source_context, api_key, subject = 'General', topic = 'Quiz' } = req.body;
+  const {
+    question_data,
+    source_context,
+    api_key,
+    subject = 'General',
+    topic = 'Quiz',
+    model_name = 'gemini-3.5-flash-lite'
+  } = req.body;
   if (!question_data) return res.status(400).json({ success: false, error: 'No question data' });
 
   let aiLease: AiWorkLease | null = null;
   try {
     const ai = getGeminiClient(api_key);
     if (!ai) return res.status(400).json({ success: false, error: 'No valid API key provided' });
-    aiLease = acquireRequestAiWork(req, 2, api_key);
+    aiLease = acquireRequestAiWork(req, 3, api_key);
 
-    const contents31: any[] = [];
-    const prepared = prepareVisionText(getOriginalQuestionText(question_data, source_context), contents31);
-
+    const visionContents: any[] = [];
+    const prepared = prepareVisionText(getOriginalQuestionText(question_data, source_context), visionContents);
     if (prepared.assets.length === 0) {
-      if (!appendDataUrlVision(contents31, source_context?.crop_data_url)) {
-        appendDataUrlVision(contents31, question_data?.image_url);
+      if (!appendDataUrlVision(visionContents, source_context?.crop_data_url)) {
+        appendDataUrlVision(visionContents, question_data?.image_url || source_context?.image_url);
       }
     }
-    const contents35 = [...contents31];
 
-    const existingOptions = Array.isArray(question_data.options) ? question_data.options : [];
+    const id = String(
+      question_data?.id
+      || question_data?.source?.original_index
+      || question_data?.original_index
+      || `resolved_${Date.now()}`
+    );
+    const candidate = {
+      ...question_data,
+      id,
+      question: prepared.text || getOriginalQuestionText(question_data, source_context),
+      raw_text: prepared.text || getOriginalQuestionText(question_data, source_context)
+    };
+    const hasGoldenAnswer = question_data?.verification?.answer_source === 'golden_key';
+    const authoritativeAnswers = hasGoldenAnswer
+      ? { [id]: getCorrectAnswer(question_data) }
+      : undefined;
 
-    const solverPromptText = `You are a master educator and subject matter expert test solver.
-Solve the following question accurately and generate a complete step-by-step worked solution.
-
-SUBJECT: ${subject || 'General'}
-TOPIC: ${topic || 'General'}
-
-QUESTION TO SOLVE:
-${prepared.text}
-
-EXISTING CHOICES/OPTIONS (if multiple choice):
-${JSON.stringify(existingOptions)}
-
-CRITICAL INSTRUCTIONS:
-1. Provide the exact correct answer in the 'answer' field.
-   - For Multiple Choice: Output the correct choice letter (e.g. "A", "B", "C", "D") or choice string matching the option.
-   - For Multiple Select: Output comma-separated options/letters (e.g. "A, C").
-   - For True/False: Output "A" or "B" (or "True" / "False").
-   - For Identification (CRITICAL): Output ONLY the concise final raw numerical value or raw single-word answer. For numerical questions, the 'answer' field MUST be strictly a raw number (integer or decimal, e.g. -42, 120, 0.75) with NO units (e.g., NO 'meters', 'm', 'kg', 's', '$', '%', etc.) or letters, and NO dollar signs or LaTeX, so that student inputs can be graded numerically.
-   - For Open Ended / Math / Science: Output the complete, accurate answer value or key rubric grading points.
-2. In the 'solution' field, write a clear, thorough step-by-step worked explanation showing how to arrive at the answer.
-3. CRUCIAL: You MUST enclose ALL mathematical expressions, equations, standalone numbers, counts, measurements, percentages, and currency amounts (except for Identification answers) inside your question text, choices, and solution with LaTeX dollar signs (e.g. $10$ meters, $32$ meters, $x^2$, $130/10$, $\\text{\\$40}$, $15\\%$, $-42$). Do NOT use asterisks for math, and do NOT leave any numbers un-enclosed as plain text.
-
-Return STRICTLY a JSON object with keys:
-- "options": array of strings (choices if multiple choice, else [])
-- "answer": string (the exact correct answer)
-- "type": string (one of "multiple_choice", "multiple_choice_multi", "identification", "open_ended", "graphing", "true_false")
-- "solution": string (detailed step-by-step worked solution)
-`;
-
-    contents31.unshift(solverPromptText);
-    contents35.unshift(solverPromptText);
-
-    const [res31, res35] = await Promise.allSettled([
-      ai.models.generateContent({
-        model: 'gemini-3.1-flash-lite',
-        contents: contents31,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: resolvedQuestionSchema,
-          maxOutputTokens: 4096
-        }
-      }),
-      ai.models.generateContent({
-        model: 'gemini-3.5-flash-lite',
-        contents: contents35,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: resolvedQuestionSchema,
-          maxOutputTokens: 4096
-        }
-      })
-    ]);
-
-    if (res31.status === 'rejected' && res35.status === 'rejected') {
-      const errMessage = `Both Gemini solvers failed. Model 3.1: ${res31.reason?.message || 'Unknown error'}. Model 3.5: ${res35.reason?.message || 'Unknown error'}`;
-      console.error('[Resolve Question] Dual failures:', errMessage);
-      return res.status(502).json({ success: false, error: errMessage });
-    }
-    if (res31.status === 'rejected') {
-      console.warn('[Resolve Question] gemini-3.1-flash-lite failed:', res31.reason);
-    }
-    if (res35.status === 'rejected') {
-      console.warn('[Resolve Question] gemini-3.5-flash-lite failed:', res35.reason);
+    const verification = await verifyQuestionBatch({
+      ai,
+      questions: [candidate],
+      subject: String(subject || 'General'),
+      topic: String(topic || 'Quiz'),
+      preferredModel: String(model_name || 'gemini-3.5-flash-lite'),
+      extraContents: visionContents,
+      contextLabel: 'manual question resolution',
+      authoritativeAnswers
+    });
+    const verified = verification.questions[0];
+    if (!verified) {
+      return res.status(502).json({ success: false, error: 'The question could not be solved safely.' });
     }
 
-    const parsed31 = safeParseJSON(res31.status === 'fulfilled' ? res31.value.text || '' : '{}') || {};
-    const parsed35 = safeParseJSON(res35.status === 'fulfilled' ? res35.value.text || '' : '{}') || {};
-    const originalText = getOriginalQuestionText(question_data, source_context);
-    const restoredText = restoreVisionText(originalText || prepared.text, prepared) || originalText;
-    const candidate31 = res31.status === 'fulfilled'
-      ? normalizeResolvedCandidate(question_data, parsed31, restoredText)
-      : null;
-    const candidate35 = res35.status === 'fulfilled'
-      ? normalizeResolvedCandidate(question_data, parsed35, restoredText)
-      : null;
-    const validCandidates = [candidate31, candidate35].filter(Boolean) as Array<NonNullable<typeof candidate31>>;
-    if (validCandidates.length === 0) {
-      return res.status(502).json({
-        success: false,
-        error: 'Both independent solvers returned invalid or incomplete question data.'
-      });
-    }
-
-    const goldenQuestion = question_data?.verification?.answer_source === 'golden_key'
-      ? normalizeQuestion(question_data)
-      : null;
-    const bothValid = Boolean(candidate31 && candidate35);
-    const solversAgree = canonicalResolvedCandidatesAgree(candidate31, candidate35);
-    let selected = candidate35 || candidate31!;
-    let reason = '';
-
-    if (bothValid && solversAgree) {
-      reason = 'Both independent solvers produced the same canonical answer.';
-    } else if (candidate35) {
-      reason = 'Question re-solved successfully by Gemini 3.5 Flash Lite.';
-    } else {
-      reason = 'Question re-solved successfully by Gemini 3.1 Flash Lite.';
-    }
-
-    const candidateSummaries = [
-      candidate31 ? { model: 'gemini-3.1-flash-lite', answer: candidate31.normalized.answer } : { model: 'gemini-3.1-flash-lite', status: 'failed_or_invalid' },
-      candidate35 ? { model: 'gemini-3.5-flash-lite', answer: candidate35.normalized.answer } : { model: 'gemini-3.5-flash-lite', status: 'failed_or_invalid' }
-    ];
+    const restoredText = restoreVisionText(verified.question, prepared)
+      || getOriginalQuestionText(question_data, source_context);
     const finalResolvedQuestion: any = {
-      ...withoutPriorAnswerState(question_data),
-      ...selected.stored,
-      question: restoredText,
-      verification: {
-        answer_source: 'ai_resolver',
-        verification_status: 'verified',
-        reason,
-        solver_models: ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite']
-      },
-      qa_metadata: {
-        candidate_answers: candidateSummaries
-      }
+      ...question_data,
+      ...verified,
+      id,
+      question: restoredText
     };
     if (Object.prototype.hasOwnProperty.call(question_data, 'raw_text')) {
       finalResolvedQuestion.raw_text = question_data.raw_text;
     }
+
+    const reviewRequired = finalResolvedQuestion?.verification?.verification_status !== 'verified';
     return res.status(200).json({
       success: true,
-      review_required: false,
-      reason,
-      question: finalResolvedQuestion
+      review_required: reviewRequired,
+      reason: finalResolvedQuestion?.verification?.reason || '',
+      question: finalResolvedQuestion,
+      model_failures: verification.modelFailures
     });
-
   } catch (err: any) {
     if (respondAiWorkLimit(res, err)) return;
     console.error('Resolve question error:', err);
@@ -1332,7 +1285,15 @@ router.post('/api/bulk_import_questions', tokenRequired, async (req: AuthRequest
 });
 
 router.post('/api/reprocess_question', tokenRequired, async (req: AuthRequest, res) => {
-  const { question_data, source_context, target_type, api_key, subject = 'General', model_name = 'gemini-3.5-flash-lite' } = req.body;
+  const {
+    question_data,
+    source_context,
+    target_type,
+    api_key,
+    subject = 'General',
+    topic = 'Quiz',
+    model_name = 'gemini-3.5-flash-lite'
+  } = req.body;
   if (!question_data || !target_type) {
     return res.status(400).json({ success: false, error: 'Missing question_data or target_type' });
   }
@@ -1352,144 +1313,113 @@ router.post('/api/reprocess_question', tokenRequired, async (req: AuthRequest, r
   try {
     const ai = getGeminiClient(api_key);
     if (!ai) return res.status(400).json({ success: false, error: 'No valid API key provided' });
-    aiLease = acquireRequestAiWork(req, 1, api_key);
+    aiLease = acquireRequestAiWork(req, 4, api_key);
 
     const selectedModel = getRealModelName(model_name);
-    const contents: any[] = [];
-    const prepared = prepareVisionText(getOriginalQuestionText(question_data, source_context), contents);
-    let cleanSourceContext: any = null;
-    if (source_context && typeof source_context === 'object') {
-      const {
-        crop_data_url,
-        image_url,
-        answer: _staleAnswer,
-        options: _staleOptions,
-        correct_answer: _staleCorrectAnswer,
-        correct_answer_letter: _staleCorrectLetter,
-        solution: _staleSolution,
-        explanation: _staleExplanation,
-        feedback: _staleFeedback,
-        ...sourceWithoutEmbeddedUrls
-      } = source_context;
-      cleanSourceContext = sourceWithoutEmbeddedUrls;
-      const sourceText = getOriginalQuestionText(source_context);
-      if (sourceText && sourceText !== prepared.original) {
-        const preparedSource = prepareVisionText(sourceText, contents);
-        cleanSourceContext = {
-          ...cleanSourceContext,
-          raw_text: preparedSource.text
-        };
+    const visionContents: any[] = [];
+    const prepared = prepareVisionText(getOriginalQuestionText(question_data, source_context), visionContents);
+    if (prepared.assets.length === 0) {
+      if (!appendDataUrlVision(visionContents, source_context?.crop_data_url)) {
+        appendDataUrlVision(visionContents, question_data?.image_url || source_context?.image_url);
       }
-      if (crop_data_url) cleanSourceContext.crop_data_url = '[IMAGE_PROVIDED_IN_VISION_CONTEXT]';
-      if (image_url) cleanSourceContext.image_url = '[IMAGE_PROVIDED_IN_VISION_CONTEXT]';
     }
 
-    const inputQuestion = {
-        question: prepared.text,
-        options: [],
-        answer: "",
-        type: target_type
-    };
+    const isNonMath = ['english', 'history', 'biology', 'social studies']
+      .includes(String(subject).toLowerCase());
+    const sourceSummary = source_context && typeof source_context === 'object'
+      ? {
+          raw_text: String(source_context.raw_text || source_context.question || '').slice(0, 8_000),
+          original_index: source_context.original_index || source_context?.source?.original_index || null
+        }
+      : null;
+    const prompt = `You are an expert quiz editor. Rewrite the source as exactly one valid ${target_type} question and solve it from scratch.
 
-    const reprocessPrompt = `You are an expert educator.
-Your task is to re-format, solve, and rewrite this question so that it strictly matches the Target Type.
+Subject: ${String(subject || 'General')}
+Topic: ${String(topic || 'Quiz')}
+Source question:
+${prepared.text}
+Source metadata:
+${JSON.stringify(sourceSummary)}
 
-Input Question Context:
-${JSON.stringify(inputQuestion)}
-
-Original Source Context (if any):
-${cleanSourceContext ? JSON.stringify(cleanSourceContext) : 'None'}
-
-Target Type: ${target_type}
-Subject: ${subject}
-
-CRITICAL RULES:
-1. Target Type Formatting:
-   - If the Target Type is 'multiple_choice', you MUST provide exactly 4 options starting with "A) ", "B) ", "C) ", "D) ", and the 'answer' field MUST be the single correct choice letter (e.g., "A", "B").
-   - If the Target Type is 'multiple_choice_multi', you MUST provide at least 4 options and the 'answer' field MUST be a comma-separated list of all correct letters (e.g., "A, C" or "A, B, D").
-   - If the Target Type is 'true_false', the options MUST be ["A) True", "B) False"] and the answer MUST be "A" or "B".
-   - If the Target Type is 'identification', the options array MUST be empty [], and the 'answer' field MUST be a concise number, integer, decimal, comparison symbol, or a single exact word (no dollar signs in the answer field for identification).
-   - If the Target Type is 'open_ended', the options array MUST be empty [], and the 'answer' field should be the correct answer or solution explanation.
-   - If the Target Type is 'graphing', the options array MUST be empty [], and the 'answer' field should be a concise description of the expected graph.
-2. MATH & LATEX RULES (For Math or Science subjects):
-   - {latex_rules}
-   - CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, fractions, and currency amounts inside the feedback/question with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$). Do NOT use asterisks for math.
-   - Do NOT wrap plain English words or names (e.g. 'Right', 'Isosceles', 'John') in LaTeX tags.
-3. PRESERVE IMAGES:
-   - If the input question contains a token starting with '[IMAGE_PROVIDED_IN_VISION_CONTEXT', preserve that complete token inside your output 'question' text field exactly.
-4. Return ONLY a valid JSON object matching this schema:
-{
-  "question": "The rewritten question text",
-  "options": ["A) ...", "B) ..."],
-  "answer": "The correct answer value or letter(s)",
-  "type": "The target type"
-}
+Rules:
+- Preserve the source meaning and any image placeholder token. Do not copy a stale answer or stale options.
+- multiple_choice: exactly four unique options and one answer letter.
+- multiple_choice_multi: exactly four unique options and every correct letter in ascending order.
+- true_false: options must be A) True and B) False; answer A or B.
+- identification, open_ended, graphing: options must be empty.
+- Include a concise, student-safe solution that verifies the answer.
+- ${isNonMath ? NON_MATH_RULES : SHARED_LATEX_RULES}
+- Return only the schema JSON. Use standard JSON escaping; serialized newlines use \\n.
 `;
 
-    const isNonMath = ['english', 'history', 'biology', 'social studies'].includes(String(subject).toLowerCase());
-    const prompt = reprocessPrompt.replace('{latex_rules}', isNonMath ? NON_MATH_RULES : SHARED_LATEX_RULES);
-    const hasPreparedVision = contents.some(item => item && item.inlineData);
-    contents.unshift(prompt);
-
-    if (!hasPreparedVision) {
-      if (!appendDataUrlVision(contents, source_context?.crop_data_url)) {
-        appendDataUrlVision(contents, question_data?.image_url || source_context?.image_url);
-      }
-    }
-
-    const response = await ai.models.generateContent({
+    const response = await generateGeminiContent(ai, {
       model: selectedModel,
-      contents,
-      config: {
+      contents: [prompt, ...visionContents],
+      config: buildAiTaskConfig('question_drafting', {
         responseMimeType: 'application/json',
-        responseSchema: reprocessedQuestionSchema,
+        responseSchema: {
+          ...reprocessedQuestionSchema,
+          required: ['question', 'options', 'answer', 'type', 'solution']
+        },
         maxOutputTokens: 4096
-      }
+      }) as any
     });
-
-    const text = response.text || '';
-    const parsed = safeParseJSON(text);
-
-    if (parsed && !Array.isArray(parsed) && typeof parsed === 'object') {
-        if (parsed.answer === undefined || parsed.answer === null || String(parsed.answer).trim() === '') {
-          return res.status(502).json({ success: false, error: 'The model returned an empty answer' });
-        }
-        let options = Array.isArray(parsed.options) ? parsed.options.map((value: unknown) => String(value)) : [];
-        if (target_type === 'multiple_choice' || target_type === 'multiple_choice_multi') {
-          if (options.length < 4) {
-            return res.status(502).json({ success: false, error: 'The model returned too few answer choices' });
-          }
-          options = options.map((option: string, index: number) =>
-            `${String.fromCharCode(65 + index)}) ${option.replace(/^[A-Z][).]\s*/i, '').trim()}`
-          );
-        } else if (target_type === 'true_false') {
-          options = ['A) True', 'B) False'];
-        } else {
-          options = [];
-        }
-        const finalQuestion = restoreVisionText(parsed.question, prepared);
-
-        const finalReprocessed = {
-            ...question_data,
-            ...parsed,
-            question: finalQuestion || getOriginalQuestionText(question_data, source_context),
-            options,
-            type: target_type
-        };
-        if (Object.prototype.hasOwnProperty.call(question_data, 'raw_text')) {
-          finalReprocessed.raw_text = question_data.raw_text;
-        }
-        return res.json({ success: true, question: finalReprocessed });
-    } else {
-        return res.status(500).json({ success: false, error: 'Failed to parse model output' });
+    const parsed = safeParseJSON(response.text || '');
+    const normalized = normalizeGeneratedQuestion(parsed, target_type, String(question_data?.difficulty || 'average'));
+    if (!normalized) {
+      return res.status(502).json({ success: false, error: 'The model returned an invalid rewritten question.' });
     }
 
+    const id = String(
+      question_data?.id
+      || question_data?.source?.original_index
+      || question_data?.original_index
+      || `reprocessed_${Date.now()}`
+    );
+    const draft = {
+      ...normalized,
+      id,
+      question: normalizeAiLatexText(normalized.question)
+    };
+    const verification = await verifyQuestionBatch({
+      ai,
+      questions: [draft],
+      subject: String(subject || 'General'),
+      topic: String(topic || 'Quiz'),
+      preferredModel: String(model_name || 'gemini-3.5-flash-lite'),
+      extraContents: visionContents,
+      contextLabel: 'question type conversion'
+    });
+    const verified = verification.questions[0];
+    if (!verified) {
+      return res.status(502).json({ success: false, error: 'The rewritten question could not be verified.' });
+    }
+
+    const restoredText = restoreVisionText(verified.question, prepared)
+      || getOriginalQuestionText(question_data, source_context);
+    const finalReprocessed: any = {
+      ...question_data,
+      ...verified,
+      id,
+      question: restoredText,
+      type: target_type
+    };
+    if (Object.prototype.hasOwnProperty.call(question_data, 'raw_text')) {
+      finalReprocessed.raw_text = question_data.raw_text;
+    }
+    const reviewRequired = finalReprocessed?.verification?.verification_status !== 'verified';
+    return res.json({
+      success: true,
+      question: finalReprocessed,
+      review_required: reviewRequired,
+      model_failures: verification.modelFailures
+    });
   } catch (err: any) {
-      if (respondAiWorkLimit(res, err)) return;
-      console.error('Reprocess question error:', err);
-      res.status(500).json({ success: false, error: err.message });
+    if (respondAiWorkLimit(res, err)) return;
+    console.error('Reprocess question error:', err);
+    res.status(500).json({ success: false, error: err.message });
   } finally {
-      aiLease?.release();
+    aiLease?.release();
   }
 });
 

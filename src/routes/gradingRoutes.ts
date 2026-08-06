@@ -10,8 +10,10 @@ import {
   syncDocToFirestore
 } from '../store/db.ts';
 import { getRealModelName, safeParseJSON } from '../services/gemini.ts';
+import { generateGeminiContent } from '../services/geminiRateLimiter.ts';
+import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
 import { getQuizCreatorGeminiClients } from '../services/quizCreatorAi.ts';
-import { hasBalancedLatexDelimiters, normalizeAiLatexText } from '../services/latex.ts';
+import { normalizeAiLatexText, validateLatexText } from '../services/latex.ts';
 import {
   canonicalQuestionType,
   getCorrectAnswer,
@@ -1402,27 +1404,26 @@ Question: ${JSON.stringify(String(question.question || '').slice(0, 50_000))}
 Student answer: ${JSON.stringify(answer)}
 Correct answer: ${JSON.stringify(getCorrectAnswer(question))}
 
-CRUCIAL: You MUST enclose ALL mathematical expressions, numbers, equations, counts, measurements, percentages, and standalone numbers (except for Identification answers) inside your feedback with LaTeX dollar signs (e.g., $x^2$, $130/10$, $\\text{\\$40}$, $15\\%$, $-42$, $10$ meters). Do NOT use asterisks for math.
-LATEX DELIMITER CHECK: Every inline expression must have exactly one opening and one closing '$'. Verify all delimiters are balanced before returning JSON. Write '$b = 6$ or $b = -6$', never 'b = 6$ or $b = -6'.
+Use $...$ only for actual inline mathematics and $$...$$ only for standalone equations. Ordinary prose numbers, labels, dates, and option letters do not require math delimiters. Keep all delimiters and braces balanced, and do not wrap plain words in LaTeX.
 Return only {"explanation":"..."}.`;
-        const response = await ai.models.generateContent({
+        const response = await generateGeminiContent(ai, {
           model: getRealModelName(body.model_name || 'gemini-3.5-flash-lite'),
           contents: prompt,
-          config: {
+          config: buildAiTaskConfig('student_explanation', {
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,
               properties: { explanation: { type: Type.STRING } },
               required: ['explanation']
             }
-          }
+          }) as any
         });
         const parsed = safeParseJSON(response.text || '');
         if (
           parsed
           && typeof parsed.explanation === 'string'
           && parsed.explanation.trim()
-          && hasBalancedLatexDelimiters(parsed.explanation)
+          && validateLatexText(parsed.explanation).length === 0
         ) {
           return res.json({
             success: true,

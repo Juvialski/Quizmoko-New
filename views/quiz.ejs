@@ -1531,7 +1531,7 @@
             }
 
             // 2. Standard Text Formatting
-            let str = String(data).replace(/\\n/g, '\n');
+            let str = String(data);
             if (window.QuizMoKoMath) str = window.QuizMoKoMath.normalizeLatexText(str);
             str = cleanNewlinesInMath(str);
 

@@ -5,6 +5,7 @@ import {
   gradeQuestionLocally,
   stripLatex
 } from './grading.ts';
+import { validateQuestionLatex } from './latex.ts';
 import {
   NON_MATH_RULES,
   SHARED_LATEX_RULES,
@@ -46,6 +47,7 @@ export type WorksheetDiagnosticCode =
   | 'missing_question_text'
   | 'unsupported_question_type'
   | 'invalid_options'
+  | 'invalid_latex'
   | 'duplicate_option'
   | 'invalid_answer'
   | 'invalid_points'
@@ -490,12 +492,15 @@ export function validateWorksheetQuestion(
   if (!Number.isFinite(pointsValue) || pointsValue <= 0) diagnostics.push(diagnostic('invalid_points', 'Question points must be a positive finite number.', sourceId));
   const solution = textValue(value.solution);
   if (options.require_solution && !solution) diagnostics.push(diagnostic('missing_solution', 'A worked solution is required.', sourceId));
+  for (const issue of validateQuestionLatex({ ...value, question: questionText, options: rawOptions, solution })) {
+    diagnostics.push(diagnostic('invalid_latex', issue.message, sourceId));
+  }
 
   if (diagnostics.some(item => item.severity === 'error') || !source || !type || !answerResult.valid || answerResult.answer === undefined) {
     return { valid: false, diagnostics };
   }
   const rawVerification = isRecord(value.verification) ? value.verification : undefined;
-  const validAnswerSources = new Set(['golden_key', 'solver_consensus', 'manual']);
+  const validAnswerSources = new Set(['golden_key', 'solver_consensus', 'adjudicated', 'deterministic', 'ai_resolver', 'manual']);
   const validStatuses = new Set(['verified', 'review_required', 'unverified', 'invalid']);
   const verification = rawVerification
     && validAnswerSources.has(String(rawVerification.answer_source))

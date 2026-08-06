@@ -133,7 +133,7 @@ function quizReviewRequiredIds(quiz: any): string[] {
   if (!quiz || !Array.isArray(quiz.questions)) return [];
   return quiz.questions
     .map((question: any, index: number) => (
-      question?.verification?.verification_status === 'review_required'
+      question?.verification?.verification_status && question.verification.verification_status !== 'verified'
         ? String(question?.source?.original_index ?? question?.source_id ?? question?.id ?? index + 1)
         : ''
     ))
@@ -197,12 +197,13 @@ function validateQuizUpdate(body: any): { valid: boolean; error?: string; value?
         return { valid: false, error: `questions[${index}] is invalid: ${message}` };
       }
       if (
-        normalized.question.verification?.verification_status === 'review_required'
+        normalized.question.verification?.verification_status
+        && normalized.question.verification.verification_status !== 'verified'
         && !allowReviewRequired
       ) {
         return {
           valid: false,
-          error: `questions[${index}] requires teacher review before this quiz can be published`
+          error: `questions[${index}] is not verified and requires teacher review before this quiz can be published`
         };
       }
       normalizedQuestions.push(normalized.question);

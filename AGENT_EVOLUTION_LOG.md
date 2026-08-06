@@ -70,3 +70,17 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
 
 
 
+* **[2026-08-06]** Rebuilt AI generation and verification as a fail-closed, task-profiled pipeline for Gemini 3.5 Flash-Lite and Gemini 3.1 Flash-Lite:
+  - Added centralized model/thinking profiles in `src/services/aiTaskProfiles.ts`; all hosted legacy model choices now migrate to the two supported Flash-Lite models.
+  - Added `src/services/aiQuestionVerifier.ts` for answerless dual-model solving, exact stable-ID coverage, canonical answer comparison, blind high-confidence adjudication, golden-key conflict reporting, duplicate detection, deterministic grading-contract checks, and persistent QA metadata.
+  - Corrected `/api/resolve_question`: solver disagreement is no longer automatically marked verified, one-model success is review-required, and unresolved/invalid results fail closed.
+  - Applied the same verification contract to batch quiz generation, single-question generation, answer rechecks, and question reprocessing; unverified questions remain drafts and cannot be publicly published without explicit teacher review.
+  - Replaced whole-question LaTeX rewriting with hash-checked formatting-only patches in `src/services/latexPatches.ts`, preventing silent changes to numbers, answers, text, HTML, or images.
+  - Rebuilt server/browser LaTeX normalization and validation to preserve commands such as `\\neq` and `\\nabla`, reject bare commands and malformed delimiters/braces, and render broken legacy output safely as text.
+  - Shortened and separated generation, extraction, solving, grading, adjudication, and formatting prompts; corrected the invalid instruction to place real unescaped newlines inside JSON strings and removed the former rule that wrapped every ordinary number in LaTeX.
+  - Split worksheet extraction into literal `verbatim_text`, exact `context_prefix`, and server-composed `raw_text`; added extraction LaTeX diagnostics and publication rejection for invalid LaTeX.
+  - Converted multiline prompt constants to `String.raw`, preventing JavaScript from silently turning commands such as `\times`, `\right`, and `\dfrac` into tabs, carriage returns, or other control characters; added runtime backslash regression coverage.
+  - Added `test/ai-quality.test.ts` with 18 focused assertions covering model restriction, thinking profiles, LaTeX safety, guarded patches, browser legacy-newline behavior, high-confidence dual agreement, blind adjudication, retry coverage, one-solver failure, golden-key conflict, fail-closed invalid LaTeX, and the gold fixture.
+  - Added a 20-question mixed-subject gold set and `npm run eval:ai` live evaluation harness reporting final/per-model accuracy, agreement, review rates, verified-wrong items, failures, and latency.
+  - Closed stale-verification editor paths: changes to question text, choices, type, answer, or meaningful image content now become `review_required`; typing no longer silently verifies an answer, and verification returns only through explicit teacher approval or successful re-solve.
+* **[2026-08-06]** Added a process-wide per-model Gemini RPM queue for the 15-RPM Flash-Lite limits and two focused regression tests. Every hosted Gemini call now uses `generateGeminiContent()`, 3.5 and 3.1 have independent rolling-window buckets, retries/adjudication share the same quota, one request is reserved by default, and unschedulable work returns HTTP 429 with `Retry-After`. Documented the single-process boundary and environment controls.

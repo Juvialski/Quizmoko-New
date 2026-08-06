@@ -23,6 +23,12 @@ import {
 } from '../services/pdf.ts';
 import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
 import {
+  generateGeminiContent,
+  GeminiRateLimitError
+} from '../services/geminiRateLimiter.ts';
+import { normalizeAiLatexText, validateLatexText } from '../services/latex.ts';
+import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
+import {
   applyGoldenAnswers,
   getWorksheetSourceId,
   indexGoldenAnswers,
@@ -126,7 +132,7 @@ const upload = multer({
 const router = Router();
 
 function respondWorksheetAiLimit(res: any, error: unknown): boolean {
-  if (!(error instanceof AiWorkLimitError)) return false;
+  if (!(error instanceof AiWorkLimitError) && !(error instanceof GeminiRateLimitError)) return false;
   res.setHeader('Retry-After', String(error.retryAfterSeconds));
   res.status(error.status).json({
     success: false,
@@ -248,7 +254,9 @@ const WORKSHEET_EXTRACTION_SCHEMA = {
   items: {
     type: Type.OBJECT,
     properties: {
-      raw_text: { type: Type.STRING, description: 'The literal text transcript of the question.' },
+      raw_text: { type: Type.STRING, description: 'Self-contained display text composed from context_prefix and verbatim_text.' },
+      verbatim_text: { type: Type.STRING, description: 'Only the literal text belonging to this numbered item, excluding shared instructions.' },
+      context_prefix: { type: Type.STRING, description: 'Literal shared heading, passage, or instruction that applies to the item, or an empty string.' },
       options: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Choices, or an empty array.' },
       type: { type: Type.STRING, enum: [...ALLOWED_QUESTION_TYPE_VALUES], description: 'The normalized question type.' },
       original_index: { type: Type.STRING, description: 'The question identifier on the source.' },
@@ -258,7 +266,7 @@ const WORKSHEET_EXTRACTION_SCHEMA = {
         description: 'Four normalized integers [ymin, xmin, ymax, xmax], or an empty array.'
       }
     },
-    required: ['raw_text', 'options', 'type', 'original_index', 'bounding_box']
+    required: ['raw_text', 'verbatim_text', 'context_prefix', 'options', 'type', 'original_index', 'bounding_box']
   }
 };
 
@@ -327,20 +335,33 @@ function validateExtractedQuestions(value: unknown, label: string): any[] {
   if (!Array.isArray(value)) throw new Error(`${label} did not return a JSON question array`);
   return value.map((item: any, index: number) => {
     if (!item || typeof item !== 'object') throw new Error(`${label} question ${index + 1} is not an object`);
-    const rawText = String(item.raw_text || '').trim();
+    const verbatimText = normalizeAiLatexText(item.verbatim_text ?? item.raw_text ?? '').trim();
+    const contextPrefix = normalizeAiLatexText(item.context_prefix ?? '').trim();
+    const legacyRawText = normalizeAiLatexText(item.raw_text ?? '').trim();
+    const rawText = verbatimText
+      ? [contextPrefix, verbatimText].filter(Boolean).join('\n')
+      : legacyRawText;
     const originalIndex = String(item.original_index ?? '').trim();
     const type = String(item.type || '').trim();
-    const isChoiceFragment = !rawText && Array.isArray(item.options) && item.options.length >= 2;
+    const options = Array.isArray(item.options)
+      ? item.options.map((option: unknown) => normalizeAiLatexText(option).trim())
+      : [];
+    const isChoiceFragment = !rawText && options.length >= 2;
     if ((!isChoiceFragment && (!rawText || !originalIndex)) || !ALLOWED_QUESTION_TYPES.has(type) || !Array.isArray(item.options)) {
       throw new Error(`${label} question ${index + 1} is missing required fields`);
     }
+    const extractionIssues = [rawText, ...options]
+      .flatMap(value => validateLatexText(value).map(issue => `${issue.code}: ${issue.message}`));
     return {
       ...item,
       raw_text: rawText,
+      verbatim_text: verbatimText || legacyRawText,
+      context_prefix: contextPrefix,
       original_index: originalIndex,
       type,
-      options: item.options.map((option: unknown) => String(option)),
-      bounding_box: validateBoundingBox(item.bounding_box)
+      options,
+      bounding_box: validateBoundingBox(item.bounding_box),
+      ...(extractionIssues.length > 0 ? { extraction_issues: extractionIssues } : {})
     };
   });
 }
@@ -377,6 +398,7 @@ const WORKSHEET_DIAGNOSTIC_CODES = new Set<WorksheetDiagnostic['code']>([
   'missing_question_text',
   'unsupported_question_type',
   'invalid_options',
+  'invalid_latex',
   'duplicate_option',
   'invalid_answer',
   'invalid_points',
@@ -639,7 +661,7 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
               percentage: Math.round(30 + ((fileIdx + page.pageIndex / page.pageCount) / totalFiles) * 50),
               status: 'processing'
             });
-            const response = await ai.models.generateContent({
+            const response = await generateGeminiContent(ai, {
               model: selectedModel,
               contents: [
                 prompt,
@@ -650,11 +672,11 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
                   }
                 }
               ],
-              config: {
+              config: buildAiTaskConfig('document_extraction', {
                 responseMimeType: 'application/json',
                 responseSchema: extractionSchema,
                 maxOutputTokens: 8192
-              }
+              }) as any
             });
 
             const parsed = validateExtractedQuestions(
@@ -925,7 +947,7 @@ router.post('/api/extract_rmxflash', tokenRequired, worksheetUploadAny, async (r
             percentage: Math.round(25 + ((fileIdx + page.pageIndex / page.pageCount) / totalFiles) * 40),
             status: 'processing'
           });
-          const response = await ai.models.generateContent({
+          const response = await generateGeminiContent(ai, {
             model: selectedModel,
             contents: [
               prompt,
@@ -936,11 +958,11 @@ router.post('/api/extract_rmxflash', tokenRequired, worksheetUploadAny, async (r
                 }
               }
             ],
-            config: {
+            config: buildAiTaskConfig('document_extraction', {
               responseMimeType: 'application/json',
               responseSchema: RMX_EXTRACTION_SCHEMA,
               maxOutputTokens: 8192
-            }
+            }) as any
           });
 
           const parsed = validateRmxQuestions(safeParseJSON(response.text || ''));
@@ -976,14 +998,14 @@ Use the printed question number as question_number and the correct choice letter
           });
         });
 
-        const keyResp = await ai.models.generateContent({
+        const keyResp = await generateGeminiContent(ai, {
           model: selectedModel,
           contents: keyContents,
-          config: {
+          config: buildAiTaskConfig('answer_key_extraction', {
             responseMimeType: 'application/json',
             responseSchema: ANSWER_KEY_PAIR_SCHEMA,
             maxOutputTokens: 4096
-          }
+          }) as any
         });
 
         const indexedKey = answerPairsToRecord(safeParseJSON(keyResp.text || ''), 'RMX answer key extraction');
@@ -1172,7 +1194,7 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
               percentage: Math.round(30 + ((fileIdx + page.pageIndex / page.pageCount) / totalFiles) * 40),
               status: 'processing'
             });
-            const wsResponse = await ai.models.generateContent({
+            const wsResponse = await generateGeminiContent(ai, {
               model: selectedModel,
               contents: [
                 extractionPrompt,
@@ -1183,11 +1205,11 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
                   }
                 }
               ],
-              config: {
+              config: buildAiTaskConfig('document_extraction', {
                 responseMimeType: 'application/json',
                 responseSchema: extractionSchema,
                 maxOutputTokens: 8192
-              }
+              }) as any
             });
 
             const parsed = validateExtractedQuestions(
@@ -1231,14 +1253,14 @@ Use the printed question number as question_number and the correct choice letter
           });
         });
 
-        const ansResponse = await ai.models.generateContent({
+        const ansResponse = await generateGeminiContent(ai, {
           model: selectedModel,
           contents: ansContents,
-          config: {
+          config: buildAiTaskConfig('answer_key_extraction', {
             responseMimeType: 'application/json',
             responseSchema: ANSWER_KEY_PAIR_SCHEMA,
             maxOutputTokens: 4096
-          }
+          }) as any
         });
 
         const indexedKey = answerPairsToRecord(
@@ -1331,7 +1353,7 @@ router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (
       const totalFiles = files.length;
       for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
         await forEachUploadedFilePage(files[fileIdx], async page => {
-          const response = await ai.models.generateContent({
+          const response = await generateGeminiContent(ai, {
             model: selectedModel,
             contents: [
               prompt,
@@ -1342,11 +1364,11 @@ router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (
                 }
               }
             ],
-            config: {
+            config: buildAiTaskConfig('document_extraction', {
               responseMimeType: 'application/json',
               responseSchema: WORKSHEET_EXTRACTION_SCHEMA,
               maxOutputTokens: 8192
-            }
+            }) as any
           });
 
           const parsedRec = validateExtractedQuestions(

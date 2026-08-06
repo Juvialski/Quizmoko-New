@@ -35,30 +35,13 @@ export function getGeminiClient(customApiKey?: string) {
 }
 
 export function getRealModelName(modelName?: string): string {
-  const model = (modelName || '').toLowerCase().trim();
-  if (!model) return 'gemini-3.5-flash-lite';
-
+  const model = String(modelName || '').toLowerCase().trim();
   if (model.startsWith('ollama:')) return model;
+  if (model === 'gemini-3.1-flash-lite') return 'gemini-3.1-flash-lite';
 
-  // Preserve an explicit supported selection.
-  const supportedModels = new Set([
-    'gemini-3.5-flash-lite',
-    'gemini-3.6-flash',
-    'gemini-3.5-flash',
-    'gemini-3.1-flash-lite',
-    'gemini-3.1-pro-preview',
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite'
-  ]);
-  if (supportedModels.has(model)) return model;
-
-  // Compatibility aliases from older AI Studio exports.
-  if (model === 'gemini-3.0-flash' || model === 'gemini-3-flash-preview') {
-    return 'gemini-3.5-flash-lite';
-  }
-  if (model === 'gemini-flash-latest') return 'gemini-3.5-flash-lite';
-  if (model.includes('pro')) return 'gemini-3.1-pro-preview';
-
+  // QuizMoKo intentionally limits hosted Gemini work to the two Flash-Lite
+  // models covered by the shared verification and thinking profiles. Legacy
+  // model names safely migrate to the primary model.
   return 'gemini-3.5-flash-lite';
 }
 

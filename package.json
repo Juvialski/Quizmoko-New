@@ -12,9 +12,10 @@
     "check": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "npm run check",
-    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts test/ui-consistency.test.ts",
+    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts test/ui-consistency.test.ts test/ai-quality.test.ts",
     "build": "npm run check && npm run typecheck",
-    "start": "tsx server.ts"
+    "start": "tsx server.ts",
+    "eval:ai": "tsx scripts/evaluate-ai-quality.ts"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

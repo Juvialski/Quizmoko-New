@@ -562,6 +562,7 @@
             for (let file of pastedFiles) formData.append('files', file);
             formData.append('missing_numbers', JSON.stringify(missingIndices));
             formData.append('topic_hint', document.getElementById('topic_hint').value);
+            formData.append('subject', document.getElementById('subject_input').value);
             formData.append('api_key', apiKey);
             formData.append('model_name', model);
 

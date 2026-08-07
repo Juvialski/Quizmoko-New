@@ -23,7 +23,7 @@ export interface AiTaskProfile {
 const PROFILES: Record<AiTaskName, AiTaskProfile> = {
   document_extraction: {
     task: 'document_extraction',
-    promptVersion: 'document-extraction-v2',
+    promptVersion: 'document-extraction-v3',
     thinkingLevel: 'minimal',
     maxOutputTokens: 32_768
   },
@@ -35,37 +35,37 @@ const PROFILES: Record<AiTaskName, AiTaskProfile> = {
   },
   question_drafting: {
     task: 'question_drafting',
-    promptVersion: 'question-drafting-v3',
+    promptVersion: 'question-drafting-v4',
     thinkingLevel: 'high',
     maxOutputTokens: 16_384
   },
   question_solving: {
     task: 'question_solving',
-    promptVersion: 'question-solving-v3',
+    promptVersion: 'question-solving-v4',
     thinkingLevel: 'high',
     maxOutputTokens: 16_384
   },
   question_adjudication: {
     task: 'question_adjudication',
-    promptVersion: 'question-adjudication-v2',
+    promptVersion: 'question-adjudication-v3',
     thinkingLevel: 'high',
     maxOutputTokens: 12_288
   },
   latex_polish: {
     task: 'latex_polish',
-    promptVersion: 'latex-polish-v3',
+    promptVersion: 'latex-polish-v4',
     thinkingLevel: 'minimal',
     maxOutputTokens: 12_288
   },
   semantic_grading: {
     task: 'semantic_grading',
-    promptVersion: 'semantic-grading-v3',
+    promptVersion: 'semantic-grading-v4',
     thinkingLevel: 'high',
     maxOutputTokens: 4_096
   },
   student_explanation: {
     task: 'student_explanation',
-    promptVersion: 'student-explanation-v2',
+    promptVersion: 'student-explanation-v3',
     thinkingLevel: 'high',
     maxOutputTokens: 2_048
   }

@@ -62,7 +62,7 @@ Teacher and answer-key values remain authoritative. They are still independently
 
 - Use `$...$` for real inline mathematics.
 - Use `$$...$$` for standalone equations, aligned work, and tables.
-- Keep ordinary prose numbers, dates, names, labels, and option letters outside math delimiters.
+- In math-facing question text, options, solutions, and feedback, wrap every standalone numeric value in `$...$`, including prose quantities and measurements. Wrap the complete expression when a number belongs to one; printed question numbers and option letters remain outside delimiters.
 - Identification answer keys are concise plain values without delimiters or unnecessary units.
 - JSON serializes line breaks as `\n`; parsing creates the actual newline.
 - Every AI field is normalized and validated before storage or display.

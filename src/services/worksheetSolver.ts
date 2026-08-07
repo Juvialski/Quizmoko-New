@@ -2,7 +2,7 @@ import { Type } from '@google/genai';
 import { getGeminiClient, safeParseJSON } from './gemini.ts';
 import { generateGeminiContent, GeminiRateLimitError } from './geminiRateLimiter.ts';
 import { buildAiTaskConfig, getFlashLiteModelPair } from './aiTaskProfiles.ts';
-import { validateLatexText } from './latex.ts';
+import { normalizeMathQuestionText, validateLatexText } from './latex.ts';
 import {
   adjudicateWorksheetSolverCandidates,
   areCanonicalWorksheetAnswersEquivalent,
@@ -443,7 +443,18 @@ export async function solveWorksheetBatchWithConsensus(input: {
     adjudicationWorker
   ));
 
-  return results.map((result, index) => retainGoldenAnswer(input.questions[index], result, models));
+  return results.map((result, index) => retainGoldenAnswer(input.questions[index], result, models)).map(result => {
+    if (isNonMath) return result;
+    const question = result.question && typeof result.question === 'object'
+      ? { ...result.question } as Record<string, unknown>
+      : {};
+    if (typeof question.question === 'string') question.question = normalizeMathQuestionText(question.question);
+    if (typeof question.raw_text === 'string') question.raw_text = normalizeMathQuestionText(question.raw_text);
+    if (typeof question.statement === 'string') question.statement = normalizeMathQuestionText(question.statement);
+    if (Array.isArray(question.options)) question.options = question.options.map(option => normalizeMathQuestionText(option));
+    if (typeof question.solution === 'string') question.solution = normalizeMathQuestionText(question.solution);
+    return { ...result, question };
+  });
 }
 
 export async function solveWorksheetQuestionsInBatches(

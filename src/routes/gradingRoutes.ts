@@ -1404,7 +1404,7 @@ Question: ${JSON.stringify(String(question.question || '').slice(0, 50_000))}
 Student answer: ${JSON.stringify(answer)}
 Correct answer: ${JSON.stringify(getCorrectAnswer(question))}
 
-Use $...$ only for actual inline mathematics and $$...$$ only for standalone equations. Ordinary prose numbers, labels, dates, and option letters do not require math delimiters. Keep all delimiters and braces balanced, and do not wrap plain words in LaTeX.
+For mathematical feedback, wrap every standalone numeric value in $...$ and wrap complete expressions when applicable. Use $$...$$ only for standalone equations. Printed question numbers and option letters stay outside delimiters. Keep all delimiters and braces balanced, and do not wrap plain words in LaTeX.
 Return only {"explanation":"..."}.`;
         const response = await generateGeminiContent(ai, {
           model: getRealModelName(body.model_name || 'gemini-3.5-flash-lite'),

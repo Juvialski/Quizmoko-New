@@ -137,7 +137,7 @@ Student response: ${JSON.stringify(
 
 Return a score_fraction from 0 to 1 proportional to demonstrated correctness and brief feedback. Full correctness is exactly 1; partial correctness is strictly between 0 and 1; no demonstrated correctness is 0. The server derives is_correct from score_fraction, so do not use a boolean to contradict the score.
 
-Use $...$ only for actual inline mathematics and $$...$$ only for standalone equations. Ordinary prose numbers, labels, dates, and option letters do not require math delimiters. Keep all delimiters and braces balanced, and do not wrap plain words in LaTeX. Return only the schema-defined JSON object.`;
+For mathematical feedback, wrap every standalone numeric value in $...$ and wrap complete expressions when applicable. Use $$...$$ only for standalone equations. Printed question numbers and option letters stay outside delimiters. Keep all delimiters and braces balanced, and do not wrap plain words in LaTeX. Return only the schema-defined JSON object.`;
 }
 
 export async function gradeSemanticQuestion(

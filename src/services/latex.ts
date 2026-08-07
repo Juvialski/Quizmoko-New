@@ -83,6 +83,103 @@ export function normalizeAiLatexText(value: unknown): string {
   return output;
 }
 
+
+const STANDALONE_NUMBER_PATTERN = /(^|[^A-Za-z0-9_#&\\])([-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+)(?:\s*\/\s*[-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+))?)(%?)(?![A-Za-z0-9_])/g;
+
+function formatPlainMathNumberSegment(segment: string): string {
+  return segment.replace(STANDALONE_NUMBER_PATTERN, (_match, prefix: string, numericValue: string, percent: string) => {
+    const compact = numericValue.replace(/\s+/g, '');
+    const fraction = compact.match(/^([-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+))\/([-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+))$/);
+    const body = fraction
+      ? `\\dfrac{${fraction[1]}}{${fraction[2]}}`
+      : compact;
+    return `${prefix}$${body}${percent ? '\\%' : ''}$`;
+  });
+}
+
+/**
+ * QuizMoKo's math-facing display convention requires every standalone numeric
+ * value in question text/options/solutions to be enclosed in math delimiters.
+ * Existing LaTeX, HTML/image markup, and TikZ blocks are preserved verbatim so
+ * this formatter cannot corrupt diagrams or already-valid expressions.
+ */
+export function normalizeMathQuestionText(value: unknown): string {
+  const source = normalizeAiLatexText(value);
+  let output = '';
+  let plain = '';
+
+  const flushPlain = () => {
+    if (!plain) return;
+    output += formatPlainMathNumberSegment(plain);
+    plain = '';
+  };
+
+  const findClosingDelimiter = (start: number, delimiter: '$' | '$$'): number => {
+    for (let cursor = start + delimiter.length; cursor < source.length; cursor += 1) {
+      if (source[cursor] !== '$' || isEscaped(source, cursor)) continue;
+      if (delimiter === '$$') {
+        if (source[cursor + 1] === '$') return cursor;
+        continue;
+      }
+      if (source[cursor + 1] !== '$') return cursor;
+      cursor += 1;
+    }
+    return -1;
+  };
+
+  for (let cursor = 0; cursor < source.length;) {
+    if (source.startsWith('[TIKZ]', cursor)) {
+      flushPlain();
+      const end = source.indexOf('[/TIKZ]', cursor + 6);
+      if (end < 0) {
+        output += source.slice(cursor);
+        break;
+      }
+      output += source.slice(cursor, end + 7);
+      cursor = end + 7;
+      continue;
+    }
+
+    if (source[cursor] === '<') {
+      const end = source.indexOf('>', cursor + 1);
+      if (end >= 0) {
+        flushPlain();
+        output += source.slice(cursor, end + 1);
+        cursor = end + 1;
+        continue;
+      }
+    }
+
+    if (source[cursor] === '$' && !isEscaped(source, cursor)) {
+      const delimiter: '$' | '$$' = source[cursor + 1] === '$' ? '$$' : '$';
+      const closing = findClosingDelimiter(cursor, delimiter);
+      if (closing >= 0) {
+        flushPlain();
+        output += source.slice(cursor, closing + delimiter.length);
+        cursor = closing + delimiter.length;
+        continue;
+      }
+
+      // An unmatched dollar sign followed by a number is almost always source
+      // currency, not an intended opening math delimiter. Convert it safely.
+      const currency = source.slice(cursor).match(/^\$([-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+))/);
+      if (currency) {
+        flushPlain();
+        output += `$\\text{\\$${currency[1]}}$`;
+        cursor += currency[0].length;
+        continue;
+      }
+    }
+
+    plain += source[cursor];
+    cursor += 1;
+  }
+
+  flushPlain();
+  return output;
+}
+
+
 export function validateLatexText(value: unknown): LatexIssue[] {
   const text = String(value ?? '');
   const issues: LatexIssue[] = [];

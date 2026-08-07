@@ -26,7 +26,7 @@ import {
   generateGeminiContent,
   GeminiRateLimitError
 } from '../services/geminiRateLimiter.ts';
-import { normalizeAiLatexText, validateLatexText } from '../services/latex.ts';
+import { normalizeAiLatexText, normalizeMathQuestionText, validateLatexText } from '../services/latex.ts';
 import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
 import {
   applyGoldenAnswers,
@@ -331,20 +331,21 @@ function validateBoundingBox(value: unknown): number[] {
   return normalized;
 }
 
-function validateExtractedQuestions(value: unknown, label: string): any[] {
+function validateExtractedQuestions(value: unknown, label: string, formatMathNumbers = true): any[] {
   if (!Array.isArray(value)) throw new Error(`${label} did not return a JSON question array`);
+  const normalizeDisplayText = formatMathNumbers ? normalizeMathQuestionText : normalizeAiLatexText;
   return value.map((item: any, index: number) => {
     if (!item || typeof item !== 'object') throw new Error(`${label} question ${index + 1} is not an object`);
-    const verbatimText = normalizeAiLatexText(item.verbatim_text ?? item.raw_text ?? '').trim();
-    const contextPrefix = normalizeAiLatexText(item.context_prefix ?? '').trim();
-    const legacyRawText = normalizeAiLatexText(item.raw_text ?? '').trim();
+    const verbatimText = normalizeDisplayText(item.verbatim_text ?? item.raw_text ?? '').trim();
+    const contextPrefix = normalizeDisplayText(item.context_prefix ?? '').trim();
+    const legacyRawText = normalizeDisplayText(item.raw_text ?? '').trim();
     const rawText = verbatimText
       ? [contextPrefix, verbatimText].filter(Boolean).join('\n')
       : legacyRawText;
     const originalIndex = String(item.original_index ?? '').trim();
     const type = String(item.type || '').trim();
     const options = Array.isArray(item.options)
-      ? item.options.map((option: unknown) => normalizeAiLatexText(option).trim())
+      ? item.options.map((option: unknown) => normalizeDisplayText(option).trim())
       : [];
     const isChoiceFragment = !rawText && options.length >= 2;
     if ((!isChoiceFragment && (!rawText || !originalIndex)) || !ALLOWED_QUESTION_TYPES.has(type) || !Array.isArray(item.options)) {
@@ -495,7 +496,7 @@ function validateRmxQuestions(value: unknown, requireAnswer = false): any[] {
   return value.map((item: any, index: number) => {
     const identifier = String(item?.identifier ?? '').trim();
     const originalIndex = String(item?.original_index ?? '').trim();
-    const statement = String(item?.statement ?? '').trim();
+    const statement = normalizeMathQuestionText(item?.statement ?? '').trim();
     const answer = String(item?.answer ?? '').trim();
     if (!identifier || !originalIndex || !statement || !Array.isArray(item?.choices) || (requireAnswer && !answer)) {
       throw new Error(`RMX question ${index + 1} is missing required fields`);
@@ -505,7 +506,7 @@ function validateRmxQuestions(value: unknown, requireAnswer = false): any[] {
       identifier,
       original_index: originalIndex,
       statement,
-      choices: item.choices.map((choice: unknown) => String(choice)),
+      choices: item.choices.map((choice: unknown) => normalizeMathQuestionText(choice).trim()),
       ...(answer ? { answer } : {}),
       bounding_box: validateBoundingBox(item.bounding_box)
     };
@@ -519,7 +520,7 @@ function validateCompleteQuestions(value: unknown, expectedLength: number): any[
   const bySourceIndex = new Map<number, any>();
   value.forEach((item: any, index: number) => {
     const sourceIndex = Number(item?.source_index);
-    const question = String(item?.question || '').trim();
+    const question = normalizeMathQuestionText(item?.question || '').trim();
     const answer = String(item?.answer ?? '').trim();
     const type = String(item?.type || '').trim();
     if (
@@ -540,7 +541,10 @@ function validateCompleteQuestions(value: unknown, expectedLength: number): any[
       question,
       answer,
       type,
-      options: item.options.map((option: unknown) => String(option))
+      options: item.options.map((option: unknown) => normalizeMathQuestionText(option).trim()),
+      ...(typeof item.solution === 'string' && item.solution.trim()
+        ? { solution: normalizeMathQuestionText(item.solution).trim() }
+        : {})
     });
   });
   return Array.from({ length: expectedLength }, (_, index) => {
@@ -681,7 +685,8 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
 
             const parsed = validateExtractedQuestions(
               safeParseJSON(response.text || ''),
-              `Worksheet file ${fileIdx + 1}, page ${page.pageNumber}`
+              `Worksheet file ${fileIdx + 1}, page ${page.pageNumber}`,
+              !isNonMath
             );
             for (const q of parsed) {
               if (q.bounding_box.length === 4) {
@@ -1214,7 +1219,8 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
 
             const parsed = validateExtractedQuestions(
               safeParseJSON(wsResponse.text || ''),
-              `Worksheet file ${fileIdx + 1}, page ${page.pageNumber}`
+              `Worksheet file ${fileIdx + 1}, page ${page.pageNumber}`,
+              !isNonMath
             );
             for (const q of parsed) {
               if (q.bounding_box.length === 4) {
@@ -1315,7 +1321,7 @@ Use the printed question number as question_number and the correct choice letter
 });
 
 router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (req: AuthRequest, res) => {
-  const { missing_numbers, topic_hint = 'General', api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
+  const { missing_numbers, topic_hint = 'General', subject = 'General', api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
   const files = (req.files as Express.Multer.File[]) || [];
 
   let parsedMissingNumbers: unknown = [];
@@ -1346,9 +1352,11 @@ router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (
 
     {
       const selectedModel = getRealModelName(model_name);
+      const recoveryIsNonMath = ['english', 'history', 'biology', 'social studies'].includes(String(subject).toLowerCase());
       const prompt = RECOVERY_PROMPT
         .replace('{topic_hint}', topic_hint)
-        .replace('{missing_numbers}', JSON.stringify(missingIds));
+        .replace('{missing_numbers}', JSON.stringify(missingIds))
+        + `\nSubject: ${subject}.\n${recoveryIsNonMath ? NON_MATH_RULES : SHARED_LATEX_RULES}`;
 
       const totalFiles = files.length;
       for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
@@ -1373,7 +1381,8 @@ router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (
 
           const parsedRec = validateExtractedQuestions(
             safeParseJSON(response.text || ''),
-            `Recovery file ${fileIdx + 1}, page ${page.pageNumber}`
+            `Recovery file ${fileIdx + 1}, page ${page.pageNumber}`,
+            !recoveryIsNonMath
           ).filter(question => missingIds.includes(normalizeWorksheetSourceId(question.original_index)));
           for (const q of parsedRec) {
             q.source_id = normalizeWorksheetSourceId(q.original_index);

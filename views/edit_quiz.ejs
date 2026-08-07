@@ -528,6 +528,38 @@
             }
         }
 
+        function isQuestionTeacherApproved(question) {
+            return question?.verification?.verification_status === 'verified'
+                && question?.verification?.teacher_approved === true;
+        }
+
+        function getQuestionApprovalControlHtml(question, index) {
+            if (isQuestionTeacherApproved(question)) {
+                return '<span style="display:inline-flex; align-items:center; color:var(--success); font-size:10px; padding:4px 8px; border:1px solid var(--success); border-radius:7px; font-weight:800; white-space:nowrap;">✓ APPROVED</span>';
+            }
+            return `<button type="button" class="btn" onclick="approveQuestionAnswer(${index})" style="background:var(--success); color:white; font-size:10px; padding:4px 8px; border:1px solid var(--success); font-weight:800;">✓ APPROVE ANSWER</button>`;
+        }
+
+        function refreshQuestionApprovalControl(index) {
+            const host = document.getElementById(`approval-control-${index}`);
+            const question = quizData?.questions?.[index];
+            if (host && question) host.innerHTML = getQuestionApprovalControlHtml(question, index);
+        }
+
+        function updateApproveAllButtonState() {
+            const button = document.getElementById('approve-all-ans-btn');
+            if (!button) return;
+            const questions = Array.isArray(quizData?.questions) ? quizData.questions : [];
+            const allTeacherApproved = questions.length > 0 && questions.every(isQuestionTeacherApproved);
+            button.disabled = allTeacherApproved;
+            button.style.opacity = allTeacherApproved ? '0.65' : '1';
+            button.style.cursor = allTeacherApproved ? 'default' : 'pointer';
+            button.innerHTML = allTeacherApproved
+                ? '✓ All Answers Approved'
+                : '<i data-lucide="check-check" class="icon-sm"></i> Approve All Answers';
+            if (window.refreshQuizmokoIcons) window.refreshQuizmokoIcons();
+        }
+
         function markQuestionNeedsReview(index, reason = 'Question content changed after verification. Confirm the current answer or run Re-solve before publishing.') {
             const question = quizData.questions[index];
             if (!question) return;
@@ -538,6 +570,8 @@
                 changed_at: new Date().toISOString()
             };
             markQuestionChanged(index);
+            refreshQuestionApprovalControl(index);
+            updateApproveAllButtonState();
         }
 
         function normalizeApprovalType(value) {
@@ -640,10 +674,24 @@
                     items = question.answer;
                 } else {
                     const raw = String(question.answer ?? '').trim();
-                    const wholeChoice = mapApprovalChoiceToLetter(options, raw);
-                    if (wholeChoice.valid) items = [raw];
-                    else if (/^[A-Z](?:\s+[A-Z])+$/i.test(raw)) items = raw.split(/\s+/);
-                    else items = raw.split(/\s*[,;|]\s*/).filter(Boolean);
+                    let parsedJsonArray = null;
+                    if (raw.startsWith('[')) {
+                        try {
+                            const parsed = JSON.parse(raw);
+                            if (Array.isArray(parsed)) parsedJsonArray = parsed;
+                        } catch (_) {
+                            // Fall through to the normal letter/text parser below.
+                        }
+                    }
+
+                    if (parsedJsonArray) {
+                        items = parsedJsonArray;
+                    } else {
+                        const wholeChoice = mapApprovalChoiceToLetter(options, raw);
+                        if (wholeChoice.valid) items = [raw];
+                        else if (/^[A-Z](?:\s+[A-Z])+$/i.test(raw)) items = raw.split(/\s+/);
+                        else items = raw.split(/\s*[,;|]\s*/).filter(Boolean);
+                    }
                 }
                 if (!items.length) return { valid: false, reason: 'Select at least one correct option.' };
                 const selected = new Set();
@@ -1536,8 +1584,8 @@
 
                 ansLabel.innerHTML = `
                     <span>${ansLabelText}</span>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn" onclick="approveQuestionAnswer(${qIndex})" style="background: var(--success); color: white; font-size: 10px; padding: 4px 8px; border: 1px solid var(--success); font-weight: 800;">✓ APPROVE ANSWER</button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <div id="approval-control-${qIndex}">${getQuestionApprovalControlHtml(q, qIndex)}</div>
                         <button class="btn" onclick="reformatSingleAnswer(${qIndex}, this)" style="background: var(--surface-soft); color: var(--success); font-size: 10px; padding: 4px 8px; border: 1px solid var(--success); font-weight: 800;">🪄 RE-FORMAT</button>
                     </div>
                 `;
@@ -1604,6 +1652,7 @@
                 updatePreview(qIndex, qPreviewBox);
             });
             window.refreshQuizmokoIcons();
+            updateApproveAllButtonState();
         }
 
         function removeQuestion(index) {
@@ -1853,7 +1902,8 @@
                     body: JSON.stringify({
                         questions: [q],
                         api_key: apiKey,
-                        model_name: model
+                        model_name: model,
+                        subject: quizData.subject || 'General'
                     }),
                     timeout: 120000
                 });
@@ -1897,7 +1947,8 @@
                     body: JSON.stringify({
                         questions: quizData.questions,
                         api_key: apiKey,
-                        model_name: model
+                        model_name: model,
+                        subject: quizData.subject || 'General'
                     }),
                     timeout: 120000
                 });
@@ -2024,6 +2075,7 @@
                         questions: quizData.questions,
                         api_key: apiKey,
                         model_name: model,
+                        subject: quizData.subject || 'General',
                         golden_reference: quizData.golden_reference,
                         mode: 'RECHECK_ANSWERS'
                     }),

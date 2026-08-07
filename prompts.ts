@@ -2,15 +2,16 @@
 
 export const SHARED_LATEX_RULES = String.raw`
 MATH & LATEX RULES:
-1. Use $...$ only for actual inline mathematical expressions and $$...$$ only for standalone equations, aligned work, or tables.
-2. Keep ordinary prose, dates, question numbers, option letters, names, and labels outside math delimiters. A number in ordinary prose does not need LaTeX unless it is part of a mathematical expression or measurement being typeset.
-3. Enclose a complete expression in one delimiter pair. Write "$5x + 5 = 20$", not "$5x$ + $5$ = $20$".
-4. Never output a LaTeX command such as \dfrac, \sqrt, \times, \div, \left, or \right outside math delimiters. Never nest dollar delimiters.
-5. Use \dfrac{a}{b} for displayed-size fractions, \times or \cdot for multiplication, and \div for division when appropriate.
-6. Currency inside math must use one expression, such as "$\text{\$40}$". Escape percentages inside math as \%.
-7. Every delimiter and brace must be balanced. Preserve existing HTML and image tags exactly.
-8. Identification answer keys are plain concise values with no LaTeX delimiters and no unnecessary units.
-9. Return valid JSON. In serialized JSON, encode line breaks as \n; JSON.parse restores them to real newlines.
+1. In mathematical question text, options, and solutions, EVERY standalone numeric value must be enclosed in $...$, including quantities written in prose. Examples: "There are $12$ students", "ratio $2$ to $5$", "$90$ minutes", and "side length $3$ units".
+2. If a number belongs to a larger mathematical expression, enclose the complete expression in one delimiter pair. Write "$5x + 5 = 20$", not "$5x$ + $5$ = $20$".
+3. Printed question numbers, option letters, names, and purely textual labels are not mathematical content and stay outside delimiters. Numerals that are part of the actual question content must still be enclosed.
+4. Use $$...$$ only for standalone equations, aligned work, or tables. Never nest dollar delimiters.
+5. Never output a LaTeX command such as \dfrac, \sqrt, \times, \div, \left, or \right outside math delimiters.
+6. Use \dfrac{a}{b} for fractions, \times or \cdot for multiplication, and \div for division when appropriate.
+7. Currency inside math must use one expression, such as "$\text{\$40}$". Escape percentages inside math as \%.
+8. Every delimiter and brace must be balanced. Preserve existing HTML and image tags exactly.
+9. Identification answer keys are plain concise values with no LaTeX delimiters and no unnecessary units.
+10. Return valid JSON. In serialized JSON, encode line breaks as \n; JSON.parse restores them to real newlines.
 `;
 
 export const NON_MATH_RULES = String.raw`
@@ -216,7 +217,7 @@ export const LATEX_POLISH_PROMPT = String.raw`You are a non-destructive LaTeX fo
 
 Return patches only for fields that genuinely need formatting repair. A patch may change delimiters, LaTeX commands, spacing, and escaped symbols, but must not change any word, number, option, answer, mathematical value, HTML tag, image tag, or question meaning.
 
-Use $...$ only for actual inline mathematics and $$...$$ only for standalone equations or tables. Never wrap ordinary prose numbers, labels, dates, names, or option letters merely for visual consistency. Never output bare LaTeX commands, nested delimiters, unbalanced braces, or unbalanced dollar signs.
+In mathematical fields, wrap every standalone numeric value in $...$, including prose quantities and measurements. If a number belongs to a larger expression, wrap the complete expression. Use $$...$$ only for standalone equations or tables. Do not wrap printed question numbers, option letters, names, or purely textual labels. Never output bare LaTeX commands, nested delimiters, unbalanced braces, or unbalanced dollar signs.
 
 For each patch return exactly: id, field, original_hash, replacement. Copy original_hash exactly. Omit fields that do not need changes. Return only the schema-defined JSON array.`;
 
@@ -226,7 +227,7 @@ export const RMX_FLASH_EXTRACTION_PROMPT = String.raw`Extract every readable num
 - Repeat an exact shared heading or instruction at the start of every statement it governs; never emit that context as a separate item.
 - Keep all subparts under one main number in one statement.
 - Move visible selectable options into choices with their literal wording. Use [] when no choices are visible.
-- Use complete LaTeX expressions only where mathematical notation requires them. Keep ordinary prose numbers, labels, dates, and option letters outside math delimiters.
+- Use LaTeX consistently: every standalone numeric value in mathematical statement/choice content must be inside $...$; wrap a complete expression when the number belongs to one. Printed question numbers and option letters stay outside delimiters.
 - original_index is the printed main identifier.
 - identifier is exactly 12 alphanumeric characters and unique within the response.
 - bounding_box is [] unless the item depends on a visible diagram, graph, chart, map, coordinate plane, or illustration. When needed, return [ymin, xmin, ymax, xmax] as four integers from 0 to 1000 with a small margin.
@@ -265,7 +266,7 @@ AUTHORITATIVE GOLDEN REFERENCE
 
 Solve every input item from scratch. Existing answers and proposed_answer_for_review are untrusted and must not influence your reasoning. Preserve each stable id and the original question text.
 
-When a golden answer exists, preserve it as authoritative but still solve independently so the server can detect conflicts. Return complete options, answer, type, and a concise solution. Use $...$ only for actual mathematics; keep ordinary prose outside LaTeX. Identification answers must remain concise plain values without units or delimiters.
+When a golden answer exists, preserve it as authoritative but still solve independently so the server can detect conflicts. Return complete options, answer, type, and a concise solution. Use $...$ for mathematical content and wrap every standalone numeric value in question/option/solution text. Wrap complete expressions rather than splitting them. Identification answers must remain concise plain values without units or delimiters.
 
 Return every id exactly once and only the schema-defined JSON array.
 

@@ -20,6 +20,7 @@ import { SHARED_LATEX_RULES } from '../prompts.ts';
 import * as promptTemplates from '../prompts.ts';
 import {
   normalizeAiLatexText,
+  normalizeMathQuestionText,
   validateLatexText,
   validateQuestionLatex
 } from '../src/services/latex.ts';
@@ -85,6 +86,33 @@ describe('LaTeX validation and guarded formatting patches', () => {
     assert.equal(normalizeAiLatexText('Solve \\(x+1=3\\).'), 'Solve $x+1=3$.');
     assert.equal(normalizeAiLatexText('$x \\neq 2$'), '$x \\neq 2$');
     assert.equal(normalizeAiLatexText('$\\nabla f$'), '$\\nabla f$');
+  });
+
+  test('wraps every standalone number in math-facing text without corrupting existing LaTeX, HTML, or TikZ', () => {
+    assert.equal(
+      normalizeMathQuestionText('Of the 1800 people, 3 groups had 12 students each.'),
+      'Of the $1800$ people, $3$ groups had $12$ students each.'
+    );
+    assert.equal(
+      normalizeMathQuestionText('The ratio was 2 to 5 and the trip took 90 minutes.'),
+      'The ratio was $2$ to $5$ and the trip took $90$ minutes.'
+    );
+    assert.equal(
+      normalizeMathQuestionText('Use 1/2 of 25%.'),
+      String.raw`Use $\dfrac{1}{2}$ of $25\%$.`
+    );
+    assert.equal(
+      normalizeMathQuestionText(String.raw`The number $-\dfrac{1}{2}$ is rational.`),
+      String.raw`The number $-\dfrac{1}{2}$ is rational.`
+    );
+    assert.equal(
+      normalizeMathQuestionText('<div style="width: 100%">Diagram</div> Find 8.'),
+      '<div style="width: 100%">Diagram</div> Find $8$.'
+    );
+    assert.equal(
+      normalizeMathQuestionText(String.raw`[TIKZ]\draw (0,0)--(2,3);[/TIKZ] Find 5.`),
+      String.raw`[TIKZ]\draw (0,0)--(2,3);[/TIKZ] Find $5$.`
+    );
   });
 
   test('rejects bare commands, malformed braces, and unbalanced delimiters', () => {
@@ -269,13 +297,13 @@ test('raw prompt templates do not send doubled command backslashes', () => {
   }
 });
 
-test('active prompts do not contain the invalid literal-newline instruction or number-overwrapping rule', () => {
+test('active math prompts require standalone numeric values to use LaTeX delimiters', () => {
   const prompts = fs.readFileSync('prompts.ts', 'utf8');
   assert.doesNotMatch(prompts, /real newline inside a JSON string/i);
-  assert.doesNotMatch(prompts, /EVERY standalone number, count, measurement/i);
+  assert.match(prompts, /EVERY standalone numeric value must be enclosed in \$\.\.\.\$/i);
+  assert.match(prompts, /ratio \$2\$ to \$5\$/i);
   assert.match(prompts, /encode line breaks as \\n/i);
 });
-
 
 test('teacher content edits invalidate stale AI verification until explicit approval', () => {
   const view = fs.readFileSync('views/edit_quiz.ejs', 'utf8');
@@ -283,7 +311,13 @@ test('teacher content edits invalidate stale AI verification until explicit appr
   assert.match(view, /Question text changed after verification/);
   assert.match(view, /An answer choice changed after verification/);
   assert.match(view, /The answer changed and is pending explicit teacher approval/);
-  assert.match(view, /onclick="approveQuestionAnswer\(\$\{qIndex\}\)"/);
+  assert.match(view, /approveQuestionAnswer\(\$\{index\}\)/);
+  assert.match(view, /function approveAllQuestionAnswers/);
+  assert.match(view, /function updateApproveAllButtonState/);
+  assert.match(view, /teacher_approved:\s*true/);
+  assert.match(view, /✓ APPROVED/);
+  assert.match(view, /multiple_choice_multi/);
+  assert.match(view, /JSON\.parse\(raw\)/);
   assert.doesNotMatch(
     view,
     /ansInput\.oninput[\s\S]{0,450}verification_status:\s*'verified'/,

@@ -540,18 +540,216 @@
             markQuestionChanged(index);
         }
 
-        function approveQuestionAnswer(index, rerender = true) {
-            const question = quizData.questions[index];
-            if (!question || String(question.answer ?? '').trim() === '') {
-                alert('Enter a valid answer before approving this question.');
-                return false;
+        function normalizeApprovalType(value) {
+            const token = String(value ?? '')
+                .trim()
+                .toLowerCase()
+                .replace(/[_-]+/g, ' ')
+                .replace(/\s+/g, ' ');
+            const aliases = {
+                'multiple choice': 'multiple_choice',
+                'multiple choices': 'multiple_choice',
+                'multiple select': 'multiple_choice_multi',
+                'multiple choice multi': 'multiple_choice_multi',
+                'multi select': 'multiple_choice_multi',
+                'true false': 'true_false',
+                'true or false': 'true_false',
+                'identification': 'identification',
+                'identify': 'identification',
+                'fill in the blank': 'identification',
+                'open': 'open_ended',
+                'open ended': 'open_ended',
+                'open response': 'open_ended',
+                'free response': 'open_ended',
+                'free text': 'open_ended',
+                'essay': 'open_ended',
+                'short answer': 'open_ended',
+                'graph': 'graphing',
+                'graphing': 'graphing'
+            };
+            return aliases[token] || '';
+        }
+
+        function isApprovalPlaceholderAnswer(value) {
+            if (value === null || value === undefined) return true;
+            if (Array.isArray(value)) return value.length === 0;
+            if (typeof value === 'object') return false;
+            const normalized = String(value)
+                .trim()
+                .replace(/^\$+|\$+$/g, '')
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, ' ');
+            const withoutTrailingPunctuation = normalized.replace(/[.!?]+$/g, '').trim();
+            return withoutTrailingPunctuation === ''
+                || withoutTrailingPunctuation === 'no answer'
+                || withoutTrailingPunctuation === 'no answer provided'
+                || withoutTrailingPunctuation === 'answer not provided';
+        }
+
+        function normalizeApprovalOption(value) {
+            return String(value ?? '')
+                .replace(/^\s*(?:option\s*)?[A-Z](?:\s*[\)\].:\-]\s*|\s*$)/i, '')
+                .replace(/^\s*\$+|\$+\s*$/g, '')
+                .normalize('NFKC')
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function mapApprovalChoiceToLetter(options, value) {
+            const raw = String(value ?? '').trim();
+            const explicit = raw.match(/^\s*(?:option\s*)?([A-Z])(?:\s*[\)\].:\-]\s*(.*)|\s*)$/i);
+            if (explicit) {
+                const letter = explicit[1].toUpperCase();
+                const optionIndex = letter.charCodeAt(0) - 65;
+                if (optionIndex >= 0 && optionIndex < options.length) return { valid: true, letter };
+                return { valid: false, reason: `Choice ${letter} is outside the available options.` };
             }
+
+            const wanted = normalizeApprovalOption(raw);
+            if (!wanted) return { valid: false, reason: 'The answer is blank.' };
+            const matches = options
+                .map((option, index) => normalizeApprovalOption(option) === wanted ? index : -1)
+                .filter(index => index >= 0);
+            if (matches.length === 0) return { valid: false, reason: 'The answer does not match any available option.' };
+            if (matches.length > 1) return { valid: false, reason: 'The answer matches more than one option.' };
+            return { valid: true, letter: String.fromCharCode(65 + matches[0]) };
+        }
+
+        function validateQuestionAnswerForApproval(question) {
+            if (!question || typeof question !== 'object') return { valid: false, reason: 'Question data is missing.' };
+            if (isApprovalPlaceholderAnswer(question.answer)) return { valid: false, reason: 'Answer is empty or still contains a placeholder.' };
+
+            const options = Array.isArray(question.options) ? question.options.map(option => String(option ?? '').trim()) : [];
+            const type = normalizeApprovalType(question.type) || (options.length > 0 ? 'multiple_choice' : 'identification');
+
+            if (type === 'multiple_choice' || type === 'multiple_choice_multi') {
+                if (options.length < 2 || options.some(option => !option)) {
+                    return { valid: false, reason: 'Choice questions need at least two non-empty options.' };
+                }
+                const normalizedOptions = options.map(normalizeApprovalOption);
+                if (new Set(normalizedOptions).size !== normalizedOptions.length) {
+                    return { valid: false, reason: 'Two or more answer choices are duplicates.' };
+                }
+
+                if (type === 'multiple_choice') return mapApprovalChoiceToLetter(options, question.answer);
+
+                let items;
+                if (Array.isArray(question.answer)) {
+                    items = question.answer;
+                } else {
+                    const raw = String(question.answer ?? '').trim();
+                    const wholeChoice = mapApprovalChoiceToLetter(options, raw);
+                    if (wholeChoice.valid) items = [raw];
+                    else if (/^[A-Z](?:\s+[A-Z])+$/i.test(raw)) items = raw.split(/\s+/);
+                    else items = raw.split(/\s*[,;|]\s*/).filter(Boolean);
+                }
+                if (!items.length) return { valid: false, reason: 'Select at least one correct option.' };
+                const selected = new Set();
+                for (const item of items) {
+                    const mapped = mapApprovalChoiceToLetter(options, item);
+                    if (!mapped.valid) return mapped;
+                    if (selected.has(mapped.letter)) return { valid: false, reason: `Choice ${mapped.letter} is selected more than once.` };
+                    selected.add(mapped.letter);
+                }
+                return { valid: true };
+            }
+
+            if (type === 'true_false') {
+                let optionMap = new Map([['A', 'true'], ['B', 'false']]);
+                if (options.length > 0) {
+                    if (options.length !== 2 || options.some(option => !option)) {
+                        return { valid: false, reason: 'True/False questions must have exactly two valid options.' };
+                    }
+                    optionMap = new Map();
+                    const seenValues = new Set();
+                    for (let index = 0; index < options.length; index++) {
+                        const normalized = normalizeApprovalOption(options[index]);
+                        const mappedValue = normalized === 'true' || normalized === 't'
+                            ? 'true'
+                            : (normalized === 'false' || normalized === 'f' ? 'false' : '');
+                        if (!mappedValue || seenValues.has(mappedValue)) {
+                            return { valid: false, reason: 'True/False options do not map uniquely to True and False.' };
+                        }
+                        seenValues.add(mappedValue);
+                        optionMap.set(String.fromCharCode(65 + index), mappedValue);
+                    }
+                }
+
+                const raw = String(question.answer ?? '').trim();
+                const normalized = raw.replace(/^\$+|\$+$/g, '').trim().toLowerCase();
+                if (['true', 't', 'false', 'f'].includes(normalized)) return { valid: true };
+                const explicit = raw.match(/^\s*(?:option\s*)?([A-Z])(?:\s*[\)\].:\-].*|\s*)$/i);
+                if (explicit && optionMap.has(explicit[1].toUpperCase())) return { valid: true };
+                return { valid: false, reason: 'Expected True, False, T, F, A, or B.' };
+            }
+
+            if (['identification', 'open_ended', 'graphing'].includes(type)) {
+                if (Array.isArray(question.answer) || (question.answer !== null && typeof question.answer === 'object')) {
+                    return { valid: false, reason: 'This question requires one answer value, not an object or list.' };
+                }
+                return { valid: true };
+            }
+
+            return { valid: false, reason: 'Unsupported question type.' };
+        }
+
+        function applyTeacherAnswerApproval(question, approvalMethod) {
+            const approvedAt = new Date().toISOString();
+            const existingVerification = question.verification && typeof question.verification === 'object'
+                ? { ...question.verification }
+                : null;
+            const approvalMetadata = {
+                teacher_approved: true,
+                teacher_approved_at: approvedAt,
+                teacher_approval_method: approvalMethod
+            };
+
+            if (existingVerification?.verification_status === 'verified') {
+                question.verification = {
+                    ...existingVerification,
+                    ...approvalMetadata
+                };
+                return 'already_verified';
+            }
+
             question.verification = {
                 answer_source: 'manual',
                 verification_status: 'verified',
-                reason: 'Teacher explicitly reviewed and approved the current question and answer.',
-                verified_at: new Date().toISOString()
+                reason: approvalMethod === 'batch'
+                    ? 'Teacher explicitly reviewed and approved the current answer during batch approval.'
+                    : 'Teacher explicitly reviewed and approved the current question and answer.',
+                verified_at: approvedAt,
+                ...approvalMetadata
             };
+            return 'newly_verified';
+        }
+
+        function markApprovalValidationFailure(question, index, reason) {
+            const existingVerification = question?.verification && typeof question.verification === 'object'
+                ? { ...question.verification }
+                : {};
+            question.verification = {
+                answer_source: existingVerification.answer_source || 'manual',
+                ...existingVerification,
+                verification_status: 'review_required',
+                reason: `Teacher approval blocked: ${reason}`,
+                approval_validation_failed_at: new Date().toISOString()
+            };
+            markQuestionChanged(index);
+        }
+
+        function approveQuestionAnswer(index, rerender = true) {
+            const question = quizData.questions[index];
+            const validation = validateQuestionAnswerForApproval(question);
+            if (!validation.valid) {
+                if (question) markApprovalValidationFailure(question, index, validation.reason);
+                if (rerender) renderQuestions();
+                alert(`Cannot approve Question ${index + 1}: ${validation.reason}`);
+                return false;
+            }
+            applyTeacherAnswerApproval(question, 'single');
             if (rerender) renderQuestions();
             markQuestionChanged(index);
             return true;
@@ -563,33 +761,36 @@
                 return;
             }
 
-            let approvedCount = 0;
-            let skippedCount = 0;
+            let newlyVerifiedCount = 0;
+            let alreadyVerifiedCount = 0;
+            const skipped = [];
 
-            quizData.questions.forEach((q, index) => {
-                if (!q) return;
-                const answerStr = String(q.answer ?? '').trim();
-                if (answerStr === '') {
-                    skippedCount++;
+            quizData.questions.forEach((question, index) => {
+                const validation = validateQuestionAnswerForApproval(question);
+                if (!validation.valid) {
+                    if (question) markApprovalValidationFailure(question, index, validation.reason);
+                    skipped.push({ number: index + 1, reason: validation.reason });
                     return;
                 }
-                q.verification = {
-                    answer_source: 'manual',
-                    verification_status: 'verified',
-                    reason: 'Teacher explicitly reviewed and approved all question answers in batch.',
-                    verified_at: new Date().toISOString()
-                };
+
+                const result = applyTeacherAnswerApproval(question, 'batch');
+                if (result === 'already_verified') alreadyVerifiedCount++;
+                else newlyVerifiedCount++;
                 markQuestionChanged(index);
-                approvedCount++;
             });
 
             renderQuestions();
 
-            if (skippedCount > 0) {
-                alert(`Approved ${approvedCount} question answer(s). Skipped ${skippedCount} question(s) with empty answers.`);
-            } else {
-                alert(`Successfully approved all ${approvedCount} question answer(s).`);
+            const totalApproved = newlyVerifiedCount + alreadyVerifiedCount;
+            let message = `Teacher approval recorded for ${totalApproved} question answer(s).`;
+            if (newlyVerifiedCount > 0) message += ` ${newlyVerifiedCount} newly verified.`;
+            if (alreadyVerifiedCount > 0) message += ` ${alreadyVerifiedCount} already verified; existing verification provenance was preserved.`;
+            if (skipped.length > 0) {
+                const details = skipped.slice(0, 8).map(item => `Q${item.number}: ${item.reason}`).join('\n');
+                const extra = skipped.length > 8 ? `\n...and ${skipped.length - 8} more.` : '';
+                message += `\n\nSkipped ${skipped.length} invalid question(s) and marked them for review:\n${details}${extra}`;
             }
+            alert(message);
         }
 
         function normalizePlainNumericIdentificationAnswer(value) {

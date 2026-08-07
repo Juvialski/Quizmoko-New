@@ -11,7 +11,7 @@ export type AiTaskName =
   | 'semantic_grading'
   | 'student_explanation';
 
-export type AiThinkingLevel = 'minimal' | 'high';
+export type AiThinkingLevel = 'high';
 
 export interface AiTaskProfile {
   task: AiTaskName;
@@ -24,13 +24,13 @@ const PROFILES: Record<AiTaskName, AiTaskProfile> = {
   document_extraction: {
     task: 'document_extraction',
     promptVersion: 'document-extraction-v3',
-    thinkingLevel: 'minimal',
+    thinkingLevel: 'high',
     maxOutputTokens: 32_768
   },
   answer_key_extraction: {
     task: 'answer_key_extraction',
     promptVersion: 'answer-key-extraction-v2',
-    thinkingLevel: 'minimal',
+    thinkingLevel: 'high',
     maxOutputTokens: 8_192
   },
   question_drafting: {
@@ -54,7 +54,7 @@ const PROFILES: Record<AiTaskName, AiTaskProfile> = {
   latex_polish: {
     task: 'latex_polish',
     promptVersion: 'latex-polish-v4',
-    thinkingLevel: 'minimal',
+    thinkingLevel: 'high',
     maxOutputTokens: 12_288
   },
   semantic_grading: {
@@ -76,8 +76,9 @@ export function getAiTaskProfile(task: AiTaskName): AiTaskProfile {
 }
 
 /**
- * Gemini 3.5 and 3.1 Flash-Lite support `minimal` and `high` thinking levels.
- * Keep the task profile here so routes cannot accidentally use weaker settings.
+ * QuizMoKo deliberately runs Gemini 3.5 and 3.1 Flash-Lite at the maximum
+ * supported `high` thinking level for every AI task. Keep this centralized so
+ * routes cannot accidentally fall back to a weaker reasoning setting.
  */
 export function buildAiTaskConfig(
   task: AiTaskName,

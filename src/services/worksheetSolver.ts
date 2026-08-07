@@ -2,7 +2,7 @@ import { Type } from '@google/genai';
 import { getGeminiClient, safeParseJSON } from './gemini.ts';
 import { generateGeminiContent, GeminiRateLimitError } from './geminiRateLimiter.ts';
 import { buildAiTaskConfig, getFlashLiteModelPair } from './aiTaskProfiles.ts';
-import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, validateLatexText } from './latex.ts';
+import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, stripDuplicatedChoiceBlock, validateLatexText } from './latex.ts';
 import { getSubjectPromptRules, shouldUseStrictMathFormatting } from '../../prompts.ts';
 import {
   adjudicateWorksheetSolverCandidates,
@@ -452,7 +452,12 @@ export async function solveWorksheetBatchWithConsensus(input: {
     if (typeof question.question === 'string') question.question = normalizeQuestionText(question.question);
     if (typeof question.raw_text === 'string') question.raw_text = normalizeQuestionText(question.raw_text);
     if (typeof question.statement === 'string') question.statement = normalizeQuestionText(question.statement);
-    if (Array.isArray(question.options)) question.options = question.options.map(option => normalizeDisplayText(option));
+    if (Array.isArray(question.options)) {
+      question.options = question.options.map(option => normalizeDisplayText(option));
+      if (typeof question.question === 'string') question.question = stripDuplicatedChoiceBlock(question.question, question.options).trim();
+      if (typeof question.raw_text === 'string') question.raw_text = stripDuplicatedChoiceBlock(question.raw_text, question.options).trim();
+      if (typeof question.statement === 'string') question.statement = stripDuplicatedChoiceBlock(question.statement, question.options).trim();
+    }
     if (typeof question.solution === 'string') question.solution = normalizeDisplayText(question.solution);
     return { ...result, question };
   });

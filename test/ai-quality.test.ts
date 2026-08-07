@@ -27,6 +27,7 @@ import {
   normalizeAiLatexText,
   normalizeMathQuestionText,
   normalizeQuestionLayoutText,
+  stripDuplicatedChoiceBlock,
   validateLatexText,
   validateQuestionLatex
 } from '../src/services/latex.ts';
@@ -116,10 +117,12 @@ describe('AI task profiles and model restriction', () => {
     assert.equal(getRealModelName('ollama:qwen'), 'ollama:qwen');
   });
 
-  test('assigns minimal thinking to extraction and high thinking to solving', () => {
-    assert.deepEqual((buildAiTaskConfig('document_extraction') as any).thinkingConfig, { thinkingLevel: 'minimal' });
+  test('assigns maximum high thinking to every AI task', () => {
+    assert.deepEqual((buildAiTaskConfig('document_extraction') as any).thinkingConfig, { thinkingLevel: 'high' });
     assert.deepEqual((buildAiTaskConfig('question_solving') as any).thinkingConfig, { thinkingLevel: 'high' });
     assert.deepEqual((buildAiTaskConfig('semantic_grading') as any).thinkingConfig, { thinkingLevel: 'high' });
+    assert.deepEqual((buildAiTaskConfig('answer_key_extraction') as any).thinkingConfig, { thinkingLevel: 'high' });
+    assert.deepEqual((buildAiTaskConfig('latex_polish') as any).thinkingConfig, { thinkingLevel: 'high' });
   });
 });
 
@@ -157,6 +160,36 @@ describe('LaTeX validation and guarded formatting patches', () => {
     assert.equal(
       normalizeQuestionLayoutText('Dr. A. Smith met B. Jones in 1945.'),
       'Dr. A. Smith met B. Jones in 1945.'
+    );
+  });
+
+  test('normalizes LaTeX-styled multipart letters to plain labels and line breaks', () => {
+    assert.equal(
+      normalizeQuestionLayoutText(String.raw`Write each as a fraction and decimal: $\mathbf{a}$. $99\%$ $\mathbf{b}$. $\dfrac{180}{360}$`),
+      String.raw`Write each as a fraction and decimal:
+a. $99\%$
+b. $\dfrac{180}{360}$`
+    );
+    assert.equal(
+      normalizeQuestionLayoutText(String.raw`Use $\mathbf{x}$ in the expression.`),
+      String.raw`Use $\mathbf{x}$ in the expression.`
+    );
+  });
+
+  test('removes duplicated structured choice blocks from the end of question stems', () => {
+    const stem = String.raw`The number $-\dfrac{1}{2}$ is a member of which sets of numbers? A real numbers B integers C rational numbers D irrational numbers`;
+    const expected = String.raw`The number $-\dfrac{1}{2}$ is a member of which sets of numbers?`;
+    assert.equal(
+      stripDuplicatedChoiceBlock(stem, ['real numbers', 'integers', 'rational numbers', 'irrational numbers']),
+      expected
+    );
+    assert.equal(
+      stripDuplicatedChoiceBlock(stem, ['A) real numbers', 'B) integers', 'C) rational numbers', 'D) irrational numbers']),
+      expected
+    );
+    assert.equal(
+      stripDuplicatedChoiceBlock('Which statement about option A is true?', ['One', 'Two', 'Three', 'Four']),
+      'Which statement about option A is true?'
     );
   });
 

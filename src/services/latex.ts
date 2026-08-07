@@ -90,6 +90,62 @@ export function decodeLiteralNewlineEscapes(value: unknown): string {
   return output;
 }
 
+function normalizeMathStyledMultipartLabels(value: string): string {
+  const markerPattern = /\$(?:\\(?:mathbf|mathrm|textbf|text)\{([a-h])\}|([a-h]))\s*([.)])?\s*\$(?:\s*([.)]))?/gi;
+  const matches = Array.from(value.matchAll(markerPattern)).map(match => ({
+    full: match[0],
+    letter: String(match[1] || match[2] || '').toLowerCase(),
+    punctuation: match[3] || match[4] || ''
+  })).filter(match => match.letter && match.punctuation);
+  const hasSequentialParts = matches.some((marker, index) =>
+    marker.letter === 'a' && matches.slice(index + 1).some(next => next.letter === 'b')
+  );
+  if (!hasSequentialParts) return value;
+
+  return value.replace(markerPattern, (full, styledLetter: string, plainLetter: string, innerPunctuation: string, outerPunctuation: string) => {
+    const letter = String(styledLetter || plainLetter || '').toLowerCase();
+    const punctuation = innerPunctuation || outerPunctuation || '';
+    if (!letter || !punctuation) return full;
+    return `${letter}${punctuation}`;
+  });
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function flexibleWhitespaceRegex(value: string): string {
+  return escapeRegex(value.trim()).replace(/\s+/g, '\\s+');
+}
+
+function stripOptionLabel(value: string): string {
+  return value.replace(/^\s*[A-Z]\s*(?:[).:]\s*|\s+)/i, '').trim();
+}
+
+/**
+ * Removes a duplicated A/B/C/D choice block from the end of a question stem
+ * when those same choices already exist in the structured options array.
+ * The entire ordered option sequence must match, so normal references to a
+ * single option letter inside a stem are left untouched.
+ */
+export function stripDuplicatedChoiceBlock(value: unknown, options: readonly unknown[]): string {
+  const source = String(value ?? '');
+  const cleanOptions = options
+    .map(option => stripOptionLabel(String(option ?? '')))
+    .map(option => option.trim())
+    .filter(Boolean);
+  if (cleanOptions.length < 2 || cleanOptions.length > 26) return source;
+
+  const sequence = cleanOptions.map((option, index) => {
+    const label = String.fromCharCode(65 + index);
+    const optionPattern = flexibleWhitespaceRegex(option);
+    return `${label}(?:\\s*[).:]\\s*|\\s+)${optionPattern}`;
+  }).join('\\s+');
+
+  const tailPattern = new RegExp(`(?:\\s|<br\\s*\\/?>)*${sequence}(?:\\s|<br\\s*\\/?>)*$`, 'i');
+  return source.replace(tailPattern, '').trimEnd();
+}
+
 function normalizeLetteredMultipartLayout(value: string): string {
   const markerPattern = /(?:^|[ \t])(?:\([a-h]\)|[a-h][.)])(?=[ \t]+)/g;
   const markers = Array.from(value.matchAll(markerPattern)).map(match => {
@@ -129,6 +185,7 @@ export function normalizeQuestionLayoutText(value: unknown): string {
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n[ \t]+/g, '\n')
     .replace(/\n{3,}/g, '\n\n');
+  text = normalizeMathStyledMultipartLabels(text);
   text = normalizeLetteredMultipartLayout(text);
   text = normalizeRomanMultipartLayout(text);
   return text;

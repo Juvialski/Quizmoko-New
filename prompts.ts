@@ -201,7 +201,7 @@ Generate exactly {batch_size} question objects in this exact order:
 
 RULES
 1. Every question must be unambiguous, self-contained, factually correct, and solvable from the supplied information.
-2. Multiple choice and multiple select require exactly four unique options. Prefix options A), B), C), and D). For multiple choice, answer is one letter. For multiple select, answer is two or more letters in ascending order.
+2. Multiple choice and multiple select require exactly four unique options. Prefix options A), B), C), and D) in the options array only. NEVER repeat, inline, or append those choices inside the question field. For multiple choice, answer is one letter. For multiple select, answer is two or more letters in ascending order.
 3. True/false requires exactly ["A) True", "B) False"] and answer A or B.
 4. Identification, open-ended, and graphing require an empty options array. Identification answers must be a concise raw number, symbol, word, or short phrase without units or LaTeX delimiters.
 5. Include a concise solution that allows an independent checker to verify the proposed answer. Do not expose hidden reasoning.
@@ -209,7 +209,7 @@ RULES
 7. Do not repeat a scenario or create a near-duplicate by changing only numbers.
 8. Include [TIKZ]...[/TIKZ] in at most {images_count} question texts and only when a diagram materially helps. The diagram must not reveal the answer.
 9. Use valid JSON escaping. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
-10. For a multi-part question, put the stem and each labeled part on separate logical lines. Never run "a." and "b." together in one paragraph.
+10. For a multi-part question, put the stem and each labeled part on separate logical lines. Use plain-text labels such as a., b., c. or (i), (ii); do NOT wrap part labels in LaTeX or use \mathbf/\textbf for the letters. Never run a. and b. together in one paragraph.
 
 FORMATTING
 {subject_rules}
@@ -220,14 +220,14 @@ export const WORKSHEET_EXTRACTION_PROMPT = String.raw`You extract worksheet ques
 
 COVERAGE AND FIDELITY
 - Extract every readable numbered question on this page in source order. Do not emit headings, instructions, page numbers, or isolated labels as separate questions.
-- One main number equals one object. Keep lettered subparts together in verbatim_text. Put each labeled part on its own logical line; never run "a." and "b." together in one paragraph.
+- One main number equals one object. Keep lettered subparts together in verbatim_text. Put each labeled part on its own logical line using plain-text labels such as a., b., c. or (i), (ii). Do NOT use LaTeX/\mathbf/\textbf just to style part letters, and never run a. and b. together in one paragraph.
 - verbatim_text contains only the literal text belonging to the numbered item, without its number.
 - context_prefix contains the exact shared heading, passage, or instruction that applies to the item, or an empty string. Repeat the same context_prefix for every affected item.
 - raw_text is exactly context_prefix plus one newline plus verbatim_text when context exists; otherwise it equals verbatim_text. Do not invent, summarize, solve, or describe images.
 - Repair obvious OCR spacing inside a word or number only, such as "226 , 000" to "226,000". Do not paraphrase.
 
 STRUCTURE
-- Move selectable A/B/C/D choices into options and keep their literal wording. Leave options empty when none are visible.
+- Move selectable A/B/C/D choices into options and keep their literal wording. Once moved, REMOVE those choice lines/text from verbatim_text and raw_text; never duplicate the choices in the question stem. Leave options empty when none are visible.
 - Use multiple_choice for exactly one correct option, multiple_choice_multi only when the source explicitly permits multiple answers, true_false for true/false, identification for one concise word/number/symbol, graphing for a required graph or drawing, and open_ended otherwise.
 - original_index is the printed main identifier as a string.
 - bounding_box is [] unless the item depends on a visible diagram, graph, chart, map, coordinate plane, or illustration. When needed, return [ymin, xmin, ymax, xmax] as four integers from 0 to 1000 with a small margin. Equations and ordinary text are not images.
@@ -244,14 +244,14 @@ export const WORKSHEET_EXTRACTION_PROMPT_NON_MATH = String.raw`You extract works
 
 COVERAGE AND FIDELITY
 - Extract every readable numbered question on this page in source order. Do not emit headings, passages, instructions, page numbers, or isolated labels as separate questions.
-- One main number equals one object. Keep lettered subparts together in verbatim_text. Put each labeled part on its own logical line; never run "a." and "b." together in one paragraph.
+- One main number equals one object. Keep lettered subparts together in verbatim_text. Put each labeled part on its own logical line using plain-text labels such as a., b., c. or (i), (ii). Do NOT use LaTeX/\mathbf/\textbf just to style part letters, and never run a. and b. together in one paragraph.
 - verbatim_text contains only the literal numbered-item text without its number.
 - context_prefix contains the exact shared passage, heading, or instruction, or an empty string. Repeat it for every affected item.
 - raw_text is exactly context_prefix plus one newline plus verbatim_text when context exists; otherwise it equals verbatim_text. Do not invent, summarize, answer, or describe images.
 - Repair obvious OCR spacing inside a word or number only. Do not paraphrase.
 
 STRUCTURE
-- Move selectable choices into options and preserve their literal wording. Leave options empty when none are visible.
+- Move selectable choices into options and preserve their literal wording. Once moved, REMOVE those choice lines/text from verbatim_text and raw_text; never duplicate the choices in the question stem. Leave options empty when none are visible.
 - Use multiple_choice for one correct option, multiple_choice_multi only when multiple answers are explicitly allowed, true_false for true/false, identification for one concise word or short phrase, graphing for a required drawing, and open_ended otherwise.
 - original_index is the printed main identifier as a string.
 - bounding_box is [] unless the item depends on a visible diagram, chart, map, or illustration. When needed, return four normalized integers [ymin, xmin, ymax, xmax] from 0 to 1000 with a small margin.
@@ -324,8 +324,9 @@ THE FOLLOWING QUESTION NUMBERS ARE MISSING: {missing_numbers}
 Scan the document EXHAUSTIVELY and extract ONLY these specific items.
 CRITICAL: Return 'verbatim_text', 'context_prefix', 'raw_text', 'options', 'type', 'original_index', and 'bounding_box'. Keep shared context separate and compose raw_text from the two literal fields.
 CRITICAL: Never extract a standalone number as a 'raw_text'. Ensure the full statement is included.
+CRITICAL: If visible A/B/C/D choices are returned in options, do NOT repeat or append those same choices inside raw_text or verbatim_text.
 CRITICAL: If the missing question is part of a section with a general instruction, heading, or shared context (e.g., "Simplify using exponents"), you MUST prepend that general instruction/context to the beginning of the question's 'raw_text' so it is fully self-contained. Put that context and the question on separate logical lines.
-CRITICAL: Keep multi-part a./b./c. questions in one object, but put each labeled part on its own logical line. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+CRITICAL: Keep multi-part a./b./c. questions in one object, but put each labeled part on its own logical line using plain-text labels (a., b., c.), never \mathbf/\textbf or math delimiters around the part letter. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
 CRITICAL: If there's any diagram, drawing, map, or visual illustration associated with the question, include a very generous bounding_box coordinate [ymin, xmin, ymax, xmax] (0 to 1000) so that it is never cut off.
 Return a JSON array of objects with keys: 'raw_text', 'verbatim_text', 'context_prefix', 'options', 'type', 'original_index', and 'bounding_box'.`;
 
@@ -337,6 +338,7 @@ SUBJECT RULES
 {subject_rules}
 
 Never output bare LaTeX commands, nested delimiters, unbalanced braces, or unbalanced dollar signs.
+For multi-part labels, use plain a., b., c. or (i), (ii). Do not use \mathbf, \textbf, or math delimiters just to style a part letter.
 
 For each patch return exactly: id, field, original_hash, replacement. Copy original_hash exactly. Omit fields that do not need changes. Return only the schema-defined JSON array.`;
 

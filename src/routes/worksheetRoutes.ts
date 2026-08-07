@@ -26,7 +26,7 @@ import {
   generateGeminiContent,
   GeminiRateLimitError
 } from '../services/geminiRateLimiter.ts';
-import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, validateLatexText } from '../services/latex.ts';
+import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, stripDuplicatedChoiceBlock, validateLatexText } from '../services/latex.ts';
 import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
 import {
   applyGoldenAnswers,
@@ -343,17 +343,23 @@ function validateExtractedQuestions(
     const useStrictMath = typeof formatMathNumbers === 'function' ? formatMathNumbers(item) : formatMathNumbers;
     const normalizeDisplayText = useStrictMath ? normalizeMathQuestionText : normalizeAiLatexText;
     const normalizeQuestionText = (value: unknown) => normalizeQuestionLayoutText(normalizeDisplayText(value));
-    const verbatimText = normalizeQuestionText(item.verbatim_text ?? item.raw_text ?? '').trim();
+    const options = Array.isArray(item.options)
+      ? item.options.map((option: unknown) => normalizeDisplayText(option).trim())
+      : [];
+    const verbatimText = stripDuplicatedChoiceBlock(
+      normalizeQuestionText(item.verbatim_text ?? item.raw_text ?? ''),
+      options
+    ).trim();
     const contextPrefix = normalizeDisplayText(item.context_prefix ?? '').trim();
-    const legacyRawText = normalizeQuestionText(item.raw_text ?? '').trim();
+    const legacyRawText = stripDuplicatedChoiceBlock(
+      normalizeQuestionText(item.raw_text ?? ''),
+      options
+    ).trim();
     const rawText = verbatimText
       ? [contextPrefix, verbatimText].filter(Boolean).join('\n')
       : legacyRawText;
     const originalIndex = String(item.original_index ?? '').trim();
     const type = String(item.type || '').trim();
-    const options = Array.isArray(item.options)
-      ? item.options.map((option: unknown) => normalizeDisplayText(option).trim())
-      : [];
     const isChoiceFragment = !rawText && options.length >= 2;
     if ((!isChoiceFragment && (!rawText || !originalIndex)) || !ALLOWED_QUESTION_TYPES.has(type) || !Array.isArray(item.options)) {
       throw new Error(`${label} question ${index + 1} is missing required fields`);
@@ -781,6 +787,11 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
       question.options = question.options.map((option: unknown) =>
         (strictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option)).trim()
       );
+      const cleanedQuestionText = stripDuplicatedChoiceBlock(normalizedQuestionText, question.options).trim();
+      if (Object.prototype.hasOwnProperty.call(question, 'raw_text')) question.raw_text = cleanedQuestionText;
+      if (Object.prototype.hasOwnProperty.call(question, 'question')) question.question = cleanedQuestionText;
+      if (Object.prototype.hasOwnProperty.call(question, 'statement')) question.statement = cleanedQuestionText;
+      if (!question.raw_text && !question.question && !question.statement) question.raw_text = cleanedQuestionText;
     }
   });
   const invalidQuestionIndex = questions.findIndex((question: any) => {

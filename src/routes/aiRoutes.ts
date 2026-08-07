@@ -18,7 +18,7 @@ import {
 import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
 import { duplicateQuestionIds, verifyQuestionBatch } from '../services/aiQuestionVerifier.ts';
 import { applyLatexPatches, createLatexPatchRequests } from '../services/latexPatches.ts';
-import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, validateQuestionLatex } from '../services/latex.ts';
+import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, stripDuplicatedChoiceBlock, validateQuestionLatex } from '../services/latex.ts';
 import {
   getCorrectAnswer,
   normalizeQuestion,
@@ -345,6 +345,8 @@ function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: 
       return `${String.fromCharCode(65 + index)}) ${text}`;
     });
     if (normalized.options.some((option: string) => !option.replace(/^[A-D]\)\s*/, '').trim())) return null;
+    normalized.question = stripDuplicatedChoiceBlock(normalized.question, normalized.options).trim();
+    if (!normalized.question) return null;
 
     const answerLetters = Array.from(rawAnswer.toUpperCase().matchAll(/(?:^|[\s,;])([A-D])(?=$|[\s,;.)])/g))
       .map(match => match[1])
@@ -991,9 +993,28 @@ ${JSON.stringify(patchRequests)}`;
         return parsed;
       };
       if (patchRequests.length === 0) {
+        const locallyCleaned = stableQuestions.map((question: any) => {
+          const sourceText = getOriginalQuestionText(question);
+          const itemStrictMath = polishUsesStrictMath(sourceText);
+          const normalizedOptions = Array.isArray(question.options)
+            ? question.options.map((option: unknown) => itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option))
+            : [];
+          const cleanedQuestion = stripDuplicatedChoiceBlock(
+            normalizeQuestionTextForDisplay(sourceText, itemStrictMath),
+            normalizedOptions
+          ).trim();
+          return {
+            ...question,
+            question: cleanedQuestion,
+            ...(Array.isArray(question.options) ? { options: normalizedOptions } : {}),
+            ...(Object.prototype.hasOwnProperty.call(question, 'raw_text')
+              ? { raw_text: stripDuplicatedChoiceBlock(normalizeQuestionTextForDisplay(question.raw_text, itemStrictMath), normalizedOptions).trim() }
+              : {})
+          };
+        });
         return res.json({
           success: true,
-          questions: stableQuestions,
+          questions: locallyCleaned,
           polish_summary: { requested: 0, applied: 0, rejected: [] }
         });
       }
@@ -1009,18 +1030,25 @@ ${JSON.stringify(patchRequests)}`;
           ? (restoreVisionText(patched.raw_text || patched.question, preparedQuestions[index].prepared) || original.raw_text)
           : undefined;
         const itemStrictMath = polishUsesStrictMath(restoredQuestion);
+        const normalizedOptions = Array.isArray(patched.options)
+          ? patched.options.map((option: unknown) => itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option))
+          : (Array.isArray(original.options) ? original.options : []);
         const candidate: any = {
           ...original,
-          question: normalizeQuestionTextForDisplay(restoredQuestion, itemStrictMath),
-          options: Array.isArray(patched.options)
-            ? patched.options.map((option: unknown) => itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option))
-            : original.options,
+          question: stripDuplicatedChoiceBlock(
+            normalizeQuestionTextForDisplay(restoredQuestion, itemStrictMath),
+            normalizedOptions
+          ).trim(),
+          options: normalizedOptions,
           answer: patched.answer ?? original.answer,
           ...(typeof patched.solution === 'string'
             ? { solution: itemStrictMath ? normalizeMathQuestionText(patched.solution) : normalizeAiLatexText(patched.solution) }
             : {}),
           ...(restoredRawText !== undefined
-            ? { raw_text: normalizeQuestionTextForDisplay(restoredRawText, itemStrictMath) }
+            ? { raw_text: stripDuplicatedChoiceBlock(
+                normalizeQuestionTextForDisplay(restoredRawText, itemStrictMath),
+                normalizedOptions
+              ).trim() }
             : {})
         };
         const storage = normalizeQuestionForStorage(candidate);
@@ -1093,12 +1121,14 @@ ${JSON.stringify(patchRequests)}`;
       };
       if (Array.isArray(output.options)) {
         output.options = output.options.map((option: unknown) => itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option));
+        output.question = stripDuplicatedChoiceBlock(output.question, output.options).trim();
       }
       if (typeof output.solution === 'string') {
         output.solution = itemStrictMath ? normalizeMathQuestionText(output.solution) : normalizeAiLatexText(output.solution);
       }
       if (Object.prototype.hasOwnProperty.call(original, 'raw_text')) {
         output.raw_text = normalizeQuestionTextForDisplay(original.raw_text, itemStrictMath);
+        if (Array.isArray(output.options)) output.raw_text = stripDuplicatedChoiceBlock(output.raw_text, output.options).trim();
       }
       if (output?.verification?.verification_status !== 'verified') summary.review_required.push(original.id);
       const before = normalizeQuestion(original);

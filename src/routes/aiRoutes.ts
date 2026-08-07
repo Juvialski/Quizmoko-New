@@ -19,7 +19,7 @@ import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
 import { duplicateQuestionIds, verifyQuestionBatch } from '../services/aiQuestionVerifier.ts';
 import { applyLatexPatches, createLatexPatchRequests } from '../services/latexPatches.ts';
 import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, stripDuplicatedChoiceBlock, stripRedundantOptionPrefix, validateQuestionLatex } from '../services/latex.ts';
-import { buildTikzRequirementPlan, hasTikzDiagram, validateTikzRequirement } from '../services/tikzGeneration.ts';
+import { buildTikzVisualPlan, formatTikzVisualPlanEntry, hasTikzDiagram, validateTikzRequirement } from '../services/tikzGeneration.ts';
 import {
   getCorrectAnswer,
   normalizeQuestion,
@@ -644,15 +644,15 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
 
   try {
     const generatedQuestions: any[] = [];
-    const tikzRequirementPlan = buildTikzRequirementPlan(totalQuestions, imagesCount);
+    const tikzVisualPlan = buildTikzVisualPlan(totalQuestions, imagesCount, subject, cleanTopic);
 
     for (let offset = 0; offset < totalQuestions; offset += batchSize) {
       const batchTypes = typePlan.slice(offset, offset + batchSize);
       const batchDifficulties = difficultyPlan.slice(offset, offset + batchTypes.length);
-      const batchDiagramRequirements = tikzRequirementPlan.slice(offset, offset + batchTypes.length);
-      const batchImages = batchDiagramRequirements.filter(Boolean).length;
+      const batchVisualPlan = tikzVisualPlan.slice(offset, offset + batchTypes.length);
+      const batchImages = batchVisualPlan.filter(entry => entry.required).length;
       const questionPlan = batchTypes
-        .map((type, index) => `${index + 1}. type="${type}", difficulty="${batchDifficulties[index] || 'average'}", diagram_required="${batchDiagramRequirements[index] ? 'yes' : 'no'}"`)
+        .map((type, index) => `${index + 1}. type="${type}", difficulty="${batchDifficulties[index] || 'average'}", ${formatTikzVisualPlanEntry(batchVisualPlan[index])}`)
         .join('\n');
 
       let prompt = STRUCTURED_QUIZ_GENERATOR_PROMPT
@@ -674,7 +674,8 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
       }
 
       let normalizedBatch: any[] | null = null;
-      for (let attempt = 0; attempt < 2 && !normalizedBatch; attempt++) {
+      const maxBatchAttempts = batchImages > 0 ? 3 : 2;
+      for (let attempt = 0; attempt < maxBatchAttempts && !normalizedBatch; attempt++) {
         let parsed: any;
         if (isOllama) {
           parsed = await requestOllamaQuestions(ollama_url, model, prompt);
@@ -685,7 +686,7 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
             config: buildAiTaskConfig('question_drafting', {
               responseMimeType: 'application/json',
               responseSchema: questionArraySchema,
-              maxOutputTokens: 8192
+              maxOutputTokens: batchImages > 0 ? 12_288 : 8_192
             }) as any
           });
           parsed = safeParseJSON(response.text || '');
@@ -701,20 +702,21 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
           if (candidates.every(Boolean)) {
             const diagramErrors = (candidates as any[])
               .map((candidate, index) => {
-                const check = validateTikzRequirement(candidate.question, Boolean(batchDiagramRequirements[index]));
+                const visualEntry = batchVisualPlan[index];
+                const check = validateTikzRequirement(candidate.question, Boolean(visualEntry?.required), visualEntry?.intent);
                 return check.valid ? '' : `Question ${index + 1}: ${check.reason || 'TikZ requirement was not met.'}`;
               })
               .filter(Boolean);
             if (diagramErrors.length === 0) {
               normalizedBatch = candidates as any[];
             } else {
-              prompt += `\n\nDIAGRAM VALIDATION FAILED. Regenerate the entire batch and follow each diagram_required flag exactly. ${diagramErrors.join(' ')}`;
+              prompt += `\n\nVISUAL VALIDATION FAILED. Regenerate the entire batch and follow each diagram_required, visual_intent, visual_goal, and visual_guidance assignment exactly. ${diagramErrors.join(' ')}`;
             }
           }
         }
 
         if (!normalizedBatch) {
-          prompt += '\n\nYour previous response was incomplete or did not match the required types. Return every planned question with a non-empty answer and all required options. If diagram_required="yes", include exactly one non-empty [TIKZ]...[/TIKZ] block using base TikZ only; if diagram_required="no", include none.';
+          prompt += '\n\nYour previous response was incomplete or did not match the required types. Return every planned question with a non-empty answer and all required options. If diagram_required="yes", include exactly one non-empty [TIKZ]...[/TIKZ] block that follows the assigned visual_intent/visual_goal/visual_guidance using base TikZ only, and make the stem explicitly refer to that visual; if diagram_required="no", include none.';
         }
       }
 
@@ -722,10 +724,21 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
         throw new Error(`The model could not produce a valid batch beginning at question ${offset + 1}.`);
       }
 
-      const identifiedBatch = normalizedBatch.map((question, index) => ({
-        ...question,
-        id: String(question.id || `generated_${offset + index + 1}`)
-      }));
+      const identifiedBatch = normalizedBatch.map((question, index) => {
+        const visualEntry = batchVisualPlan[index];
+        return {
+          ...question,
+          id: String(question.id || `generated_${offset + index + 1}`),
+          ...(visualEntry?.required && visualEntry.intent ? {
+            visual_intent: visualEntry.intent.id,
+            visual_family: visualEntry.intent.family,
+            visual_goal: visualEntry.intent.goal,
+            // TikZ diagrams should not dominate the quiz screen by default.
+            // Teachers can adjust this per question in the editor.
+            tikz_width: 70
+          } : {})
+        };
+      });
       if (isOllama || !ai) {
         generatedQuestions.push(...identifiedBatch.map(question => ({
           ...question,

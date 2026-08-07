@@ -522,6 +522,15 @@ export function normalizeQuestionForStorage(input: unknown): QuestionStorageNorm
   stored.points = result.question.points;
   stored.grading_mode = result.question.grading_mode;
   if (result.question.answer_policy) stored.answer_policy = result.question.answer_policy;
+
+  // Optional per-question TikZ display width. Keep this presentation metadata
+  // bounded so malformed client data cannot create an unusable quiz layout.
+  if (original.tikz_width !== undefined) {
+    const tikzWidth = Number(original.tikz_width);
+    if (Number.isFinite(tikzWidth)) stored.tikz_width = Math.max(20, Math.min(100, Math.round(tikzWidth)));
+    else delete stored.tikz_width;
+  }
+
   return { valid: true, errors: [], normalized: result.question, question: stored as Question };
 }
 

@@ -960,8 +960,19 @@
             }
         }
 
-        function processTikzToImageJS(text) {
+        function normalizeTikzWidth(value, fallback = 70) {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.max(25, Math.min(100, Math.round(parsed)));
+        }
+
+        function hasTikzBlock(text) {
+            return /\[TIKZ\][\s\S]*?\[\/TIKZ\]/i.test(String(text || ''));
+        }
+
+        function processTikzToImageJS(text, width = 70) {
             if (!text) return "";
+            const safeWidth = normalizeTikzWidth(width);
             return text.replace(/\[TIKZ\]([\s\S]*?)\[\/TIKZ\]/gi, (match, code) => {
                 const cleanCode = code.replace(/```tikz/g, "").replace(/```/g, "").trim();
 
@@ -983,7 +994,7 @@
                 const b64 = window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
                 
                 const imgUrl = `https://kroki.io/tikz/svg/${b64}`;
-                return `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUrl}" alt="Math Diagram"></div></div>`;
+                return `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: ${safeWidth}%;"><img src="${imgUrl}" alt="Math Diagram"></div></div>`;
             });
         }
 
@@ -1117,7 +1128,7 @@
 
         function updatePreview(qIndex, previewBox) {
             const q = quizData.questions[qIndex];
-            const processedQuestion = processTikzToImageJS(q.question);
+            const processedQuestion = processTikzToImageJS(q.question, q.tikz_width);
             
             let html = formatText(processedQuestion) + '<div style="margin-top: 20px;">';
             if (q.options) {
@@ -1342,26 +1353,41 @@
             // Simply re-process the existing TikZ to image
             // We use the JS version since it's immediate feedback,
             // the server will do its own during save anyway.
-            const processed = processTikzToImageJS(currentText);
+            const processed = processTikzToImageJS(currentText, quizData.questions[index].tikz_width);
             quizData.questions[index].question = processed;
             renderQuestions();
         }
 
         function adjustImageWidth(index, width) {
             const q = quizData.questions[index];
+            const block = container.children[index];
+
+            if (hasTikzBlock(q.question)) {
+                const safeWidth = normalizeTikzWidth(width);
+                q.tikz_width = safeWidth;
+                if (block) {
+                    const imgBox = block.querySelector('.live-preview .image-content-box');
+                    if (imgBox) imgBox.style.width = safeWidth + '%';
+                    const valueLabel = block.querySelector('.image-control-panel span');
+                    if (valueLabel) valueLabel.innerText = safeWidth + '%';
+                }
+                return;
+            }
+
             const { text, imagePart } = extractImageAndText(q.question);
             if (!imagePart) return;
+            const safeWidth = Math.max(10, Math.min(200, Math.round(Number(width) || 100)));
 
-            // Update the width in the content-box style
-            const updatedImagePart = imagePart.replace(/width:\s*\d+%/i, `width: ${width}%`);
+            // Update the width in the stored HTML image wrapper.
+            const updatedImagePart = imagePart.replace(/width:\s*\d+%/i, `width: ${safeWidth}%`);
             q.question = text + "\n" + updatedImagePart;
 
-            // Fast update without full re-render if possible
-            const block = container.children[index];
+            // Fast update without full re-render if possible.
             if (block) {
                 const imgBox = block.querySelector('.image-content-box');
-                if (imgBox) imgBox.style.width = width + '%';
-                block.querySelector('.image-control-panel span').innerText = width + '%';
+                if (imgBox) imgBox.style.width = safeWidth + '%';
+                const valueLabel = block.querySelector('.image-control-panel span');
+                if (valueLabel) valueLabel.innerText = safeWidth + '%';
             }
         }
 
@@ -1700,18 +1726,22 @@
                 previewLabel.innerHTML = `<span><i data-lucide="eye" class="icon-sm"></i> LIVE PREVIEW</span>`;
                 rightCol.appendChild(previewLabel);
 
-                if (extractedData.imagePart) {
+                const questionHasTikz = hasTikzBlock(q.question);
+                if (extractedData.imagePart || questionHasTikz) {
                     const controlPanel = document.createElement('div');
                     controlPanel.className = 'image-control-panel';
 
-                    // Initial width extraction from the HTML if it exists, otherwise 100%
-                    const widthMatch = extractedData.imagePart.match(/width:\s*(\d+)%/);
-                    const currentWidth = widthMatch ? widthMatch[1] : '100';
+                    const widthMatch = extractedData.imagePart?.match(/width:\s*(\d+)%/);
+                    const currentWidth = questionHasTikz
+                        ? normalizeTikzWidth(q.tikz_width)
+                        : (widthMatch ? Number(widthMatch[1]) : 100);
+                    const minWidth = questionHasTikz ? 25 : 10;
+                    const maxWidth = questionHasTikz ? 100 : 200;
 
                     controlPanel.innerHTML = `
-                        <label>IMAGE SIZE:</label>
-                        <input type="range" min='10' max='200' value="${currentWidth}" oninput="adjustImageWidth(${qIndex}, this.value)">
-                        <span style="font-size: 10px; font-weight: 700; min-width: 30px;">${currentWidth}%</span>
+                        <label>${questionHasTikz ? 'DIAGRAM SIZE:' : 'IMAGE SIZE:'}</label>
+                        <input type="range" min="${minWidth}" max="${maxWidth}" step="5" value="${currentWidth}" oninput="adjustImageWidth(${qIndex}, this.value)">
+                        <span style="font-size: 10px; font-weight: 700; min-width: 34px;">${currentWidth}%</span>
                     `;
                     rightCol.appendChild(controlPanel);
                 }
@@ -2501,7 +2531,7 @@
             }
 
             quizData.questions.forEach((q, qIndex) => {
-                quizData.questions[qIndex].question = processTikzToImageJS(q.question);
+                quizData.questions[qIndex].question = processTikzToImageJS(q.question, q.tikz_width);
             });
             const title = document.getElementById('quiz-title').value.trim();
             const timeLimit = Number.parseInt(document.getElementById('quiz-time').value, 10);

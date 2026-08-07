@@ -1505,7 +1505,13 @@
             return cleaned;
         }
 
-        function formatText(t) {
+        function normalizeTikzWidth(value, fallback = 70) {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) return fallback;
+            return Math.max(25, Math.min(100, Math.round(parsed)));
+        }
+
+        function formatText(t, tikzWidth = 70) {
             if (t === null || t === undefined) return '';
 
             // 1. Unpack JSON Objects/Lists (if any)
@@ -1552,7 +1558,8 @@
                 for (let i = 0; i < compressed.byteLength; i++) { binary += String.fromCharCode(compressed[i]); }
                 const b64 = window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
                 const imgUrl = `https://kroki.io/tikz/svg/${b64}`;
-                return `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUrl}" alt='Math Diagram'></div></div>`;
+                const safeWidth = normalizeTikzWidth(tikzWidth);
+                return `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: ${safeWidth}%;"><img src="${imgUrl}" alt='Math Diagram'></div></div>`;
             });
 
             const formatted = str.split(/(<div class="resizable-image-wrapper"[\s\S]*?<\/div>)/gi).map(p => {
@@ -1897,7 +1904,7 @@
                 }
                 updateWhiteboardLayout();
 
-                document.getElementById('question-text').innerHTML = formatText(q.question);
+                document.getElementById('question-text').innerHTML = formatText(q.question, q.tikz_width);
                 const opts = document.getElementById('options-container');
                 opts.innerHTML = '';
 

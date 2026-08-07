@@ -32,7 +32,7 @@ import {
   validateLatexText,
   validateQuestionLatex
 } from '../src/services/latex.ts';
-import { buildTikzRequirementPlan, hasTikzDiagram, validateTikzRequirement } from '../src/services/tikzGeneration.ts';
+import { buildTikzRequirementPlan, buildTikzVisualPlan, formatTikzVisualPlanEntry, hasTikzDiagram, inferTikzVisualIntents, validateTikzRequirement } from '../src/services/tikzGeneration.ts';
 import {
   applyLatexPatches,
   createLatexPatchRequests,
@@ -131,8 +131,63 @@ describe('exact TikZ diagram generation contract', () => {
   test('generator prompt treats diagram count as exact and uses diagram_required flags', () => {
     assert.match(promptTemplates.STRUCTURED_QUIZ_GENERATOR_PROMPT, /exactly \{images_count\}/i);
     assert.match(promptTemplates.STRUCTURED_QUIZ_GENERATOR_PROMPT, /diagram_required="yes"/i);
+    assert.match(promptTemplates.STRUCTURED_QUIZ_GENERATOR_PROMPT, /visual_intent/i);
+    assert.match(promptTemplates.STRUCTURED_QUIZ_GENERATOR_PROMPT, /never add decorative art/i);
     assert.match(promptTemplates.STRUCTURED_QUIZ_GENERATOR_PROMPT, /BASE TIKZ ONLY/i);
   });
+
+  test('chooses topic-aware and varied visual intents instead of one generic graph template', () => {
+    const derivativePlan = buildTikzVisualPlan(10, 2, 'Mathematics', 'Derivatives');
+    const derivativeVisuals = derivativePlan.filter(item => item.required).map(item => item.intent?.id);
+    assert.deepEqual(derivativeVisuals, ['derivative_tangent_graph', 'derivative_critical_points_graph']);
+
+    const probability = inferTikzVisualIntents('Mathematics', 'Probability');
+    assert.deepEqual(probability.slice(0, 3).map(item => item.id), ['probability_tree', 'venn_diagram', 'sample_space_table']);
+
+    const chemistry = inferTikzVisualIntents('Science', 'Chemical reactions and particles');
+    assert.deepEqual(chemistry.slice(0, 3).map(item => item.id), ['particle_diagram', 'apparatus_schematic', 'data_table']);
+
+    const computing = inferTikzVisualIntents('Computer Science', 'Algorithms');
+    assert.deepEqual(computing.slice(0, 3).map(item => item.id), ['flow_diagram', 'tree_diagram', 'state_diagram']);
+  });
+
+  test('puts the assigned visual goal and guidance directly into the question plan', () => {
+    const entry = buildTikzVisualPlan(4, 1, 'Mathematics', 'Derivatives').find(item => item.required)!;
+    const planText = formatTikzVisualPlanEntry(entry);
+    assert.match(planText, /diagram_required="yes"/);
+    assert.match(planText, /visual_intent="derivative_tangent_graph"/);
+    assert.match(planText, /visual_goal=/);
+    assert.match(planText, /visual_guidance=/);
+  });
+
+  test('rejects a required visual that does not match its assigned visual family', () => {
+    const derivativeIntent = inferTikzVisualIntents('Mathematics', 'Derivatives')[0];
+    const goodGraph = String.raw`Use the graph below. [TIKZ]\draw[->] (-3,0)--(3,0) node[right] {$x$}; \draw[->] (0,-2)--(0,4) node[above] {$y$}; \draw[domain=-2:2,samples=30] plot (\x,{\x*\x}); \draw (-1,1)--(1,1) node[pos=.75,above=4pt] {tangent};[/TIKZ]`;
+    const wrongTable = String.raw`Use the table below. [TIKZ]\draw (0,0) rectangle (4,2); \draw (0,1)--(4,1); \draw (2,0)--(2,2); \node at (1,1.5) {$x$}; \node at (3,1.5) {$f(x)$}; \node at (1,.5) {$1$}; \node at (3,.5) {$2$};[/TIKZ]`;
+    assert.equal(validateTikzRequirement(goodGraph, true, derivativeIntent).valid, true);
+    assert.equal(validateTikzRequirement(wrongTable, true, derivativeIntent).valid, false);
+  });
+
+
+  test('rejects free graph labels that sit directly on plotted objects', () => {
+    const derivativeIntent = inferTikzVisualIntents('Mathematics', 'Derivatives')[0];
+    const overlappingLabel = String.raw`Use the graph below. [TIKZ]\draw[->] (-3,0)--(3,0) node[right] {$x$}; \draw[->] (0,-2)--(0,4) node[above] {$y$}; \draw[domain=-2:2,samples=30] plot (\x,{\x*\x}); \node at (1.5,2.25) {$f(x)$};[/TIKZ]`;
+    const offsetLabel = String.raw`Use the graph below. [TIKZ]\draw[->] (-3,0)--(3,0) node[right] {$x$}; \draw[->] (0,-2)--(0,4) node[above] {$y$}; \draw[domain=-2:2,samples=30] plot (\x,{\x*\x}); \node[right=5pt] at (1.5,2.25) {$f(x)$};[/TIKZ]`;
+    assert.equal(validateTikzRequirement(overlappingLabel, true, derivativeIntent).valid, false);
+    assert.equal(validateTikzRequirement(offsetLabel, true, derivativeIntent).valid, true);
+  });
+
+  test('preserves and clamps per-question TikZ display width', () => {
+    const base = multipleChoice({ tikz_width: 70 });
+    const normal = normalizeQuestionForStorage(base);
+    assert.equal(normal.valid, true);
+    if (normal.valid) assert.equal((normal.question as any).tikz_width, 70);
+
+    const oversized = normalizeQuestionForStorage({ ...base, tikz_width: 250 });
+    assert.equal(oversized.valid, true);
+    if (oversized.valid) assert.equal((oversized.question as any).tikz_width, 100);
+  });
+
 });
 
 describe('AI task profiles and model restriction', () => {

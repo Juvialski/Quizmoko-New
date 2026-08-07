@@ -32,6 +32,7 @@ import {
   validateLatexText,
   validateQuestionLatex
 } from '../src/services/latex.ts';
+import { buildTikzRequirementPlan, hasTikzDiagram, validateTikzRequirement } from '../src/services/tikzGeneration.ts';
 import {
   applyLatexPatches,
   createLatexPatchRequests,
@@ -105,6 +106,32 @@ describe('subject-aware prompt policy', () => {
     assert.match(computing, /Never insert LaTeX delimiters inside code-like text/i);
     assert.doesNotMatch(science, /EVERY standalone numeric value/);
     assert.doesNotMatch(history, /EVERY standalone numeric value/);
+  });
+});
+
+describe('exact TikZ diagram generation contract', () => {
+  test('spreads the exact requested diagram count across the quiz', () => {
+    const plan = buildTikzRequirementPlan(10, 2);
+    assert.equal(plan.length, 10);
+    assert.equal(plan.filter(Boolean).length, 2);
+    assert.deepEqual(plan.map((value, index) => value ? index + 1 : 0).filter(Boolean), [3, 8]);
+    assert.equal(buildTikzRequirementPlan(10, 0).filter(Boolean).length, 0);
+    assert.equal(buildTikzRequirementPlan(3, 9).filter(Boolean).length, 3);
+  });
+
+  test('requires exactly one usable base-TikZ block only on assigned questions', () => {
+    const valid = String.raw`Read the graph. [TIKZ]\begin{tikzpicture}\draw[->] (-2,0)--(2,0);\draw[domain=-1:1,samples=20] plot (\x,{\x*\x});\end{tikzpicture}[/TIKZ]`;
+    assert.equal(hasTikzDiagram(valid), true);
+    assert.equal(validateTikzRequirement(valid, true).valid, true);
+    assert.equal(validateTikzRequirement('No diagram here.', true).valid, false);
+    assert.equal(validateTikzRequirement(valid, false).valid, false);
+    assert.equal(validateTikzRequirement(String.raw`[TIKZ]\begin{axis}\addplot coordinates {(0,0) (1,1)};\end{axis}[/TIKZ]`, true).valid, false);
+  });
+
+  test('generator prompt treats diagram count as exact and uses diagram_required flags', () => {
+    assert.match(promptTemplates.STRUCTURED_QUIZ_GENERATOR_PROMPT, /exactly \{images_count\}/i);
+    assert.match(promptTemplates.STRUCTURED_QUIZ_GENERATOR_PROMPT, /diagram_required="yes"/i);
+    assert.match(promptTemplates.STRUCTURED_QUIZ_GENERATOR_PROMPT, /BASE TIKZ ONLY/i);
   });
 });
 

@@ -19,6 +19,7 @@ import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
 import { duplicateQuestionIds, verifyQuestionBatch } from '../services/aiQuestionVerifier.ts';
 import { applyLatexPatches, createLatexPatchRequests } from '../services/latexPatches.ts';
 import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, stripDuplicatedChoiceBlock, stripRedundantOptionPrefix, validateQuestionLatex } from '../services/latex.ts';
+import { buildTikzRequirementPlan, hasTikzDiagram, validateTikzRequirement } from '../services/tikzGeneration.ts';
 import {
   getCorrectAnswer,
   normalizeQuestion,
@@ -643,15 +644,15 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
 
   try {
     const generatedQuestions: any[] = [];
-    let remainingImages = imagesCount;
+    const tikzRequirementPlan = buildTikzRequirementPlan(totalQuestions, imagesCount);
 
     for (let offset = 0; offset < totalQuestions; offset += batchSize) {
       const batchTypes = typePlan.slice(offset, offset + batchSize);
       const batchDifficulties = difficultyPlan.slice(offset, offset + batchTypes.length);
-      const batchImages = Math.min(remainingImages, batchTypes.length);
-      remainingImages -= batchImages;
+      const batchDiagramRequirements = tikzRequirementPlan.slice(offset, offset + batchTypes.length);
+      const batchImages = batchDiagramRequirements.filter(Boolean).length;
       const questionPlan = batchTypes
-        .map((type, index) => `${index + 1}. type="${type}", difficulty="${batchDifficulties[index] || 'average'}"`)
+        .map((type, index) => `${index + 1}. type="${type}", difficulty="${batchDifficulties[index] || 'average'}", diagram_required="${batchDiagramRequirements[index] ? 'yes' : 'no'}"`)
         .join('\n');
 
       let prompt = STRUCTURED_QUIZ_GENERATOR_PROMPT
@@ -697,11 +698,23 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
           const candidates = batchTypes.map((type, index) =>
             normalizeGeneratedQuestion(rawQuestions[index], type, batchDifficulties[index] || 'average', strictMathFormatting)
           );
-          if (candidates.every(Boolean)) normalizedBatch = candidates as any[];
+          if (candidates.every(Boolean)) {
+            const diagramErrors = (candidates as any[])
+              .map((candidate, index) => {
+                const check = validateTikzRequirement(candidate.question, Boolean(batchDiagramRequirements[index]));
+                return check.valid ? '' : `Question ${index + 1}: ${check.reason || 'TikZ requirement was not met.'}`;
+              })
+              .filter(Boolean);
+            if (diagramErrors.length === 0) {
+              normalizedBatch = candidates as any[];
+            } else {
+              prompt += `\n\nDIAGRAM VALIDATION FAILED. Regenerate the entire batch and follow each diagram_required flag exactly. ${diagramErrors.join(' ')}`;
+            }
+          }
         }
 
         if (!normalizedBatch) {
-          prompt += '\n\nYour previous response was incomplete or did not match the required types. Return every planned question with a non-empty answer and all required options.';
+          prompt += '\n\nYour previous response was incomplete or did not match the required types. Return every planned question with a non-empty answer and all required options. If diagram_required="yes", include exactly one non-empty [TIKZ]...[/TIKZ] block using base TikZ only; if diagram_required="no", include none.';
         }
       }
 
@@ -734,6 +747,11 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
         });
         generatedQuestions.push(...verified.questions);
       }
+    }
+
+    const actualTikzCount = generatedQuestions.filter(question => hasTikzDiagram(question?.question)).length;
+    if (actualTikzCount !== imagesCount) {
+      throw new Error(`TikZ generation count mismatch: requested ${imagesCount} diagram question${imagesCount === 1 ? '' : 's'}, but generated ${actualTikzCount}. Please retry the quiz generation.`);
     }
 
     const duplicateIds = new Set(duplicateQuestionIds(generatedQuestions));

@@ -438,7 +438,7 @@
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;" id="limits-group">
                 <div><label>Total Qs</label><input type="number" name="num_items" value="10" min="1" max="50" required></div>
                 <div><label>Time(s)</label><input type="number" name="time_limit" value="200" required></div>
-                <div><label>Images</label><input type="number" name="images_count" value="0" min='0' required></div>
+                <div><label title="Exact number of generated questions that must include a TikZ graph or diagram">Diagrams</label><input type="number" name="images_count" value="0" min='0' required title="Exact number of questions that must include a generated TikZ graph or diagram"></div>
                 <div><label>Batch</label><input type="number" name="batch_size" value="3" min='1' max='10' required></div>
             </div>
         </div>

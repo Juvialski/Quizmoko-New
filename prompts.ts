@@ -144,9 +144,9 @@ Create clear, unambiguous quiz-question drafts. Return only the requested studen
 {subject_rules}
 
 Rules:
-- Multiple choice and multiple select use exactly four unique options.
+- Multiple choice and multiple select use exactly four unique options. The options array contains option CONTENT ONLY; never prefix entries with A/B/C/D or any choice label because QuizMoKo renders those labels itself.
 - Multiple select has at least two correct options.
-- True/false uses A) True and B) False.
+- True/false uses exactly ["True", "False"] with answer A or B; never put A/B labels inside those option strings.
 - Identification, open-ended, and graphing questions have no options.
 - Do not include an Answer: line in question text.
 - Do not reveal the answer in the wording or diagram.
@@ -161,9 +161,9 @@ Create clear, factually sound, unambiguous quiz-question drafts. Return only the
 {subject_rules}
 
 Rules:
-- Multiple choice and multiple select use exactly four unique options.
+- Multiple choice and multiple select use exactly four unique options. The options array contains option CONTENT ONLY; never prefix entries with A/B/C/D or any choice label because QuizMoKo renders those labels itself.
 - Multiple select has at least two correct options.
-- True/false uses A) True and B) False.
+- True/false uses exactly ["True", "False"] with answer A or B; never put A/B labels inside those option strings.
 - Identification, open-ended, and graphing questions have no options.
 - Do not include an Answer: line in question text.
 - Do not reveal the answer in the wording.
@@ -201,8 +201,8 @@ Generate exactly {batch_size} question objects in this exact order:
 
 RULES
 1. Every question must be unambiguous, self-contained, factually correct, and solvable from the supplied information.
-2. Multiple choice and multiple select require exactly four unique options. Prefix options A), B), C), and D) in the options array only. NEVER repeat, inline, or append those choices inside the question field. For multiple choice, answer is one letter. For multiple select, answer is two or more letters in ascending order.
-3. True/false requires exactly ["A) True", "B) False"] and answer A or B.
+2. Multiple choice and multiple select require exactly four unique options. The options array must contain ONLY the option content. NEVER prefix option strings with A), B), C), D), A., B., "Option A", bullets, numbers, or any other choice label because QuizMoKo renders the A/B/C/D labels itself. Correct: ["50", "60", "65", "70"]. Wrong: ["A) 50", "B) 60", "C) 65", "D) 70"]. NEVER repeat, inline, or append those choices inside the question field. For multiple choice, answer is one letter. For multiple select, answer is two or more letters in ascending order.
+3. True/false requires exactly ["True", "False"] and answer A or B. Do not prefix True/False with A/B labels.
 4. Identification, open-ended, and graphing require an empty options array. Identification answers must be a concise raw number, symbol, word, or short phrase without units or LaTeX delimiters.
 5. Include a concise solution that allows an independent checker to verify the proposed answer. Do not expose hidden reasoning.
 6. Do not include Question:, question numbers, difficulty labels, markdown fences, or an Answer: line in the question text.
@@ -227,7 +227,7 @@ COVERAGE AND FIDELITY
 - Repair obvious OCR spacing inside a word or number only, such as "226 , 000" to "226,000". Do not paraphrase.
 
 STRUCTURE
-- Move selectable A/B/C/D choices into options and keep their literal wording. Once moved, REMOVE those choice lines/text from verbatim_text and raw_text; never duplicate the choices in the question stem. Leave options empty when none are visible.
+- Move selectable A/B/C/D choices into options and keep their literal content, but OMIT the visible A/B/C/D label itself because the structured array position supplies the label. Once moved, REMOVE those choice lines/text from verbatim_text and raw_text; never duplicate the choices in the question stem. Leave options empty when none are visible.
 - Use multiple_choice for exactly one correct option, multiple_choice_multi only when the source explicitly permits multiple answers, true_false for true/false, identification for one concise word/number/symbol, graphing for a required graph or drawing, and open_ended otherwise.
 - original_index is the printed main identifier as a string.
 - bounding_box is [] unless the item depends on a visible diagram, graph, chart, map, coordinate plane, or illustration. When needed, return [ymin, xmin, ymax, xmax] as four integers from 0 to 1000 with a small margin. Equations and ordinary text are not images.
@@ -251,7 +251,7 @@ COVERAGE AND FIDELITY
 - Repair obvious OCR spacing inside a word or number only. Do not paraphrase.
 
 STRUCTURE
-- Move selectable choices into options and preserve their literal wording. Once moved, REMOVE those choice lines/text from verbatim_text and raw_text; never duplicate the choices in the question stem. Leave options empty when none are visible.
+- Move selectable choices into options and preserve their literal content, but OMIT any visible A/B/C/D label because the structured array position supplies the label. Once moved, REMOVE those choice lines/text from verbatim_text and raw_text; never duplicate the choices in the question stem. Leave options empty when none are visible.
 - Use multiple_choice for one correct option, multiple_choice_multi only when multiple answers are explicitly allowed, true_false for true/false, identification for one concise word or short phrase, graphing for a required drawing, and open_ended otherwise.
 - original_index is the printed main identifier as a string.
 - bounding_box is [] unless the item depends on a visible diagram, chart, map, or illustration. When needed, return four normalized integers [ymin, xmin, ymax, xmax] from 0 to 1000 with a small margin.
@@ -347,7 +347,7 @@ export const RMX_FLASH_EXTRACTION_PROMPT = String.raw`Extract every readable num
 - Preserve the literal question wording without the printed number. Do not solve, verify, summarize, or invent content.
 - Repeat an exact shared heading or instruction at the start of every statement it governs; never emit that context as a separate item.
 - Keep all subparts under one main number in one statement.
-- Move visible selectable options into choices with their literal wording. Use [] when no choices are visible.
+- Move visible selectable options into choices with their literal content, but OMIT any visible A/B/C/D prefix because array order supplies the label. Use [] when no choices are visible.
 - Use LaTeX consistently: every standalone numeric value in mathematical statement/choice content must be inside $...$; wrap a complete expression when the number belongs to one. Printed question numbers and option letters stay outside delimiters.
 - original_index is the printed main identifier.
 - identifier is exactly 12 alphanumeric characters and unique within the response.
@@ -387,7 +387,7 @@ AUTHORITATIVE GOLDEN REFERENCE
 
 Solve every input item from scratch. Existing answers and proposed_answer_for_review are untrusted and must not influence your reasoning. Preserve each stable id and the original question text.
 
-When a golden answer exists, preserve it as authoritative but still solve independently so the server can detect conflicts. Return complete options, answer, type, and a concise solution. Use $...$ for mathematical content and wrap every standalone numeric value in question/option/solution text. Wrap complete expressions rather than splitting them. Identification answers must remain concise plain values without units or delimiters.
+When a golden answer exists, preserve it as authoritative but still solve independently so the server can detect conflicts. Return complete options, answer, type, and a concise solution. Structured option strings must contain content only with no A/B/C/D prefix because QuizMoKo renders the choice labels itself. Use $...$ for mathematical content and wrap every standalone numeric value in question/option/solution text. Wrap complete expressions rather than splitting them. Identification answers must remain concise plain values without units or delimiters.
 
 Return every id exactly once and only the schema-defined JSON array.
 

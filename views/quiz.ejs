@@ -1943,14 +1943,15 @@
                         // RESTORE SELECTION
                         if (q.type === 'multiple_choice_multi') {
                             const currentSet = new Set(String(answers[currentIndex] || '').replace(',', ' ').split(/\s+/).filter(x => x));
-                            const letter = o.trim().toUpperCase()[0];
+                            const letter = String.fromCharCode(65 + optIdx);
                             if (currentSet.has(letter)) b.classList.add('selected');
                         } else {
                             if (answers[currentIndex] === o) b.classList.add('selected');
                         }
 
                         const optionKey = String.fromCharCode(65 + optIdx);
-                        b.innerHTML = `<div class="option-key-badge">${optionKey}</div> <div style="flex-grow:1;">${formatText(o)}</div>`;
+                        const displayOption = String(o ?? '').replace(new RegExp(`^\\s*(?:option\\s+)?(?:\\(${optionKey}\\)|${optionKey}\\s*[\\)\\].:]|${optionKey}\\s+-\\s+)\\s*`, 'i'), '').trim();
+                        b.innerHTML = `<div class="option-key-badge">${optionKey}</div> <div style="flex-grow:1;">${formatText(displayOption)}</div>`;
                         b.onclick = () => {
                             if (q.type === 'multiple_choice_multi') {
                                 b.classList.toggle('selected');

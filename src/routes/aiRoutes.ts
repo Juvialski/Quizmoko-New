@@ -18,7 +18,7 @@ import {
 import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
 import { duplicateQuestionIds, verifyQuestionBatch } from '../services/aiQuestionVerifier.ts';
 import { applyLatexPatches, createLatexPatchRequests } from '../services/latexPatches.ts';
-import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, stripDuplicatedChoiceBlock, validateQuestionLatex } from '../services/latex.ts';
+import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, stripDuplicatedChoiceBlock, stripRedundantOptionPrefix, validateQuestionLatex } from '../services/latex.ts';
 import {
   getCorrectAnswer,
   normalizeQuestion,
@@ -340,11 +340,10 @@ function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: 
   if (expectedType === 'multiple_choice' || expectedType === 'multiple_choice_multi') {
     const sourceOptions = Array.isArray(raw.options) ? raw.options : [];
     if (sourceOptions.length !== 4) return null;
-    normalized.options = sourceOptions.map((option: unknown, index: number) => {
-      const text = normalizeDisplayText(option ?? '').trim().replace(/^[A-D][).]\s*/i, '');
-      return `${String.fromCharCode(65 + index)}) ${text}`;
-    });
-    if (normalized.options.some((option: string) => !option.replace(/^[A-D]\)\s*/, '').trim())) return null;
+    normalized.options = sourceOptions.map((option: unknown, index: number) =>
+      stripRedundantOptionPrefix(normalizeDisplayText(option ?? ''), index)
+    );
+    if (normalized.options.some((option: string) => !option.trim())) return null;
     normalized.question = stripDuplicatedChoiceBlock(normalized.question, normalized.options).trim();
     if (!normalized.question) return null;
 
@@ -353,9 +352,9 @@ function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: 
       .filter((letter, index, all) => all.indexOf(letter) === index);
     let answerLetter = answerLetters[0] || '';
     if (!answerLetter && expectedType === 'multiple_choice') {
-      const answerText = rawAnswer.replace(/^[A-D][).]\s*/i, '').trim().toLowerCase();
+      const answerText = rawAnswer.replace(/^[A-D][).:\-]\s*/i, '').trim().toLowerCase();
       const matchIndex = normalized.options.findIndex((option: string) =>
-        option.replace(/^[A-D]\)\s*/, '').trim().toLowerCase() === answerText
+        option.trim().toLowerCase() === answerText
       );
       if (matchIndex >= 0) answerLetter = String.fromCharCode(65 + matchIndex);
     }
@@ -367,7 +366,7 @@ function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: 
       normalized.answer = answerLetter;
     }
   } else if (expectedType === 'true_false') {
-    normalized.options = ['A) True', 'B) False'];
+    normalized.options = ['True', 'False'];
     if (/^(?:a|true)(?:\b|[).])/i.test(rawAnswer)) normalized.answer = 'A';
     else if (/^(?:b|false)(?:\b|[).])/i.test(rawAnswer)) normalized.answer = 'B';
     else return null;
@@ -997,7 +996,7 @@ ${JSON.stringify(patchRequests)}`;
           const sourceText = getOriginalQuestionText(question);
           const itemStrictMath = polishUsesStrictMath(sourceText);
           const normalizedOptions = Array.isArray(question.options)
-            ? question.options.map((option: unknown) => itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option))
+            ? question.options.map((option: unknown, index: number) => stripRedundantOptionPrefix(itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option), index))
             : [];
           const cleanedQuestion = stripDuplicatedChoiceBlock(
             normalizeQuestionTextForDisplay(sourceText, itemStrictMath),
@@ -1031,7 +1030,7 @@ ${JSON.stringify(patchRequests)}`;
           : undefined;
         const itemStrictMath = polishUsesStrictMath(restoredQuestion);
         const normalizedOptions = Array.isArray(patched.options)
-          ? patched.options.map((option: unknown) => itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option))
+          ? patched.options.map((option: unknown, index: number) => stripRedundantOptionPrefix(itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option), index))
           : (Array.isArray(original.options) ? original.options : []);
         const candidate: any = {
           ...original,
@@ -1120,7 +1119,7 @@ ${JSON.stringify(patchRequests)}`;
         question: normalizeQuestionTextForDisplay(restoredQuestion, itemStrictMath)
       };
       if (Array.isArray(output.options)) {
-        output.options = output.options.map((option: unknown) => itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option));
+        output.options = output.options.map((option: unknown, index: number) => stripRedundantOptionPrefix(itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option), index));
         output.question = stripDuplicatedChoiceBlock(output.question, output.options).trim();
       }
       if (typeof output.solution === 'string') {
@@ -1223,7 +1222,7 @@ router.post('/api/resolve_question', tokenRequired, async (req: AuthRequest, res
       question: normalizeQuestionTextForDisplay(restoredText, resolveStrictMath)
     };
     if (Array.isArray(finalResolvedQuestion.options)) {
-      finalResolvedQuestion.options = finalResolvedQuestion.options.map((option: unknown) => resolveStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option));
+      finalResolvedQuestion.options = finalResolvedQuestion.options.map((option: unknown, index: number) => stripRedundantOptionPrefix(resolveStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option), index));
     }
     if (typeof finalResolvedQuestion.solution === 'string') {
       finalResolvedQuestion.solution = resolveStrictMath ? normalizeMathQuestionText(finalResolvedQuestion.solution) : normalizeAiLatexText(finalResolvedQuestion.solution);

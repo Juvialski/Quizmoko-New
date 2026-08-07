@@ -26,7 +26,7 @@ import {
   generateGeminiContent,
   GeminiRateLimitError
 } from '../services/geminiRateLimiter.ts';
-import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, stripDuplicatedChoiceBlock, validateLatexText } from '../services/latex.ts';
+import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, stripDuplicatedChoiceBlock, stripRedundantOptionPrefix, validateLatexText } from '../services/latex.ts';
 import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
 import {
   applyGoldenAnswers,
@@ -344,7 +344,7 @@ function validateExtractedQuestions(
     const normalizeDisplayText = useStrictMath ? normalizeMathQuestionText : normalizeAiLatexText;
     const normalizeQuestionText = (value: unknown) => normalizeQuestionLayoutText(normalizeDisplayText(value));
     const options = Array.isArray(item.options)
-      ? item.options.map((option: unknown) => normalizeDisplayText(option).trim())
+      ? item.options.map((option: unknown, index: number) => stripRedundantOptionPrefix(normalizeDisplayText(option), index))
       : [];
     const verbatimText = stripDuplicatedChoiceBlock(
       normalizeQuestionText(item.verbatim_text ?? item.raw_text ?? ''),
@@ -554,7 +554,7 @@ function validateCompleteQuestions(value: unknown, expectedLength: number): any[
       question,
       answer,
       type,
-      options: item.options.map((option: unknown) => normalizeMathQuestionText(option).trim()),
+      options: item.options.map((option: unknown, index: number) => stripRedundantOptionPrefix(normalizeMathQuestionText(option), index)),
       ...(typeof item.solution === 'string' && item.solution.trim()
         ? { solution: normalizeMathQuestionText(item.solution).trim() }
         : {})
@@ -784,8 +784,8 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
     if (Object.prototype.hasOwnProperty.call(question, 'statement')) question.statement = normalizedQuestionText;
     if (!question.raw_text && !question.question && !question.statement) question.raw_text = normalizedQuestionText;
     if (Array.isArray(question.options)) {
-      question.options = question.options.map((option: unknown) =>
-        (strictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option)).trim()
+      question.options = question.options.map((option: unknown, index: number) =>
+        stripRedundantOptionPrefix(strictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option), index)
       );
       const cleanedQuestionText = stripDuplicatedChoiceBlock(normalizedQuestionText, question.options).trim();
       if (Object.prototype.hasOwnProperty.call(question, 'raw_text')) question.raw_text = cleanedQuestionText;

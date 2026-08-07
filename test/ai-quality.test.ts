@@ -28,6 +28,7 @@ import {
   normalizeMathQuestionText,
   normalizeQuestionLayoutText,
   stripDuplicatedChoiceBlock,
+  stripRedundantOptionPrefix,
   validateLatexText,
   validateQuestionLatex
 } from '../src/services/latex.ts';
@@ -191,6 +192,15 @@ b. $\dfrac{180}{360}$`
       stripDuplicatedChoiceBlock('Which statement about option A is true?', ['One', 'Two', 'Three', 'Four']),
       'Which statement about option A is true?'
     );
+  });
+
+  test('strips redundant option labels while preserving legitimate option content', () => {
+    assert.equal(stripRedundantOptionPrefix('A) 50', 0), '50');
+    assert.equal(stripRedundantOptionPrefix('B. $60$', 1), '$60$');
+    assert.equal(stripRedundantOptionPrefix('Option C: rational numbers', 2), 'rational numbers');
+    assert.equal(stripRedundantOptionPrefix('(D) irrational numbers', 3), 'irrational numbers');
+    assert.equal(stripRedundantOptionPrefix('A-rated bonds', 0), 'A-rated bonds');
+    assert.equal(stripRedundantOptionPrefix('B) intentionally starts with B', 0), 'B) intentionally starts with B');
   });
 
   test('wraps every standalone number in math-facing text without corrupting existing LaTeX, HTML, or TikZ', () => {
@@ -408,6 +418,15 @@ test('active math prompts require standalone numeric values to use LaTeX delimit
   assert.match(prompts, /EVERY standalone numeric value must be enclosed in \$\.\.\.\$/i);
   assert.match(prompts, /ratio \$2\$ to \$5\$/i);
   assert.match(prompts, /encode line breaks as \\n/i);
+  assert.match(prompts, /options array must contain ONLY the option content/i);
+  assert.doesNotMatch(prompts, /Prefix options A\), B\), C\), and D\)/i);
+});
+
+test('quiz UI renders choice labels once and restores multi-select by option index', () => {
+  const view = fs.readFileSync('views/quiz.ejs', 'utf8');
+  assert.match(view, /const optionKey = String\.fromCharCode\(65 \+ optIdx\)/);
+  assert.match(view, /const displayOption = String\(o \?\? ''\)\.replace/);
+  assert.match(view, /const letter = String\.fromCharCode\(65 \+ optIdx\)/);
 });
 
 test('teacher content edits invalidate stale AI verification until explicit approval', () => {

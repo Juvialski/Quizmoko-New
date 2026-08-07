@@ -123,6 +123,24 @@ function stripOptionLabel(value: string): string {
 }
 
 /**
+ * Removes a redundant UI choice label from one structured option. The array
+ * position is authoritative, so only the label expected for that position is
+ * removed. This keeps legitimate content such as "A-rated" intact while
+ * preventing UI output such as "A  A) 50".
+ */
+export function stripRedundantOptionPrefix(value: unknown, optionIndex: number): string {
+  const source = String(value ?? '').trim();
+  if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex > 25) return source;
+  const label = String.fromCharCode(65 + optionIndex);
+  const escapedLabel = escapeRegex(label);
+  const pattern = new RegExp(
+    `^\\s*(?:option\\s+)?(?:\\(${escapedLabel}\\)|${escapedLabel}\\s*[\\)\\].:]|${escapedLabel}\\s+-\\s+)\\s*`,
+    'i'
+  );
+  return source.replace(pattern, '').trim();
+}
+
+/**
  * Removes a duplicated A/B/C/D choice block from the end of a question stem
  * when those same choices already exist in the structured options array.
  * The entire ordered option sequence must match, so normal references to a

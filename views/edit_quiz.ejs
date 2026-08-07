@@ -532,9 +532,22 @@
             }
         }
 
+        function hasBatchApprovalLock(question) {
+            const verification = question?.verification;
+            if (!verification || typeof verification !== 'object') return false;
+            return verification.teacher_batch_approved === true
+                || (verification.teacher_approved === true && verification.teacher_approval_method === 'batch');
+        }
+
+        function isResolveApprovalPending(question) {
+            return question?.verification?.approval_required_after_resolve === true;
+        }
+
         function isQuestionTeacherApproved(question) {
-            return question?.verification?.verification_status === 'verified'
-                && question?.verification?.teacher_approved === true;
+            if (isResolveApprovalPending(question)) return false;
+            return hasBatchApprovalLock(question)
+                || (question?.verification?.verification_status === 'verified'
+                    && question?.verification?.teacher_approved === true);
         }
 
         function getQuestionApprovalControlHtml(question, index) {
@@ -542,6 +555,45 @@
                 return '<span style="display:inline-flex; align-items:center; color:var(--success); font-size:10px; padding:4px 8px; border:1px solid var(--success); border-radius:7px; font-weight:800; white-space:nowrap;">✓ APPROVED</span>';
             }
             return `<button type="button" class="btn" onclick="approveQuestionAnswer(${index})" style="background:var(--success); color:white; font-size:10px; padding:4px 8px; border:1px solid var(--success); font-weight:800;">✓ APPROVE ANSWER</button>`;
+        }
+
+        function preserveBatchApprovalUiState(previousQuestion, nextQuestion) {
+            if (!nextQuestion || typeof nextQuestion !== 'object' || !hasBatchApprovalLock(previousQuestion)) return nextQuestion;
+            const previousVerification = previousQuestion?.verification && typeof previousQuestion.verification === 'object'
+                ? previousQuestion.verification
+                : {};
+            const nextVerification = nextQuestion?.verification && typeof nextQuestion.verification === 'object'
+                ? nextQuestion.verification
+                : {};
+            nextQuestion.verification = {
+                ...nextVerification,
+                teacher_batch_approved: true,
+                teacher_approved: true,
+                teacher_approval_method: 'batch',
+                teacher_approved_at: previousVerification.teacher_approved_at || nextVerification.teacher_approved_at || new Date().toISOString(),
+                approval_required_after_resolve: false
+            };
+            return nextQuestion;
+        }
+
+        function requireApprovalAfterResolve(previousQuestion, nextQuestion) {
+            if (!nextQuestion || typeof nextQuestion !== 'object') return nextQuestion;
+            const previousVerification = previousQuestion?.verification && typeof previousQuestion.verification === 'object'
+                ? previousQuestion.verification
+                : {};
+            const nextVerification = nextQuestion?.verification && typeof nextQuestion.verification === 'object'
+                ? nextQuestion.verification
+                : {};
+            nextQuestion.verification = {
+                ...nextVerification,
+                teacher_batch_approved: hasBatchApprovalLock(previousQuestion),
+                teacher_approved: false,
+                teacher_approval_method: previousVerification.teacher_approval_method || nextVerification.teacher_approval_method,
+                teacher_approved_at: previousVerification.teacher_approved_at || nextVerification.teacher_approved_at,
+                approval_required_after_resolve: true,
+                resolve_triggered_at: new Date().toISOString()
+            };
+            return nextQuestion;
         }
 
         function refreshQuestionApprovalControl(index) {
@@ -567,9 +619,34 @@
         function markQuestionNeedsReview(index, reason = 'Question content changed after verification. Confirm the current answer or run Re-solve before publishing.') {
             const question = quizData.questions[index];
             if (!question) return;
+            const existingVerification = question.verification && typeof question.verification === 'object'
+                ? { ...question.verification }
+                : {};
+
+            // Once the teacher has used Approve All, ordinary teacher edits are trusted.
+            // Do not resurrect the per-question approval button on every keystroke.
+            // Only Resolve/Re-solve is allowed to request a fresh individual approval.
+            if (hasBatchApprovalLock(question) && !isResolveApprovalPending(question)) {
+                question.verification = {
+                    ...existingVerification,
+                    verification_status: 'verified',
+                    teacher_approved: true,
+                    teacher_batch_approved: true,
+                    teacher_approval_method: 'batch',
+                    approval_required_after_resolve: false,
+                    teacher_edit_after_batch_approval_at: new Date().toISOString()
+                };
+                markQuestionChanged(index);
+                refreshQuestionApprovalControl(index);
+                updateApproveAllButtonState();
+                return;
+            }
+
             question.verification = {
-                answer_source: 'manual',
+                ...existingVerification,
+                answer_source: existingVerification.answer_source || 'manual',
                 verification_status: 'review_required',
+                teacher_approved: false,
                 reason,
                 changed_at: new Date().toISOString()
             };
@@ -755,7 +832,9 @@
             const approvalMetadata = {
                 teacher_approved: true,
                 teacher_approved_at: approvedAt,
-                teacher_approval_method: approvalMethod
+                teacher_approval_method: approvalMethod,
+                teacher_batch_approved: approvalMethod === 'batch' || existingVerification?.teacher_batch_approved === true || existingVerification?.teacher_approval_method === 'batch',
+                approval_required_after_resolve: false
             };
 
             if (existingVerification?.verification_status === 'verified') {
@@ -1413,12 +1492,12 @@
                     GLOBAL_DAILY_STATS[today][model][kid] = (GLOBAL_DAILY_STATS[today][model][kid] || 0) + 1;
                 }
 
-                quizData.questions[qIndex] = {
+                quizData.questions[qIndex] = preserveBatchApprovalUiState(q, {
                     ...q,
                     ...data.question,
                     question: processTikzToImageJS(data.question.question),
                     source_index: q.source_index
-                };
+                });
                 renderQuestions();
                 markQuestionChanged(qIndex);
             } catch (err) {
@@ -1721,9 +1800,14 @@
                         return `${letter}) ${text}`;
                     });
                     q.answer = newAnswerLetter;
+                    const previousVerification = q.verification && typeof q.verification === 'object' ? { ...q.verification } : {};
                     q.verification = {
+                        ...previousVerification,
                         answer_source: 'manual',
                         verification_status: 'verified',
+                        teacher_approved: hasBatchApprovalLock(q) || previousVerification.teacher_approved === true,
+                        teacher_batch_approved: hasBatchApprovalLock(q),
+                        approval_required_after_resolve: false,
                         reason: 'Teacher-approved choice shuffle preserved the matching answer text.'
                     };
                 }
@@ -1814,10 +1898,10 @@
 
                     // Update current question with data from server
                     // Use ...data.question first to ensure type and options are cleared
-                    quizData.questions[qIndex] = {
+                    quizData.questions[qIndex] = preserveBatchApprovalUiState(q, {
                         ...data.question,
                         source_index: q.source_index // Preserve source index
-                    };
+                    });
 
                     // Save before reloading so a slow Render/Firebase request
                     // cannot race the navigation and lose the AI result.
@@ -1871,11 +1955,11 @@
 
                 const data = await res.json();
                 if (data.success && data.question) {
-                    quizData.questions[index] = data.question;
+                    quizData.questions[index] = requireApprovalAfterResolve(q, data.question);
                     await saveQuiz(false); // Silent save
                     renderQuestions();
                 } else if (data.review_required && data.question) {
-                    quizData.questions[index] = data.question;
+                    quizData.questions[index] = requireApprovalAfterResolve(q, data.question);
                     renderQuestions();
                     alert('Re-solve needs teacher review: ' + (data.reason || 'The independent solvers did not agree. Manually enter the approved answer before saving.'));
                 } else {
@@ -1914,7 +1998,7 @@
 
                 const data = await res.json();
                 if (data.success && data.questions.length > 0) {
-                    quizData.questions[index] = data.questions[0];
+                    quizData.questions[index] = preserveBatchApprovalUiState(q, data.questions[0]);
                     renderQuestions();
                 } else {
                     alert('Polishing failed: ' + data.error);
@@ -1959,7 +2043,8 @@
 
                 const data = await res.json();
                 if (data.success) {
-                    quizData.questions = data.questions;
+                    const previousQuestions = Array.isArray(quizData.questions) ? quizData.questions : [];
+                    quizData.questions = data.questions.map((question, index) => preserveBatchApprovalUiState(previousQuestions[index], question));
                     renderQuestions();
                     alert('Math formatting polished successfully!');
                 } else {
@@ -2087,7 +2172,8 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    quizData.questions = data.questions;
+                    const previousQuestions = Array.isArray(quizData.questions) ? quizData.questions : [];
+                    quizData.questions = data.questions.map((question, index) => preserveBatchApprovalUiState(previousQuestions[index], question));
                     renderQuestions();
                     const summary = data.summary || {};
                     const changed = Array.isArray(summary.changed) ? summary.changed.length : 0;

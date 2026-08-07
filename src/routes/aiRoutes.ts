@@ -18,7 +18,7 @@ import {
 import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
 import { duplicateQuestionIds, verifyQuestionBatch } from '../services/aiQuestionVerifier.ts';
 import { applyLatexPatches, createLatexPatchRequests } from '../services/latexPatches.ts';
-import { normalizeAiLatexText, normalizeMathQuestionText, validateQuestionLatex } from '../services/latex.ts';
+import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, validateQuestionLatex } from '../services/latex.ts';
 import {
   getCorrectAnswer,
   normalizeQuestion,
@@ -30,10 +30,8 @@ import {
   type AiWorkLease
 } from '../services/aiWorkGuard.ts';
 import {
-  SHARED_LATEX_RULES,
-  NON_MATH_RULES,
-  WORKSHEET_SOLVER_PROMPT,
-  WORKSHEET_SOLVER_PROMPT_NON_MATH,
+  getSubjectPromptRules,
+  shouldUseStrictMathFormatting,
   LATEX_POLISH_PROMPT,
   STRUCTURED_QUIZ_GENERATOR_PROMPT
 } from '../../prompts.ts';
@@ -315,10 +313,15 @@ function allocateByWeight(total: number, weights: Record<string, number>): Recor
   return allocated;
 }
 
+function normalizeQuestionTextForDisplay(value: unknown, formatMathNumbers: boolean): string {
+  const displayText = formatMathNumbers ? normalizeMathQuestionText(value) : normalizeAiLatexText(value);
+  return normalizeQuestionLayoutText(displayText);
+}
+
 function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: string, formatMathNumbers = true) {
   if (!raw || typeof raw !== 'object') return null;
   const normalizeDisplayText = formatMathNumbers ? normalizeMathQuestionText : normalizeAiLatexText;
-  const question = normalizeDisplayText(raw.question || raw.raw_text || '').trim()
+  const question = normalizeQuestionTextForDisplay(raw.question || raw.raw_text || '', formatMathNumbers).trim()
     .replace(/^(?:Question|Q)\s*\d*\s*[:.)-]\s*/i, '');
   const rawAnswer = normalizeAiLatexText(raw.answer ?? raw.correct_answer_letter ?? '').trim();
   if (!question || !rawAnswer) return null;
@@ -612,8 +615,8 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
     difficult: Number(req.body?.hard_pct) || 0
   });
   const difficultyPlan = interleaveCounts(difficultyCounts);
-  const isNonMath = ['english', 'history', 'biology', 'social studies'].includes(subject.toLowerCase());
-  const subjectRules = isNonMath ? NON_MATH_RULES : SHARED_LATEX_RULES;
+  const strictMathFormatting = shouldUseStrictMathFormatting(subject, cleanTopic);
+  const subjectRules = getSubjectPromptRules(subject, cleanTopic);
   const model = String(model_name || 'gemini-3.5-flash-lite').trim();
   const isOllama = model.toLowerCase().startsWith('ollama:');
   const ai = isOllama ? null : getGeminiClient(api_key);
@@ -691,7 +694,7 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
           : (Array.isArray(parsed?.questions) ? parsed.questions : []);
         if (rawQuestions.length >= batchTypes.length) {
           const candidates = batchTypes.map((type, index) =>
-            normalizeGeneratedQuestion(rawQuestions[index], type, batchDifficulties[index] || 'average', !isNonMath)
+            normalizeGeneratedQuestion(rawQuestions[index], type, batchDifficulties[index] || 'average', strictMathFormatting)
           );
           if (candidates.every(Boolean)) normalizedBatch = candidates as any[];
         }
@@ -840,7 +843,8 @@ router.post('/api/generate_question', tokenRequired, async (req: AuthRequest, re
 
     const contents: any[] = [];
     const prepared = prepareVisionText(getOriginalQuestionText(existing_question), contents);
-    const isNonMath = ['english', 'history', 'biology', 'social studies'].includes(String(subject).toLowerCase());
+    const strictMathFormatting = shouldUseStrictMathFormatting(subject, topic, prepared.text);
+    const subjectRules = getSubjectPromptRules(subject, topic);
     let teacherInstructions = String(instructions || '').trim().slice(0, 2_000) || 'None';
     if (prepared.text) {
       teacherInstructions += `\nReplace this existing question with a newly reasoned question. Do not reuse its answer or options:\n${prepared.text}`;
@@ -854,7 +858,7 @@ router.post('/api/generate_question', tokenRequired, async (req: AuthRequest, re
       .replace('{batch_size}', '1')
       .replace('{question_plan}', `1. type="${target_type}", difficulty="average"`)
       .replace('{images_count}', prepared.assets.length > 0 ? '1' : '0')
-      .replace('{subject_rules}', isNonMath ? NON_MATH_RULES : SHARED_LATEX_RULES);
+      .replace('{subject_rules}', subjectRules);
     contents.unshift(prompt);
 
     let parsed: any;
@@ -875,7 +879,7 @@ router.post('/api/generate_question', tokenRequired, async (req: AuthRequest, re
     const rawQuestion = Array.isArray(parsed)
       ? parsed[0]
       : (Array.isArray(parsed?.questions) ? parsed.questions[0] : parsed);
-    const normalized = normalizeGeneratedQuestion(rawQuestion, target_type, 'average', !isNonMath);
+    const normalized = normalizeGeneratedQuestion(rawQuestion, target_type, 'average', strictMathFormatting);
     if (!normalized) {
       return res.status(502).json({ success: false, error: 'The model returned an invalid question' });
     }
@@ -940,8 +944,8 @@ router.post('/api/polish_questions', tokenRequired, async (req: AuthRequest, res
     if (!ai) return res.status(400).json({ success: false, error: 'No valid API key provided' });
     aiLease = acquireRequestAiWork(req, questions.length * (mode === 'RECHECK_ANSWERS' ? 2 : 1), api_key);
 
-    const polishIsNonMath = ['english', 'history', 'biology', 'social studies']
-      .includes(String(subject).toLowerCase());
+    const polishSubjectRules = getSubjectPromptRules(subject);
+    const polishUsesStrictMath = (content: unknown) => shouldUseStrictMathFormatting(subject, '', content);
     const stableQuestions = questions.map((question: any, index: number) => ({
       ...question,
       id: String(question?.id || question?.source?.original_index || question?.original_index || `question_${index + 1}`)
@@ -968,7 +972,7 @@ router.post('/api/polish_questions', tokenRequired, async (req: AuthRequest, res
     const cleanQuestions = preparedQuestions.map(item => item.clean);
     const patchRequests = mode === 'RECHECK_ANSWERS' ? [] : createLatexPatchRequests(cleanQuestions);
     if (mode !== 'RECHECK_ANSWERS') {
-      const prompt = `${LATEX_POLISH_PROMPT}
+      const prompt = `${LATEX_POLISH_PROMPT.replace('{subject_rules}', polishSubjectRules)}
 
 FIELDS TO CHECK:
 ${JSON.stringify(patchRequests)}`;
@@ -1004,18 +1008,19 @@ ${JSON.stringify(patchRequests)}`;
         const restoredRawText = Object.prototype.hasOwnProperty.call(original, 'raw_text')
           ? (restoreVisionText(patched.raw_text || patched.question, preparedQuestions[index].prepared) || original.raw_text)
           : undefined;
+        const itemStrictMath = polishUsesStrictMath(restoredQuestion);
         const candidate: any = {
           ...original,
-          question: polishIsNonMath ? restoredQuestion : normalizeMathQuestionText(restoredQuestion),
+          question: normalizeQuestionTextForDisplay(restoredQuestion, itemStrictMath),
           options: Array.isArray(patched.options)
-            ? patched.options.map((option: unknown) => polishIsNonMath ? normalizeAiLatexText(option) : normalizeMathQuestionText(option))
+            ? patched.options.map((option: unknown) => itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option))
             : original.options,
           answer: patched.answer ?? original.answer,
           ...(typeof patched.solution === 'string'
-            ? { solution: polishIsNonMath ? normalizeAiLatexText(patched.solution) : normalizeMathQuestionText(patched.solution) }
+            ? { solution: itemStrictMath ? normalizeMathQuestionText(patched.solution) : normalizeAiLatexText(patched.solution) }
             : {}),
           ...(restoredRawText !== undefined
-            ? { raw_text: polishIsNonMath ? normalizeAiLatexText(restoredRawText) : normalizeMathQuestionText(restoredRawText) }
+            ? { raw_text: normalizeQuestionTextForDisplay(restoredRawText, itemStrictMath) }
             : {})
         };
         const storage = normalizeQuestionForStorage(candidate);
@@ -1079,20 +1084,21 @@ ${JSON.stringify(patchRequests)}`;
       const original = stableQuestions[index];
       const restoredQuestion = restoreVisionText(verified.question, preparedQuestions[index].prepared)
         || getOriginalQuestionText(original);
+      const itemStrictMath = polishUsesStrictMath(restoredQuestion);
       const output: any = {
         ...original,
         ...verified,
         id: original.id,
-        question: polishIsNonMath ? restoredQuestion : normalizeMathQuestionText(restoredQuestion)
+        question: normalizeQuestionTextForDisplay(restoredQuestion, itemStrictMath)
       };
-      if (Array.isArray(output.options) && !polishIsNonMath) {
-        output.options = output.options.map((option: unknown) => normalizeMathQuestionText(option));
+      if (Array.isArray(output.options)) {
+        output.options = output.options.map((option: unknown) => itemStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option));
       }
-      if (typeof output.solution === 'string' && !polishIsNonMath) {
-        output.solution = normalizeMathQuestionText(output.solution);
+      if (typeof output.solution === 'string') {
+        output.solution = itemStrictMath ? normalizeMathQuestionText(output.solution) : normalizeAiLatexText(output.solution);
       }
       if (Object.prototype.hasOwnProperty.call(original, 'raw_text')) {
-        output.raw_text = polishIsNonMath ? original.raw_text : normalizeMathQuestionText(original.raw_text);
+        output.raw_text = normalizeQuestionTextForDisplay(original.raw_text, itemStrictMath);
       }
       if (output?.verification?.verification_status !== 'verified') summary.review_required.push(original.id);
       const before = normalizeQuestion(original);
@@ -1179,24 +1185,23 @@ router.post('/api/resolve_question', tokenRequired, async (req: AuthRequest, res
 
     const restoredText = restoreVisionText(verified.question, prepared)
       || getOriginalQuestionText(question_data, source_context);
-    const resolveIsNonMath = ['english', 'history', 'biology', 'social studies']
-      .includes(String(subject).toLowerCase());
+    const resolveStrictMath = shouldUseStrictMathFormatting(subject, topic, restoredText);
     const finalResolvedQuestion: any = {
       ...question_data,
       ...verified,
       id,
-      question: resolveIsNonMath ? normalizeAiLatexText(restoredText) : normalizeMathQuestionText(restoredText)
+      question: normalizeQuestionTextForDisplay(restoredText, resolveStrictMath)
     };
-    if (Array.isArray(finalResolvedQuestion.options) && !resolveIsNonMath) {
-      finalResolvedQuestion.options = finalResolvedQuestion.options.map((option: unknown) => normalizeMathQuestionText(option));
+    if (Array.isArray(finalResolvedQuestion.options)) {
+      finalResolvedQuestion.options = finalResolvedQuestion.options.map((option: unknown) => resolveStrictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option));
     }
-    if (typeof finalResolvedQuestion.solution === 'string' && !resolveIsNonMath) {
-      finalResolvedQuestion.solution = normalizeMathQuestionText(finalResolvedQuestion.solution);
+    if (typeof finalResolvedQuestion.solution === 'string') {
+      finalResolvedQuestion.solution = resolveStrictMath ? normalizeMathQuestionText(finalResolvedQuestion.solution) : normalizeAiLatexText(finalResolvedQuestion.solution);
     }
     if (Object.prototype.hasOwnProperty.call(question_data, 'raw_text')) {
-      finalResolvedQuestion.raw_text = resolveIsNonMath
-        ? normalizeAiLatexText(question_data.raw_text)
-        : normalizeMathQuestionText(question_data.raw_text);
+      finalResolvedQuestion.raw_text = resolveStrictMath
+        ? normalizeQuestionTextForDisplay(question_data.raw_text, true)
+        : normalizeQuestionTextForDisplay(question_data.raw_text, false);
     }
 
     const reviewRequired = finalResolvedQuestion?.verification?.verification_status !== 'verified';
@@ -1352,8 +1357,8 @@ router.post('/api/reprocess_question', tokenRequired, async (req: AuthRequest, r
       }
     }
 
-    const isNonMath = ['english', 'history', 'biology', 'social studies']
-      .includes(String(subject).toLowerCase());
+    const strictMathFormatting = shouldUseStrictMathFormatting(subject, topic, prepared.text);
+    const subjectRules = getSubjectPromptRules(subject, topic);
     const sourceSummary = source_context && typeof source_context === 'object'
       ? {
           raw_text: String(source_context.raw_text || source_context.question || '').slice(0, 8_000),
@@ -1376,7 +1381,7 @@ Rules:
 - true_false: options must be A) True and B) False; answer A or B.
 - identification, open_ended, graphing: options must be empty.
 - Include a concise, student-safe solution that verifies the answer.
-- ${isNonMath ? NON_MATH_RULES : SHARED_LATEX_RULES}
+- ${subjectRules}
 - Return only the schema JSON. Use standard JSON escaping; serialized newlines use \\n.
 `;
 
@@ -1393,7 +1398,7 @@ Rules:
       }) as any
     });
     const parsed = safeParseJSON(response.text || '');
-    const normalized = normalizeGeneratedQuestion(parsed, target_type, String(question_data?.difficulty || 'average'), !isNonMath);
+    const normalized = normalizeGeneratedQuestion(parsed, target_type, String(question_data?.difficulty || 'average'), strictMathFormatting);
     if (!normalized) {
       return res.status(502).json({ success: false, error: 'The model returned an invalid rewritten question.' });
     }
@@ -1407,7 +1412,7 @@ Rules:
     const draft = {
       ...normalized,
       id,
-      question: isNonMath ? normalizeAiLatexText(normalized.question) : normalizeMathQuestionText(normalized.question)
+      question: normalizeQuestionTextForDisplay(normalized.question, strictMathFormatting)
     };
     const verification = await verifyQuestionBatch({
       ai,

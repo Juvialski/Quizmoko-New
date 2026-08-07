@@ -32,13 +32,114 @@ function normalizeMathBody(body: string): string {
   return normalized;
 }
 
+const LATEX_N_COMMAND_SUFFIX_PATTERN = /^(?:abla\b|atural\b|e(?:q)?\b|eg\b|i\b|mid\b|ot(?:in)?\b|parallel\b|u\b)/;
+
+/**
+ * Some structured model responses double-escape a logical newline, so after
+ * JSON parsing the stored text still contains the two characters "\\n".
+ * Decode only separators that cannot be a known LaTeX command such as
+ * \neq, \nabla, \not, or \nu.
+ */
+function looksLikeLogicalLineBreak(source: string, index: number, tokenWidth: number): boolean {
+  const before = source.slice(0, index);
+  const after = source.slice(index + tokenWidth);
+  const trimmedBefore = before.replace(/[ \t]+$/g, '');
+  const trimmedAfter = after.replace(/^[ \t]+/g, '');
+  const previous = trimmedBefore.slice(-1);
+
+  // Backtick-delimited code should keep literal escape sequences such as `\n`.
+  const backticksBefore = (before.match(/`/g) || []).length;
+  if (backticksBefore % 2 === 1) return false;
+
+  if (/^(?:\$|<(?:div|img|br)\b|\[TIKZ\]|[•*-][ \t]+|\(?[a-h]\)?[.)]?[ \t]+|\(?i{1,3}\)?[.)]?[ \t]+)/.test(trimmedAfter)) {
+    return true;
+  }
+  if (/^(?:\\(?:d?frac|sqrt|begin|left|boxed|overline|underline)\b)/.test(trimmedAfter)) {
+    return true;
+  }
+  if (/[.?!:;]$/.test(trimmedBefore) && /^[A-Za-z0-9$<"'(\[]/.test(trimmedAfter)) {
+    return true;
+  }
+  if (previous === ')' && /^(?:[a-h][.)]|\([a-h]\))\s+/.test(trimmedAfter)) {
+    return true;
+  }
+  return false;
+}
+
+export function decodeLiteralNewlineEscapes(value: unknown): string {
+  const source = String(value ?? '').replace(/\r\n?/g, '\n');
+  let output = '';
+  for (let index = 0; index < source.length; index += 1) {
+    if (source[index] === '\\' && source[index + 1] === 'r' && source[index + 2] === '\\' && source[index + 3] === 'n') {
+      if (looksLikeLogicalLineBreak(source, index, 4)) {
+        output += '\n';
+        index += 3;
+        continue;
+      }
+    }
+    if (source[index] === '\\' && source[index + 1] === 'n') {
+      const suffix = source.slice(index + 2);
+      if (!LATEX_N_COMMAND_SUFFIX_PATTERN.test(suffix) && looksLikeLogicalLineBreak(source, index, 2)) {
+        output += '\n';
+        index += 1;
+        continue;
+      }
+    }
+    output += source[index];
+  }
+  return output;
+}
+
+function normalizeLetteredMultipartLayout(value: string): string {
+  const markerPattern = /(?:^|[ \t])(?:\([a-h]\)|[a-h][.)])(?=[ \t]+)/g;
+  const markers = Array.from(value.matchAll(markerPattern)).map(match => {
+    const token = match[0].trim();
+    const letter = token.replace(/[().]/g, '');
+    return { letter };
+  });
+  const hasSequentialParts = markers.some((marker, index) =>
+    marker.letter === 'a' && markers.slice(index + 1).some(next => next.letter === 'b')
+  );
+  if (!hasSequentialParts) return value;
+
+  return value.replace(/([^\n])[ \t]+(\([a-h]\)|[a-h][.)])(?=[ \t]+)/g, '$1\n$2');
+}
+
+function normalizeRomanMultipartLayout(value: string): string {
+  const markerPattern = /(?:^|[ \t])(?:\((i{1,3}|iv|v)\)|(i{1,3}|iv|v)[.)])(?=[ \t]+)/g;
+  const markers = Array.from(value.matchAll(markerPattern)).map(match => ({
+    label: match[1] || match[2] || ''
+  }));
+  const hasSequentialParts = markers.some((marker, index) =>
+    marker.label === 'i' && markers.slice(index + 1).some(next => next.label === 'ii')
+  );
+  if (!hasSequentialParts) return value;
+
+  return value.replace(/([^\n])[ \t]+(\((?:i{1,3}|iv|v)\)|(?:i{1,3}|iv|v)[.)])(?=[ \t]+)/g, '$1\n$2');
+}
+
+/**
+ * Normalizes student-facing question layout without changing wording. Literal
+ * newline escapes are decoded, and genuine multi-part a./b. or (i)/(ii)
+ * questions are placed on separate lines. A sequential pair is required so a
+ * single abbreviation or personal initial is not reflowed accidentally.
+ */
+export function normalizeQuestionLayoutText(value: unknown): string {
+  let text = normalizeAiLatexText(value)
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n');
+  text = normalizeLetteredMultipartLayout(text);
+  text = normalizeRomanMultipartLayout(text);
+  return text;
+}
+
 /**
  * Conservative repairs only. This function must never rewrite the meaning of a
  * question; larger formatting changes are handled through guarded AI patches.
  */
 export function normalizeAiLatexText(value: unknown): string {
-  const source = String(value ?? '')
-    .replace(/\r\n?/g, '\n')
+  const source = decodeLiteralNewlineEscapes(value)
     .replace(/\u000c/g, '')
     .replace(/\\\[([\s\S]*?)\\\]/g, (_match, body: string) => `$$${normalizeMathBody(body.trim())}$$`)
     .replace(/\\\(([\s\S]*?)\\\)/g, (_match, body: string) => `$${normalizeMathBody(body.trim())}$`)

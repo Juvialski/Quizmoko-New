@@ -7,8 +7,8 @@ import {
 } from './grading.ts';
 import { validateQuestionLatex } from './latex.ts';
 import {
-  NON_MATH_RULES,
-  SHARED_LATEX_RULES,
+  getSubjectPromptRules,
+  shouldUseStrictMathFormatting,
   WORKSHEET_SOLVER_PROMPT,
   WORKSHEET_SOLVER_PROMPT_NON_MATH
 } from '../../prompts.ts';
@@ -978,10 +978,13 @@ export function buildWorksheetSolverPrompt(input: {
     source_id: getWorksheetSourceId(question),
     source_index: sourceIndex
   }));
-  const template = input.non_math ? WORKSHEET_SOLVER_PROMPT_NON_MATH : WORKSHEET_SOLVER_PROMPT;
+  const subject = textValue(input.subject) || 'General';
+  const topic = textValue(input.topic) || 'Worksheet';
+  const strictMathSubject = shouldUseStrictMathFormatting(subject, topic);
+  const template = strictMathSubject ? WORKSHEET_SOLVER_PROMPT : WORKSHEET_SOLVER_PROMPT_NON_MATH;
   return template
-    .replace('{subject}', textValue(input.subject) || 'General')
-    .replace('{topic}', textValue(input.topic) || 'Worksheet')
+    .replace('{subject}', subject)
+    .replace('{topic}', topic)
     .replace('{questions_json}', JSON.stringify(cleanQuestions))
-    .replace('{latex_rules}', input.non_math ? NON_MATH_RULES : SHARED_LATEX_RULES);
+    .replace('{latex_rules}', getSubjectPromptRules(subject, topic));
 }

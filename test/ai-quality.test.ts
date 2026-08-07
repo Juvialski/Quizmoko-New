@@ -16,11 +16,17 @@ import {
   generateGeminiContent,
   resetGeminiRateLimiterForTests
 } from '../src/services/geminiRateLimiter.ts';
-import { SHARED_LATEX_RULES } from '../prompts.ts';
+import {
+  SHARED_LATEX_RULES,
+  getSubjectPromptMode,
+  getSubjectPromptRules,
+  shouldUseStrictMathFormatting
+} from '../prompts.ts';
 import * as promptTemplates from '../prompts.ts';
 import {
   normalizeAiLatexText,
   normalizeMathQuestionText,
+  normalizeQuestionLayoutText,
   validateLatexText,
   validateQuestionLatex
 } from '../src/services/latex.ts';
@@ -64,6 +70,42 @@ function mockAi(respond: (request: any, call: number) => unknown | Promise<unkno
   };
 }
 
+
+describe('subject-aware prompt policy', () => {
+  test('does not default Science, Computer Science, or humanities to strict Math formatting', () => {
+    assert.equal(getSubjectPromptMode('Math'), 'math');
+    assert.equal(getSubjectPromptMode('Science'), 'science');
+    assert.equal(getSubjectPromptMode('Physics'), 'science');
+    assert.equal(getSubjectPromptMode('Computer Science'), 'technical');
+    assert.equal(getSubjectPromptMode('Economics'), 'technical');
+    assert.equal(getSubjectPromptMode('English'), 'plain');
+    assert.equal(getSubjectPromptMode('History'), 'plain');
+    assert.equal(getSubjectPromptMode('Geography'), 'plain');
+    assert.equal(getSubjectPromptMode('Biology'), 'plain');
+  });
+
+  test('keeps prose numbers plain outside Math while allowing General to detect clear Math content', () => {
+    assert.equal(shouldUseStrictMathFormatting('Science', '', 'Water boils at 100 degrees Celsius.'), false);
+    assert.equal(shouldUseStrictMathFormatting('History', '', 'The war ended in 1945.'), false);
+    assert.equal(shouldUseStrictMathFormatting('Computer Science', '', 'HTTP 404 indicates a missing resource.'), false);
+    assert.equal(shouldUseStrictMathFormatting('General', '', 'The war ended in 1945.'), false);
+    assert.equal(shouldUseStrictMathFormatting('General', '', 'The ratio is 2 to 5. How many are needed?'), true);
+    assert.equal(shouldUseStrictMathFormatting('General', 'Fractions'), true);
+  });
+
+  test('uses subject-specific quality rules instead of the Math rules for other subjects', () => {
+    const science = getSubjectPromptRules('Science');
+    const history = getSubjectPromptRules('History');
+    const computing = getSubjectPromptRules('Computer Science');
+    assert.match(science, /SCIENCE \/ STEM/);
+    assert.match(science, /units and accepted scientific conventions/i);
+    assert.match(history, /Never fabricate quotations, citations/i);
+    assert.match(computing, /Never insert LaTeX delimiters inside code-like text/i);
+    assert.doesNotMatch(science, /EVERY standalone numeric value/);
+    assert.doesNotMatch(history, /EVERY standalone numeric value/);
+  });
+});
+
 describe('AI task profiles and model restriction', () => {
   test('uses only the two supported hosted Flash-Lite models', () => {
     assert.deepEqual(getFlashLiteModelPair(), [PRIMARY_FLASH_LITE_MODEL, PEER_FLASH_LITE_MODEL]);
@@ -86,6 +128,36 @@ describe('LaTeX validation and guarded formatting patches', () => {
     assert.equal(normalizeAiLatexText('Solve \\(x+1=3\\).'), 'Solve $x+1=3$.');
     assert.equal(normalizeAiLatexText('$x \\neq 2$'), '$x \\neq 2$');
     assert.equal(normalizeAiLatexText('$\\nabla f$'), '$\\nabla f$');
+  });
+
+  test('decodes double-escaped model newlines while preserving LaTeX n-commands', () => {
+    assert.equal(
+      normalizeQuestionLayoutText(String.raw`Generalize Simplify.\n$\dfrac{x^3}{x^4}$`),
+      'Generalize Simplify.\n$\\dfrac{x^3}{x^4}$'
+    );
+    assert.equal(
+      normalizeQuestionLayoutText(String.raw`Use $x \neq 2$ and $\nabla f$.`),
+      String.raw`Use $x \neq 2$ and $\nabla f$.`
+    );
+    assert.equal(
+      normalizeQuestionLayoutText(String.raw`In Python, what does \n represent?`),
+      String.raw`In Python, what does \n represent?`
+    );
+  });
+
+  test('places genuine multi-part questions on separate lines without splitting initials', () => {
+    assert.equal(
+      normalizeQuestionLayoutText('A stem? a. First part? b. Second part.'),
+      'A stem?\na. First part?\nb. Second part.'
+    );
+    assert.equal(
+      normalizeQuestionLayoutText('Compute each. (i) First item. (ii) Second item.'),
+      'Compute each.\n(i) First item.\n(ii) Second item.'
+    );
+    assert.equal(
+      normalizeQuestionLayoutText('Dr. A. Smith met B. Jones in 1945.'),
+      'Dr. A. Smith met B. Jones in 1945.'
+    );
   });
 
   test('wraps every standalone number in math-facing text without corrupting existing LaTeX, HTML, or TikZ', () => {

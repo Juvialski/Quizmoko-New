@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/quizmoko-ui.css">
     <script src="/js/quizmoko-theme.js"></script>
+    <script src="/js/math-display.js"></script>
 
     <!-- Cropper.js for manual screenshot refinement -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
@@ -401,6 +402,14 @@
             extractedQuestions.sort((a, b) => collator.compare(sortableId(a), sortableId(b)));
         }
 
+        function normalizeQuestionEditorText(value) {
+            const source = String(value == null ? '' : value);
+            if (window.QuizMoKoMath && typeof window.QuizMoKoMath.normalizeQuestionLayoutText === 'function') {
+                return window.QuizMoKoMath.normalizeQuestionLayoutText(source);
+            }
+            return source;
+        }
+
         function normalizeWorksheetDiagnostics(value) {
             if (!Array.isArray(value)) return [];
             return value.slice(0, 200).filter(item => item && typeof item === 'object').map(item => ({
@@ -738,10 +747,16 @@
                     </div>`;
                 }
 
-                const targetText = q.question || q.raw_text || '';
+                const targetText = String(q.question || q.raw_text || '');
                 const sourceQuestionId = getSourceQuestionId(q, i + 1) || String(i + 1);
                 const imgMatch = targetText.match(/<div class="resizable-image-wrapper">.*?src="([^"]+)".*?<\/div>\s*<\/div>/is);
                 const hasScreenshot = !!imgMatch;
+                const imageMarkup = imgMatch ? imgMatch[0] : '';
+                const cleanQuestionText = normalizeQuestionEditorText(
+                    targetText.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim()
+                );
+                if (q.question !== undefined) q.question = cleanQuestionText + (imageMarkup ? '\n' + imageMarkup : '');
+                if (q.raw_text !== undefined) q.raw_text = cleanQuestionText + (imageMarkup ? '\n' + imageMarkup : '');
 
                 const item = document.createElement('div');
                 item.className = 'question-item';
@@ -752,9 +767,9 @@
                             ${hasScreenshot ? `<button onclick="openCropRefiner(${i})" class="btn-secondary" style="font-size: 10px; padding: 4px 8px; border-color: var(--warning); color: var(--warning);"><i data-lucide="scissors" class="icon-sm"></i>️ REFINE CROP</button>` : ''}
                         </div>
                     </div>
-                    <div class="question-editor" contenteditable='true' data-index="${i}" style="padding: 10px; border: 1px solid var(--hairline); border-radius: 4px; background: var(--canvas); color: var(--on-dark); font-size: 14px; outline: none;">${targetText.replace(/<div class="resizable-image-wrapper">.*?<\/div>\s*<\/div>/is, '').trim()}</div>
+                    <div class="question-editor" contenteditable='true' data-index="${i}" style="padding: 10px; border: 1px solid var(--hairline); border-radius: 4px; background: var(--canvas); color: var(--on-dark); font-size: 14px; line-height: 1.5; white-space: pre-wrap; outline: none;"></div>
 
-                    ${hasScreenshot ? `<div style="margin-top: 12px; padding: 12px; background: var(--canvas); border-radius: var(--radius-sm); border: 1px solid var(--hairline); text-align: center;">${imgMatch[0]}</div>` : ''}
+                    ${hasScreenshot ? `<div style="margin-top: 12px; padding: 12px; background: var(--canvas); border-radius: var(--radius-sm); border: 1px solid var(--hairline); text-align: center;">${imageMarkup}</div>` : ''}
 
                     ${optionsHtml}
                     <div class="answer-box">
@@ -763,6 +778,8 @@
                     </div>
                 `;
                 item.querySelector('[data-source-question-label]').textContent = `Question ${sourceQuestionId}`;
+                const questionEditor = item.querySelector('.question-editor');
+                if (questionEditor) questionEditor.textContent = cleanQuestionText;
                 list.appendChild(item);
             });
 
@@ -776,7 +793,7 @@
             qEditors.forEach(ed => {
                 const i = parseInt(ed.getAttribute('data-index'), 10);
                 if (!isNaN(i) && extractedQuestions[i]) {
-                    const text = ed.innerText.trim();
+                    const text = normalizeQuestionEditorText(ed.innerText.trim());
                     const q = extractedQuestions[i];
                     const targetField = q.question !== undefined ? 'question' : 'raw_text';
                     const oldText = q[targetField] || '';

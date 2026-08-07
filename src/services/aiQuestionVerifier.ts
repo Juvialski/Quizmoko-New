@@ -10,6 +10,7 @@ import {
 import { safeParseJSON } from './gemini.ts';
 import { generateGeminiContent, GeminiRateLimitError } from './geminiRateLimiter.ts';
 import { normalizeAiLatexText, validateQuestionLatex } from './latex.ts';
+import { getSubjectPromptRules } from '../../prompts.ts';
 
 const SOLVER_SCHEMA = {
   type: Type.ARRAY,
@@ -119,7 +120,7 @@ For each stable id:
 - Identification: a concise raw number or concise plain answer, without units or LaTeX delimiters.
 - Open-ended or graphing: return the canonical answer or rubric points.
 - Put only a concise student-safe check in solution. Do not output hidden reasoning.
-- In mathematical question/option/solution text, wrap every standalone numeric value in $...$. If it belongs to a larger expression, wrap the complete expression. Use $$...$$ only for standalone equations. Printed question numbers and option letters stay outside delimiters.
+${getSubjectPromptRules(input.subject, input.topic)}
 - JSON uses standard escaping. A parsed multiline string may contain \\n escapes in serialized JSON.
 
 Return every id exactly once and no additional ids.

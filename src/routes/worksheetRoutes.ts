@@ -26,7 +26,7 @@ import {
   generateGeminiContent,
   GeminiRateLimitError
 } from '../services/geminiRateLimiter.ts';
-import { normalizeAiLatexText, normalizeMathQuestionText, validateLatexText } from '../services/latex.ts';
+import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, validateLatexText } from '../services/latex.ts';
 import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
 import {
   applyGoldenAnswers,
@@ -51,9 +51,10 @@ import {
 } from '../services/aiWorkGuard.ts';
 import {
   SHARED_LATEX_RULES,
+  getSubjectPromptRules,
+  shouldUseStrictMathFormatting,
   WORKSHEET_EXTRACTION_PROMPT,
   WORKSHEET_EXTRACTION_PROMPT_NON_MATH,
-  NON_MATH_RULES,
   RMX_FLASH_EXTRACTION_PROMPT,
   RECOVERY_PROMPT,
 } from '../../prompts.ts';
@@ -331,14 +332,20 @@ function validateBoundingBox(value: unknown): number[] {
   return normalized;
 }
 
-function validateExtractedQuestions(value: unknown, label: string, formatMathNumbers = true): any[] {
+function validateExtractedQuestions(
+  value: unknown,
+  label: string,
+  formatMathNumbers: boolean | ((item: any) => boolean) = true
+): any[] {
   if (!Array.isArray(value)) throw new Error(`${label} did not return a JSON question array`);
-  const normalizeDisplayText = formatMathNumbers ? normalizeMathQuestionText : normalizeAiLatexText;
   return value.map((item: any, index: number) => {
     if (!item || typeof item !== 'object') throw new Error(`${label} question ${index + 1} is not an object`);
-    const verbatimText = normalizeDisplayText(item.verbatim_text ?? item.raw_text ?? '').trim();
+    const useStrictMath = typeof formatMathNumbers === 'function' ? formatMathNumbers(item) : formatMathNumbers;
+    const normalizeDisplayText = useStrictMath ? normalizeMathQuestionText : normalizeAiLatexText;
+    const normalizeQuestionText = (value: unknown) => normalizeQuestionLayoutText(normalizeDisplayText(value));
+    const verbatimText = normalizeQuestionText(item.verbatim_text ?? item.raw_text ?? '').trim();
     const contextPrefix = normalizeDisplayText(item.context_prefix ?? '').trim();
-    const legacyRawText = normalizeDisplayText(item.raw_text ?? '').trim();
+    const legacyRawText = normalizeQuestionText(item.raw_text ?? '').trim();
     const rawText = verbatimText
       ? [contextPrefix, verbatimText].filter(Boolean).join('\n')
       : legacyRawText;
@@ -649,11 +656,12 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
     {
       const selectedModel = getRealModelName(model_name);
       const extractionSchema = WORKSHEET_EXTRACTION_SCHEMA;
-      const isNonMath = ['english', 'history', 'biology', 'social studies'].includes(String(subject).toLowerCase());
-      const basePrompt = isNonMath ? WORKSHEET_EXTRACTION_PROMPT_NON_MATH : WORKSHEET_EXTRACTION_PROMPT;
+      const strictMathSubject = shouldUseStrictMathFormatting(subject, topic_hint);
+      const subjectRules = getSubjectPromptRules(subject, topic_hint);
+      const basePrompt = strictMathSubject ? WORKSHEET_EXTRACTION_PROMPT : WORKSHEET_EXTRACTION_PROMPT_NON_MATH;
       const prompt = basePrompt
-        .replace('{latex_rules}', SHARED_LATEX_RULES)
-        .replace('{subject_rules}', isNonMath ? NON_MATH_RULES : '')
+        .replace('{latex_rules}', subjectRules)
+        .replace('{subject_rules}', subjectRules)
         .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
 
       const totalFiles = wsFiles.length;
@@ -686,7 +694,11 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
             const parsed = validateExtractedQuestions(
               safeParseJSON(response.text || ''),
               `Worksheet file ${fileIdx + 1}, page ${page.pageNumber}`,
-              !isNonMath
+              (item: any) => shouldUseStrictMathFormatting(
+                subject,
+                topic_hint,
+                `${String(item?.raw_text ?? item?.verbatim_text ?? '')} ${Array.isArray(item?.options) ? item.options.join(' ') : ''}`
+              )
             );
             for (const q of parsed) {
               if (q.bounding_box.length === 4) {
@@ -755,6 +767,22 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
       error: `Worksheet solving is limited to ${MAX_WORKSHEET_AI_QUESTIONS} questions per job.`
     });
   }
+  questions.forEach((question: any) => {
+    if (!question || typeof question !== 'object') return;
+    const rawText = question.raw_text ?? question.question ?? question.statement ?? '';
+    const strictMath = shouldUseStrictMathFormatting(subject, topic, rawText);
+    const displayText = strictMath ? normalizeMathQuestionText(rawText) : normalizeAiLatexText(rawText);
+    const normalizedQuestionText = normalizeQuestionLayoutText(displayText).trim();
+    if (Object.prototype.hasOwnProperty.call(question, 'raw_text')) question.raw_text = normalizedQuestionText;
+    if (Object.prototype.hasOwnProperty.call(question, 'question')) question.question = normalizedQuestionText;
+    if (Object.prototype.hasOwnProperty.call(question, 'statement')) question.statement = normalizedQuestionText;
+    if (!question.raw_text && !question.question && !question.statement) question.raw_text = normalizedQuestionText;
+    if (Array.isArray(question.options)) {
+      question.options = question.options.map((option: unknown) =>
+        (strictMath ? normalizeMathQuestionText(option) : normalizeAiLatexText(option)).trim()
+      );
+    }
+  });
   const invalidQuestionIndex = questions.findIndex((question: any) => {
     const text = question?.raw_text || question?.question || question?.statement;
     return typeof text !== 'string' || !text.trim();
@@ -1184,11 +1212,12 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
     {
       const selectedModel = getRealModelName(model_name);
       const extractionSchema = WORKSHEET_EXTRACTION_SCHEMA;
-      const isNonMath = ['english', 'history', 'biology', 'social studies'].includes(String(subject).toLowerCase());
-      const extractionPromptTemplate = isNonMath ? WORKSHEET_EXTRACTION_PROMPT_NON_MATH : WORKSHEET_EXTRACTION_PROMPT;
+      const strictMathSubject = shouldUseStrictMathFormatting(subject, topic_hint);
+      const subjectRules = getSubjectPromptRules(subject, topic_hint);
+      const extractionPromptTemplate = strictMathSubject ? WORKSHEET_EXTRACTION_PROMPT : WORKSHEET_EXTRACTION_PROMPT_NON_MATH;
       const extractionPrompt = extractionPromptTemplate
-        .replace('{latex_rules}', SHARED_LATEX_RULES)
-        .replace('{subject_rules}', isNonMath ? NON_MATH_RULES : '')
+        .replace('{latex_rules}', subjectRules)
+        .replace('{subject_rules}', subjectRules)
         .replace('{prompt_additions}', `Subject: ${subject}. Topic / Context: ${topic_hint}. CRITICAL: ONLY output "bounding_box" if the specific question actually contains a visual diagram, illustration, graph, chart, map, coordinate axis, or geometry drawing. For purely text or simple equations with no associated diagram, "bounding_box" MUST be an empty array [].`);
 
       const totalFiles = wsFiles.length;
@@ -1220,7 +1249,11 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
             const parsed = validateExtractedQuestions(
               safeParseJSON(wsResponse.text || ''),
               `Worksheet file ${fileIdx + 1}, page ${page.pageNumber}`,
-              !isNonMath
+              (item: any) => shouldUseStrictMathFormatting(
+                subject,
+                topic_hint,
+                `${String(item?.raw_text ?? item?.verbatim_text ?? '')} ${Array.isArray(item?.options) ? item.options.join(' ') : ''}`
+              )
             );
             for (const q of parsed) {
               if (q.bounding_box.length === 4) {
@@ -1352,11 +1385,11 @@ router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (
 
     {
       const selectedModel = getRealModelName(model_name);
-      const recoveryIsNonMath = ['english', 'history', 'biology', 'social studies'].includes(String(subject).toLowerCase());
+      const recoverySubjectRules = getSubjectPromptRules(subject, topic_hint);
       const prompt = RECOVERY_PROMPT
         .replace('{topic_hint}', topic_hint)
         .replace('{missing_numbers}', JSON.stringify(missingIds))
-        + `\nSubject: ${subject}.\n${recoveryIsNonMath ? NON_MATH_RULES : SHARED_LATEX_RULES}`;
+        + `\nSubject: ${subject}.\n${recoverySubjectRules}`;
 
       const totalFiles = files.length;
       for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
@@ -1382,7 +1415,11 @@ router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (
           const parsedRec = validateExtractedQuestions(
             safeParseJSON(response.text || ''),
             `Recovery file ${fileIdx + 1}, page ${page.pageNumber}`,
-            !recoveryIsNonMath
+            (item: any) => shouldUseStrictMathFormatting(
+              subject,
+              topic_hint,
+              `${String(item?.raw_text ?? item?.verbatim_text ?? '')} ${Array.isArray(item?.options) ? item.options.join(' ') : ''}`
+            )
           ).filter(question => missingIds.includes(normalizeWorksheetSourceId(question.original_index)));
           for (const q of parsedRec) {
             q.source_id = normalizeWorksheetSourceId(q.original_index);

@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/quizmoko-ui.css">
     <script src="/js/quizmoko-theme.js"></script>
+    <script src="/js/math-display.js"></script>
     
     <script>
       window.MathJax = {
@@ -484,7 +485,10 @@
                     q.answer = window.QuizMoKoMath ? window.QuizMoKoMath.decodeLegacyNewlines(q.answer) : q.answer;
                 }
                 if (typeof q.question === 'string') {
-                    q.question = window.QuizMoKoMath ? window.QuizMoKoMath.decodeLegacyNewlines(q.question) : q.question;
+                    q.question = window.QuizMoKoMath ? window.QuizMoKoMath.normalizeQuestionLayoutText(q.question) : q.question;
+                }
+                if (typeof q.raw_text === 'string') {
+                    q.raw_text = window.QuizMoKoMath ? window.QuizMoKoMath.normalizeQuestionLayoutText(q.raw_text) : q.raw_text;
                 }
                 if (Array.isArray(q.options)) {
                     q.options = q.options.map(opt => typeof opt === 'string' && window.QuizMoKoMath ? window.QuizMoKoMath.decodeLegacyNewlines(opt) : opt);

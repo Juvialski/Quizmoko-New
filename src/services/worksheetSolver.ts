@@ -2,7 +2,8 @@ import { Type } from '@google/genai';
 import { getGeminiClient, safeParseJSON } from './gemini.ts';
 import { generateGeminiContent, GeminiRateLimitError } from './geminiRateLimiter.ts';
 import { buildAiTaskConfig, getFlashLiteModelPair } from './aiTaskProfiles.ts';
-import { normalizeMathQuestionText, validateLatexText } from './latex.ts';
+import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, validateLatexText } from './latex.ts';
+import { getSubjectPromptRules, shouldUseStrictMathFormatting } from '../../prompts.ts';
 import {
   adjudicateWorksheetSolverCandidates,
   areCanonicalWorksheetAnswersEquivalent,
@@ -53,9 +54,6 @@ const SINGLE_CHECKER_SCHEMA = {
   },
   required: ['verified', 'reason']
 };
-
-const MANDATORY_MATH_FEEDBACK_RULE =
-  'Use $...$ only for actual inline mathematics and $$...$$ only for standalone equations. Ordinary prose numbers, labels, dates, and option letters do not need math delimiters. Ensure every delimiter and brace is balanced.';
 
 export const WORKSHEET_MODEL_TIMEOUT_MS = 45_000;
 export const WORKSHEET_JOB_TIMEOUT_MS = 4 * 60_000;
@@ -233,7 +231,7 @@ OPTIONS: ${JSON.stringify(input.rawQuestion.options || input.rawQuestion.choices
 INDEPENDENT CANDIDATES: ${JSON.stringify(fulfilled)}
 
 Return only strict JSON. If one candidate is fully correct, set verified=true and accepted_model to that exact model name. If neither is correct, set verified=false and provide corrected_answer, corrected_solution, and corrected_type. If the evidence is insufficient, set verified=false and leave correction fields empty so the item is sent for teacher review. Give only a concise verification reason; never output hidden reasoning.
-${MANDATORY_MATH_FEEDBACK_RULE}`;
+${getSubjectPromptRules(input.subject, input.topic)}`;
   contents.unshift(prompt);
   try {
     return await runBoundedWorksheetModelRequest({
@@ -341,7 +339,7 @@ export async function solveWorksheetBatchWithConsensus(input: {
   if (input.questions.length === 0) return [];
   const [primaryModel, secondaryModel] = independentModels(input.requestedModel);
   const models = [primaryModel, secondaryModel] as const;
-  const isNonMath = ['english', 'history', 'biology', 'social studies'].includes(input.subject.toLowerCase());
+  const strictMathSubject = shouldUseStrictMathFormatting(input.subject, input.topic);
 
   const runModel = async (model: string): Promise<Record<string, unknown>[]> => {
     const contents: any[] = [];
@@ -359,7 +357,7 @@ export async function solveWorksheetBatchWithConsensus(input: {
       questions: promptQuestions,
       subject: input.subject,
       topic: input.topic,
-      non_math: isNonMath
+      non_math: !strictMathSubject
     }));
     return runBoundedWorksheetModelRequest({
       label: `${model} worksheet batch`,
@@ -444,15 +442,18 @@ export async function solveWorksheetBatchWithConsensus(input: {
   ));
 
   return results.map((result, index) => retainGoldenAnswer(input.questions[index], result, models)).map(result => {
-    if (isNonMath) return result;
     const question = result.question && typeof result.question === 'object'
       ? { ...result.question } as Record<string, unknown>
       : {};
-    if (typeof question.question === 'string') question.question = normalizeMathQuestionText(question.question);
-    if (typeof question.raw_text === 'string') question.raw_text = normalizeMathQuestionText(question.raw_text);
-    if (typeof question.statement === 'string') question.statement = normalizeMathQuestionText(question.statement);
-    if (Array.isArray(question.options)) question.options = question.options.map(option => normalizeMathQuestionText(option));
-    if (typeof question.solution === 'string') question.solution = normalizeMathQuestionText(question.solution);
+    const content = String(question.question ?? question.raw_text ?? question.statement ?? '');
+    const strictMath = shouldUseStrictMathFormatting(input.subject, input.topic, content);
+    const normalizeDisplayText = strictMath ? normalizeMathQuestionText : normalizeAiLatexText;
+    const normalizeQuestionText = (value: unknown) => normalizeQuestionLayoutText(normalizeDisplayText(value));
+    if (typeof question.question === 'string') question.question = normalizeQuestionText(question.question);
+    if (typeof question.raw_text === 'string') question.raw_text = normalizeQuestionText(question.raw_text);
+    if (typeof question.statement === 'string') question.statement = normalizeQuestionText(question.statement);
+    if (Array.isArray(question.options)) question.options = question.options.map(option => normalizeDisplayText(option));
+    if (typeof question.solution === 'string') question.solution = normalizeDisplayText(question.solution);
     return { ...result, question };
   });
 }

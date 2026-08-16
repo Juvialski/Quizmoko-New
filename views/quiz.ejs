@@ -213,54 +213,54 @@
             background: var(--primary); color: #fff;
         }
         
-        /* Timer Pill styling */
+        /* Streamlined Timer Pill */
         #timer {
-            font-size: 28px;
+            font-size: 16px;
             font-weight: 800;
             text-align: center;
-            margin: 0 auto 24px auto;
+            margin: 0;
             width: fit-content;
-            padding: 8px 24px;
-            border-radius: 12px;
+            padding: 0 14px;
+            border-radius: var(--radius-sm);
             background: var(--surface-elevated);
             color: var(--on-dark);
             border: 1px solid var(--hairline);
             font-variant-numeric: tabular-nums;
-            letter-spacing: -1px;
+            letter-spacing: -0.5px;
             box-shadow: var(--shadow);
             transition: all 0.2s ease;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            height: 38px;
+            box-sizing: border-box;
         }
         #timer.urgent {
-            background: rgba(251, 113, 133, 0.1) !important;
+            background: rgba(251, 113, 133, 0.15) !important;
             color: var(--m-red) !important;
             border-color: var(--m-red) !important;
-            box-shadow: 0 0 10px rgba(251, 113, 133, 0.2);
+            box-shadow: 0 0 10px rgba(251, 113, 133, 0.25);
         }
 
-    
-        
-
-
-        /* Redesigned Top Bar Styles */
+        /* Streamlined Single-Bar Top Bar Styles */
         .quiz-topbar-wrapper {
             background: var(--surface-card);
             border: 1px solid var(--hairline);
-            padding: 14px 20px;
-            margin-bottom: 24px;
+            padding: 10px 16px;
+            margin-bottom: 18px;
             border-radius: var(--radius-md);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             width: 100%;
             box-sizing: border-box;
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            align-items: center;
         }
         .quiz-brand-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             width: 100%;
-            gap: 12px;
+            gap: 10px;
             flex-wrap: wrap;
         }
         .brand-left {
@@ -555,16 +555,27 @@
             <div class="quiz-container">
                 
 <div class="quiz-topbar-wrapper">
-    <!-- Top Row: Branding (Left) and Theme/Align/Size Toolbar (Right) -->
+    <!-- Single Sleek Top Row: Branding + Progress Trackers + Timer + Tools -->
     <div class="quiz-brand-row">
-        <div class="brand-left">
+        <div class="brand-left" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span class="quiz-brand-title">
                 <i data-lucide="rocket"></i> QUIZMOKO
             </span>
             <div id="connection-dot" class="status-dot" title="Online"></div>
+            <span id="q-tracker" class="stat-badge" style="display:none;">
+                Question <span id="q-num" style="margin: 0 4px;">1</span> of <%= (quiz.questions || []).length %>
+            </span>
+            <span id="score-tracker" class="stat-badge stat-score" style="display:none;">
+                Score: <span id="live-score">0.00</span>
+            </span>
         </div>
 
-        <div class="brand-right-tools">
+        <div id="timer"></div>
+
+        <div class="brand-right-tools" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" class="action-btn btn-primary" style="display:none;">
+                <i data-lucide="pen-tool" class="icon-sm"></i> Show Whiteboard
+            </button>
             <div class="expanded-toolbar">
                 <button onclick="toggleTheme()" class="tool-btn" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme">
                     <i data-lucide="moon"></i>
@@ -584,31 +595,14 @@
                     <span>A+</span>
                 </button>
             </div>
-        </div>
-    </div>
-    
-    <!-- Bottom Row: Progress Trackers (Left) and Core Actions (Right) Stretching Below -->
-    <div class="quiz-tools-row" id="quiz-bottom-row" style="display:none;">
-        <!-- Left Side: Question Tracker & Score Tracker -->
-        <div class="tools-left-group">
-            <span id="q-tracker" class="stat-badge" style="display:none;">
-                Question <span id="q-num" style="margin: 0 4px;">1</span> of <%= (quiz.questions || []).length %>
-            </span>
-            <span id="score-tracker" class="stat-badge stat-score" style="display:none;">
-                Score: <span id="live-score">0.00</span>
-            </span>
-        </div>
-
-        <!-- Right Side: Whiteboard & End Quiz Actions -->
-        <div class="tools-right-group">
-            <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" class="action-btn btn-primary" style="display:none;">
-                <i data-lucide="pen-tool" class="icon-sm"></i> Show Whiteboard
-            </button>
             <button id="btn-end-early" onclick="submitQuiz('early')" class="action-btn btn-danger" style="display:none;">
                 <i data-lucide="log-out" class="icon-sm"></i> End Quiz
             </button>
         </div>
     </div>
+    
+    <!-- Hidden compatibility anchor -->
+    <div class="quiz-tools-row" id="quiz-bottom-row" style="display:none;"></div>
 </div>
 
                 <div id="start-screen">
@@ -619,7 +613,6 @@
                     <button class="btn-start" onclick="beginQuiz()"><i data-lucide="rocket" class="icon-md" style="margin-right:6px;"></i> Start Quiz</button>
                 </div>
                 <div id="quiz-screen" style="display:none;">
-                    <div id="timer"></div>
                     <div id="question-text"></div>
                     <div id="options-container"></div>
 
@@ -636,14 +629,23 @@
 
                     <button id="btn-confirm" class="btn-confirm" onclick="confirmSelection()">CONFIRM ANSWER</button>
 
-                    <!-- NEW: Back-and-Forth Navigation Controls -->
-                    <div id="bf-nav-controls" style="display:none; margin-top: 30px; display: flex; gap: 20px;">
-                        <button id="btn-prev" class="btn-nav" onclick="prevQuestion()" style="flex: 1; padding: 18px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--hairline); background: var(--surface-elevated); color: var(--on-dark); transition: 0.2s; font-size: 14px;">⬅️ PREVIOUS</button>
-                        <button id="btn-next" class="btn-nav" onclick="nextQuestion()" style="flex: 2; padding: 18px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: white; transition: 0.2s; font-size: 14px;">NEXT / CONFIRM <i data-lucide="arrow-right" class="icon-sm"></i>️</button>
+                    <!-- Back-and-Forth Navigation Controls -->
+                    <div id="bf-nav-controls" style="display:none; margin-top: 20px; display: flex; gap: 12px;">
+                        <button id="btn-prev" class="btn-nav" onclick="prevQuestion()" style="flex: 1; padding: 12px 16px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--hairline); background: var(--surface-elevated); color: var(--on-dark); transition: 0.2s; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">⬅️ PREVIOUS</button>
+                        <button id="btn-next" class="btn-nav" onclick="nextQuestion()" style="flex: 2; padding: 12px 16px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; border: 1px solid var(--primary); background: var(--primary); color: white; transition: 0.2s; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">NEXT / CONFIRM <i data-lucide="arrow-right" class="icon-sm"></i></button>
                     </div>
 
-                    <div id="question-jump-panel" class="question-jump-panel">
-                        <div id="question-jump-buttons" class="question-jump-list" role="navigation" aria-label="Question navigation"></div>
+                    <div id="question-jump-panel" class="question-jump-panel" style="margin-top: 16px;">
+                        <button type="button" id="question-jump-toggle" class="btn-secondary" onclick="toggleQuestionJumpMatrix()" style="display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--hairline); background: var(--surface-card); color: var(--on-dark); font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: 0;">
+                            <span style="display: inline-flex; align-items: center; gap: 8px;">
+                                <i data-lucide="layout-grid" class="icon-sm"></i>
+                                <span>Question Navigator (<span id="jump-matrix-count"><%= (quiz.questions || []).length %></span>)</span>
+                            </span>
+                            <span id="jump-matrix-chevron" style="display: inline-flex; align-items: center; transition: transform 0.2s ease;">
+                                <i data-lucide="chevron-down" class="icon-sm"></i>
+                            </span>
+                        </button>
+                        <div id="question-jump-buttons" class="question-jump-list" role="navigation" aria-label="Question navigation" style="display: none; margin-top: 10px;"></div>
                     </div>
                 </div>
                 <div id="result-screen" style="display:none;">
@@ -1712,6 +1714,8 @@
             if (bottomRow) bottomRow.style.display = 'flex';
 
             document.getElementById('q-tracker').style.display = 'inline-flex';
+            const timerElem = document.getElementById('timer');
+            if (timerElem) timerElem.style.display = 'inline-flex';
 
             // HIDE LIVE SCORE in Back-and-Forth Mode to prevent 'brute forcing' answers
             const scoreTracker = document.getElementById('score-tracker');
@@ -1760,10 +1764,23 @@
             return hasAnswer || pages.some(questionPageHasContent);
         }
 
+        function toggleQuestionJumpMatrix() {
+            const list = document.getElementById('question-jump-buttons');
+            const chevron = document.getElementById('jump-matrix-chevron');
+            if (!list) return;
+            const isHidden = list.style.display === 'none' || getComputedStyle(list).display === 'none';
+            list.style.display = isHidden ? 'grid' : 'none';
+            if (chevron) {
+                chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+        }
+
         function renderQuestionJumpButtons() {
             const panel = document.getElementById('question-jump-panel');
             const container = document.getElementById('question-jump-buttons');
+            const countElem = document.getElementById('jump-matrix-count');
             if (!panel || !container) return;
+            if (countElem) countElem.innerText = String((quizData.questions || []).length);
 
             if (quizData.quiz_mode !== 'back_and_forth') {
                 panel.style.display = 'none';
@@ -1920,16 +1937,20 @@
                 opts.innerHTML = '';
 
                 function createMathSymbolRibbon(targetInput) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'math-input-wrapper';
+                    wrapper.style.cssText = 'border: 1px solid var(--hairline); border-radius: var(--radius-md); background: var(--surface-card); overflow: hidden; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
+
                     const ribbon = document.createElement('div');
                     ribbon.className = 'math-symbol-ribbon';
-                    ribbon.style.cssText = 'display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; padding: 6px; background: var(--surface-soft); border-radius: var(--radius-sm); border: 1px solid var(--hairline);';
+                    ribbon.style.cssText = 'display: flex; gap: 4px; flex-wrap: wrap; padding: 6px 8px; background: var(--surface-soft); border-bottom: 1px solid var(--hairline);';
                     const symbols = ['²', '√', '±', 'π', '×', '÷', '≥', '≤', '½', 'θ', '°', '(', ')', '^'];
                     symbols.forEach(sym => {
                         const btn = document.createElement('button');
                         btn.type = 'button';
                         btn.textContent = sym;
                         btn.className = 'btn-secondary btn-sm';
-                        btn.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; padding: 4px 8px; font-size: 13px; font-weight: 700; min-width: 32px; height: 30px; cursor: pointer; border-radius: 4px; border: 1px solid var(--hairline); background: var(--surface-card); color: var(--on-dark); user-select: none;';
+                        btn.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; padding: 2px 7px; font-size: 13px; font-weight: 700; min-width: 26px; height: 24px; cursor: pointer; border-radius: 4px; border: 1px solid var(--hairline); background: var(--surface-elevated); color: var(--on-dark); user-select: none;';
                         btn.onclick = (e) => {
                             e.preventDefault();
                             const start = targetInput.selectionStart ?? targetInput.value.length;
@@ -1944,7 +1965,19 @@
                         };
                         ribbon.appendChild(btn);
                     });
-                    return ribbon;
+
+                    targetInput.style.border = 'none';
+                    targetInput.style.borderRadius = '0';
+                    targetInput.style.margin = '0';
+                    targetInput.style.boxShadow = 'none';
+                    targetInput.style.background = 'transparent';
+                    targetInput.style.width = '100%';
+                    targetInput.style.boxSizing = 'border-box';
+                    targetInput.style.outline = 'none';
+
+                    wrapper.appendChild(ribbon);
+                    wrapper.appendChild(targetInput);
+                    return wrapper;
                 }
 
                 if (q.type === 'open_ended') {
@@ -1959,7 +1992,6 @@
                         }
                     };
                     opts.appendChild(createMathSymbolRibbon(ta));
-                    opts.appendChild(ta);
                     ta.focus();
                 } else if (q.type === 'identification' || q.type === 'graphing') {
                     const inp = document.createElement('input');
@@ -1980,7 +2012,6 @@
                         }
                     };
                     opts.appendChild(createMathSymbolRibbon(inp));
-                    opts.appendChild(inp);
                     if (q.type === 'graphing' && quizData.quiz_mode !== 'back_and_forth') btnConfirm.style.display = 'inline-flex';
                     inp.focus();
                 } else {
@@ -2600,6 +2631,14 @@
             if (progCont) progCont.style.display = 'block';
             if (progBar) progBar.style.width = '20%';
             document.getElementById('pdf-btn').style.display = 'none';
+            const timerElem = document.getElementById('timer');
+            if (timerElem) timerElem.style.display = 'none';
+            const qTracker = document.getElementById('q-tracker');
+            if (qTracker) qTracker.style.display = 'none';
+            const scoreTracker = document.getElementById('score-tracker');
+            if (scoreTracker) scoreTracker.style.display = 'none';
+            const btnEnd = document.getElementById('btn-end-early');
+            if (btnEnd) btnEnd.style.display = 'none';
 
             // Anti-Stuck: Clear any active timers
             if (timerInterval) clearInterval(timerInterval);

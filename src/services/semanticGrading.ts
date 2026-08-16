@@ -140,6 +140,19 @@ Return a score_fraction from 0 to 1 proportional to demonstrated correctness and
 For mathematical feedback, wrap every standalone numeric value in $...$ and wrap complete expressions when applicable. Use $$...$$ only for standalone equations. Printed question numbers and option letters stay outside delimiters. Keep all delimiters and braces balanced, and do not wrap plain words in LaTeX. Return only the schema-defined JSON object.`;
 }
 
+let semanticModelRotationCounter = 0;
+
+function resolveSemanticModelOrder(preferredModel?: string): [string, string] {
+  if (preferredModel && String(preferredModel).trim()) {
+    return getFlashLiteModelPair(preferredModel);
+  }
+  // Alternate the starting model to utilize both 15 RPM buckets concurrently (30 RPM total)
+  const isOdd = (semanticModelRotationCounter++) % 2 === 1;
+  return isOdd
+    ? ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite']
+    : ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
+}
+
 export async function gradeSemanticQuestion(
   input: SemanticGradeInput
 ): Promise<SemanticGradeOutcome> {
@@ -170,7 +183,7 @@ export async function gradeSemanticQuestion(
   ];
   appendSnapshotVision(parts, Array.isArray(input.solutionSnapshots) ? input.solutionSnapshots : []);
 
-  const models = getFlashLiteModelPair(input.modelName);
+  const models = resolveSemanticModelOrder(input.modelName);
 
   let sawInvalidResponse = false;
   let lastError = '';

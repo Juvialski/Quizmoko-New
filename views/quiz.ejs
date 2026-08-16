@@ -650,6 +650,12 @@
                     <h2 style="font-size: 36px; margin:0; color:var(--on-dark); letter-spacing: -0.5px;"><i data-lucide="party-popper" class="icon-sm"></i> Quiz Complete</h2>
                     <div style="height:4px; width:60px; background:var(--primary); margin:20px auto;"></div>
                     <h1 id="score-text">Grading...</h1>
+                    <div id="grading-progress-container" style="display:none; max-width: 480px; margin: 20px auto; text-align: center;">
+                        <div style="background: var(--surface-soft); border-radius: 999px; height: 10px; overflow: hidden; border: 1px solid var(--hairline); margin-bottom: 10px;">
+                            <div id="grading-progress-bar" style="background: linear-gradient(90deg, var(--primary), var(--secondary)); height: 100%; width: 25%; transition: width 0.4s ease; border-radius: 999px;"></div>
+                        </div>
+                        <div id="grading-progress-detail" style="font-size: 13px; color: var(--body); line-height: 1.5;">Pacing AI grading requests to adhere to Gemini API rate limits. Please keep this tab open — your answers are saved.</div>
+                    </div>
                     <p id="save-status-msg" style="color: var(--body); font-size: 16px;">Score successfully submitted.</p>
             <button class="btn-confirm" id="pdf-btn" onclick="openSharedSolutions()" style="display:inline-flex; background: var(--m-blue-dark); margin-bottom: 40px;"><i data-lucide="download" class="icon-sm"></i> VIEW & DOWNLOAD SOLUTIONS</button>
                     <hr style="border: 1px solid var(--hairline); margin: 64px 0;">
@@ -2587,20 +2593,32 @@
             document.getElementById('quiz-screen').style.display = 'none';
             document.getElementById('result-screen').style.display = 'block';
             document.getElementById('score-text').innerText = 'Finalizing Results...';
-            document.getElementById('save-status-msg').innerText = 'Waiting for authoritative server grading.';
+            document.getElementById('save-status-msg').innerText = 'Authoritative server grading in progress.';
+            const progCont = document.getElementById('grading-progress-container');
+            const progBar = document.getElementById('grading-progress-bar');
+            const progDetail = document.getElementById('grading-progress-detail');
+            if (progCont) progCont.style.display = 'block';
+            if (progBar) progBar.style.width = '20%';
             document.getElementById('pdf-btn').style.display = 'none';
 
             // Anti-Stuck: Clear any active timers
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = null;
 
-            // WAIT FOR PENDING GRADINGS (shorter 15s timeout for safety)
+            // WAIT FOR PENDING GRADINGS (with dynamic progress updates)
             let waitStart = Date.now();
-            while (pendingGradings > 0 && (Date.now() - waitStart < 15000)) {
+            const totalQuestionsCount = Array.isArray(quizData.questions) ? quizData.questions.length : 1;
+            while (pendingGradings > 0 && (Date.now() - waitStart < 30000)) {
                 console.log(`[QUIZ] Waiting for ${pendingGradings} pending gradings...`);
+                const finishedCount = Math.max(0, totalQuestionsCount - pendingGradings);
+                const pct = Math.min(95, Math.max(15, Math.round((finishedCount / totalQuestionsCount) * 100)));
                 document.getElementById('score-text').innerText = `Finalizing Results (${pendingGradings} left)...`;
+                if (progBar) progBar.style.width = `${pct}%`;
+                if (progDetail) progDetail.innerText = `Authoritative AI grading: ${finishedCount} of ${totalQuestionsCount} complete. Pacing requests across Gemini models to adhere to API rate limits...`;
                 await new Promise(r => setTimeout(r, 1000));
             }
+            if (progBar) progBar.style.width = '90%';
+            if (progDetail) progDetail.innerText = 'Calculating authoritative final score...';
             if (progressiveSaveDebounce) {
                 clearTimeout(progressiveSaveDebounce);
                 progressiveSaveDebounce = null;
@@ -2745,12 +2763,16 @@
                 totalScore = finalCalculatedScore;
                 submissionConfirmed = true;
                 sendPing(finalStatus);
+                const progCont = document.getElementById('grading-progress-container');
+                if (progCont) progCont.style.display = 'none';
                 document.getElementById('save-status-msg').innerText = 'Score successfully submitted.';
                 document.getElementById('pdf-btn').style.display = 'inline-flex';
                 localStorage.removeItem(STORAGE_KEY);
             } catch (err) {
                 console.error('Submission failed:', err);
                 isSubmitting = false;
+                const progCont = document.getElementById('grading-progress-container');
+                if (progCont) progCont.style.display = 'none';
                 sendPing('Grading incomplete');
                 document.getElementById('score-text').innerText = 'Result not finalized';
                 const failureMessage = String(err && err.message || 'Finalization failed.');

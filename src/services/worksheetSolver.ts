@@ -123,7 +123,7 @@ function retryableModelFailure(error: unknown): boolean {
   const name = String((error as any)?.name || '');
   if (name === 'AbortError' || name === 'TimeoutError') return true;
   const message = String((error as any)?.message || error || '').toLowerCase();
-  return /timeout|timed out|temporar|rate limit|quota|network|fetch|connection|socket|econn|invalid json|omitted|coverage|source_id|source_index|solver result|latex delimiter/.test(message);
+  return /timeout|timed out|temporar|rate limit|quota|network|fetch|connection|socket|econn|invalid json|omitted|coverage|source_id|source_index|solver result|latex delimiter|invalid latex|unsupported_type|validation failed/.test(message);
 }
 
 function sleep(milliseconds: number): Promise<void> {
@@ -453,10 +453,11 @@ export async function solveWorksheetBatchWithConsensus(input: {
     if (typeof question.raw_text === 'string') question.raw_text = normalizeQuestionText(question.raw_text);
     if (typeof question.statement === 'string') question.statement = normalizeQuestionText(question.statement);
     if (Array.isArray(question.options)) {
-      question.options = question.options.map((option, index) => stripRedundantOptionPrefix(normalizeDisplayText(option), index));
-      if (typeof question.question === 'string') question.question = stripDuplicatedChoiceBlock(question.question, question.options).trim();
-      if (typeof question.raw_text === 'string') question.raw_text = stripDuplicatedChoiceBlock(question.raw_text, question.options).trim();
-      if (typeof question.statement === 'string') question.statement = stripDuplicatedChoiceBlock(question.statement, question.options).trim();
+      const options = question.options.map((option, index) => stripRedundantOptionPrefix(normalizeDisplayText(option), index));
+      question.options = options;
+      if (typeof question.question === 'string') question.question = stripDuplicatedChoiceBlock(question.question, options).trim();
+      if (typeof question.raw_text === 'string') question.raw_text = stripDuplicatedChoiceBlock(question.raw_text, options).trim();
+      if (typeof question.statement === 'string') question.statement = stripDuplicatedChoiceBlock(question.statement, options).trim();
     }
     if (typeof question.solution === 'string') question.solution = normalizeDisplayText(question.solution);
     return { ...result, question };

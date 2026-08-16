@@ -89,3 +89,13 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
 - 2026-08-07: Structured AI choice options now store content only; redundant A/B/C/D prefixes are forbidden in prompts and stripped at AI normalization boundaries, while the quiz UI also hides legacy matching prefixes and restores multi-select state by option index.
 
 - 2026-08-07: AI quiz `images_count` is now an exact TikZ diagram contract. Diagram-required questions are deterministically distributed through the quiz, every batch is validated/retried for exact `[TIKZ]` coverage, unsupported pgfplots output is rejected, and the generator fails closed instead of silently saving the wrong diagram count.
+
+- 2026-08-16: Completed stability and deployment audit for Render:
+  - Fixed TypeScript type narrowing for `question.options` in `src/services/worksheetSolver.ts`.
+  - Expanded `retryableModelFailure` regex to include `invalid latex`, `validation failed`, and `unsupported_type` ensuring transient solver formatting glitches attempt bounded retries.
+  - Standardized prompt templates in `prompts.ts` to use single backslash newline escaping (`encode line breaks as \n`) avoiding runtime `\\\\n` doubling.
+  - Aligned `WORKSHEET_SOLVER_PROMPT` section header tags (`QUESTIONS TO PROCESS (JSON):` and `CRITICAL RULES:`) across solver pipelines and fixtures.
+  - Hardened inline LaTeX delimiter validation (`validateLatexText`) with strict whitespace boundary checks to prevent misclassification of unbalanced math delimiters.
+  - Added process-level `unhandledRejection` and `uncaughtException` diagnostics in `src/services/serverLifecycle.ts` to safeguard Render production uptime.
+  - Verified 100% test pass rate across 108 tests (16 test suites) and 0 TypeScript compilation errors.
+

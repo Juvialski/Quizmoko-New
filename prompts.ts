@@ -11,7 +11,7 @@ MATH & LATEX RULES:
 7. Currency inside math must use one expression, such as "$\text{\$40}$". Escape percentages inside math as \%.
 8. Every delimiter and brace must be balanced. Preserve existing HTML and image tags exactly.
 9. Identification answer keys are plain concise values with no LaTeX delimiters and no unnecessary units.
-10. Return valid JSON. Encode each logical line break exactly once with the JSON newline escape \n. Never double-escape it as \\n.
+10. Return valid JSON; encode line breaks as \n; never double-escape them.
 `;
 
 export type SubjectPromptMode = 'math' | 'science' | 'plain' | 'technical' | 'general';
@@ -24,7 +24,7 @@ HUMANITIES / LANGUAGE FORMATTING AND QUALITY RULES:
 - For History and Social Studies, prefer precise established facts; if an interpretation is genuinely contested, word the question so the intended perspective is explicit rather than pretending there is one universal interpretation.
 - For English and Literature, preserve spelling, punctuation, capitalization, and quoted wording exactly when source text is supplied.
 - Do not use markdown bold/italics markers. Preserve existing HTML/image tags exactly.
-- Return valid JSON. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+- Return valid JSON. Encode line breaks as \n; never double-escape them.
 `;
 
 export const SCIENCE_RULES = String.raw`
@@ -35,7 +35,7 @@ SCIENCE / STEM FORMATTING AND QUALITY RULES:
 - Preserve chemical formulas and scientific names faithfully. Do not force plain formulas such as H2O or NaCl into LaTeX unless mathematical/scientific typesetting materially improves clarity.
 - Use correct units and accepted scientific conventions. Avoid fake precision, impossible units, and unstated assumptions that change the answer.
 - Never fabricate experimental results, quotations, citations, or source data. Preserve existing HTML/image tags exactly.
-- Return valid JSON. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+- Return valid JSON. Encode line breaks as \n; never double-escape them.
 `;
 
 export const TECHNICAL_RULES = String.raw`
@@ -44,7 +44,7 @@ TECHNICAL / COMPUTING / QUANTITATIVE-SOCIAL-SCIENCE RULES:
 - Use $...$ only for genuine mathematical expressions, formulas, complexity notation, probabilities, or calculations. Use $$...$$ only for standalone equations or tables.
 - Preserve code, identifiers, punctuation, capitalization, and symbols exactly when source material is supplied. Do not invent APIs, syntax, standards, or citations.
 - For economics/accounting/finance, state any needed assumptions and keep units/currency unambiguous; use mathematical notation only where it improves a calculation.
-- Preserve existing HTML/image tags exactly. Return valid JSON. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+- Preserve existing HTML/image tags exactly. Return valid JSON. Encode line breaks as \n; never double-escape them.
 `;
 
 export const GENERAL_SUBJECT_RULES = String.raw`
@@ -53,7 +53,7 @@ GENERAL / MIXED-SUBJECT FORMATTING AND QUALITY RULES:
 - Use $...$ only for genuine mathematical expressions or quantities that are part of a calculation; use $$...$$ only for standalone equations, aligned work, or tables.
 - If an item is clearly mathematical, apply consistent mathematical notation to that item, but do not force unrelated prose numbers into LaTeX.
 - Do not fabricate quotations, citations, source passages, experimental data, APIs, or other externally attributed content.
-- Preserve existing HTML/image tags exactly. Return valid JSON. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+- Preserve existing HTML/image tags exactly. Return valid JSON. Encode line breaks as \n; never double-escape them.
 `;
 
 const normalizeSubjectToken = (value: unknown): string => String(value ?? '')
@@ -208,7 +208,7 @@ RULES
 6. Do not include Question:, question numbers, difficulty labels, markdown fences, or an Answer: line in the question text.
 7. Do not repeat a scenario or create a near-duplicate by changing only numbers.
 8. VISUAL REQUIREMENT: exactly {images_count} question texts in this batch must contain one [TIKZ]...[/TIKZ] block when {images_count} is greater than 0. Follow every per-question diagram_required, visual_intent, visual_goal, and visual_guidance field in the question plan. A diagram_required="yes" item MUST contain exactly one useful TikZ visual of the assigned intent; a diagram_required="no" item MUST contain none. The question itself must explicitly depend on or refer to the graph/diagram/table/figure; never add decorative art. When several visuals are requested, vary the representation when the topic supports meaningful variety instead of repeating the same drawing template. Use BASE TIKZ ONLY: do not use pgfplots, \begin{axis}, \addplot, \usetikzlibrary, \documentclass, \usepackage, or external images. For Cartesian plots, draw axes/ticks/curves with basic \draw and TikZ plot/coordinates. For tables, draw a compact grid with lines/rectangles and nodes. For charts, geometry, trees, number lines, schematics, timelines, or models, use the simplest readable base-TikZ construction that serves the question. Keep labels readable, avoid overlaps/crowding, use sensible scales and units, and never reveal the answer in the visual. LABEL PLACEMENT RULES: do not place text directly on top of a curve, line, point marker, axis, arrow, vertex, or another label. For graph/geometry annotations, position labels relative to the object with node options such as above, below, left, right, above left, above right, anchor=..., xshift=..., or yshift=.... Prefer path-attached labels such as node[pos=..., right=4pt] when labeling a line or curve. Keep ordinary annotations at default, \small, or \footnotesize size; do not use \Large, \LARGE, \huge, or oversized labels. Keep labels inside the visible figure and separated from important intersections. Table-cell and flow-node text may be centered inside its own cell/node.
-9. Use valid JSON escaping. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+9. Use valid JSON escaping. Encode line breaks as \n; never double-escape them.
 10. For a multi-part question, put the stem and each labeled part on separate logical lines. Use plain-text labels such as a., b., c. or (i), (ii); do NOT wrap part labels in LaTeX or use \mathbf/\textbf for the letters. Never run a. and b. together in one paragraph.
 
 FORMATTING
@@ -235,7 +235,7 @@ STRUCTURE
 
 OUTPUT FIELDS
 raw_text, verbatim_text, context_prefix, options, type, original_index, bounding_box.
-Return only the schema-defined JSON array. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+Return only the schema-defined JSON array. Encode line breaks as \n; never double-escape them.
 
 {latex_rules}
 {prompt_additions}`;
@@ -259,7 +259,7 @@ STRUCTURE
 
 OUTPUT FIELDS
 raw_text, verbatim_text, context_prefix, options, type, original_index, bounding_box.
-Return only the schema-defined JSON array. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+Return only the schema-defined JSON array. Encode line breaks as \n; never double-escape them.
 
 {subject_rules}
 {prompt_additions}`;
@@ -268,9 +268,10 @@ export const WORKSHEET_SOLVER_PROMPT = String.raw`You are an independent workshe
 Subject: {subject}
 Topic: {topic}
 
-QUESTIONS
+QUESTIONS TO PROCESS (JSON):
 {questions_json}
 
+CRITICAL RULES:
 For every source_id, solve from scratch and return exactly one result. Do not copy or modify the question text. Preserve source_index and source_id exactly.
 
 ANSWER RULES
@@ -281,7 +282,7 @@ ANSWER RULES
 - Open-ended: the canonical answer or grading points.
 - Put a concise, student-safe verification in solution; do not output hidden reasoning.
 - Keep the original type unless the supplied type is clearly incompatible with the required response.
-- For multi-part items, put each part on a separate logical line in the parsed answer string. Encode each line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+- For multi-part items, put each part on a separate logical line in the parsed answer string. Encode line breaks as \n; never double-escape them.
 
 {latex_rules}
 
@@ -291,9 +292,10 @@ export const WORKSHEET_SOLVER_PROMPT_NON_MATH = String.raw`You are an independen
 Subject: {subject}
 Topic: {topic}
 
-QUESTIONS
+QUESTIONS TO PROCESS (JSON):
 {questions_json}
 
+CRITICAL RULES:
 For every source_id, solve from scratch and return exactly one result. Do not copy or modify the question text. Preserve source_index and source_id exactly.
 
 ANSWER RULES
@@ -303,7 +305,7 @@ ANSWER RULES
 - Identification: a concise raw number, symbol, word, or short phrase without units or decoration.
 - Open-ended: the canonical answer or grading points.
 - Put a concise, student-safe verification in solution; do not output hidden reasoning.
-- For multi-part items, put each part on a separate logical line in the parsed answer string. Encode each line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+- For multi-part items, put each part on a separate logical line in the parsed answer string. Encode line breaks as \n; never double-escape them.
 
 {latex_rules}
 
@@ -326,7 +328,7 @@ CRITICAL: Return 'verbatim_text', 'context_prefix', 'raw_text', 'options', 'type
 CRITICAL: Never extract a standalone number as a 'raw_text'. Ensure the full statement is included.
 CRITICAL: If visible A/B/C/D choices are returned in options, do NOT repeat or append those same choices inside raw_text or verbatim_text.
 CRITICAL: If the missing question is part of a section with a general instruction, heading, or shared context (e.g., "Simplify using exponents"), you MUST prepend that general instruction/context to the beginning of the question's 'raw_text' so it is fully self-contained. Put that context and the question on separate logical lines.
-CRITICAL: Keep multi-part a./b./c. questions in one object, but put each labeled part on its own logical line using plain-text labels (a., b., c.), never \mathbf/\textbf or math delimiters around the part letter. Encode each logical line break exactly once with the JSON newline escape \n; never double-escape it as \\n.
+CRITICAL: Keep multi-part a./b./c. questions in one object, but put each labeled part on its own logical line using plain-text labels (a., b., c.), never \mathbf/\textbf or math delimiters around the part letter. Encode line breaks as \n; never double-escape them.
 CRITICAL: If there's any diagram, drawing, map, or visual illustration associated with the question, include a very generous bounding_box coordinate [ymin, xmin, ymax, xmax] (0 to 1000) so that it is never cut off.
 Return a JSON array of objects with keys: 'raw_text', 'verbatim_text', 'context_prefix', 'options', 'type', 'original_index', and 'bounding_box'.`;
 

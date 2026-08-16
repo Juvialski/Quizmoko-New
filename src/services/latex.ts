@@ -60,6 +60,9 @@ function looksLikeLogicalLineBreak(source: string, index: number, tokenWidth: nu
   if (/[.?!:;]$/.test(trimmedBefore) && /^[A-Za-z0-9$<"'(\[]/.test(trimmedAfter)) {
     return true;
   }
+  if (/[A-Za-z0-9]$/.test(trimmedBefore) && /^[A-Z]/.test(trimmedAfter)) {
+    return true;
+  }
   if (previous === ')' && /^(?:[a-h][.)]|\([a-h]\))\s+/.test(trimmedAfter)) {
     return true;
   }
@@ -370,10 +373,18 @@ export function validateLatexText(value: unknown): LatexIssue[] {
       const tokenMode: 'inline' | 'display' = text[index + 1] === '$' ? 'display' : 'inline';
       const width = tokenMode === 'display' ? 2 : 1;
       if (mode === null) {
+        if (tokenMode === 'inline' && (index + 1 >= text.length || /\s/.test(text[index + 1]))) {
+          issues.push({ code: 'unbalanced_delimiter', message: 'A LaTeX dollar delimiter is not closed.', index });
+          index += width;
+          continue;
+        }
         mode = tokenMode;
         openingIndex = index;
         braceDepth = 0;
       } else if (mode === tokenMode) {
+        if (tokenMode === 'inline' && index > 0 && /\s/.test(text[index - 1])) {
+          issues.push({ code: 'unbalanced_delimiter', message: 'A LaTeX dollar delimiter has whitespace before closing.', index });
+        }
         const contentStart = openingIndex + (mode === 'display' ? 2 : 1);
         const content = text.slice(contentStart, index).trim();
         if (!content) {

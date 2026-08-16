@@ -41,6 +41,13 @@ export function installGracefulShutdown(server: HttpServer, io: SocketServer): v
 
   process.once('SIGTERM', () => void shutdown('SIGTERM'));
   process.once('SIGINT', () => void shutdown('SIGINT'));
+
+  process.on('unhandledRejection', (reason) => {
+    console.error('[Server] Unhandled promise rejection:', reason);
+  });
+  process.on('uncaughtException', (error) => {
+    console.error('[Server] Uncaught exception:', error);
+  });
 }
 
 export async function startHttpServer(server: HttpServer): Promise<void> {

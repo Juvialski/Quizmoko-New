@@ -20,6 +20,7 @@
         if (/^(?:\$|<(?:div|img|br)\b|\[TIKZ\]|[•*-][ \t]+|\(?[a-h]\)?[.)]?[ \t]+|\(?i{1,3}\)?[.)]?[ \t]+)/.test(trimmedAfter)) return true;
         if (/^(?:\\(?:d?frac|sqrt|begin|left|boxed|overline|underline)\b)/.test(trimmedAfter)) return true;
         if (/[.?!:;]$/.test(trimmedBefore) && /^[A-Za-z0-9$<"'(\[]/.test(trimmedAfter)) return true;
+        if (/[A-Za-z0-9]$/.test(trimmedBefore) && /^[A-Z]/.test(trimmedAfter)) return true;
         return false;
     }
 

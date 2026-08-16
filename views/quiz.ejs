@@ -798,6 +798,7 @@
         let whiteboardDisabledByTeacher = false;
         let studentWhiteboardPreference = true; // DEFAULT TO SHOWN
         let isWhiteboardDirty = false; // TRACK IF WHITEBOARD WAS CHANGED
+        let tabSwitchCount = 0; // TRACK STUDENT TAB SWITCHES / FOCUS LOSS
 
         // Performance metrics
         let quizStartTime = null;
@@ -1043,7 +1044,8 @@
                 answerRevisions, answerDigests, snapshotDigests, sessionRevision,
                 timeRemaining: parseInt(timeRemaining) || 0,
                 studentWhiteboardPreference, // PERSIST STUDENT PREFERENCE
-                isWhiteboardDirty, whiteboardDirtyQuestions, quizStartTime, totalPausedTime
+                isWhiteboardDirty, whiteboardDirtyQuestions, quizStartTime, totalPausedTime,
+                tabSwitchCount
             };
             try {
                 // PNG snapshots stay in memory; persisting base64 canvases regularly
@@ -1121,6 +1123,7 @@
                 time_active_seconds: metrics.timeActive,
                 time_paused_seconds: metrics.finalPausedTime,
                 total_duration_seconds: metrics.totalDuration,
+                tab_switch_count: tabSwitchCount,
                 accuracy_pct: maximumQuizScore() > 0 ? (totalScore / maximumQuizScore()) * 100 : 0
             };
         }
@@ -1233,6 +1236,7 @@
                     : (isWhiteboardDirty ? { [currentIndex]: true } : {});
                 if (state.quizStartTime) quizStartTime = state.quizStartTime;
                 if (state.totalPausedTime !== undefined) totalPausedTime = parseInt(state.totalPausedTime) || 0;
+                if (state.tabSwitchCount !== undefined) tabSwitchCount = parseInt(state.tabSwitchCount) || 0;
                 recalculateLiveScore();
                 console.log(`[QUIZ] Restored state. Pending gradings: ${pendingGradings}`);
 
@@ -1598,6 +1602,7 @@
                 current_q: (parseInt(currentIndex) || 0) + 1,
                 score: parseFloat(totalScore) || 0,
                 status: s,
+                tab_switch_count: tabSwitchCount,
                 time_remaining: Math.max(0, parseInt(timeRemaining) || 0)
             };
 
@@ -1908,6 +1913,34 @@
                 const opts = document.getElementById('options-container');
                 opts.innerHTML = '';
 
+                function createMathSymbolRibbon(targetInput) {
+                    const ribbon = document.createElement('div');
+                    ribbon.className = 'math-symbol-ribbon';
+                    ribbon.style.cssText = 'display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; padding: 6px; background: var(--surface-soft); border-radius: var(--radius-sm); border: 1px solid var(--hairline);';
+                    const symbols = ['²', '√', '±', 'π', '×', '÷', '≥', '≤', '½', 'θ', '°', '(', ')', '^'];
+                    symbols.forEach(sym => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.textContent = sym;
+                        btn.className = 'btn-secondary btn-sm';
+                        btn.style.cssText = 'display: inline-flex; align-items: center; justify-content: center; padding: 4px 8px; font-size: 13px; font-weight: 700; min-width: 32px; height: 30px; cursor: pointer; border-radius: 4px; border: 1px solid var(--hairline); background: var(--surface-card); color: var(--on-dark); user-select: none;';
+                        btn.onclick = (e) => {
+                            e.preventDefault();
+                            const start = targetInput.selectionStart ?? targetInput.value.length;
+                            const end = targetInput.selectionEnd ?? targetInput.value.length;
+                            targetInput.value = targetInput.value.slice(0, start) + sym + targetInput.value.slice(end);
+                            targetInput.focus();
+                            const nextCursor = start + sym.length;
+                            if (typeof targetInput.setSelectionRange === 'function') {
+                                targetInput.setSelectionRange(nextCursor, nextCursor);
+                            }
+                            targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        };
+                        ribbon.appendChild(btn);
+                    });
+                    return ribbon;
+                }
+
                 if (q.type === 'open_ended') {
                     const ta = document.createElement('textarea');
                     ta.placeholder = 'Explain...';
@@ -1919,6 +1952,7 @@
                             btnConfirm.style.display = e.target.value.trim().length > 0 ? 'inline-flex' : 'none';
                         }
                     };
+                    opts.appendChild(createMathSymbolRibbon(ta));
                     opts.appendChild(ta);
                     ta.focus();
                 } else if (q.type === 'identification' || q.type === 'graphing') {
@@ -1932,13 +1966,14 @@
                     inp.value = answers[currentIndex] || ''; // RESTORE ANSWER ON RELOAD
                     inp.oninput = e => {
                         if (q.type === 'identification' && quizData.subject === 'Math') {
-                            e.target.value = e.target.value.replace(/[^0-9.\-\/]/g, '');
+                            e.target.value = e.target.value.replace(/[^0-9.\-\/²√±π×÷≥≤½θ°()^]/g, '');
                         }
                         commitAnswerChange(currentIndex, e.target.value);
                         if (quizData.quiz_mode !== 'back_and_forth') {
                             btnConfirm.style.display = e.target.value.trim() ? 'inline-flex' : 'none';
                         }
                     };
+                    opts.appendChild(createMathSymbolRibbon(inp));
                     opts.appendChild(inp);
                     if (q.type === 'graphing' && quizData.quiz_mode !== 'back_and_forth') btnConfirm.style.display = 'inline-flex';
                     inp.focus();
@@ -3009,6 +3044,18 @@
                 }
             }
         }
+
+        // Tab-Switch / Proctoring Focus Detector
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && !isSubmitting && studentName && studentName !== 'Anonymous' && studentName !== 'undefined') {
+                tabSwitchCount++;
+                saveQuizState();
+                scheduleProgressiveSave(100);
+                if (typeof sendPing === 'function') {
+                    sendPing('Switched Tabs');
+                }
+            }
+        });
 
         window.onload = async () => {
             if (loadQuizState()) {

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   initializeApp as initializeWebApp,
   getApps as getWebApps,
@@ -935,6 +935,57 @@ function enqueueFirestoreMutation(
   return trackPersistence(operation);
 }
 
+const lastSyncedDocHashes = new Map<string, string>();
+const pendingProgressiveSyncs = new Map<string, {
+  data: any;
+  timer: NodeJS.Timeout;
+}>();
+
+function computeDocumentHash(value: any): string {
+  const plain = toPlainPersistenceValue(value);
+  return createHash('sha256').update(JSON.stringify(plain)).digest('hex');
+}
+
+export function syncProgressiveDocToFirestore(
+  collectionName: string,
+  documentId: string,
+  data: any,
+  throttleMs = 12_000
+): void {
+  if (isAiStudioSandbox()) return;
+  const docKey = `${collectionName}/${documentId}`;
+
+  // If identical to last remote state, don't schedule a sync
+  const docHash = computeDocumentHash(data);
+  if (lastSyncedDocHashes.get(docKey) === docHash) {
+    const existing = pendingProgressiveSyncs.get(docKey);
+    if (existing) {
+      clearTimeout(existing.timer);
+      pendingProgressiveSyncs.delete(docKey);
+    }
+    return;
+  }
+
+  const existing = pendingProgressiveSyncs.get(docKey);
+  if (existing) {
+    // Update pending payload to newest state
+    existing.data = data;
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    const entry = pendingProgressiveSyncs.get(docKey);
+    pendingProgressiveSyncs.delete(docKey);
+    if (entry) {
+      void syncDocToFirestore(collectionName, documentId, entry.data).catch((error) => {
+        console.warn(`[Firebase] Throttled progressive sync failed for ${docKey}:`, error);
+      });
+    }
+  }, throttleMs);
+
+  pendingProgressiveSyncs.set(docKey, { data, timer });
+}
+
 export function syncDocToFirestore(collectionName: string, documentId: string, data: any) {
   if (isAiStudioSandbox()) {
     return Promise.resolve();
@@ -946,10 +997,24 @@ export function syncDocToFirestore(collectionName: string, documentId: string, d
     return Promise.resolve();
   }
 
+  const docKey = `${collectionName}/${documentId}`;
+  const pending = pendingProgressiveSyncs.get(docKey);
+  if (pending) {
+    clearTimeout(pending.timer);
+    pendingProgressiveSyncs.delete(docKey);
+  }
+
   stripSensitiveFieldsInPlace(data);
   // Capture the exact revision at enqueue time. A later progressive/final
   // mutation of the same in-memory object must not alter an earlier write.
   const persistenceSnapshot = toPlainPersistenceValue(data);
+  const docHash = computeDocumentHash(persistenceSnapshot);
+
+  // Write deduplication: bypass Firestore network write if doc state is identical
+  if (lastSyncedDocHashes.get(docKey) === docHash) {
+    return Promise.resolve();
+  }
+
   return enqueueFirestoreMutation(collectionName, documentId, async () => {
     const failureGenerationAtStart = firestoreFailureGeneration;
     const required = isFirestoreRequired();
@@ -983,6 +1048,7 @@ export function syncDocToFirestore(collectionName: string, documentId: string, d
       if (required) throw new PersistenceUnavailableError(message);
       return;
     }
+    lastSyncedDocHashes.set(docKey, docHash);
     if (backends.length > 0) markFirestoreHealthy(failureGenerationAtStart);
   });
 }
@@ -997,6 +1063,14 @@ export function deleteDocFromFirestore(collectionName: string, documentId: strin
     console.warn('[Firebase] Refused an invalid delete target:', error instanceof Error ? error.message : 'unknown error');
     return Promise.resolve();
   }
+
+  const docKey = `${collectionName}/${documentId}`;
+  const pending = pendingProgressiveSyncs.get(docKey);
+  if (pending) {
+    clearTimeout(pending.timer);
+    pendingProgressiveSyncs.delete(docKey);
+  }
+  lastSyncedDocHashes.delete(docKey);
 
   return enqueueFirestoreMutation(collectionName, documentId, async () => {
     const failureGenerationAtStart = firestoreFailureGeneration;
@@ -1057,6 +1131,8 @@ async function loadCollection(
         try {
           const data = await hydrateChunkedDocument(backend, collectionName, entry.id, entry.data);
           stripSensitiveFieldsInPlace(data);
+          const docHash = computeDocumentHash(data);
+          lastSyncedDocHashes.set(`${collectionName}/${entry.id}`, docHash);
           return { id: entry.id, data };
         } catch (error) {
           success = false;
@@ -1086,7 +1162,6 @@ export async function loadFromFirestore(generation = ++firestoreLoadGeneration):
   }
   console.log('[Firebase] Loading persisted collections before accepting traffic...');
 
-  const stagedLegacyQuizzes = new Map<string, Quiz>();
   const stagedCanonicalQuizzes = new Map<string, Quiz>();
   const stagedResults = new Map<string, QuizResult>();
   const stagedUsers = new Map<string, User>();
@@ -1097,22 +1172,17 @@ export async function loadFromFirestore(generation = ++firestoreLoadGeneration):
   };
 
   for (const backend of backends) {
-    // Load collections concurrently across the backend
-    const [legacyQuizzes, canonicalQuizzes, remoteResults, remoteUsers] = await Promise.all([
-      loadCollection(backend, 'quiz'),
+    // Load collections concurrently across the backend (canonical collections only)
+    const [canonicalQuizzes, remoteResults, remoteUsers] = await Promise.all([
       loadCollection(backend, 'quizzes'),
       loadCollection(backend, 'results'),
       loadCollection(backend, 'users')
     ]);
 
-    readSuccess.quizzes &&= legacyQuizzes.success && canonicalQuizzes.success;
+    readSuccess.quizzes &&= canonicalQuizzes.success;
     readSuccess.results &&= remoteResults.success;
     readSuccess.users &&= remoteUsers.success;
 
-    for (const entry of legacyQuizzes.entries) {
-      const id = String(entry.data.id || entry.id);
-      stagedLegacyQuizzes.set(id, { ...entry.data, id } as Quiz);
-    }
     for (const entry of canonicalQuizzes.entries) {
       const id = String(entry.data.id || entry.id);
       stagedCanonicalQuizzes.set(id, { ...entry.data, id } as Quiz);
@@ -1130,16 +1200,11 @@ export async function loadFromFirestore(generation = ++firestoreLoadGeneration):
   let replacedAnyCollection = false;
   if (readSuccess.quizzes) {
     const sampleIds = new Set(sampleQuizzes.map((s) => s.id));
-    if (stagedLegacyQuizzes.size > 0 || stagedCanonicalQuizzes.size > 0) {
+    if (stagedCanonicalQuizzes.size > 0) {
       for (const sampleId of sampleIds) {
         quizzes.delete(sampleId);
       }
     }
-    stagedLegacyQuizzes.forEach((value, id) => {
-      if (!quizzes.has(id)) {
-        quizzes.set(id, value);
-      }
-    });
     // Canonical records win globally, including across multiple databases.
     stagedCanonicalQuizzes.forEach((value, id) => {
       const existing = quizzes.get(id);
@@ -1291,6 +1356,15 @@ export function getPersistenceStatus() {
 export async function flushPendingPersistence(timeoutMs = 10_000): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
 
+  for (const [docKey, entry] of pendingProgressiveSyncs.entries()) {
+    clearTimeout(entry.timer);
+    pendingProgressiveSyncs.delete(docKey);
+    const [col, id] = docKey.split('/');
+    if (col && id) {
+      void syncDocToFirestore(col, id, entry.data);
+    }
+  }
+
   while (true) {
     if (localSaveTimer) {
       clearTimeout(localSaveTimer);
@@ -1375,4 +1449,21 @@ export function initDatabase(): Promise<void> {
   })();
 
   return databaseInitialization;
+}
+
+export function exportDatabaseSnapshot() {
+  const allQuizzes = Array.from(quizzes.values()).map(q => ({ ...q }));
+  const allResults = Array.from(results.values()).map(r => ({ ...r }));
+  const allUsers = Array.from(users.values()).map(u => ({ ...u }));
+  return {
+    exported_at: new Date().toISOString(),
+    summary: {
+      total_quizzes: allQuizzes.length,
+      total_results: allResults.length,
+      total_users: allUsers.length
+    },
+    quizzes: allQuizzes,
+    results: allResults,
+    users: allUsers
+  };
 }

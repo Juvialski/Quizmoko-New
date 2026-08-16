@@ -432,3 +432,38 @@ export const STUDENT_REVIEW_USER = String.raw`Review the following generated {te
 
 RAW GENERATED TEXT:
 {batch_text}`;
+
+export function getCognitiveLevelPrompt(level?: string): string {
+  const norm = String(level || '').trim().toLowerCase();
+  if (norm === 'recall' || norm === 'drill') {
+    return String.raw`
+COGNITIVE LEVEL: DRILL & FACTUAL RECALL (Bloom Level 1-2)
+- Focus on rapid recall, definitions, direct computation, and straightforward single-step execution.
+- Avoid unnecessary paragraph-length distractor stories.
+`;
+  }
+  if (norm === 'competition' || norm === 'olympiad' || norm === 'amc') {
+    return String.raw`
+COGNITIVE LEVEL: COMPETITION & MULTI-STEP REASONING (Bloom Level 4-6 / Olympiad / AMC Style)
+- Create challenging, multi-step problem solving questions that test deep conceptual insight and clever mathematical/logical synthesis.
+- Questions should have elegant, non-obvious solutions with realistic, well-constructed distractors.
+`;
+  }
+  return String.raw`
+COGNITIVE LEVEL: STANDARD CURRICULUM APPLICATION (Bloom Level 2-4)
+- Test practical understanding, multi-step standard curriculum problem solving, and conceptual comprehension.
+`;
+}
+
+export const PARALLEL_VARIANT_GENERATOR_PROMPT = String.raw`You are an expert curriculum test designer.
+Your task is to generate a parallel variant of an existing quiz (e.g. creating a Form B / Retake with fresh numbers, names, and contexts).
+
+CRITICAL INSTRUCTIONS:
+1. For each question in the input, create exactly one new question that tests the EXACT SAME skill, concept, difficulty, and question type.
+2. Change all specific numbers, character names, and scenario contexts so students cannot simply memorize previous answer choices.
+3. If the original question is multiple choice, provide 4 plausible options with the single unambiguously correct answer.
+4. If the original question contains a TikZ diagram, generate an equivalent TikZ diagram with updated values.
+5. Provide a clear, step-by-step solution for each newly created question.
+6. Return valid JSON adhering strictly to the response schema. Encode line breaks as \n; never double-escape them.
+`;
+

@@ -31,6 +31,36 @@
             <p style="color: var(--body); margin-bottom: 0;">Manage registered users and monitor application usage.</p>
         </div>
 
+        <div class="card" style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <h2 style="margin: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="activity" class="icon-sm"></i> System Diagnostics & Backups</h2>
+                    <p style="color: var(--body); font-size: 13px; margin: 4px 0 0 0;">Real-time database health and full system snapshot utilities.</p>
+                </div>
+                <a href="/api/admin/export_database" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <i data-lucide="download" class="icon-sm"></i> Download Database Backup (.json)
+                </a>
+            </div>
+            <div id="system-health-panel" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                <div style="padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+                    <div style="font-size: 11px; font-weight: 700; color: var(--body); text-transform: uppercase;">Firestore Persistence</div>
+                    <div id="health-firestore" style="font-size: 16px; font-weight: 700; color: var(--primary); margin-top: 4px;">Checking...</div>
+                </div>
+                <div style="padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+                    <div style="font-size: 11px; font-weight: 700; color: var(--body); text-transform: uppercase;">Total Stored Quizzes</div>
+                    <div id="health-quizzes" style="font-size: 16px; font-weight: 700; color: var(--heading); margin-top: 4px;">-</div>
+                </div>
+                <div style="padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+                    <div style="font-size: 11px; font-weight: 700; color: var(--body); text-transform: uppercase;">Completed Attempts</div>
+                    <div id="health-results" style="font-size: 16px; font-weight: 700; color: var(--heading); margin-top: 4px;">-</div>
+                </div>
+                <div style="padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;">
+                    <div style="font-size: 11px; font-weight: 700; color: var(--body); text-transform: uppercase;">Memory & Uptime</div>
+                    <div id="health-memory" style="font-size: 13px; font-weight: 600; color: var(--body); margin-top: 4px;">-</div>
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <h2>Registered Users</h2>
             <div id="users-loading">Loading users...</div>
@@ -136,7 +166,30 @@
             }
         }
 
-        window.onload = fetchUsers;
+        async function fetchSystemHealth() {
+            try {
+                const res = await fetch('/api/admin/system_health');
+                const data = await res.json();
+                if (data.success) {
+                    const fEl = document.getElementById('health-firestore');
+                    const isHealthy = data.persistence?.firestoreHealthy;
+                    const isHydrated = data.persistence?.firestoreHydrated;
+                    fEl.textContent = isHealthy ? 'Healthy & Connected' : (isHydrated ? 'Hydrated (Local Fallback)' : 'Local Disk Only');
+                    fEl.style.color = isHealthy ? 'var(--success)' : 'var(--primary)';
+
+                    document.getElementById('health-quizzes').textContent = data.counts?.quizzes ?? '-';
+                    document.getElementById('health-results').textContent = data.counts?.results ?? '-';
+                    document.getElementById('health-memory').textContent = `${data.memory?.heap_used_mb ?? 0} MB heap / ${data.uptime_seconds ?? 0}s up`;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        window.onload = () => {
+            fetchSystemHealth();
+            fetchUsers();
+        };
     </script>
     <script>window.refreshQuizmokoIcons?.();</script>
 </body>

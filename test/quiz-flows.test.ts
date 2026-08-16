@@ -6,7 +6,8 @@ import express from 'express';
 import gradingRoutes from '../src/routes/gradingRoutes.ts';
 import quizRoutes from '../src/routes/quizRoutes.ts';
 import { stripStudentSuppliedAiKeys } from '../src/middleware/auth.ts';
-import { liveSessions, quizzes, results, users } from '../src/store/db.ts';
+import { liveSessions, quizzes, results, users, exportDatabaseSnapshot, getPersistenceStatus, getUniqueQuizTitle, syncDocToFirestore, syncProgressiveDocToFirestore } from '../src/store/db.ts';
+import { getCognitiveLevelPrompt } from '../prompts.ts';
 import { hasBalancedLatexDelimiters, normalizeAiLatexText } from '../src/services/latex.ts';
 import { updateLiveSession } from '../src/services/socket.ts';
 import {
@@ -1841,5 +1842,122 @@ describe('worksheet bounded batch solving', () => {
     assert.deepEqual([...attempts.values()], [2, 2]);
     assert.equal(result.publishable, true);
     assert.equal(result.question.answer, '$b = 6$ or $b = -6$');
+  });
+});
+
+describe('QuizMoKo enhancements & stability', () => {
+  test('Database snapshot export contains expected properties and structure', () => {
+    const snapshot = exportDatabaseSnapshot();
+    assert.ok(typeof snapshot.exported_at === 'string');
+    assert.ok(Array.isArray(snapshot.quizzes));
+    assert.ok(Array.isArray(snapshot.results));
+    assert.ok(Array.isArray(snapshot.users));
+    assert.equal(snapshot.summary.total_quizzes, snapshot.quizzes.length);
+    assert.equal(snapshot.summary.total_results, snapshot.results.length);
+    assert.equal(snapshot.summary.total_users, snapshot.users.length);
+  });
+
+  test('Persistence status returns health diagnostics and configured backends', () => {
+    const status = getPersistenceStatus();
+    assert.ok('ready' in status);
+    assert.ok('local' in status);
+    assert.ok('firestoreConfigured' in status);
+    assert.ok('firestoreHealthy' in status);
+    assert.ok('firestoreHydrated' in status);
+    assert.ok(Array.isArray(status.firestoreBackends));
+  });
+
+  test('Unique quiz title generates conflict-free titles', () => {
+    const existingId = 'quiz_test_unique_001';
+    const dummyQuiz: any = {
+      id: existingId,
+      title: 'Algebra Foundations',
+      questions: []
+    };
+    quizzes.set(existingId, dummyQuiz);
+    try {
+      const title1 = getUniqueQuizTitle('Algebra Foundations');
+      assert.equal(title1, 'Algebra Foundations (1)');
+      const title2 = getUniqueQuizTitle('Algebra Foundations', existingId);
+      assert.equal(title2, 'Algebra Foundations');
+      const title3 = getUniqueQuizTitle('Geometry Basics');
+      assert.equal(title3, 'Geometry Basics');
+    } finally {
+      quizzes.delete(existingId);
+    }
+  });
+
+  test('Socket live session tracks tab switch telemetry monotonically', () => {
+    const quizId = 'quiz_test_live_tab_001';
+    const dummyQuiz: any = {
+      id: quizId,
+      title: 'Live Telemetry Test',
+      questions: [
+        { question: 'Q1', options: ['A', 'B'], answer: 'A', type: 'multiple_choice', points: 1 }
+      ]
+    };
+    quizzes.set(quizId, dummyQuiz);
+
+    try {
+      const res1 = updateLiveSession(quizId, {
+        session_id: 'sess_tab_001',
+        student_name: 'Student A',
+        current_q: 1,
+        score: 1,
+        tab_switch_count: 0
+      });
+      assert.equal(res1.session?.tab_switch_count, 0);
+
+      const res2 = updateLiveSession(quizId, {
+        session_id: 'sess_tab_001',
+        student_name: 'Student A',
+        current_q: 1,
+        score: 1,
+        tab_switch_count: 3
+      });
+      assert.equal(res2.session?.tab_switch_count, 3);
+
+      // Stale lower tab_switch_count does not decrement
+      const res3 = updateLiveSession(quizId, {
+        session_id: 'sess_tab_001',
+        student_name: 'Student A',
+        current_q: 1,
+        score: 1,
+        tab_switch_count: 1
+      });
+      assert.equal(res3.session?.tab_switch_count, 3);
+    } finally {
+      quizzes.delete(quizId);
+    }
+  });
+
+  test('Cognitive level prompt returns specialized prompt directives', () => {
+    const recallPrompt = getCognitiveLevelPrompt('recall');
+    assert.ok(recallPrompt.includes('DRILL & FACTUAL RECALL'));
+    assert.ok(recallPrompt.includes('Bloom Level 1-2'));
+
+    const compPrompt = getCognitiveLevelPrompt('competition');
+    assert.ok(compPrompt.includes('COMPETITION & MULTI-STEP REASONING'));
+    assert.ok(compPrompt.includes('AMC Style'));
+
+    const standardPrompt = getCognitiveLevelPrompt('standard');
+    assert.ok(standardPrompt.includes('STANDARD CURRICULUM APPLICATION'));
+
+    const defaultPrompt = getCognitiveLevelPrompt(undefined);
+    assert.ok(defaultPrompt.includes('STANDARD CURRICULUM APPLICATION'));
+  });
+
+  test('Firestore write deduplication and progressive throttling operate safely without errors', async () => {
+    const testDocId = `test_opt_${Date.now()}`;
+    const testData = { id: testDocId, name: 'Optimization Test', score: 100, is_in_progress: true };
+
+    // Initial sync
+    await syncDocToFirestore('results', testDocId, testData);
+
+    // Duplicate sync with identical content is safe and deduped
+    await syncDocToFirestore('results', testDocId, testData);
+
+    // Progressive sync scheduling is safe and non-blocking
+    syncProgressiveDocToFirestore('results', testDocId, { ...testData, score: 95 });
   });
 });

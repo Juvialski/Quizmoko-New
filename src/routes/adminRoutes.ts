@@ -2,9 +2,13 @@ import { Router } from 'express';
 import { adminRequired, tokenRequired } from '../middleware/auth.ts';
 import {
   users,
+  quizzes,
+  results,
   sessionProgress,
   savePersistentData,
-  syncDocToFirestore
+  syncDocToFirestore,
+  getPersistenceStatus,
+  exportDatabaseSnapshot
 } from '../store/db.ts';
 
 const router = Router();
@@ -13,6 +17,34 @@ const VALID_STATUSES = new Set(['active', 'blocked']);
 
 router.get('/admin', adminRequired, (req, res) => {
   res.render('admin', { users: Array.from(users.values()) });
+});
+
+router.get('/api/admin/system_health', adminRequired, (_req, res) => {
+  const mem = process.memoryUsage();
+  res.json({
+    success: true,
+    persistence: getPersistenceStatus(),
+    counts: {
+      quizzes: quizzes.size,
+      results: results.size,
+      users: users.size
+    },
+    memory: {
+      rss_mb: Math.round(mem.rss / 1024 / 1024 * 10) / 10,
+      heap_used_mb: Math.round(mem.heapUsed / 1024 / 1024 * 10) / 10,
+      heap_total_mb: Math.round(mem.heapTotal / 1024 / 1024 * 10) / 10
+    },
+    uptime_seconds: Math.round(process.uptime()),
+    timestamp: new Date().toISOString()
+  });
+});
+
+router.get('/api/admin/export_database', adminRequired, (_req, res) => {
+  const snapshot = exportDatabaseSnapshot();
+  const filename = `quizmoko-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(JSON.stringify(snapshot, null, 2));
 });
 
 router.get('/api/admin/users', adminRequired, (req, res) => {

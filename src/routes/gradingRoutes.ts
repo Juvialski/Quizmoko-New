@@ -7,7 +7,8 @@ import {
   quizzes,
   results,
   savePersistentData,
-  syncDocToFirestore
+  syncDocToFirestore,
+  syncProgressiveDocToFirestore
 } from '../store/db.ts';
 import { getRealModelName, safeParseJSON } from '../services/gemini.ts';
 import { generateGeminiContent } from '../services/geminiRateLimiter.ts';
@@ -371,9 +372,7 @@ async function persistIndividualProgress(input: {
     };
     results.set(resultId, record);
     savePersistentData();
-    void syncDocToFirestore('results', resultId, record).catch(error => {
-      console.warn(`[Firebase] Individual grade sync failed for ${resultId}:`, error);
-    });
+    syncProgressiveDocToFirestore('results', resultId, record);
     return true;
   });
 }
@@ -1297,9 +1296,7 @@ router.post(
       };
       results.set(resultId, record);
       savePersistentData();
-      void syncDocToFirestore('results', resultId, record).catch(error => {
-        console.warn(`[Firebase] Progressive result sync failed for ${resultId}:`, error);
-      });
+      syncProgressiveDocToFirestore('results', resultId, record);
       const io = req.app.get('io');
       if (io) io.to(`quiz_${quizId}`).emit('progressive_result_update', {
         result_id: resultId,

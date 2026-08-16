@@ -34,7 +34,9 @@ import {
   getSubjectPromptRules,
   shouldUseStrictMathFormatting,
   LATEX_POLISH_PROMPT,
-  STRUCTURED_QUIZ_GENERATOR_PROMPT
+  STRUCTURED_QUIZ_GENERATOR_PROMPT,
+  getCognitiveLevelPrompt,
+  PARALLEL_VARIANT_GENERATOR_PROMPT
 } from '../../prompts.ts';
 
 const router = Router();
@@ -618,7 +620,9 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
   });
   const difficultyPlan = interleaveCounts(difficultyCounts);
   const strictMathFormatting = shouldUseStrictMathFormatting(subject, cleanTopic);
-  const subjectRules = getSubjectPromptRules(subject, cleanTopic);
+  const cognitiveLevel = String(req.body?.cognitive_level || req.body?.difficulty_level || '').trim();
+  const cognitiveRules = getCognitiveLevelPrompt(cognitiveLevel);
+  const subjectRules = `${getSubjectPromptRules(subject, cleanTopic)}\n${cognitiveRules}`;
   const model = String(model_name || 'gemini-3.5-flash-lite').trim();
   const isOllama = model.toLowerCase().startsWith('ollama:');
   const ai = isOllama ? null : getGeminiClient(api_key);
@@ -790,6 +794,8 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
       user_id: req.user?.uid || 'teacher_test',
       title: getUniqueQuizTitle(cleanTopic),
       subject,
+      folder: typeof req.body?.folder === 'string' ? req.body.folder.trim().slice(0, 100) : '',
+      difficulty_level: cognitiveLevel || undefined,
       time_limit: timeLimit,
       quiz_mode: ['sequential', 'back_and_forth'].includes(String(quiz_mode))
         ? String(quiz_mode)
@@ -1511,6 +1517,117 @@ Rules:
     if (respondAiWorkLimit(res, err)) return;
     console.error('Reprocess question error:', err);
     res.status(500).json({ success: false, error: err.message });
+  } finally {
+    aiLease?.release();
+  }
+});
+
+router.post('/api/generate_variant', tokenRequired, generateAiLimiter, async (req: AuthRequest, res) => {
+  const { source_quiz_id, model_name, api_key } = req.body;
+  if (!source_quiz_id || typeof source_quiz_id !== 'string') {
+    return res.status(400).json({ success: false, error: 'source_quiz_id is required' });
+  }
+  const sourceQuiz = quizzes.get(source_quiz_id);
+  if (!sourceQuiz) {
+    return res.status(404).json({ success: false, error: 'Source quiz not found' });
+  }
+  if (!canManageQuiz(req.user, sourceQuiz)) {
+    return res.status(403).json({ success: false, error: 'You do not have access to this quiz' });
+  }
+  if (!Array.isArray(sourceQuiz.questions) || sourceQuiz.questions.length === 0) {
+    return res.status(400).json({ success: false, error: 'Source quiz has no questions' });
+  }
+
+  const model = String(model_name || 'gemini-3.5-flash-lite').trim();
+  const ai = getGeminiClient(api_key);
+  if (!ai) {
+    return res.status(400).json({ success: false, error: 'No Gemini API key configured.' });
+  }
+
+  let aiLease: AiWorkLease | null = null;
+  try {
+    aiLease = acquireRequestAiWork(req, sourceQuiz.questions.length * 2, api_key);
+  } catch (error) {
+    if (respondAiWorkLimit(res, error)) return;
+    throw error;
+  }
+
+  try {
+    const inputQuestionsSummary = sourceQuiz.questions.map((q: any, idx: number) => ({
+      index: idx + 1,
+      type: q.type || 'multiple_choice',
+      question: q.question,
+      options: q.options || [],
+      difficulty: q.difficulty || 'average',
+      points: q.points || 1
+    }));
+
+    const prompt = `${PARALLEL_VARIANT_GENERATOR_PROMPT}\n\nSOURCE QUIZ QUESTIONS (JSON):\n${JSON.stringify(inputQuestionsSummary, null, 2)}`;
+    const response = await generateGeminiContent(ai, {
+      model: getRealModelName(model),
+      contents: prompt,
+      config: buildAiTaskConfig('question_drafting', {
+        responseMimeType: 'application/json',
+        responseSchema: questionArraySchema,
+        maxOutputTokens: 12_288
+      }) as any
+    });
+
+    const parsed = safeParseJSON(response.text || '');
+    const rawQuestions = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.questions) ? parsed.questions : []);
+    if (rawQuestions.length === 0) {
+      return res.status(502).json({ success: false, error: 'Model failed to generate variant questions' });
+    }
+
+    const normalizedQuestions: any[] = [];
+    for (let i = 0; i < Math.min(rawQuestions.length, sourceQuiz.questions.length); i++) {
+      const srcQ = sourceQuiz.questions[i];
+      const rawQ = rawQuestions[i];
+      const candidate = {
+        question: rawQ.question || rawQ.raw_text || srcQ.question,
+        options: Array.isArray(rawQ.options) ? rawQ.options : srcQ.options,
+        answer: rawQ.answer || rawQ.correct_answer || (Array.isArray(rawQ.options) ? rawQ.options[0] : 'A'),
+        type: rawQ.type || srcQ.type || 'multiple_choice',
+        solution: rawQ.solution || '',
+        points: Number(srcQ.points) || 1
+      };
+      const normalized = normalizeQuestionForStorage(candidate);
+      if (normalized.valid) {
+        normalizedQuestions.push(normalized.question);
+      } else {
+        normalizedQuestions.push(srcQ);
+      }
+    }
+
+    const newId = `quiz_variant_${Date.now()}`;
+    const baseTitle = `${sourceQuiz.title || 'Quiz'} (Variant B)`;
+    const uniqueTitle = getUniqueQuizTitle(baseTitle);
+    const newQuiz = {
+      id: newId,
+      user_id: req.user ? req.user.uid : sourceQuiz.user_id,
+      title: uniqueTitle,
+      subject: sourceQuiz.subject || 'General',
+      folder: sourceQuiz.folder || '',
+      difficulty_level: sourceQuiz.difficulty_level || '',
+      time_limit: sourceQuiz.time_limit || 30,
+      quiz_mode: sourceQuiz.quiz_mode || 'back_and_forth',
+      require_solution: Boolean(sourceQuiz.require_solution),
+      created_at: new Date().toISOString(),
+      questions: normalizedQuestions
+    };
+
+    quizzes.set(newId, newQuiz as any);
+    savePersistentData();
+    try {
+      await syncDocToFirestore('quizzes', newId, newQuiz);
+    } catch (err) {
+      console.warn('[AI Variant] Firestore sync warning:', err);
+    }
+
+    res.json({ success: true, new_quiz_id: newId, new_quiz: newQuiz });
+  } catch (error) {
+    console.error('[AI Variant] Generation error:', error);
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Variant generation failed' });
   } finally {
     aiLease?.release();
   }

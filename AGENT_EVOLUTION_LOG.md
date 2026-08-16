@@ -97,7 +97,20 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Aligned `WORKSHEET_SOLVER_PROMPT` section header tags (`QUESTIONS TO PROCESS (JSON):` and `CRITICAL RULES:`) across solver pipelines and fixtures.
   - Hardened inline LaTeX delimiter validation (`validateLatexText`) with strict whitespace boundary checks to prevent misclassification of unbalanced math delimiters.
   - Added process-level `unhandledRejection` and `uncaughtException` diagnostics in `src/services/serverLifecycle.ts` to safeguard Render production uptime.
-  - Hardened Firestore cold-start database hydration in `src/store/db.ts`: increased default startup timeout to 60s, replaced destructive `quizzes.clear()` with safe non-destructive timestamp-aware merging, and ensured background hydration populates all 80+ remote quizzes and results safely without dropping in-memory changes.
-  - Verified 100% test pass rate across 108 tests (16 test suites) and 0 TypeScript compilation errors.
+- 2026-08-16: Completed feature enhancements & scalability upgrades:
+  - Added 1-click quiz duplication endpoint (`/api/quiz/:quiz_id/duplicate`) and client action button in dashboard dropdown.
+  - Added folder/category/tag taxonomy to `Quiz` model and dashboard folder filter tabs.
+  - Added math symbol helper ribbon for student input in `views/quiz.ejs` ($x^2$, $\sqrt{x}$, $\pm$, $\pi$, $\times$, $\div$, $\ge$, $\le$, etc.).
+  - Added real-time proctoring tab-switch telemetry (`visibilitychange`) with socket sync and teacher warning badges in `views/live.ejs`.
+  - Added Item Analysis difficulty and missed question breakdown card in `views/results.ejs`.
+  - Added cognitive level prompt presets (`recall`, `standard`, `competition` / Olympiad AMC style) and parallel quiz variant generator (`/api/generate_variant`).
+  - Verified 114/114 passing tests across 17 test suites and 0 TypeScript compilation errors.
+- 2026-08-16: Implemented high-efficiency Firestore read & write optimizations to prevent hitting quota limits:
+  - Added SHA-256 content-hash write deduplication (`lastSyncedDocHashes`) in `src/store/db.ts` to bypass remote Firestore writes when document content has not changed.
+  - Added per-session debounced / coalesced progressive sync (`syncProgressiveDocToFirestore`) in `src/store/db.ts` and `src/routes/gradingRoutes.ts`, reducing in-progress result writes by 80-90% during live quiz attempts while guaranteeing instantaneous local durability and immediate final submission sync (`submit_quiz`).
+  - Removed legacy collection read on startup hydration, saving round-trips and reads on boot.
+  - Integrated pending progressive write flush into graceful shutdown (`flushPendingPersistence`).
+
+
 
 

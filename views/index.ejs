@@ -572,6 +572,7 @@
             </button>
             <div class="quiz-actions-dropdown" id="dropdown-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
                 <button type="button" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"><i data-lucide="copy" class="icon-sm"></i> Copy Link</button>
+                <button type="button" onclick="duplicateQuiz('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"><i data-lucide="copy-plus" class="icon-sm"></i> Duplicate</button>
                 <button type="button" onclick="openMoveModal('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>', '<%= typeof sq.subject !== 'undefined' ? sq.subject : '' %>')"><i data-lucide="folder-output" class="icon-sm"></i> Move</button>
                 <a href="/results/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>"><i data-lucide="bar-chart-2" class="icon-sm"></i> Results</a>
                 <form action="/delete/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" method="POST" onsubmit="return confirm('Delete this quiz?');">
@@ -1750,6 +1751,24 @@
         if(val > 50) val = 50;
         el.value = val;
         updateTypeTotal();
+    }
+
+    async function duplicateQuiz(quizId) {
+        if (!quizId) return;
+        try {
+            const res = await fetch(`/api/quiz/${encodeURIComponent(quizId)}/duplicate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Could not duplicate quiz: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Network error while duplicating quiz.');
+        }
     }
 
 </script>

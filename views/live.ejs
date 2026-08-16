@@ -430,8 +430,12 @@
                     </button>
                 `;
 
+                const tabSwitchBadge = (info.tab_switch_count && info.tab_switch_count > 0)
+                    ? `<span style="display: inline-block; margin-left: 6px; padding: 2px 6px; font-size: 10px; font-weight: 700; border-radius: 4px; background: rgba(239, 68, 68, 0.15); color: var(--m-red); border: 1px solid var(--m-red);" title="Student switched tabs ${info.tab_switch_count} times">⚠️ ${info.tab_switch_count} switch${info.tab_switch_count === 1 ? '' : 'es'}</span>`
+                    : '';
+
                 tr.innerHTML = `
-                    <td style="font-weight: 700; font-size: 16px; color: var(--on-dark);">${escapeHtml(studentDisplayName)}</td>
+                    <td style="font-weight: 700; font-size: 16px; color: var(--on-dark);">${escapeHtml(studentDisplayName)}${tabSwitchBadge}</td>
                     <td>${signalHtml}</td>
                     <td style="color: var(--body); font-weight: 600;">Q ${displayedQ} of ${totalQ}</td>
                     <td style="max-width: 350px;">${detailsHtml}</td>

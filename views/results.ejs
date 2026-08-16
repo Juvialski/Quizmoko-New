@@ -180,6 +180,28 @@ if (results && results.length > 0) {
     </div>
 </div>
 
+<% if (results && results.length > 0 && Object.keys(qMisses).length > 0) { %>
+<div class="results-card" style="margin-bottom: 24px; padding: 20px;">
+    <h3 style="margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="help-circle" class="icon-sm"></i> Item Analysis & Difficulty Breakdown
+    </h3>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+        <% for (let idx in qMisses) { 
+            let qNum = parseInt(idx) + 1;
+            let missCount = qMisses[idx];
+            let missPct = Math.round((missCount / results.length) * 100);
+        %>
+            <div style="padding: 8px 12px; background: var(--surface-soft); border: 1px solid var(--hairline); border-radius: var(--radius-sm); font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+                <strong>Q<%= qNum %>:</strong>
+                <span style="color: <%= missPct > 50 ? 'var(--m-red)' : (missPct > 25 ? 'var(--warning)' : 'var(--body)') %>; font-weight: 700;">
+                    <%= missCount %> missed (<%= missPct %>%)
+                </span>
+            </div>
+        <% } %>
+    </div>
+</div>
+<% } %>
+
 <div class="results-card">
     <div class="table-responsive-wrapper">
         <table>

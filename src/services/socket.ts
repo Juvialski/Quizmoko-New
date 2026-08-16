@@ -61,8 +61,14 @@ export function updateLiveSession(quizId: string, payload: any) {
     score: 0,
     status: 'Active',
     last_active: Date.now(),
-    whiteboard_disabled: false
+    whiteboard_disabled: false,
+    tab_switch_count: 0
   };
+
+  const rawTabSwitches = Number(payload?.tab_switch_count ?? payload?.tab_switches);
+  if (Number.isFinite(rawTabSwitches) && rawTabSwitches >= 0) {
+    existing.tab_switch_count = Math.max(existing.tab_switch_count || 0, Math.floor(rawTabSwitches));
+  }
 
   const currentQuestion = Math.min(
     Math.max(1, totalQuestions || 1),

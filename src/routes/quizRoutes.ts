@@ -179,6 +179,15 @@ function validateQuizUpdate(body: any): { valid: boolean; error?: string; value?
     }
     value.quiz_mode = normalizedMode;
   }
+  if (value.folder !== undefined) {
+    value.folder = typeof value.folder === 'string' ? value.folder.trim().slice(0, 100) : '';
+  }
+  if (value.difficulty_level !== undefined) {
+    value.difficulty_level = typeof value.difficulty_level === 'string' ? value.difficulty_level.trim().slice(0, 50) : '';
+  }
+  if (value.tags !== undefined) {
+    value.tags = Array.isArray(value.tags) ? value.tags.map((t: unknown) => String(t).trim().slice(0, 50)).filter(Boolean) : [];
+  }
   if (value.require_solution !== undefined && typeof value.require_solution !== 'boolean') {
     return { valid: false, error: 'require_solution must be a boolean' };
   }
@@ -320,9 +329,14 @@ router.get('/', tokenRequired, (req: AuthRequest, res) => {
     sortedGroupedQuizzes[subj] = list;
   });
 
+  const allFolders = Array.from(
+    new Set(userQuizzes.map(q => q.folder || '').filter(Boolean))
+  ).sort();
+
   res.render('index', {
     grouped_quizzes: sortedGroupedQuizzes,
     all_subjects: Array.from(new Set(allSubjects)).sort(),
+    all_folders: allFolders,
     is_admin: user.role === 'admin',
     is_rmx_authorized: true,
     user: user
@@ -532,5 +546,50 @@ router.get('/api/get_quiz_details/:id', tokenRequired, (req: AuthRequest, res) =
   else if (quiz) rejectQuizAccess(res);
   else res.status(404).json({ error: 'Quiz not found' });
 });
+
+router.post('/api/quiz/:quiz_id/duplicate', tokenRequired, createQuizLimiter, asyncRoute(async (req, res) => {
+  const quiz = quizzes.get(req.params.quiz_id);
+  if (!quiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
+  if (!canManageQuiz(req.user, quiz)) return rejectQuizAccess(res);
+  const newId = `quiz_${Date.now()}`;
+  const baseTitle = `${quiz.title || 'Untitled Quiz'} (Copy)`;
+  const uniqueTitle = getUniqueQuizTitle(baseTitle);
+  const cloned = sanitizeQuiz({
+    ...quiz,
+    id: newId,
+    user_id: req.user ? req.user.uid : quiz.user_id,
+    title: uniqueTitle,
+    created_at: new Date().toISOString(),
+    questions: Array.isArray(quiz.questions) ? JSON.parse(JSON.stringify(quiz.questions)) : []
+  });
+  quizzes.set(newId, cloned);
+  savePersistentData();
+  try {
+    await syncDocToFirestore('quizzes', newId, quizFirestorePayload(cloned));
+  } catch (error) {
+    quizzes.delete(newId);
+    savePersistentData();
+    throw error;
+  }
+  res.json({ success: true, new_quiz_id: newId, new_quiz: cloned });
+}));
+
+router.post('/api/quiz/:quiz_id/folder', tokenRequired, asyncRoute(async (req, res) => {
+  const { folder } = req.body;
+  const quiz = quizzes.get(req.params.quiz_id);
+  if (!quiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
+  if (!canManageQuiz(req.user, quiz)) return rejectQuizAccess(res);
+  const updated = sanitizeQuiz({ ...quiz, folder: typeof folder === 'string' ? folder.trim().slice(0, 100) : '' });
+  quizzes.set(req.params.quiz_id, updated);
+  savePersistentData();
+  try {
+    await syncDocToFirestore('quizzes', req.params.quiz_id, quizFirestorePayload(updated));
+  } catch (error) {
+    quizzes.set(req.params.quiz_id, quiz);
+    savePersistentData();
+    throw error;
+  }
+  res.json({ success: true, folder: updated.folder });
+}));
 
 export default router;

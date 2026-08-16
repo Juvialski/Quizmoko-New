@@ -168,6 +168,9 @@ export interface Quiz {
   user_id?: string;
   title: string;
   subject?: string;
+  folder?: string;
+  tags?: string[];
+  difficulty_level?: string;
   time_limit?: number;
   quiz_mode?: string;
   require_solution?: boolean;
@@ -204,6 +207,7 @@ export interface QuizResult {
   accuracy_pct?: number;
   completion_note?: string;
   is_in_progress?: boolean;
+  tab_switch_count?: number;
   /** SHA-256 hash only. The raw result access token is never persisted. */
   access_token_hash?: string;
   [key: string]: any;
@@ -220,6 +224,7 @@ export interface LiveSessionStudent {
   status: string;
   last_active: number;
   whiteboard_disabled: boolean;
+  tab_switch_count?: number;
   [key: string]: any;
 }
 

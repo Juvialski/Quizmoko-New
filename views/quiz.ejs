@@ -242,26 +242,26 @@
             box-shadow: 0 0 10px rgba(251, 113, 133, 0.25);
         }
 
-        /* Streamlined Single-Bar Top Bar Styles */
+        /* Balanced 2-Row Top Bar Styles */
         .quiz-topbar-wrapper {
             background: var(--surface-card);
             border: 1px solid var(--hairline);
-            padding: 10px 16px;
-            margin-bottom: 18px;
+            padding: 12px 18px;
+            margin-bottom: 20px;
             border-radius: var(--radius-md);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             width: 100%;
             box-sizing: border-box;
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            gap: 12px;
         }
         .quiz-brand-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             width: 100%;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 12px;
         }
         .brand-left {
             display: flex;
@@ -327,23 +327,29 @@
             align-items: center;
             justify-content: space-between;
             width: 100%;
-            gap: 16px;
-            flex-wrap: wrap;
+            gap: 12px;
             padding-top: 12px;
             border-top: 1px solid var(--hairline);
         }
         .tools-left-group {
             display: flex;
             align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
+            gap: 8px;
+            flex: 1;
+            justify-content: flex-start;
+        }
+        .tools-center-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
         }
         .tools-right-group {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-left: auto;
-            flex-wrap: wrap;
+            gap: 8px;
+            flex: 1;
+            justify-content: flex-end;
         }
         
         .expanded-toolbar {
@@ -555,27 +561,16 @@
             <div class="quiz-container">
                 
 <div class="quiz-topbar-wrapper">
-    <!-- Single Sleek Top Row: Branding + Progress Trackers + Timer + Tools -->
+    <!-- Top Row: Branding (Left) and Theme/Align/Size Toolbar (Right) -->
     <div class="quiz-brand-row">
-        <div class="brand-left" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <div class="brand-left">
             <span class="quiz-brand-title">
                 <i data-lucide="rocket"></i> QUIZMOKO
             </span>
             <div id="connection-dot" class="status-dot" title="Online"></div>
-            <span id="q-tracker" class="stat-badge" style="display:none;">
-                Question <span id="q-num" style="margin: 0 4px;">1</span> of <%= (quiz.questions || []).length %>
-            </span>
-            <span id="score-tracker" class="stat-badge stat-score" style="display:none;">
-                Score: <span id="live-score">0.00</span>
-            </span>
         </div>
 
-        <div id="timer"></div>
-
-        <div class="brand-right-tools" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" class="action-btn btn-primary" style="display:none;">
-                <i data-lucide="pen-tool" class="icon-sm"></i> Show Whiteboard
-            </button>
+        <div class="brand-right-tools">
             <div class="expanded-toolbar">
                 <button onclick="toggleTheme()" class="tool-btn" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme">
                     <i data-lucide="moon"></i>
@@ -595,14 +590,33 @@
                     <span>A+</span>
                 </button>
             </div>
+        </div>
+    </div>
+    
+    <!-- Active Quiz Controls Row: Progress (Left), Timer (Center), Actions (Right) -->
+    <div class="quiz-tools-row" id="quiz-bottom-row" style="display:none;">
+        <div class="tools-left-group">
+            <span id="q-tracker" class="stat-badge" style="display:none;">
+                Question <span id="q-num" style="margin: 0 4px;">1</span> of <%= (quiz.questions || []).length %>
+            </span>
+            <span id="score-tracker" class="stat-badge stat-score" style="display:none;">
+                Score: <span id="live-score">0.00</span>
+            </span>
+        </div>
+
+        <div class="tools-center-group">
+            <div id="timer" style="display:none;"></div>
+        </div>
+
+        <div class="tools-right-group">
+            <button id="btn-toggle-whiteboard" onclick="toggleWhiteboardVisibility()" class="action-btn btn-primary" style="display:none;">
+                <i data-lucide="pen-tool" class="icon-sm"></i> Show Whiteboard
+            </button>
             <button id="btn-end-early" onclick="submitQuiz('early')" class="action-btn btn-danger" style="display:none;">
                 <i data-lucide="log-out" class="icon-sm"></i> End Quiz
             </button>
         </div>
     </div>
-    
-    <!-- Hidden compatibility anchor -->
-    <div class="quiz-tools-row" id="quiz-bottom-row" style="display:none;"></div>
 </div>
 
                 <div id="start-screen">
@@ -1943,7 +1957,7 @@
 
                     const ribbon = document.createElement('div');
                     ribbon.className = 'math-symbol-ribbon';
-                    ribbon.style.cssText = 'display: flex; gap: 4px; flex-wrap: wrap; padding: 6px 8px; background: var(--surface-soft); border-bottom: 1px solid var(--hairline);';
+                    ribbon.style.cssText = 'display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; padding: 6px 8px; background: var(--surface-soft); border-bottom: 1px solid var(--hairline);';
                     const symbols = ['²', '√', '±', 'π', '×', '÷', '≥', '≤', '½', 'θ', '°', '(', ')', '^'];
                     symbols.forEach(sym => {
                         const btn = document.createElement('button');
@@ -1974,6 +1988,9 @@
                     targetInput.style.width = '100%';
                     targetInput.style.boxSizing = 'border-box';
                     targetInput.style.outline = 'none';
+                    targetInput.style.padding = '14px 16px';
+                    targetInput.style.fontSize = '16px';
+                    targetInput.style.color = 'var(--on-dark)';
 
                     wrapper.appendChild(ribbon);
                     wrapper.appendChild(targetInput);

@@ -97,5 +97,7 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Aligned `WORKSHEET_SOLVER_PROMPT` section header tags (`QUESTIONS TO PROCESS (JSON):` and `CRITICAL RULES:`) across solver pipelines and fixtures.
   - Hardened inline LaTeX delimiter validation (`validateLatexText`) with strict whitespace boundary checks to prevent misclassification of unbalanced math delimiters.
   - Added process-level `unhandledRejection` and `uncaughtException` diagnostics in `src/services/serverLifecycle.ts` to safeguard Render production uptime.
+  - Hardened Firestore cold-start database hydration in `src/store/db.ts`: increased default startup timeout to 60s, replaced destructive `quizzes.clear()` with safe non-destructive timestamp-aware merging, and ensured background hydration populates all 80+ remote quizzes and results safely without dropping in-memory changes.
   - Verified 100% test pass rate across 108 tests (16 test suites) and 0 TypeScript compilation errors.
+
 

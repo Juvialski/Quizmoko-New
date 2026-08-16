@@ -1127,26 +1127,43 @@ export async function loadFromFirestore(generation = ++firestoreLoadGeneration):
     }
   }
 
-  // A timed-out cold-start load is intentionally discarded rather than racing
-  // with quiz edits accepted after the HTTP listener becomes ready.
-  if (generation !== firestoreLoadGeneration) return false;
-
   let replacedAnyCollection = false;
   if (readSuccess.quizzes) {
-    quizzes.clear();
-    stagedLegacyQuizzes.forEach((value, id) => quizzes.set(id, value));
+    const sampleIds = new Set(sampleQuizzes.map((s) => s.id));
+    if (stagedLegacyQuizzes.size > 0 || stagedCanonicalQuizzes.size > 0) {
+      for (const sampleId of sampleIds) {
+        quizzes.delete(sampleId);
+      }
+    }
+    stagedLegacyQuizzes.forEach((value, id) => {
+      if (!quizzes.has(id)) {
+        quizzes.set(id, value);
+      }
+    });
     // Canonical records win globally, including across multiple databases.
-    stagedCanonicalQuizzes.forEach((value, id) => quizzes.set(id, value));
+    stagedCanonicalQuizzes.forEach((value, id) => {
+      const existing = quizzes.get(id);
+      if (!existing || getQuizTimestamp(value) >= getQuizTimestamp(existing)) {
+        quizzes.set(id, value);
+      }
+    });
     replacedAnyCollection = true;
   }
   if (readSuccess.results) {
-    results.clear();
-    stagedResults.forEach((value, id) => results.set(id, value));
+    stagedResults.forEach((value, id) => {
+      const existing = results.get(id);
+      const incomingTs = value.created_at ? getQuizTimestamp(value) : (value.timestamp || 0);
+      const existingTs = existing?.created_at ? getQuizTimestamp(existing) : (existing?.timestamp || 0);
+      if (!existing || incomingTs >= existingTs) {
+        results.set(id, value);
+      }
+    });
     replacedAnyCollection = true;
   }
   if (readSuccess.users) {
-    users.clear();
-    stagedUsers.forEach((value, id) => users.set(id, value));
+    stagedUsers.forEach((value, uid) => {
+      users.set(uid, value);
+    });
     replacedAnyCollection = true;
   }
 
@@ -1324,8 +1341,8 @@ export function initDatabase(): Promise<void> {
     if (activeFirestoreBackends().length > 0) {
       const startupTimeoutMs = positiveInteger(
         process.env.FIRESTORE_STARTUP_TIMEOUT_MS,
-        15_000,
-        120_000
+        60_000,
+        180_000
       );
       const generation = ++firestoreLoadGeneration;
       let timer: NodeJS.Timeout | undefined;
@@ -1341,14 +1358,12 @@ export function initDatabase(): Promise<void> {
       if (timer) clearTimeout(timer);
 
       if (outcome === 'timeout') {
-        // Invalidate the still-running staged load so it cannot overwrite edits.
-        firestoreLoadGeneration += 1;
         const error = firestoreUnavailable(
           'Firestore startup hydration timed out',
           new Error(`exceeded ${startupTimeoutMs}ms`)
         );
         if (required) throw error;
-        console.warn(`[Firebase] ${error.message}; serving local data without a background overwrite race.`);
+        console.warn(`[Firebase] ${error.message}; continuing hydration in background.`);
       } else if (!outcome && required) {
         throw new PersistenceUnavailableError(
           lastFirestoreError || 'Firestore startup hydration did not complete'

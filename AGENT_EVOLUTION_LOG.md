@@ -111,6 +111,10 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Removed legacy collection read on startup hydration, saving round-trips and reads on boot.
   - Integrated pending progressive write flush into graceful shutdown (`flushPendingPersistence`).
 
+- 2026-09-03: Hardened worksheet source-number preservation end to end:
+  - Centralized natural source-ID ordering and conservative gap handling in `src/services/worksheetSourceOrder.ts`, preserving numeric suffixes, prefixed legacy IDs, and stable fallback order.
+  - Deduplicated overlapping extraction items, retained immutable `original_index` metadata through solver/recovery fallbacks and canonical storage, and kept `source_index` exclusively for temporary batch mapping.
+  - Updated extraction/recovery prompts, worksheet previews, edit/print/student labels, source-context lookup, and focused regression coverage for non-1, gapped, alphanumeric, duplicate, recovery, out-of-order solver, and failed-batch cases.
 
 
 

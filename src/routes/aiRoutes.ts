@@ -1363,9 +1363,8 @@ router.post('/api/bulk_import_questions', tokenRequired, async (req: AuthRequest
     const importedQuestions = selectedQuestions.map((question) => {
       const cloned = clonePlainValue(question);
       cloned.id = `q_imported_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      if (!cloned.source && cloned.original_index) {
-        delete cloned.original_index;
-      }
+      // Imported worksheet questions retain their printed identifier even
+      // when legacy data stored it at the root instead of under source.
       return cloned;
     });
 

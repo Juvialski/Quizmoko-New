@@ -21,6 +21,10 @@ import {
   getFilesByField,
   sortQuestionsByIndex
 } from '../services/pdf.ts';
+import {
+  findMissingPlainNumericWorksheetSourceIds,
+  worksheetSourceIdentifiersEqual
+} from '../services/worksheetSourceOrder.ts';
 import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
 import {
   generateGeminiContent,
@@ -33,6 +37,7 @@ import {
   getWorksheetSourceId,
   indexGoldenAnswers,
   normalizeWorksheetSourceId,
+  preserveWorksheetSourceIdentity,
   reconcileWorksheetPages,
   stripWorksheetSolverState,
   validateWorksheetQuizForPublication,
@@ -577,22 +582,6 @@ class WorksheetReviewRequiredError extends Error {
   }
 }
 
-function findMissingPlainNumericIds(questions: readonly unknown[]): string[] {
-  const ids = questions.map(getWorksheetSourceId);
-  if (ids.length === 0 || ids.some(id => !/^(?:0|[1-9]\d*)$/.test(id))) return [];
-  const values = ids.map(id => Number(id));
-  if (values.some(value => !Number.isSafeInteger(value)) || new Set(values).size !== values.length) return [];
-  const minimumFound = Math.min(...values);
-  const minimum = minimumFound <= 3 ? 1 : minimumFound;
-  const maximum = Math.max(...values);
-  const found = new Set(values);
-  const missing: string[] = [];
-  for (let value = minimum; value <= maximum; value++) {
-    if (!found.has(value)) missing.push(String(value));
-  }
-  return missing;
-}
-
 function reconcileExtractedPageResults(pages: ExtractedWorksheetPage[]): {
   questions: any[];
   diagnostics: WorksheetDiagnostic[];
@@ -734,7 +723,7 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
       return res.status(422).json({ success: false, error: message });
     }
 
-    const missingIndices = findMissingPlainNumericIds(questions);
+    const missingIndices = findMissingPlainNumericWorksheetSourceIds(questions);
 
     setWorksheetProgress(session_id, { message: '✅ Worksheet extraction complete!', percentage: 100, status: 'completed' });
     res.json({
@@ -799,12 +788,14 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
     return typeof text !== 'string' || !text.trim();
   });
   if (invalidQuestionIndex >= 0) {
+    const sourceId = getWorksheetSourceId(questions[invalidQuestionIndex]);
     return res.status(400).json({
       success: false,
-      error: `Question ${invalidQuestionIndex + 1} has no readable question text. Re-extract the worksheet before solving.`
+      error: `Question ${sourceId || invalidQuestionIndex + 1} has no readable question text. Re-extract the worksheet before solving.`
     });
   }
-  sortQuestionsByIndex(questions);
+  // Extraction and recovery establish source order. Preserve the caller's
+  // order here because a teacher may explicitly reorder or remove items.
   const ai = getGeminiClient(api_key);
   if (!ai) {
     return res.status(400).json({
@@ -880,10 +871,11 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
           reviewRequiredIds.push(getWorksheetSourceId(questions[index]) || String(index + 1));
           reviewDiagnostics.push(...result.diagnostics);
         }
+        const sourceId = getWorksheetSourceId(questions[index]);
         finalQuestions.push({
-          ...result.question,
+          ...preserveWorksheetSourceIdentity(questions[index], result.question),
           source_index: index,
-          source_id: getWorksheetSourceId(questions[index])
+          source_id: sourceId
         });
       }
 
@@ -1347,7 +1339,7 @@ Use the printed question number as question_number and the correct choice letter
       });
     }
 
-    const missingIndices = findMissingPlainNumericIds(questions);
+    const missingIndices = findMissingPlainNumericWorksheetSourceIds(questions);
 
     setWorksheetProgress(session_id, { message: '✅ Questions and answers extracted successfully!', percentage: 100, status: 'completed' });
     res.json({
@@ -1423,7 +1415,7 @@ router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (
             }) as any
           });
 
-          const parsedRec = validateExtractedQuestions(
+          const parsedRecovery = validateExtractedQuestions(
             safeParseJSON(response.text || ''),
             `Recovery file ${fileIdx + 1}, page ${page.pageNumber}`,
             (item: any) => shouldUseStrictMathFormatting(
@@ -1431,19 +1423,37 @@ router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (
               topic_hint,
               `${String(item?.raw_text ?? item?.verbatim_text ?? '')} ${Array.isArray(item?.options) ? item.options.join(' ') : ''}`
             )
-          ).filter(question => missingIds.includes(normalizeWorksheetSourceId(question.original_index)));
-          for (const q of parsedRec) {
-            q.source_id = normalizeWorksheetSourceId(q.original_index);
-            q.source = {
+          );
+          const parsedRec = parsedRecovery.flatMap(question => {
+            const returnedId = normalizeWorksheetSourceId(question.original_index);
+            const requestedId = missingIds.find(id => worksheetSourceIdentifiersEqual(id, returnedId));
+            if (!requestedId) return [];
+
+            // The requested identifier came from the already extracted source
+            // list, so it remains authoritative even if the recovery model
+            // adds a legacy "Question " prefix or changes casing.
+            question.original_index = requestedId;
+            question.source_id = requestedId;
+            question.source = {
               source_file: files[fileIdx].originalname || `recovery_${fileIdx + 1}`,
               page_number: page.pageNumber,
-              original_index: q.source_id
+              original_index: requestedId
             };
+            return [question];
+          });
+          for (const q of parsedRec) {
             if (q.bounding_box.length === 4) {
               const imgUri = await cropImageBoundingBox(page.buffer, q.bounding_box);
               if (imgUri) {
                 const imgHtml = `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: 100%;"><img src="${imgUri}" alt="Diagram"></div></div>`;
-                q.raw_text = (q.raw_text || '') + '\n' + imgHtml;
+                const rawTextBeforeImage = q.raw_text || '';
+                const questionBeforeImage = q.question;
+                q.raw_text = rawTextBeforeImage + '\n' + imgHtml;
+                if (Object.prototype.hasOwnProperty.call(q, 'question')) {
+                  q.question = questionBeforeImage
+                    ? `${questionBeforeImage}\n${imgHtml}`
+                    : q.raw_text;
+                }
               }
             }
           }
@@ -1525,9 +1535,10 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
       return typeof text !== 'string' || !text.trim();
     });
     if (malformedIndex >= 0) {
+      const sourceId = getWorksheetSourceId(questions[malformedIndex]);
       return res.status(422).json({
         success: false,
-        error: `Extracted question ${malformedIndex + 1} has no readable text. Re-extract or remove it before creating the quiz.`
+        error: `Extracted question ${sourceId || malformedIndex + 1} has no readable text. Re-extract or remove it before creating the quiz.`
       });
     }
     const ai = getGeminiClient(api_key);
@@ -1548,7 +1559,8 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
       );
     }
     let sourceQuestions = questions.map((question: any) => ({ ...question }));
-    sortQuestionsByIndex(sourceQuestions);
+    // Keep the submitted worksheet order. Extraction/recovery sort by source
+    // identifier, while this route must respect any explicit teacher reorder.
     const hasGoldenReference = golden_reference
       && typeof golden_reference === 'object'
       && (Array.isArray(golden_reference) || Object.keys(golden_reference).length > 0);
@@ -1628,10 +1640,11 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
               result.diagnostics
             );
           }
+          const sourceId = getWorksheetSourceId(sourceQuestions[index]);
           finalQuestions.push({
-            ...result.question,
+            ...preserveWorksheetSourceIdentity(sourceQuestions[index], result.question),
             source_index: index,
-            source_id: getWorksheetSourceId(sourceQuestions[index])
+            source_id: sourceId
           });
         }
     } else {

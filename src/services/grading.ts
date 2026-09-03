@@ -521,6 +521,13 @@ export function normalizeQuestionForStorage(input: unknown): QuestionStorageNorm
   stored.answer = result.question.answer;
   stored.points = result.question.points;
   stored.grading_mode = result.question.grading_mode;
+  if (result.question.source) {
+    stored.source = { ...result.question.source };
+    // Keep a root copy for legacy/public payloads that do not retain the
+    // nested source object. This is copied from the canonical source metadata,
+    // never derived from the array position.
+    stored.original_index = result.question.source.original_index;
+  }
   if (result.question.answer_policy) stored.answer_policy = result.question.answer_policy;
 
   // Optional per-question TikZ display width. Keep this presentation metadata

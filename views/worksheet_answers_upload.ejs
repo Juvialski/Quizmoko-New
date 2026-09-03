@@ -395,11 +395,90 @@
             return String(value ?? '').trim();
         }
 
+        const sourceSuffixCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+        const sourcePrefixPattern = /^(?:(?:question|q)\s*[:#.-]?\s*|#\s*)/i;
+
+        function sourceIdForComparison(value) {
+            if (typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint') {
+                return String(value).trim();
+            }
+            return getSourceQuestionId(value);
+        }
+
+        function romanIdentifierValue(value) {
+            const normalized = String(value || '').toUpperCase();
+            if (!/^(?=.)M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(normalized)) return null;
+            const values = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+            let total = 0;
+            for (let index = 0; index < normalized.length; index += 1) {
+                const current = values[normalized[index]];
+                const next = values[normalized[index + 1]] || 0;
+                total += current < next ? -current : current;
+            }
+            return total > 0 ? total : null;
+        }
+
+        function parseSourceIdentifier(value) {
+            const raw = sourceIdForComparison(value);
+            const comparable = raw.replace(sourcePrefixPattern, '').trim();
+            const match = comparable.match(/^(\d+)(.*)$/);
+            if (match) {
+                return {
+                    parsed: true,
+                    digits: match[1].replace(/^0+(?=\d)/, '') || '0',
+                    suffix: match[2].trim()
+                };
+            }
+            const romanMatch = comparable.match(/^\(?([IVXLCDM]+)\)?(.*)$/i);
+            if (romanMatch && (!romanMatch[2] || /^[.):\-]/.test(romanMatch[2].trim()))) {
+                const roman = romanIdentifierValue(romanMatch[1]);
+                if (roman !== null) return { parsed: true, digits: String(roman), suffix: romanMatch[2].trim() };
+            }
+            return { parsed: false, digits: '', suffix: '' };
+        }
+
+        function compareSourceIdentifiers(left, right) {
+            const leftKey = parseSourceIdentifier(left);
+            const rightKey = parseSourceIdentifier(right);
+            if (leftKey.parsed !== rightKey.parsed) return leftKey.parsed ? -1 : 1;
+            if (!leftKey.parsed) return 0;
+            if (leftKey.digits.length !== rightKey.digits.length) {
+                return leftKey.digits.length - rightKey.digits.length;
+            }
+            const numericComparison = leftKey.digits.localeCompare(rightKey.digits);
+            if (numericComparison !== 0) return numericComparison;
+            return sourceSuffixCollator.compare(leftKey.suffix, rightKey.suffix);
+        }
+
+        function sourceIdentifierMatchKey(value) {
+            const raw = sourceIdForComparison(value);
+            const comparable = raw.replace(sourcePrefixPattern, '').trim();
+            const match = comparable.match(/^(\d+)(.*)$/);
+            if (match) return `numeric:${match[1]}:${match[2].trim().toLowerCase()}`;
+            const romanMatch = comparable.match(/^\(?([IVXLCDM]+)\)?(.*)$/i);
+            if (romanMatch && (!romanMatch[2] || /^[.):\-]/.test(romanMatch[2].trim()))) {
+                const roman = romanIdentifierValue(romanMatch[1]);
+                if (roman !== null) {
+                    return `roman:${romanMatch[1].toUpperCase()}:${romanMatch[2].trim().toLowerCase()}`;
+                }
+            }
+            return `text:${comparable.toLowerCase()}`;
+        }
+
+        function sourceIdentifiersEqual(left, right) {
+            return sourceIdentifierMatchKey(left) === sourceIdentifierMatchKey(right);
+        }
+
+        function sortSourceIdentifiers(values) {
+            return values
+                .map((value, index) => ({ value, index }))
+                .sort((left, right) => compareSourceIdentifiers(left.value, right.value) || left.index - right.index)
+                .map(item => item.value);
+        }
+
         function sortExtractedQuestions() {
-            const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-            const sortableId = question => getSourceQuestionId(question)
-                .replace(/^(?:(?:question|q)\s*[:#.-]?\s*|#\s*)/i, '');
-            extractedQuestions.sort((a, b) => collator.compare(sortableId(a), sortableId(b)));
+            const sorted = sortSourceIdentifiers(extractedQuestions);
+            extractedQuestions.splice(0, extractedQuestions.length, ...sorted);
         }
 
         function normalizeQuestionEditorText(value) {
@@ -627,47 +706,28 @@
                 const data = await res.json();
                 if (data.success) {
                     data.recovered.forEach(rq => {
-                        // Standardize keys: Recovery might return 'raw_text' but this page expects 'question'
+                        // Keep both legacy text aliases so recovery never drops
+                        // source content while normalizing the response.
                         if (rq.raw_text && !rq.question) {
                             rq.question = rq.raw_text;
-                            delete rq.raw_text;
+                        } else if (rq.question && !rq.raw_text) {
+                            rq.raw_text = rq.question;
                         }
 
-                        const idx = extractedQuestions.findIndex(q => q.original_index == rq.original_index);
+                        const idx = extractedQuestions.findIndex(q => sourceIdentifiersEqual(
+                            getSourceQuestionId(q),
+                            getSourceQuestionId(rq)
+                        ));
                         if (idx !== -1) extractedQuestions[idx] = rq;
                         else extractedQuestions.push(rq);
                     });
 
-                    const parseIndex = (idxStr) => {
-                        const str = String(idxStr || '').trim();
-                        const match = str.match(/^(\d+)(.*)$/);
-                        if (match) {
-                            return {
-                                num: parseInt(match[1], 10),
-                                suffix: match[2].toLowerCase()
-                            };
-                        }
-                        return { num: Infinity, suffix: str.toLowerCase() };
-                    };
-
-                    extractedQuestions.sort((a,b) => {
-                        const parseA = parseIndex(a.original_index);
-                        const parseB = parseIndex(b.original_index);
-                        if (parseA.num !== parseB.num) {
-                            return parseA.num - parseB.num;
-                        }
-                        return parseA.suffix.localeCompare(parseB.suffix);
-                    });
-
-                    const extractedNums = extractedQuestions.filter(q => {
-                        const ans = String(q.answer || '').toLowerCase();
-                        return ans && ans !== 'null' && !ans.includes('missing');
-                    }).map(q => {
-                        const parsed = parseIndex(q.original_index);
-                        return parsed.num;
-                    });
-
-                    missingIndices = missingIndices.filter(n => !extractedNums.includes(n));
+                    sortExtractedQuestions();
+                    missingIndices = Array.isArray(data.missing_numbers_remaining)
+                        ? data.missing_numbers_remaining.map(value => String(value).trim()).filter(Boolean)
+                        : missingIndices.filter(missingId => !data.recovered.some(question =>
+                            sourceIdentifiersEqual(missingId, getSourceQuestionId(question))
+                        ));
                     const missingAlert = document.getElementById('missing-alert');
                     if (missingIndices.length > 0) {
                         document.getElementById('missing-indices-text').innerText = missingIndices.join(', ');
@@ -685,33 +745,16 @@
             grid.innerHTML = '';
             card.style.display = 'none';
             
-            const parseIndex = (idxStr) => {
-                const str = String(idxStr || '').trim();
-                const match = str.match(/^(\d+)(.*)$/);
-                if (match) {
-                    return {
-                        num: parseInt(match[1], 10),
-                        suffix: match[2].toLowerCase()
-                    };
-                }
-                return { num: Infinity, suffix: str.toLowerCase() };
-            };
-
-            const nums = Object.keys(goldenReference).sort((a,b) => {
-                const parseA = parseIndex(a);
-                const parseB = parseIndex(b);
-                if (parseA.num !== parseB.num) {
-                    return parseA.num - parseB.num;
-                }
-                return parseA.suffix.localeCompare(parseB.suffix);
-            });
+            const nums = sortSourceIdentifiers(Object.keys(goldenReference));
 
             if (nums.length > 0) {
                 card.style.display = 'block';
                 nums.forEach(num => {
                     const item = document.createElement('div');
                     item.className = 'golden-item';
-                    item.innerHTML = `<b>Q${num}</b> ${goldenReference[num]}`;
+                    const label = document.createElement('b');
+                    label.textContent = `Q${num}`;
+                    item.append(label, document.createTextNode(` ${String(goldenReference[num] ?? '')}`));
                     grid.appendChild(item);
                 });
             }

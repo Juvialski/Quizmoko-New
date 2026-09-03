@@ -482,6 +482,10 @@ test('prompt templates preserve literal LaTeX commands and JSON newline examples
   assert.match(SHARED_LATEX_RULES, /\\text\{\\\$40\}/);
   assert.match(SHARED_LATEX_RULES, /encode line breaks as \\n/);
   assert.doesNotMatch(SHARED_LATEX_RULES, /	(?:imes|ext)/);
+  assert.match(promptTemplates.WORKSHEET_EXTRACTION_PROMPT, /original_index MUST be the exact printed main question identifier/i);
+  assert.match(promptTemplates.WORKSHEET_EXTRACTION_PROMPT_NON_MATH, /never invent sequential identifiers/i);
+  assert.match(promptTemplates.WORKSHEET_SOLVER_PROMPT, /temporary zero-based batch-mapping position/i);
+  assert.match(promptTemplates.RECOVERY_PROMPT, /exactly match one of the requested printed identifiers/i);
 });
 
 test('raw prompt templates do not send doubled command backslashes', () => {
@@ -613,4 +617,3 @@ describe('per-model Gemini RPM guard', { concurrency: false }, () => {
     }
   });
 });
-

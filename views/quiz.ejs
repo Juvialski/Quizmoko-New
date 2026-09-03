@@ -656,6 +656,7 @@
         <div class="tools-left-group">
             <span id="q-tracker" class="stat-badge" style="display:none;">
                 Question <span id="q-num" style="margin: 0 4px;">1</span> of <%= (quiz.questions || []).length %>
+                <span id="q-source-num" style="margin-left: 6px; font-size: 11px; opacity: 0.8;"></span>
             </span>
             <span id="score-tracker" class="stat-badge stat-score" style="display:none;">
                 Score: <span id="live-score">0.00</span>
@@ -1993,9 +1994,17 @@
                     bfControls.style.display = 'none';
                 }
 
-                document.getElementById('q-num').innerText = currentIndex + 1;
-                updateQuestionJumpButtons();
                 const q = quizData.questions[currentIndex];
+                document.getElementById('q-num').innerText = currentIndex + 1;
+                const sourceQuestionId = q?.source?.original_index
+                    ?? q?.original_index
+                    ?? q?.source_id
+                    ?? '';
+                const sourceQuestionLabel = document.getElementById('q-source-num');
+                if (sourceQuestionLabel) {
+                    sourceQuestionLabel.textContent = sourceQuestionId ? `(Source Q${String(sourceQuestionId).trim()})` : '';
+                }
+                updateQuestionJumpButtons();
 
                 currentPageIndex = 0;
                 if (canvas) {

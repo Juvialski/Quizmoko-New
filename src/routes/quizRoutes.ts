@@ -134,7 +134,7 @@ function quizReviewRequiredIds(quiz: any): string[] {
   return quiz.questions
     .map((question: any, index: number) => (
       question?.verification?.verification_status && question.verification.verification_status !== 'verified'
-        ? String(question?.source?.original_index ?? question?.source_id ?? question?.id ?? index + 1)
+        ? String(question?.source?.original_index ?? question?.original_index ?? question?.source_id ?? question?.id ?? index + 1)
         : ''
     ))
     .filter(Boolean);

@@ -8,6 +8,7 @@
 - Grading Domain: canonical question normalization/scoring lives in /src/services/grading.ts, signed grade identity in /src/services/gradeProof.ts, and per-attempt ordering guards in /src/services/resultSession.ts
 - Data & Persistence: Firebase Firestore (firebase-admin, firebase/firestore), Firestore security rules (firestore.rules), in-memory Map stores, and JSON persistence in /src/store/db.ts with /data/*.json fallbacks
 - Document & Asset Processing: pdfjs-dist, exceljs, sharp, archiver, multer processed via /src/services/pdf.ts; worksheet validation/consensus rules are centralized in /src/services/worksheetPipeline.ts
+- Worksheet Source Identity: exact worksheet identifiers and natural source ordering are centralized in /src/services/worksheetSourceOrder.ts; do not derive source numbers from array positions.
 
 ---
 ## Global Rules & Constraints (QuizMoKo)
@@ -37,6 +38,7 @@ These instructions contain critical rules and project conventions to prevent reg
 - Identification Keys: Identification answers are concise plain values without LaTeX delimiters or unnecessary units. Do not force every identification answer to be numeric; a word, symbol, or short phrase is valid when the question requires it.
 - Structured Choice Labels: AI-generated/extracted `options` arrays contain option content only. Do not store A/B/C/D prefixes inside option strings because QuizMoKo renders choice labels in the UI. Sanitize redundant position-matching labels at AI boundaries while preserving legacy grading compatibility.
 - Exact Generated Diagrams: The AI generator `images_count` setting means an exact number of quiz questions must contain generated `[TIKZ]...[/TIKZ]` diagrams, not a maximum. Build a deterministic per-question `diagram_required` plan, validate every generated batch against it, reject unsupported pgfplots/axis output, and fail generation rather than silently publishing fewer or extra diagrams. Use base TikZ compatible with the existing Kroki wrapper.
+- Worksheet Source Numbers: `original_index` is immutable printed worksheet metadata and must survive extraction, recovery, solving, review, persistence, editing, and quiz creation. `source_index` is only a temporary zero-based batch mapping field. Use the shared natural comparator for ordering, preserve alphanumeric suffixes, keep unparseable identifiers in stable extraction order, and use sequential numbering only for legacy items without a source identifier.
 
 ### 3. Backend API & Schema Consistency
 - JSON Structural Newline Protection: When invoking safeParseJSON, rely on fixJsonLatexEscapes to safely escape literal newlines within strings. NEVER use global .replace(/\r?\n/g, '\\n') on the entire JSON string, as this corrupts structural JSON array formatting.
@@ -88,6 +90,7 @@ You are the Frontend Specialist for QuizMoKo. Your domain encompasses all user i
 2. Tailwind CSS Utility Design: Use modern Tailwind CSS classes. Maintain clean visual contrast, responsive layout grids (sm:, md:, lg:), and touch-friendly controls (minimum 44px on mobile).
 3. Math & LaTeX Rendering: Ensure mathematical expressions formatted with LaTeX delimiters ($ ... $ or $$ ... $$) render cleanly with MathJax/KaTeX without HTML character escaping defects.
 4. Interactive State & Real-Time Sync: Maintain clean DOM event listeners, Socket.IO client connections for live quiz views, and seamless AJAX/fetch handling.
+5. Worksheet Source Labels: Preview, edit, printable, and student-facing worksheet-derived labels must display the preserved `original_index` when present. Set dynamic identifiers through textContent or escaped EJS output; never use array position as the source number.
 
 ### CRITICAL FORBIDDEN ACTIONS
 - Do NOT hardcode API secret keys or credentials in client-side scripts or EJS templates.

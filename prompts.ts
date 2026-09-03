@@ -221,6 +221,7 @@ export const WORKSHEET_EXTRACTION_PROMPT = String.raw`You extract worksheet ques
 COVERAGE AND FIDELITY
 - Extract every readable numbered question on this page in source order. Do not emit headings, instructions, page numbers, or isolated labels as separate questions.
 - One main number equals one object. Keep lettered subparts together in verbatim_text. Put each labeled part on its own logical line using plain-text labels such as a., b., c. or (i), (ii). Do NOT use LaTeX/\mathbf/\textbf just to style part letters, and never run a. and b. together in one paragraph.
+- SOURCE IDENTIFIER INTEGRITY: original_index MUST be the exact printed main question identifier from the worksheet, preserved as a string. Never invent sequential identifiers from extraction position. A page or segment beginning at question 21 must keep 21, not become 1; skipped numbers must remain skipped. Preserve genuine suffixes such as 11a and 11b, and preserve recognizable alphanumeric or Roman-numeral identifiers rather than converting them to integers. If the page prints a label such as "Question 15", capture the identifier 15 while keeping that number out of raw_text.
 - verbatim_text contains only the literal text belonging to the numbered item, without its number.
 - context_prefix contains the exact shared heading, passage, or instruction that applies to the item, or an empty string. Repeat the same context_prefix for every affected item.
 - raw_text is exactly context_prefix plus one newline plus verbatim_text when context exists; otherwise it equals verbatim_text. Do not invent, summarize, solve, or describe images.
@@ -230,6 +231,7 @@ STRUCTURE
 - Move selectable A/B/C/D choices into options and keep their literal content, but OMIT the visible A/B/C/D label itself because the structured array position supplies the label. Once moved, REMOVE those choice lines/text from verbatim_text and raw_text; never duplicate the choices in the question stem. Leave options empty when none are visible.
 - Use multiple_choice for exactly one correct option, multiple_choice_multi only when the source explicitly permits multiple answers, true_false for true/false, identification for one concise word/number/symbol, graphing for a required graph or drawing, and open_ended otherwise.
 - original_index is the printed main identifier as a string.
+- Do not copy the identifier into raw_text or verbatim_text, but do not omit it from original_index. For one main problem with ordinary a./b./c. subparts, return one object for the main number; suffixes are separate only when they are genuine printed identifiers.
 - bounding_box is [] unless the item depends on a visible diagram, graph, chart, map, coordinate plane, or illustration. When needed, return [ymin, xmin, ymax, xmax] as four integers from 0 to 1000 with a small margin. Equations and ordinary text are not images.
 - Return every required field for every object and no extra objects.
 
@@ -245,6 +247,7 @@ export const WORKSHEET_EXTRACTION_PROMPT_NON_MATH = String.raw`You extract works
 COVERAGE AND FIDELITY
 - Extract every readable numbered question on this page in source order. Do not emit headings, passages, instructions, page numbers, or isolated labels as separate questions.
 - One main number equals one object. Keep lettered subparts together in verbatim_text. Put each labeled part on its own logical line using plain-text labels such as a., b., c. or (i), (ii). Do NOT use LaTeX/\mathbf/\textbf just to style part letters, and never run a. and b. together in one paragraph.
+- SOURCE IDENTIFIER INTEGRITY: original_index MUST be the exact printed main question identifier from the worksheet, preserved as a string. Never invent sequential identifiers from extraction position. A page or segment beginning at question 21 must keep 21, not become 1; skipped numbers must remain skipped. Preserve genuine suffixes such as 11a and 11b, and preserve recognizable alphanumeric or Roman-numeral identifiers rather than converting them to integers. If the page prints a label such as "Question 15", capture the identifier 15 while keeping that number out of raw_text.
 - verbatim_text contains only the literal numbered-item text without its number.
 - context_prefix contains the exact shared passage, heading, or instruction, or an empty string. Repeat it for every affected item.
 - raw_text is exactly context_prefix plus one newline plus verbatim_text when context exists; otherwise it equals verbatim_text. Do not invent, summarize, answer, or describe images.
@@ -254,6 +257,7 @@ STRUCTURE
 - Move selectable choices into options and preserve their literal content, but OMIT any visible A/B/C/D label because the structured array position supplies the label. Once moved, REMOVE those choice lines/text from verbatim_text and raw_text; never duplicate the choices in the question stem. Leave options empty when none are visible.
 - Use multiple_choice for one correct option, multiple_choice_multi only when multiple answers are explicitly allowed, true_false for true/false, identification for one concise word or short phrase, graphing for a required drawing, and open_ended otherwise.
 - original_index is the printed main identifier as a string.
+- Do not copy the identifier into raw_text or verbatim_text, but do not omit it from original_index. For one main problem with ordinary a./b./c. subparts, return one object for the main number; suffixes are separate only when they are genuine printed identifiers.
 - bounding_box is [] unless the item depends on a visible diagram, chart, map, or illustration. When needed, return four normalized integers [ymin, xmin, ymax, xmax] from 0 to 1000 with a small margin.
 - Return every required field for every object and no extra objects.
 
@@ -272,7 +276,7 @@ QUESTIONS TO PROCESS (JSON):
 {questions_json}
 
 CRITICAL RULES:
-For every source_id, solve from scratch and return exactly one result. Do not copy or modify the question text. Preserve source_index and source_id exactly.
+For every source_id, solve from scratch and return exactly one result. Do not copy or modify the question text. Preserve source_index and source_id exactly. source_index is only a temporary zero-based batch-mapping position; never treat it as the worksheet number, and never invent or replace original_index from it.
 
 ANSWER RULES
 - Multiple choice: one correct letter.
@@ -296,7 +300,7 @@ QUESTIONS TO PROCESS (JSON):
 {questions_json}
 
 CRITICAL RULES:
-For every source_id, solve from scratch and return exactly one result. Do not copy or modify the question text. Preserve source_index and source_id exactly.
+For every source_id, solve from scratch and return exactly one result. Do not copy or modify the question text. Preserve source_index and source_id exactly. source_index is only a temporary zero-based batch-mapping position; never treat it as the worksheet number, and never invent or replace original_index from it.
 
 ANSWER RULES
 - Multiple choice: one correct letter.
@@ -325,6 +329,7 @@ export const RECOVERY_PROMPT = String.raw`You are an expert recovery agent. Topi
 THE FOLLOWING QUESTION NUMBERS ARE MISSING: {missing_numbers}
 Scan the document EXHAUSTIVELY and extract ONLY these specific items.
 CRITICAL: Return 'verbatim_text', 'context_prefix', 'raw_text', 'options', 'type', 'original_index', and 'bounding_box'. Keep shared context separate and compose raw_text from the two literal fields.
+CRITICAL SOURCE IDENTITY: original_index MUST exactly match one of the requested printed identifiers in {missing_numbers}. Never renumber a recovered item based on page position, and preserve suffixes such as 11a/11b or other recognizable identifiers. The requested identifier is authoritative and must not be copied into raw_text or verbatim_text.
 CRITICAL: Never extract a standalone number as a 'raw_text'. Ensure the full statement is included.
 CRITICAL: If visible A/B/C/D choices are returned in options, do NOT repeat or append those same choices inside raw_text or verbatim_text.
 CRITICAL: If the missing question is part of a section with a general instruction, heading, or shared context (e.g., "Simplify using exponents"), you MUST prepend that general instruction/context to the beginning of the question's 'raw_text' so it is fully self-contained. Put that context and the question on separate logical lines.
@@ -466,4 +471,3 @@ CRITICAL INSTRUCTIONS:
 5. Provide a clear, step-by-step solution for each newly created question.
 6. Return valid JSON adhering strictly to the response schema. Encode line breaks as \n; never double-escape them.
 `;
-

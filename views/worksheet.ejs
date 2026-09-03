@@ -256,7 +256,10 @@
         <div class="questions">
             <% (quiz.questions || []).forEach((q, qIdx) => { %>
             <div class="question-block">
-                <div class="question-text"><strong><%= qIdx + 1 %>.</strong> <%= typeof q.question !== 'undefined' && q.question ? q.question : '' %></div>
+                <% const printedQuestionId = q && q.source && q.source.original_index !== undefined
+                    ? q.source.original_index
+                    : (q && q.original_index !== undefined ? q.original_index : qIdx + 1); %>
+                <div class="question-text"><strong><%= printedQuestionId %>.</strong> <%= typeof q.question !== 'undefined' && q.question ? q.question : '' %></div>
 
                 <% if (q.type == 'true_false') { %>
                     <div class="tf-options">

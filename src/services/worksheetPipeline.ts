@@ -7,6 +7,10 @@ import {
 } from './grading.ts';
 import { validateQuestionLatex } from './latex.ts';
 import {
+  getWorksheetSourceIdentifier,
+  worksheetSourceIdentifierMatchKey
+} from './worksheetSourceOrder.ts';
+import {
   getSubjectPromptRules,
   shouldUseStrictMathFormatting,
   WORKSHEET_SOLVER_PROMPT,
@@ -257,14 +261,7 @@ export function normalizeWorksheetSourceId(value: unknown): string {
 }
 
 export function getWorksheetSourceId(value: unknown): string {
-  if (!isRecord(value)) return '';
-  const source = isRecord(value.source) ? value.source : undefined;
-  return normalizeWorksheetSourceId(
-    source?.original_index
-      ?? value.original_index
-      ?? value.source_id
-      ?? value.id
-  );
+  return normalizeWorksheetSourceId(getWorksheetSourceIdentifier(value));
 }
 
 export function worksheetSourceKey(source: WorksheetQuestionSource): string {
@@ -338,6 +335,28 @@ function sourceFromQuestion(value: Record<string, unknown>): WorksheetQuestionSo
     ...(sourceFile ? { source_file: sourceFile } : {}),
     ...(Number.isInteger(pageValue) && pageValue > 0 ? { page_number: pageValue } : {}),
     ...(cropReference ? { crop_or_image_reference: cropReference } : {})
+  };
+}
+
+/**
+ * Carries source identity from an original worksheet item onto a transformed
+ * candidate. Model output may contribute answers and solutions, but it cannot
+ * replace the source identifier, source location, or captured image reference.
+ */
+export function preserveWorksheetSourceIdentity(
+  originalQuestion: unknown,
+  transformedQuestion: unknown
+): Record<string, unknown> {
+  const original = isRecord(originalQuestion) ? originalQuestion : {};
+  const transformed = isRecord(transformedQuestion) ? { ...transformedQuestion } : {};
+  const source = sourceFromQuestion(original);
+  if (!source) return transformed;
+  const sourceId = source.original_index;
+  return {
+    ...transformed,
+    original_index: sourceId,
+    source_id: sourceId,
+    source
   };
 }
 
@@ -517,6 +536,8 @@ export function validateWorksheetQuestion(
   const normalized: NormalizedWorksheetQuestion = {
     ...value,
     id: sourceId,
+    source_id: sourceId,
+    original_index: source.original_index,
     type,
     question: questionText,
     options: rawOptions,
@@ -622,18 +643,24 @@ export function mergeSubpartQuestions<T extends Record<string, any>>(questions: 
   if (!Array.isArray(questions) || questions.length <= 1) return questions;
 
   const parsedItems = questions.map((q, idx) => {
-    const rawId = String(
-      (q.source && typeof q.source === 'object' ? q.source.original_index : undefined)
-      ?? q.original_index
-      ?? q.source_id
-      ?? q.id
-      ?? ''
-    ).trim();
+    const rawId = getWorksheetSourceId(q);
+    const questionText = String(q.raw_text || q.question || q.statement || '').trim();
     const match = rawId.match(/^(?:question|q)?\s*#?\s*(\d+)[\s.-]*\(?([a-z])\)?$/i);
     if (match) {
-      return { item: q, parentNum: match[1], subPart: match[2].toLowerCase(), origIdx: idx };
+      const subPart = match[2].toLowerCase();
+      const hasExplicitSubpartLabel = new RegExp(
+        `^\\(?\\s*${subPart}\\s*\\)?[.:\\-]\\s*`,
+        'i'
+      ).test(questionText);
+      return {
+        item: q,
+        parentNum: match[1],
+        subPart,
+        hasExplicitSubpartLabel,
+        origIdx: idx
+      };
     }
-    return { item: q, parentNum: null, subPart: null, origIdx: idx };
+    return { item: q, parentNum: null, subPart: null, hasExplicitSubpartLabel: false, origIdx: idx };
   });
 
   const parentGroups = new Map<string, typeof parsedItems>();
@@ -654,7 +681,15 @@ export function mergeSubpartQuestions<T extends Record<string, any>>(questions: 
     const current = parsedItems[i];
     const group = current.parentNum ? parentGroups.get(current.parentNum) : null;
 
-    if (current.parentNum && group && group.length > 1) {
+    // A model may emit lettered subparts separately, but an identifier such as
+    // 11a can also be a genuine worksheet identifier. Only merge when the
+    // extracted text itself confirms that every item is a labelled subpart.
+    if (
+      current.parentNum
+      && group
+      && group.length > 1
+      && group.every(item => item.hasExplicitSubpartLabel)
+    ) {
       group.forEach(g => processedIndices.add(g.origIdx));
 
       const firstItem = group[0].item;
@@ -716,10 +751,65 @@ export function mergeSubpartQuestions<T extends Record<string, any>>(questions: 
   return merged;
 }
 
+function hasMeaningfulValue(value: unknown): boolean {
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'string') return value.trim().length > 0;
+  return value !== undefined && value !== null;
+}
+
+function withoutWorksheetImageMarkup(value: string): string {
+  return value
+    .replace(/<div class=["']resizable-image-wrapper["'][\s\S]*?<\/div>\s*<\/div>/gi, '')
+    .trim();
+}
+
+function mergeDuplicateWorksheetQuestion(
+  existing: ReconciledWorksheetQuestion,
+  duplicate: ReconciledWorksheetQuestion
+): ReconciledWorksheetQuestion {
+  const merged: ReconciledWorksheetQuestion = { ...existing };
+  for (const [key, value] of Object.entries(duplicate)) {
+    if (['source_id', 'source_order', 'source', 'original_index'].includes(key)) continue;
+    if (!hasMeaningfulValue(merged[key]) && hasMeaningfulValue(value)) merged[key] = value;
+  }
+
+  const existingSource = isRecord(existing.source) ? existing.source : {};
+  const duplicateSource = isRecord(duplicate.source) ? duplicate.source : {};
+  const mergedSource: Record<string, unknown> = { ...existingSource };
+  for (const [key, value] of Object.entries(duplicateSource)) {
+    if (!hasMeaningfulValue(mergedSource[key]) && hasMeaningfulValue(value)) mergedSource[key] = value;
+  }
+  const sourceId = existing.source_id || getWorksheetSourceId(existing);
+  mergedSource.original_index = sourceId;
+  merged.source = mergedSource as unknown as WorksheetQuestionSource;
+  merged.source_id = sourceId;
+  merged.original_index = sourceId;
+
+  // Overlapping page/chunk extraction can capture a diagram only once. When
+  // the text agrees, retain that image markup instead of dropping it with the
+  // duplicate object.
+  const existingText = readQuestionText(existing);
+  const duplicateText = readQuestionText(duplicate);
+  if (
+    duplicateText && /<img\b/i.test(duplicateText)
+    && !/<img\b/i.test(existingText)
+    && normalizedComparableText(withoutWorksheetImageMarkup(existingText))
+      === normalizedComparableText(withoutWorksheetImageMarkup(duplicateText))
+  ) {
+    for (const field of ['question', 'raw_text', 'statement']) {
+      if (Object.prototype.hasOwnProperty.call(existing, field) || Object.prototype.hasOwnProperty.call(duplicate, field)) {
+        merged[field] = duplicateText;
+      }
+    }
+  }
+  return merged;
+}
+
 export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]): WorksheetReconciliationResult {
   const diagnostics: WorksheetDiagnostic[] = [];
   const unresolved: UnresolvedWorksheetFragment[] = [];
   const questions: ReconciledWorksheetQuestion[] = [];
+  const questionIndexesBySourceId = new Map<string, number>();
   const orderedPages = pages.map((page, inputOrder) => ({ page, inputOrder }))
     .sort((left, right) => (left.page.file_order ?? left.inputOrder) - (right.page.file_order ?? right.inputOrder) || left.page.page_number - right.page.page_number || left.inputOrder - right.inputOrder);
   let sourceOrder = 0;
@@ -728,7 +818,10 @@ export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]
     const fragmentOptions = (fragment.options ?? []).map(textValue).filter(Boolean);
     const targetId = normalizeWorksheetSourceId(fragment.target_source_id);
     let candidates = questions.filter(question => question.options.length === 0);
-    if (targetId) candidates = candidates.filter(question => question.source_id === targetId);
+    if (targetId) {
+      const targetMatchKey = worksheetSourceIdentifierMatchKey(targetId);
+      candidates = candidates.filter(question => worksheetSourceIdentifierMatchKey(question.source_id) === targetMatchKey);
+    }
     else candidates = candidates.filter(question =>
       question.source.source_file === page.source_file
       && question.source.page_number === page.page_number - 1
@@ -774,8 +867,30 @@ export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]
         ...(Number.isInteger(page.page_number) && page.page_number > 0 ? { page_number: page.page_number } : {}),
         ...(imageReference ? { crop_or_image_reference: imageReference } : {})
       };
-      if (questions.some(question => question.source_id === sourceId)) diagnostics.push(diagnostic('duplicate_source_id', `Extracted duplicate source ID "${sourceId}".`, sourceId));
-      questions.push({ ...rawValue, source_id: sourceId, source_order: sourceOrder++, question: text, options: itemOptions, source });
+      const candidate = {
+        ...rawValue,
+        source_id: sourceId,
+        source_order: sourceOrder,
+        original_index: sourceId,
+        question: text,
+        options: itemOptions,
+        source
+      } as ReconciledWorksheetQuestion;
+      const sourceMatchKey = worksheetSourceIdentifierMatchKey(sourceId);
+      const existingIndex = questionIndexesBySourceId.get(sourceMatchKey);
+      if (existingIndex !== undefined) {
+        const existing = questions[existingIndex];
+        const existingComparableText = normalizedComparableText(withoutWorksheetImageMarkup(existing.question));
+        const duplicateComparableText = normalizedComparableText(withoutWorksheetImageMarkup(candidate.question));
+        if (existingComparableText && duplicateComparableText && existingComparableText !== duplicateComparableText) {
+          diagnostics.push(diagnostic('duplicate_source_id', `Extracted duplicate source ID "${sourceId}" has conflicting text.`, sourceId));
+        }
+        questions[existingIndex] = mergeDuplicateWorksheetQuestion(existing, candidate);
+        continue;
+      }
+      questionIndexesBySourceId.set(sourceMatchKey, questions.length);
+      sourceOrder += 1;
+      questions.push(candidate);
     }
     for (const fragment of pageFragments) {
       if (!attachFragment(fragment, page)) {
@@ -799,15 +914,20 @@ export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]
 }
 
 function candidateRecord(base: Record<string, unknown>, output: unknown): Record<string, unknown> {
-  if (!isRecord(output)) return { ...base };
-  return {
+  const source = sourceFromQuestion(base);
+  const sourceId = source?.original_index || getWorksheetSourceId(base);
+  if (!isRecord(output)) {
+    return preserveWorksheetSourceIdentity(base, {
+      ...base,
+      ...(sourceId ? { original_index: sourceId, source_id: sourceId } : {}),
+      ...(source ? { source } : {})
+    });
+  }
+  return preserveWorksheetSourceIdentity(base, {
     ...base,
     ...output,
-    question: readQuestionText(base),
-    source: base.source,
-    original_index: base.original_index,
-    source_id: getWorksheetSourceId(base)
-  };
+    question: readQuestionText(base)
+  });
 }
 
 export function adjudicateWorksheetSolverCandidates(
@@ -839,7 +959,9 @@ export function adjudicateWorksheetSolverCandidates(
   const review = (reason: string, code: WorksheetDiagnosticCode): WorksheetConsensusResult => {
     diagnostics.push(diagnostic(code, reason, sourceId));
     const verification: QuestionVerification = { answer_source: 'manual', verification_status: 'review_required', reason, solver_models: candidates.map(candidate => candidate.model) };
-    const provisional = valid[0]?.question ?? base;
+    // Even when both solver calls fail, return a complete copy of the input
+    // question. In particular, never let the fallback lose source metadata.
+    const provisional = valid[0]?.question ?? candidateRecord(base, undefined);
     return { publishable: false, question: { ...provisional, verification, worksheet_qa: { solver_candidates: traces, adjudicator_reason: adjudicator?.reason } }, verification, worksheet_qa: { solver_candidates: traces, adjudicator_reason: adjudicator?.reason }, diagnostics };
   };
 
@@ -958,12 +1080,42 @@ export function mergeWorksheetRecheckByStableId(
 export function stripWorksheetSolverState(value: unknown): Record<string, unknown> {
   if (!isRecord(value)) return {};
   const clean: Record<string, unknown> = {};
-  for (const key of ['id', 'source_id', 'original_index', 'question', 'raw_text', 'statement', 'options', 'choices', 'type', 'bounding_box', 'crop_data_url', 'image_url']) {
+  for (const key of [
+    'id',
+    'source_id',
+    'original_index',
+    'source_order',
+    'question',
+    'raw_text',
+    'verbatim_text',
+    'context_prefix',
+    'statement',
+    'options',
+    'choices',
+    'type',
+    'identifier',
+    'bounding_box',
+    'crop_data_url',
+    'image_url',
+    'crop_or_image_reference',
+    'image_reference',
+    'source_file',
+    'page_number'
+  ]) {
     if (!Object.prototype.hasOwnProperty.call(value, key)) continue;
     clean[key] = value[key];
   }
   const source = sourceFromQuestion(value);
-  if (source) clean.source = source;
+  if (source) {
+    const sourceId = source.original_index;
+    clean.source = source;
+    if (Object.prototype.hasOwnProperty.call(value, 'source')
+      || Object.prototype.hasOwnProperty.call(value, 'original_index')
+      || Object.prototype.hasOwnProperty.call(value, 'source_id')) {
+      clean.original_index = sourceId;
+      clean.source_id = sourceId;
+    }
+  }
   return clean;
 }
 

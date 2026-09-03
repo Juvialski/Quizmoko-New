@@ -9,6 +9,8 @@ import {
   areCanonicalWorksheetAnswersEquivalent,
   buildWorksheetSolverPrompt,
   getWorksheetSourceId,
+  normalizeWorksheetSourceId,
+  preserveWorksheetSourceIdentity,
   stripWorksheetSolverState,
   validateWorksheetQuestion,
   type IndependentSolverCandidate,
@@ -184,7 +186,8 @@ export function parseWorksheetSolverBatchOutput(
       throw new Error(`Solver returned an invalid or duplicate source_index at result ${position + 1}.`);
     }
     const expectedSourceId = getWorksheetSourceId(expectedQuestions[sourceIndex]);
-    if (!expectedSourceId || getWorksheetSourceId(output) !== expectedSourceId) {
+    const returnedSourceId = normalizeWorksheetSourceId(output.source_id);
+    if (!expectedSourceId || returnedSourceId !== expectedSourceId) {
       throw new Error(`Solver returned the wrong source_id for source_index ${sourceIndex}.`);
     }
     const latexFields = [output.answer, output.solution, ...(Array.isArray(output.options) ? output.options : [])];
@@ -376,14 +379,13 @@ export async function solveWorksheetBatchWithConsensus(input: {
         const outputs = parseWorksheetSolverBatchOutput(response.text || '', input.questions);
         outputs.forEach((output, index) => {
           const base = input.questions[index];
-          const candidate = {
+          const sourceId = getWorksheetSourceId(base);
+          const candidate = preserveWorksheetSourceIdentity(base, {
             ...base,
             ...output,
             question: String(base.question || base.raw_text || base.statement || '').trim(),
-            source: base.source,
-            original_index: base.original_index,
-            source_id: getWorksheetSourceId(base)
-          };
+            ...(sourceId ? { original_index: sourceId, source_id: sourceId } : {})
+          });
           const checked = validateWorksheetQuestion(candidate);
           if (!checked.valid) {
             throw new Error(

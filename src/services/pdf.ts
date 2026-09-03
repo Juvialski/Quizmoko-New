@@ -1,37 +1,15 @@
 import sharp from 'sharp';
+import {
+  sortWorksheetQuestionsBySourceId
+} from './worksheetSourceOrder.ts';
 
 export function getFilesByField(files: Express.Multer.File[] | undefined, fieldNames: string[]) {
   if (!files || !Array.isArray(files)) return [];
   return files.filter(f => fieldNames.includes(f.fieldname));
 }
 
-export function sortQuestionsByIndex(questions: any[]) {
-  if (!Array.isArray(questions)) return;
-  
-  const parseIndex = (idxStr: any): { num: number; suffix: string } => {
-    const str = String(idxStr || '').trim();
-    const match = str.match(/^(?:(?:question|q)\s*[:#.-]?\s*|#\s*)?(\d+)(.*)$/i);
-    if (match) {
-      return {
-        num: parseInt(match[1], 10),
-        suffix: match[2].toLowerCase()
-      };
-    }
-    return { num: Infinity, suffix: str.toLowerCase() };
-  };
-
-  questions.sort((a: any, b: any) => {
-    const sourceId = (value: any) => value?.source?.original_index
-      ?? value?.original_index
-      ?? value?.source_id
-      ?? value?.id;
-    const parseA = parseIndex(sourceId(a));
-    const parseB = parseIndex(sourceId(b));
-    if (parseA.num !== parseB.num) {
-      return parseA.num - parseB.num;
-    }
-    return parseA.suffix.localeCompare(parseB.suffix);
-  });
+export function sortQuestionsByIndex<T>(questions: T[]): T[] {
+  return sortWorksheetQuestionsBySourceId(questions);
 }
 
 export async function cropImageBoundingBox(fileBuffer: Buffer, bbox: any): Promise<string | null> {

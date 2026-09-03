@@ -43,9 +43,11 @@ import {
   getWorksheetSourceId,
   indexGoldenAnswers,
   mapWorksheetAnswerToCanonical,
+  mergeSubpartQuestions,
   mergeWorksheetRecheckByStableId,
   normalizeWorksheetSourceId,
   reconcileWorksheetPages,
+  stripWorksheetSolverState,
   validateWorksheetQuestion,
   validateWorksheetQuizForPublication
 } from '../src/services/worksheetPipeline.ts';
@@ -55,6 +57,7 @@ import {
   solveWorksheetBatchWithConsensus,
   solveWorksheetQuestionsInBatches
 } from '../src/services/worksheetSolver.ts';
+import { worksheetSourceIdentifiersEqual } from '../src/services/worksheetSourceOrder.ts';
 
 function uniqueId(prefix: string): string {
   return `${prefix}_${randomUUID().replace(/-/g, '')}`;
@@ -1338,6 +1341,32 @@ describe('worksheet independent solver/checker consensus', () => {
     assert.ok(malformed.diagnostics.some(item => item.code === 'solver_failure'));
   });
 
+  test('batch failure fallback preserves source metadata instead of rebuilding from position', () => {
+    const base = {
+      source: {
+        source_file: 'worksheet.pdf',
+        page_number: 4,
+        original_index: '21',
+        crop_or_image_reference: 'diagram-21'
+      },
+      question: 'Choose the correct value.',
+      raw_text: 'Choose the correct value.',
+      options: ['A) One', 'B) Two', 'C) Three'],
+      type: 'multiple_choice',
+      answer: 'A',
+      points: 1
+    };
+    const fallback = adjudicateWorksheetSolverCandidates(base, [
+      { model: 'solver-a', status: 'failed', error: 'timeout' },
+      { model: 'solver-b', status: 'failed', error: 'timeout' }
+    ]);
+    assert.equal(fallback.publishable, false);
+    assert.equal(fallback.question.original_index, '21');
+    assert.equal(getWorksheetSourceId(fallback.question), '21');
+    assert.equal((fallback.question.source as any).crop_or_image_reference, 'diagram-21');
+    assert.deepEqual(fallback.question.options, base.options);
+  });
+
   test('does not accept disagreement when checker is absent, failed, or false without a correction', () => {
     const candidates = [candidate('solver-a', 'A'), candidate('solver-b', 'B')];
     const absent = adjudicateWorksheetSolverCandidates(base, candidates);
@@ -1389,6 +1418,90 @@ describe('worksheet independent solver/checker consensus', () => {
 });
 
 describe('worksheet reconciliation, validation, and recheck coverage', () => {
+  test('deduplicates overlapping chunks without changing the printed identifier', () => {
+    const reconciled = reconcileWorksheetPages([{
+      source_file: 'worksheet.pdf',
+      page_number: 1,
+      questions: [
+        {
+          original_index: '12',
+          question: 'Choose the correct value.',
+          type: 'multiple_choice',
+          options: []
+        },
+        {
+          original_index: '12',
+          question: 'Choose the correct value.',
+          type: 'multiple_choice',
+          options: ['A) One', 'B) Two', 'C) Three']
+        }
+      ]
+    }]);
+
+    assert.equal(reconciled.questions.length, 1);
+    assert.equal(reconciled.questions[0].original_index, '12');
+    assert.equal(reconciled.questions[0].source.original_index, '12');
+    assert.deepEqual(reconciled.questions[0].options, ['A) One', 'B) Two', 'C) Three']);
+    assert.equal(reconciled.diagnostics.some(item => item.code === 'duplicate_source_id'), false);
+  });
+
+  test('keeps genuine alphanumeric identifiers separate from grouped subparts', () => {
+    const reconciled = reconcileWorksheetPages([{
+      source_file: 'worksheet.pdf',
+      page_number: 1,
+      questions: [
+        { original_index: '11b', question: 'Identify the second item.', type: 'identification', options: [] },
+        { original_index: '11a', question: 'Identify the first item.', type: 'identification', options: [] },
+        { original_index: '12', question: 'Identify the next item.', type: 'identification', options: [] }
+      ]
+    }]);
+    assert.deepEqual(reconciled.questions.map(getWorksheetSourceId), ['11b', '11a', '12']);
+
+    const grouped = mergeSubpartQuestions([
+      { original_index: '11b', question: 'b. Solve the second part.', type: 'open_ended', options: [] },
+      { original_index: '11a', question: 'a. Solve the first part.', type: 'open_ended', options: [] }
+    ]);
+    assert.equal(grouped.length, 1);
+    assert.equal(getWorksheetSourceId(grouped[0]), '11');
+  });
+
+  test('recovery identifier matching accepts display prefixes without changing the requested ID', () => {
+    assert.equal(worksheetSourceIdentifiersEqual('11a', 'Question 11a'), true);
+    assert.equal(worksheetSourceIdentifiersEqual('11a', '11b'), false);
+    assert.equal(worksheetSourceIdentifiersEqual('01', '1'), false);
+  });
+
+  test('solver-state stripping retains original worksheet metadata and image fields', () => {
+    const stripped = stripWorksheetSolverState({
+      source: { original_index: '21', crop_or_image_reference: 'crop-21' },
+      question: 'Original question',
+      raw_text: 'Original question',
+      options: ['A) One', 'B) Two'],
+      type: 'multiple_choice',
+      bounding_box: [1, 2, 3, 4],
+      answer: 'A',
+      solution: 'Hidden solver state'
+    });
+    assert.equal(stripped.original_index, '21');
+    assert.equal((stripped.source as any).original_index, '21');
+    assert.equal((stripped.source as any).crop_or_image_reference, 'crop-21');
+    assert.equal(stripped.answer, undefined);
+    assert.equal(stripped.solution, undefined);
+
+    const stored = normalizeQuestionForStorage({
+      ...worksheetQuestion('21'),
+      id: 'legacy-question-id',
+      original_index: undefined,
+      source_id: undefined,
+      source: { original_index: '21', page_number: 4 }
+    });
+    assert.equal(stored.valid, true);
+    if (stored.valid) {
+      assert.equal(stored.question.original_index, '21');
+      assert.equal((stored.question.source as any).original_index, '21');
+    }
+  });
+
   test('attaches adjacent-page choices to exactly one incomplete question and preserves source order', () => {
     const reconciled = reconcileWorksheetPages([
       {
@@ -1602,6 +1715,40 @@ describe('worksheet bounded batch solving', () => {
       ]), questions),
       /wrong source_id/
     );
+  });
+
+  test('merges solver responses by source_index while retaining input order and original_index', async () => {
+    const questions = [
+      worksheetQuestion('21', { answer: '' }),
+      worksheetQuestion('23', { answer: '' }),
+      worksheetQuestion('25', { answer: '' })
+    ];
+    const ai = {
+      models: {
+        async generateContent(request: any) {
+          const outputs = solvedBatch(request);
+          return {
+            text: JSON.stringify([
+              { ...outputs[2], original_index: '999' },
+              { ...outputs[0], original_index: '999' },
+              { ...outputs[1], original_index: '999' }
+            ])
+          };
+        }
+      }
+    } as any;
+
+    const results = await solveWorksheetBatchWithConsensus({
+      ai,
+      questions,
+      subject: 'Mathematics',
+      topic: 'Source identity test',
+      requestedModel: 'gemini-3.5-flash-lite',
+      deadlineAt: Date.now() + 2_000
+    });
+    assert.deepEqual(results.map(result => getWorksheetSourceId(result.question)), ['21', '23', '25']);
+    assert.deepEqual(results.map(result => result.question.original_index), ['21', '23', '25']);
+    assert.deepEqual(results.map(result => result.question.source_index), [0, 1, 2]);
   });
 
   test('uses two requests per true batch, runs two batches concurrently, and preserves source order', async () => {

@@ -478,6 +478,82 @@
         // Never send a legacy persisted API key back to the server or Firebase.
         delete quizData['api_key'];
 
+        function getWorksheetSourceId(question, fallback = '') {
+            const value = question?.source?.original_index
+                ?? question?.original_index
+                ?? question?.source_id
+                ?? fallback;
+            return String(value ?? '').trim();
+        }
+
+        const worksheetSourceSuffixCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+        const worksheetSourcePrefixPattern = /^(?:(?:question|q)\s*[:#.-]?\s*|#\s*)/i;
+
+        function compareWorksheetSourceIds(left, right) {
+            const leftRaw = String(left ?? '').trim().replace(worksheetSourcePrefixPattern, '').trim();
+            const rightRaw = String(right ?? '').trim().replace(worksheetSourcePrefixPattern, '').trim();
+            const leftMatch = leftRaw.match(/^(\d+)(.*)$/);
+            const rightMatch = rightRaw.match(/^(\d+)(.*)$/);
+            if (Boolean(leftMatch) !== Boolean(rightMatch)) return leftMatch ? -1 : 1;
+            if (!leftMatch || !rightMatch) return 0;
+            const leftDigits = leftMatch[1].replace(/^0+(?=\d)/, '') || '0';
+            const rightDigits = rightMatch[1].replace(/^0+(?=\d)/, '') || '0';
+            if (leftDigits.length !== rightDigits.length) return leftDigits.length - rightDigits.length;
+            return leftDigits.localeCompare(rightDigits)
+                || worksheetSourceSuffixCollator.compare(leftMatch[2].trim(), rightMatch[2].trim());
+        }
+
+        function sortWorksheetSourceIds(values) {
+            return values
+                .map((value, index) => ({ value, index }))
+                .sort((left, right) => compareWorksheetSourceIds(left.value, right.value) || left.index - right.index)
+                .map(item => item.value);
+        }
+
+        function findWorksheetSourceContext(question) {
+            const sourceQuestions = quizData?.worksheet_source?.extracted_questions;
+            if (!Array.isArray(sourceQuestions)) return null;
+            const sourceId = getWorksheetSourceId(question);
+            if (sourceId) {
+                const bySourceId = sourceQuestions.find(source => getWorksheetSourceId(source) === sourceId);
+                if (bySourceId) return bySourceId;
+            }
+            // source_index is only a legacy positional fallback. It is never
+            // used as the worksheet identifier.
+            const sourceIndex = Number(question?.source_index);
+            return Number.isInteger(sourceIndex) && sourceIndex >= 0 && sourceIndex < sourceQuestions.length
+                ? sourceQuestions[sourceIndex]
+                : null;
+        }
+
+        function preserveWorksheetSourceMetadata(previousQuestion, nextQuestion) {
+            const next = nextQuestion && typeof nextQuestion === 'object' ? { ...nextQuestion } : {};
+            const previousSource = previousQuestion?.source && typeof previousQuestion.source === 'object'
+                ? previousQuestion.source
+                : null;
+            const sourceId = String(
+                previousSource?.original_index
+                ?? previousQuestion?.original_index
+                ?? previousQuestion?.source_id
+                ?? ''
+            ).trim();
+            if (sourceId) {
+                next.original_index = sourceId;
+                next.source_id = sourceId;
+                next.source = previousSource
+                    ? { ...previousSource, original_index: sourceId }
+                    : { original_index: sourceId };
+            }
+            if (Object.prototype.hasOwnProperty.call(previousQuestion || {}, 'source_index')) {
+                next.source_index = previousQuestion.source_index;
+            }
+            return next;
+        }
+
+        function worksheetQuestionLabel(index) {
+            return getWorksheetSourceId(quizData?.questions?.[index], index + 1) || String(index + 1);
+        }
+
         // Clean up legacy AI outputs where newline was literal \n
         if (quizData && Array.isArray(quizData.questions)) {
             quizData.questions.forEach(q => {
@@ -513,14 +589,16 @@
             const sourceContent = document.getElementById('worksheet-source-content');
             quizData.worksheet_source.extracted_questions.forEach((q, i) => {
                 const item = document.createElement('div');
+                const sourceQuestionId = getWorksheetSourceId(q, i + 1) || String(i + 1);
                 item.style.padding = '12px';
                 item.style.borderBottom = '1px solid var(--hairline)';
                 item.style.fontSize = '13px';
                 item.innerHTML = `
-                    <div style="font-weight:700; color:var(--primary);">[Source Q${i + 1}]</div>
-                    <div>${formatText(q && q.raw_text)}</div>
+                    <div data-source-question-label style="font-weight:700; color:var(--primary);"></div>
+                    <div>${formatText(q && (q.raw_text || q.question))}</div>
                     ${q && q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;"><i data-lucide="image" class="icon-sm"></i>️ ${formatText(q.image_description)}</div>` : ''}
                 `;
+                item.querySelector('[data-source-question-label]').textContent = `[Source Q${sourceQuestionId}]`;
                 sourceContent.appendChild(item);
             });
         }
@@ -877,7 +955,7 @@
             if (!validation.valid) {
                 if (question) markApprovalValidationFailure(question, index, validation.reason);
                 if (rerender) renderQuestions();
-                alert(`Cannot approve Question ${index + 1}: ${validation.reason}`);
+                alert(`Cannot approve Question ${worksheetQuestionLabel(index)}: ${validation.reason}`);
                 return false;
             }
             applyTeacherAnswerApproval(question, 'single');
@@ -900,7 +978,7 @@
                 const validation = validateQuestionAnswerForApproval(question);
                 if (!validation.valid) {
                     if (question) markApprovalValidationFailure(question, index, validation.reason);
-                    skipped.push({ number: index + 1, reason: validation.reason });
+                    skipped.push({ number: worksheetQuestionLabel(index), reason: validation.reason });
                     return;
                 }
 
@@ -1479,9 +1557,10 @@
             btn.disabled = true;
             
             let regenerationInstructions = extraInst.trim();
-            if (q.source_index !== undefined && quizData.worksheet_source && quizData.worksheet_source.extracted_questions) {
-                const src = quizData.worksheet_source.extracted_questions[q.source_index];
-                const safeSourceText = String(src.raw_text || '')
+            const sourceForRegeneration = findWorksheetSourceContext(q);
+            if (sourceForRegeneration) {
+                const src = sourceForRegeneration;
+                const safeSourceText = String(src.raw_text || src.question || '')
                     .replace(/data:[^;,"']+;base64,[^"']+/gi, '[IMAGE_PROVIDED]')
                     .slice(0, 1500);
                 regenerationInstructions += `${regenerationInstructions ? '\n\n' : ''}Stay faithful to this original source context:\n${safeSourceText}`;
@@ -1518,12 +1597,12 @@
                     GLOBAL_DAILY_STATS[today][model][kid] = (GLOBAL_DAILY_STATS[today][model][kid] || 0) + 1;
                 }
 
-                quizData.questions[qIndex] = preserveBatchApprovalUiState(q, {
+                quizData.questions[qIndex] = preserveBatchApprovalUiState(q, preserveWorksheetSourceMetadata(q, {
                     ...q,
                     ...data.question,
                     question: processTikzToImageJS(data.question.question),
                     source_index: q.source_index
-                });
+                }));
                 renderQuestions();
                 markQuestionChanged(qIndex);
             } catch (err) {
@@ -1564,7 +1643,7 @@
                 const sourceQuestionId = rawSourceQuestionId === undefined || rawSourceQuestionId === null
                     ? ''
                     : String(rawSourceQuestionId).trim();
-                const displayQuestionId = String(qIndex + 1);
+                const displayQuestionId = sourceQuestionId || String(qIndex + 1);
                 const hasDifferentSource = sourceQuestionId && sourceQuestionId !== String(qIndex + 1);
                 const positionLabel = hasDifferentSource
                     ? '<span data-quiz-position style="font-size: 11px; color: var(--primary); font-weight: 700;"></span>'
@@ -1621,7 +1700,7 @@
                 `;
                 header.querySelector('[data-question-heading]').textContent = `QUESTION ${displayQuestionId}`;
                 const quizPosition = header.querySelector('[data-quiz-position]');
-                if (quizPosition) quizPosition.textContent = `(Source Q${sourceQuestionId})`;
+                if (quizPosition) quizPosition.textContent = `(Quiz position ${qIndex + 1})`;
                 leftCol.appendChild(qTextLabel);
                 
                 const qTextInput = document.createElement('textarea'); 
@@ -1899,10 +1978,7 @@
             }
 
             // Get source context if available
-            let sourceContext = { raw_text: q.question, image_description: '' };
-            if (q.source_index !== undefined && quizData.worksheet_source && quizData.worksheet_source.extracted_questions) {
-                sourceContext = quizData.worksheet_source.extracted_questions[q.source_index];
-            }
+            const sourceContext = findWorksheetSourceContext(q) || { raw_text: q.question, image_description: '' };
 
             try {
                 const res = await fetch('/api/reprocess_question', {
@@ -1928,10 +2004,10 @@
 
                     // Update current question with data from server
                     // Use ...data.question first to ensure type and options are cleared
-                    quizData.questions[qIndex] = preserveBatchApprovalUiState(q, {
+                    quizData.questions[qIndex] = preserveBatchApprovalUiState(q, preserveWorksheetSourceMetadata(q, {
                         ...data.question,
                         source_index: q.source_index // Preserve source index
-                    });
+                    }));
 
                     // Save before reloading so a slow Render/Firebase request
                     // cannot race the navigation and lose the AI result.
@@ -1963,10 +2039,7 @@
             btn.disabled = true;
 
             const q = quizData.questions[index];
-            let sourceContext = null;
-            if (q.source_index !== undefined && quizData.worksheet_source && quizData.worksheet_source.extracted_questions) {
-                sourceContext = quizData.worksheet_source.extracted_questions[q.source_index];
-            }
+            const sourceContext = findWorksheetSourceContext(q);
 
             try {
                 const res = await fetchWithTimeout('/api/resolve_question', {
@@ -1985,11 +2058,11 @@
 
                 const data = await res.json();
                 if (data.success && data.question) {
-                    quizData.questions[index] = requireApprovalAfterResolve(q, data.question);
+                    quizData.questions[index] = requireApprovalAfterResolve(q, preserveWorksheetSourceMetadata(q, data.question));
                     await saveQuiz(false); // Silent save
                     renderQuestions();
                 } else if (data.review_required && data.question) {
-                    quizData.questions[index] = requireApprovalAfterResolve(q, data.question);
+                    quizData.questions[index] = requireApprovalAfterResolve(q, preserveWorksheetSourceMetadata(q, data.question));
                     renderQuestions();
                     alert('Re-solve needs teacher review: ' + (data.reason || 'The independent solvers did not agree. Manually enter the approved answer before saving.'));
                 } else {
@@ -2028,7 +2101,10 @@
 
                 const data = await res.json();
                 if (data.success && data.questions.length > 0) {
-                    quizData.questions[index] = preserveBatchApprovalUiState(q, data.questions[0]);
+                    quizData.questions[index] = preserveBatchApprovalUiState(
+                        q,
+                        preserveWorksheetSourceMetadata(q, data.questions[0])
+                    );
                     renderQuestions();
                 } else {
                     alert('Polishing failed: ' + data.error);
@@ -2074,7 +2150,10 @@
                 const data = await res.json();
                 if (data.success) {
                     const previousQuestions = Array.isArray(quizData.questions) ? quizData.questions : [];
-                    quizData.questions = data.questions.map((question, index) => preserveBatchApprovalUiState(previousQuestions[index], question));
+                    quizData.questions = data.questions.map((question, index) => preserveBatchApprovalUiState(
+                        previousQuestions[index],
+                        preserveWorksheetSourceMetadata(previousQuestions[index], question)
+                    ));
                     renderQuestions();
                     alert('Math formatting polished successfully!');
                 } else {
@@ -2112,26 +2191,7 @@
                     header.style.marginTop = '0';
                     content.appendChild(header);
 
-                    const parseIndex = (idxStr) => {
-                        const str = String(idxStr || '').trim();
-                        const match = str.match(/^(\d+)(.*)$/);
-                        if (match) {
-                            return {
-                                num: parseInt(match[1], 10),
-                                suffix: match[2].toLowerCase()
-                            };
-                        }
-                        return { num: Infinity, suffix: str.toLowerCase() };
-                    };
-
-                    const sortedNums = Object.keys(quizData.golden_reference).sort((a,b) => {
-                        const parseA = parseIndex(a);
-                        const parseB = parseIndex(b);
-                        if (parseA.num !== parseB.num) {
-                            return parseA.num - parseB.num;
-                        }
-                        return parseA.suffix.localeCompare(parseB.suffix);
-                    });
+                    const sortedNums = sortWorksheetSourceIds(Object.keys(quizData.golden_reference));
                     sortedNums.forEach(num => {
                         const item = document.createElement('div');
                         item.className = 'golden-sidebar-item';
@@ -2154,13 +2214,15 @@
 
                     quizData.worksheet_source.extracted_questions.forEach((q, i) => {
                         const item = document.createElement('div');
+                        const sourceQuestionId = getWorksheetSourceId(q, i + 1) || String(i + 1);
                         item.className = 'golden-sidebar-item';
                         item.style.fontSize = '12px';
                         item.innerHTML = `
-                            <div style="font-weight:700; color:var(--primary); margin-bottom:4px;">[Source Q${i + 1}]</div>
-                            <div>${formatText(q && q.raw_text)}</div>
+                            <div data-source-question-label style="font-weight:700; color:var(--primary); margin-bottom:4px;"></div>
+                            <div>${formatText(q && (q.raw_text || q.question))}</div>
                             ${q && q.image_description ? `<div style="font-style:italic; color:var(--success); margin-top:4px;"><i data-lucide="image" class="icon-sm"></i>️ ${formatText(q.image_description)}</div>` : ''}
                         `;
+                        item.querySelector('[data-source-question-label]').textContent = `[Source Q${sourceQuestionId}]`;
                         content.appendChild(item);
                     });
                 }
@@ -2203,7 +2265,10 @@
                 const data = await res.json();
                 if (data.success) {
                     const previousQuestions = Array.isArray(quizData.questions) ? quizData.questions : [];
-                    quizData.questions = data.questions.map((question, index) => preserveBatchApprovalUiState(previousQuestions[index], question));
+                    quizData.questions = data.questions.map((question, index) => preserveBatchApprovalUiState(
+                        previousQuestions[index],
+                        preserveWorksheetSourceMetadata(previousQuestions[index], question)
+                    ));
                     renderQuestions();
                     const summary = data.summary || {};
                     const changed = Array.isArray(summary.changed) ? summary.changed.length : 0;
@@ -2508,7 +2573,7 @@
                     || cleanAns.toLowerCase() === 'no answer provided'
                     || (needsOptions && (!Array.isArray(q.options) || q.options.length < 2))
                 ) {
-                    invalidQuestions.push(idx + 1);
+                    invalidQuestions.push(worksheetQuestionLabel(idx));
                 }
             });
 
@@ -2516,7 +2581,7 @@
                 const proceed = confirm(`<i data-lucide="alert-triangle" class="icon-sm"></i>️ WARNING: Questions ${invalidQuestions.join(', ')} appear to have empty text or answers.\n\nStudents will not be able to be graded properly on these.\n\nSave anyway?`);
                 if (!proceed) return false;
             } else if (invalidQuestions.length > 0 && singleIndex !== null) {
-                alert(`Cannot save: Question ${singleIndex + 1} has empty text or answer.`);
+                alert(`Cannot save: Question ${worksheetQuestionLabel(singleIndex)} has empty text or answer.`);
                 return false;
             }
 

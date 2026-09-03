@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "project": "QuizMoKo",
+  "repository": "Juvialski/Quizmoko-New",
+  "purpose": "Canonical current-state app map; not a roadmap.",
+  "baseline": {
+    "branch": "main",
+    "commit": "cedfb9bbef32c3400b0576b1f843451b448bfcef",
+    "date": "2026-09-03",
+    "verification": {
+      "npm_test": "126 passed, 0 failed",
+      "npm_run_build": "passed",
+      "worksheet_ejs_lint": "passed"
+    }
+  },
+  "actors": {
+    "teacher": "authenticated author; quizzes, AI, worksheets, live classroom, results, API key",
+    "admin": "teacher capabilities plus users, system health, backup",
+    "student": "public/optional-auth quiz attempt, progress, result/solutions",
+    "anonymous": "public published quiz with opaque session/result capability"
+  },
+  "runtime": {
+    "entrypoint": "server.ts",
+    "http": "Express + EJS",
+    "realtime": "Socket.IO",
+    "node": ">=22.13.0 <25",
+    "deployment_boundary": "one writable process until attempt/revision/rate/live coordination is distributed"
+  },
+  "routes": {
+    "healthRoutes": {
+      "file": "src/routes/healthRoutes.ts",
+      "endpoints": ["GET /healthz"]
+    },
+    "authRoutes": {
+      "file": "src/routes/authRoutes.ts",
+      "endpoints": ["GET /login", "GET /register", "GET /api/firebase_config", "GET /logout", "POST /api/set_session", "POST /api/login_session", "POST /api/test_login", "POST /api/user/save_api_key"]
+    },
+    "quizRoutes": {
+      "file": "src/routes/quizRoutes.ts",
+      "endpoints": ["GET /", "GET /quiz/:quiz_id", "GET /edit/:quiz_id", "GET /api/quiz/:quiz_id", "POST /update/:quiz_id", "DELETE /api/quiz/:quiz_id", "GET /create_blank", "POST /merge", "POST /api/move_quiz", "GET /api/list_quizzes", "GET /api/get_quiz_details/:id", "POST /api/quiz/:quiz_id/duplicate", "POST /api/quiz/:quiz_id/folder"]
+    },
+    "liveRoutes": {
+      "file": "src/routes/liveRoutes.ts",
+      "endpoints": ["GET /live/:quiz_id", "GET /api/live/:quiz_id", "POST /api/live/:quiz_id/toggle_pause", "POST /api/live/:quiz_id/terminate", "POST /api/live/:quiz_id/whiteboard/:sid/toggle", "POST /ping"]
+    },
+    "gradingRoutes": {
+      "file": "src/routes/gradingRoutes.ts",
+      "endpoints": ["POST /api/grade_individual", "POST /submit", "POST /api/submit_quiz", "POST /api/save_progressive_result", "POST /api/load_progressive_result", "POST /api/explain", "POST /api/reformat_answer"]
+    },
+    "aiRoutes": {
+      "file": "src/routes/aiRoutes.ts",
+      "endpoints": ["GET /api/ai/config", "GET /api/ollama_tags", "POST /generate_ai", "POST /api/generate_ai", "POST /api/generate_question", "POST /api/polish_questions", "POST /api/resolve_question", "POST /api/transfer_question", "POST /api/bulk_import_questions", "POST /api/reprocess_question", "POST /api/generate_variant"]
+    },
+    "resultsRoutes": {
+      "file": "src/routes/resultsRoutes.ts",
+      "endpoints": ["GET /api/get_result/:result_id", "POST /api/results/:result_id/edit_answer", "POST /api/results/:result_id/recheck", "POST /api/results/:result_id/reprocess_answers", "POST /api/results/:result_id/share_token", "POST /api/delete_results", "GET /results/:id", "GET /solutions/:result_id", "GET /view_solutions/:quiz_id"]
+    },
+    "adminRoutes": {
+      "file": "src/routes/adminRoutes.ts",
+      "endpoints": ["GET /admin", "GET /api/admin/system_health", "GET /api/admin/export_database", "GET /api/admin/users", "POST /api/admin/update_user_status", "POST /api/install_model", "GET /api/usage/stats", "GET /api/usage/sync_history", "GET /api/progress/:session_id"]
+    },
+    "worksheetRoutes": {
+      "file": "src/routes/worksheetRoutes.ts",
+      "endpoints": ["POST /api/extract_worksheet", "POST /api/solve_worksheet", "POST /api/extract_rmxflash", "POST /api/export_rmxflash_excel", "POST /api/extract_worksheet_with_answers", "POST /api/recover_questions", "POST /api/generate_quiz_from_extracted", "GET /worksheet_answers", "GET /worksheet", "GET /worksheet_upload", "GET /rmxflash", "GET /worksheet/:quiz_id"]
+    }
+  },
+  "views": {
+    "views/index.ejs": "dashboard",
+    "views/edit_quiz.ejs": "quiz editor + authoring AI",
+    "views/quiz.ejs": "student quiz + whiteboard",
+    "views/live.ejs": "teacher live classroom",
+    "views/results.ejs": "results",
+    "views/view_solutions.ejs": "solutions/review",
+    "views/worksheet_upload.ejs": "worksheet extraction/solve",
+    "views/worksheet_answers_upload.ejs": "worksheet + answer key",
+    "views/worksheet.ejs": "printable worksheet",
+    "views/rmxflash_upload.ejs": "RMX Flash",
+    "views/admin.ejs": "admin",
+    "views/login.ejs": "login",
+    "views/register.ejs": "register"
+  },
+  "services": {
+    "grading.ts": "canonical questions, deterministic grading, weighted scoring",
+    "gradeProof.ts": "digests and signed semantic grade proof",
+    "resultSession.ts": "attempt locks and revision high-water",
+    "resultAccess.ts": "result capability tokens",
+    "semanticGrading.ts": "semantic grading",
+    "gemini.ts": "Gemini client/model/key/JSON helpers",
+    "geminiRateLimiter.ts": "per-model rolling-window queue",
+    "aiTaskProfiles.ts": "central task profiles",
+    "aiWorkGuard.ts": "AI concurrency/cost guard",
+    "aiQuestionVerifier.ts": "dual independent verification + adjudication",
+    "quizCreatorAi.ts": "creator-key isolation",
+    "latex.ts": "math text normalization/validation",
+    "latexPatches.ts": "hash-guarded format patches",
+    "tikzGeneration.ts": "exact diagram planning/validation",
+    "pdf.ts": "PDF rasterization/crop helpers",
+    "worksheetSourceOrder.ts": "printed ID ordering/gap logic",
+    "worksheetPipeline.ts": "worksheet reconciliation/golden/publication validation",
+    "worksheetSolver.ts": "bounded dual-model batch solve",
+    "socket.ts": "live state + Socket.IO",
+    "firebaseAdmin.ts": "Firebase credential/sandbox mode",
+    "serverLifecycle.ts": "startup/shutdown/persistence drain"
+  },
+  "data": {
+    "types": ["User", "Quiz", "Question", "NormalizedQuestion", "QuizResult", "GradedDetail", "WorksheetQuestionSource", "LiveSessionState"],
+    "question_types": ["multiple_choice", "multiple_choice_multi", "true_false", "identification", "open_ended", "graphing"],
+    "grade_statuses": ["graded", "pending", "retryable_error", "invalid_response"],
+    "memory": ["users", "quizzes", "results", "sessionProgress", "liveSessions"],
+    "local_json": ["data/users.json", "data/quizzes.json", "data/results.json"],
+    "firestore": ["users", "quizzes", "results", "_quizmoko_chunks"]
+  },
+  "flows": {
+    "auth": ["Firebase ID token", "verified server-side", "persist user", "signed session cookie", "role/ownership guards"],
+    "manual_authoring": ["dashboard", "create/edit/duplicate/merge", "canonical normalization", "verification/draft gate", "persist", "sanitized public quiz"],
+    "ai_authoring": ["AI request", "AI work guard", "Gemini RPM queue", "structured draft", "canonical + LaTeX validation", "answerless dual solve", "adjudicate disagreement", "verified/review_required", "editor/publication"],
+    "worksheet": ["PDF/image upload", "page rasterize", "structured extraction", "source provenance", "reconcile/order", "optional golden key", "bounded dual-model solve", "adjudicate", "teacher review/publication gate", "persist quiz"],
+    "attempt": ["published quiz", "crypto session ID", "answer revisions/digests", "individual grade", "progress save", "live telemetry", "final attempt lock", "authoritative final grade", "durable result", "capability token"],
+    "results": ["UID/owner/capability access", "display historical grade", "optional share token", "teacher recheck", "question-version acknowledgement", "audited regrade"],
+    "live": ["student ping/socket", "live session update", "persisted score authority", "room broadcast", "teacher controls"]
+  },
+  "persistence": {
+    "write_path": "memory -> secret redaction -> coalesced atomic local JSON -> ordered/deduplicated Firestore",
+    "startup": "local recovery -> Firestore configure/hydrate -> REQUIRE_FIRESTORE readiness -> listen",
+    "shutdown": "HTTP/Socket drain -> pending persistence flush",
+    "browser_firestore": "read-only owner/admin under rules; writes denied",
+    "ai_studio": "in-memory only; Firestore/local persistence disabled"
+  },
+  "ai": {
+    "hosted_models": ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"],
+    "thinking": "high for every task profile",
+    "tasks": ["document_extraction", "answer_key_extraction", "question_drafting", "question_solving", "question_adjudication", "latex_polish", "semantic_grading", "student_explanation"],
+    "default_rpm_per_model": 15,
+    "reserved_rpm": 1,
+    "student_grading_key": "quiz creator stored server-side key or environment; never student request key"
+  },
+  "invariants": [
+    "Public quiz payloads strip answer keys, solutions, verification evidence, and private worksheet provenance.",
+    "Server canonical question/type/answer/points are authoritative for grading.",
+    "Only semantic question types can invoke semantic grading; AI/infrastructure failure never becomes an academic zero.",
+    "AI drafts fail closed to review_required/invalid unless independently verified.",
+    "Worksheet original_index is immutable printed metadata; source_index is temporary batch mapping only.",
+    "Repeated printed worksheet IDs may be preserved across different source locations; publication still requires unique canonical question IDs or explicit resolution.",
+    "Same answer revision with different answer/snapshot identity is rejected.",
+    "Finalized attempts are idempotent by session and do not silently rescore after later quiz edits.",
+    "SESSION_SECRET is stable in production and exactly one writable process is used.",
+    "Secrets are stripped before persistence; raw result access tokens are not persisted."
+  ],
+  "known_boundaries": [
+    {"severity": "medium", "area": "result access", "detail": "Legacy student_name matching supplements UID/capability checks."},
+    {"severity": "low", "area": "job progress", "detail": "GET /api/progress/:session_id is public; worksheet browser solve IDs include Math.random-based sessions."},
+    {"severity": "low", "area": "realtime", "detail": "Socket.IO CORS origin is '*'."},
+    {"severity": "operational", "area": "scaling", "detail": "Attempt/revision/rate/live/AI coordination is process-local."},
+    {"severity": "maintainability", "area": "frontend", "detail": "Large EJS files contain substantial inline client JavaScript."},
+    {"severity": "maintenance", "area": "dependencies", "detail": "PR #1 clean install reported 10 moderate and 3 high npm audit findings."}
+  ],
+  "canonical_docs": {
+    "human": "docs/architecture/APP_WORKFLOW_MAP.md",
+    "machine": "docs/architecture/workflow-map.json",
+    "rule": "Update both when routes, views, services, stores, access boundaries, or major workflows change."
+  }
+}

@@ -28,6 +28,12 @@ The canonical current-state application map is [`docs/architecture/APP_WORKFLOW_
 
 These files map the full app before roadmap work: actors, UI surfaces, route modules, services, persistence, auth, AI authoring, worksheet extraction/solving, student grading, live sessions, results, deployment constraints, tests, invariants, and known current boundaries.
 
+## Improvement roadmap
+
+Planned hardening and improvement work is tracked separately in [`docs/architecture/IMPROVEMENT_ROADMAP.md`](docs/architecture/IMPROVEMENT_ROADMAP.md).
+
+The roadmap is intentionally **not** a description of current behavior. It organizes the September 2026 full-app audit into seven ordered phases: production safety/security, BYOK and attempt hardening, persistence/resource reliability, backend contract modularization, frontend/browser hardening, measured AI/worksheet improvements, and product/admin completion.
+
 ## AI quality pipeline
 
 Hosted AI work is deliberately limited to Gemini 3.5 Flash-Lite and Gemini 3.1 Flash-Lite. Task settings and prompt versions are centralized in `src/services/aiTaskProfiles.ts`.

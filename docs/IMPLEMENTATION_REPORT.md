@@ -1,5 +1,7 @@
 # AI Quality Improvement Implementation Report
 
+> **Historical document:** This report records the August 2026 AI-quality implementation pass. It is not the canonical current application architecture. Use `docs/architecture/APP_WORKFLOW_MAP.md` for the current full-app map.
+
 Date: 2026-08-06
 
 ## Phase 1 — Fail-closed correctness

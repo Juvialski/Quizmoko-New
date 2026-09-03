@@ -9,6 +9,7 @@
 - Data & Persistence: Firebase Firestore (firebase-admin, firebase/firestore), Firestore security rules (firestore.rules), in-memory Map stores, and JSON persistence in /src/store/db.ts with /data/*.json fallbacks
 - Document & Asset Processing: pdfjs-dist, exceljs, sharp, archiver, multer processed via /src/services/pdf.ts; worksheet validation/consensus rules are centralized in /src/services/worksheetPipeline.ts
 - Worksheet Source Identity: exact worksheet identifiers and natural source ordering are centralized in /src/services/worksheetSourceOrder.ts; do not derive source numbers from array positions.
+- Canonical Architecture Map: `docs/architecture/APP_WORKFLOW_MAP.md` is the human-readable current-state map and `docs/architecture/workflow-map.json` is its machine-readable companion. Read them before broad cross-subsystem work and update both whenever routes, views, services, persistent stores, access boundaries, or major workflows change.
 
 ---
 ## Global Rules & Constraints (QuizMoKo)
@@ -70,7 +71,7 @@ These instructions contain critical rules and project conventions to prevent reg
 - Creator-Key Isolation: Public/student grading, explanation, final-submit, and progressive endpoints must never accept or use a browser/request-supplied AI API key. Semantic checking and teacher rechecks resolve Gemini only from the authoritative quiz creator's server-side teacher/admin profile. API-key storage endpoints must reject student accounts, authenticated student request bodies must have AI-key fields stripped, and student-facing views must neither display API-key controls nor read/transmit browser keys.
 
 ### 8. Worksheet Publication Contract
-- Stable Identity: Every extracted worksheet item must have a unique stable string ID retained through extraction, solving, review, publication, and provenance. Reject duplicate IDs and do not use array position as the semantic identity.
+- Source Identity: `original_index` is immutable printed metadata, not a globally unique database key. During extraction, preserve source provenance (`source_file`, page number, `original_index`, and stable source order) so repeated printed IDs on different pages/files are not silently collapsed. Preserve conflicting same-page duplicates for teacher review. Canonical quiz publication/recheck/golden-key maps still require unique question IDs; resolve/disambiguate those identities without rewriting the printed `original_index`. Never use array position as semantic source identity.
 - Golden Source & Independent Consensus: Preserve original question text and images as immutable golden source material. Independent solver calls must receive only the golden question context, never another solver's answer. Agreement must pass the shared type-aware comparator; disagreement or invalid output remains review-required.
 - Bounded True Batching: Worksheet batch size means one multi-question request per independent solver model, not one request per question. Every solver/checker request must have an abort deadline and bounded transient retry, while the complete server job must time out before browser polling. Preserve strict `source_index`/stable `source_id` coverage and invoke adjudication only for genuine normalized disagreement.
 - Ordered Concurrency: Parallel batch workers may complete out of order, but stored questions must preserve worksheet source order and progress totals must be monotonic. Do not add unconditional cooldown delays between successful batches.
@@ -80,6 +81,7 @@ These instructions contain critical rules and project conventions to prevent reg
 ### 9. Continuous Agent Evolution (Self-Updating Rule)
 - Automatic Manifest & Rule Update: At the end of every session where an architectural refactor, directory reorganization, new rule, or major pattern is established, you MUST update this `AGENTS.md` file immediately (including Workspace Overview, guidelines, and role responsibilities) so that future agents maintain total alignment.
 - Evolution Log: In addition to updating `AGENTS.md`, append a concise summary of the change, constraint, or learning to `AGENT_EVOLUTION_LOG.md` for historical tracking.
+- Architecture Map Sync: Architectural changes are incomplete until both `docs/architecture/APP_WORKFLOW_MAP.md` and `docs/architecture/workflow-map.json` reflect the new current state.
 
 ---
 ## Role Instructions: Frontend & EJS Template Engineer

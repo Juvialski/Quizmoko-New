@@ -115,6 +115,4 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
   - Centralized natural source-ID ordering and conservative gap handling in `src/services/worksheetSourceOrder.ts`, preserving numeric suffixes, prefixed legacy IDs, and stable fallback order.
   - Deduplicated overlapping extraction items, retained immutable `original_index` metadata through solver/recovery fallbacks and canonical storage, and kept `source_index` exclusively for temporary batch mapping.
   - Updated extraction/recovery prompts, worksheet previews, edit/print/student labels, source-context lookup, and focused regression coverage for non-1, gapped, alphanumeric, duplicate, recovery, out-of-order solver, and failed-batch cases.
-
-
-
+* **[2026-09-03]** Established the canonical full-application architecture baseline in `docs/architecture/APP_WORKFLOW_MAP.md` with machine-readable `docs/architecture/workflow-map.json`, verified against merged `main` commit `cedfb9bbef32c3400b0576b1f843451b448bfcef`. Clarified worksheet identity after the source-number preservation fix: printed `original_index` is immutable provenance and may repeat across different source locations, while publication/recheck/golden-key workflows still require unique canonical question identities. Future architectural changes must keep both map files synchronized.

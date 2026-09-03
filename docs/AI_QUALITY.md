@@ -1,5 +1,7 @@
 # QuizMoKo AI Quality Architecture
 
+For the complete current application context around this subsystem, see [`architecture/APP_WORKFLOW_MAP.md`](architecture/APP_WORKFLOW_MAP.md).
+
 ## Supported hosted models
 
 QuizMoKo intentionally routes hosted AI work through only:
@@ -8,7 +10,6 @@ QuizMoKo intentionally routes hosted AI work through only:
 - `gemini-3.1-flash-lite` as the independent peer model
 
 Legacy hosted model names are migrated by `getRealModelName()`. Ollama remains a separate optional draft path and its output is review-required because it does not receive the dual Gemini verification guarantee.
-
 
 ## Per-model RPM protection
 
@@ -25,12 +26,12 @@ The queue is process-local, matching QuizMoKo's existing single-writable-process
 
 ## Task profiles
 
-`src/services/aiTaskProfiles.ts` is the only source of task reasoning settings and prompt versions.
+`src/services/aiTaskProfiles.ts` is the only source of task reasoning settings and prompt versions. All current hosted task profiles use the maximum supported `high` thinking level.
 
 | Task | Thinking | Verification role |
 |---|---:|---|
-| Document and answer-key extraction | Minimal | Schema and deterministic validation |
-| LaTeX formatting | Minimal | Hash/content guarded patches |
+| Document and answer-key extraction | High | Schema and deterministic validation |
+| LaTeX formatting | High | Hash/content guarded patches |
 | Question drafting | High | Produces an untrusted draft |
 | Independent solving | High | Runs on both Flash-Lite models |
 | Conflict adjudication | High | Blind, high-confidence only |
@@ -100,7 +101,6 @@ Student/public payload sanitation continues to remove private answer and QA meta
 - canonical validity of the 20-question gold evaluation fixture
 - editor invalidation of stale AI verification after semantic content changes
 - per-model rolling-window RPM queuing and independent model buckets
-
 
 ## Live gold evaluation
 

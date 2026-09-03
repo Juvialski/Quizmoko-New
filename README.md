@@ -22,6 +22,12 @@ Set at least one Gemini key in `.env` when server-side AI features are required:
 GEMINI_API_KEY=your_api_key_here
 ```
 
+## Architecture map
+
+The canonical current-state application map is [`docs/architecture/APP_WORKFLOW_MAP.md`](docs/architecture/APP_WORKFLOW_MAP.md). Its machine-readable companion is [`docs/architecture/workflow-map.json`](docs/architecture/workflow-map.json).
+
+These files map the full app before roadmap work: actors, UI surfaces, route modules, services, persistence, auth, AI authoring, worksheet extraction/solving, student grading, live sessions, results, deployment constraints, tests, invariants, and known current boundaries.
+
 ## AI quality pipeline
 
 Hosted AI work is deliberately limited to Gemini 3.5 Flash-Lite and Gemini 3.1 Flash-Lite. Task settings and prompt versions are centralized in `src/services/aiTaskProfiles.ts`.
@@ -42,7 +48,7 @@ Golden answer keys remain authoritative, but conflicts with independent solvers 
 LaTeX formatting is handled through hash-checked field patches. The formatting model cannot alter wording, numbers, answers, HTML, images, or question meaning. Server and browser validators protect MathJax from malformed delimiters, braces, bare commands, and legacy `\n` corruption.
 
 See [`docs/AI_QUALITY.md`](docs/AI_QUALITY.md) for the complete architecture and status rules.
-See [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md) for the completed phase-by-phase change and verification report.
+See [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md) for the historical phase-by-phase implementation report.
 
 ## Commands
 

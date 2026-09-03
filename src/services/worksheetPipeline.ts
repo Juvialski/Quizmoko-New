@@ -809,7 +809,7 @@ export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]
   const diagnostics: WorksheetDiagnostic[] = [];
   const unresolved: UnresolvedWorksheetFragment[] = [];
   const questions: ReconciledWorksheetQuestion[] = [];
-  const questionIndexesBySourceId = new Map<string, number>();
+  const questionIndexesBySourceLocation = new Map<string, number>();
   const orderedPages = pages.map((page, inputOrder) => ({ page, inputOrder }))
     .sort((left, right) => (left.page.file_order ?? left.inputOrder) - (right.page.file_order ?? right.inputOrder) || left.page.page_number - right.page.page_number || left.inputOrder - right.inputOrder);
   let sourceOrder = 0;
@@ -877,18 +877,26 @@ export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]
         source
       } as ReconciledWorksheetQuestion;
       const sourceMatchKey = worksheetSourceIdentifierMatchKey(sourceId);
-      const existingIndex = questionIndexesBySourceId.get(sourceMatchKey);
+      const sourceLocationKey = JSON.stringify([
+        page.source_file,
+        page.page_number,
+        sourceMatchKey
+      ]);
+      const existingIndex = questionIndexesBySourceLocation.get(sourceLocationKey);
       if (existingIndex !== undefined) {
         const existing = questions[existingIndex];
         const existingComparableText = normalizedComparableText(withoutWorksheetImageMarkup(existing.question));
         const duplicateComparableText = normalizedComparableText(withoutWorksheetImageMarkup(candidate.question));
         if (existingComparableText && duplicateComparableText && existingComparableText !== duplicateComparableText) {
-          diagnostics.push(diagnostic('duplicate_source_id', `Extracted duplicate source ID "${sourceId}" has conflicting text.`, sourceId));
+          diagnostics.push(diagnostic('duplicate_source_id', `Extracted duplicate source ID "${sourceId}" has conflicting text. Both candidates were preserved for review.`, sourceId));
+          sourceOrder += 1;
+          questions.push(candidate);
+          continue;
         }
         questions[existingIndex] = mergeDuplicateWorksheetQuestion(existing, candidate);
         continue;
       }
-      questionIndexesBySourceId.set(sourceMatchKey, questions.length);
+      questionIndexesBySourceLocation.set(sourceLocationKey, questions.length);
       sourceOrder += 1;
       questions.push(candidate);
     }

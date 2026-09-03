@@ -2108,3 +2108,33 @@ describe('QuizMoKo enhancements & stability', () => {
     syncProgressiveDocToFirestore('results', testDocId, { ...testData, score: 95 });
   });
 });
+
+
+test('worksheet source identity review regressions', () => {
+  const repeatedAcrossPages = reconcileWorksheetPages([
+    { source_file: 'worksheet.pdf', page_number: 1, questions: [
+      { original_index: '1', question: 'First section question.', type: 'identification', options: [] }
+    ] },
+    { source_file: 'worksheet.pdf', page_number: 2, questions: [
+      { original_index: '1', question: 'Second section question.', type: 'identification', options: [] }
+    ] },
+    { source_file: 'worksheet-2.pdf', page_number: 1, questions: [
+      { original_index: '1', question: 'Different uploaded file question.', type: 'identification', options: [] }
+    ] }
+  ]);
+  assert.equal(repeatedAcrossPages.questions.length, 3, 'restarted numbering across pages/files must not lose questions');
+
+  const conflictingSamePage = reconcileWorksheetPages([{
+    source_file: 'worksheet.pdf',
+    page_number: 3,
+    questions: [
+      { original_index: '7', question: 'First extracted wording.', type: 'identification', options: [] },
+      { original_index: '7', question: 'Conflicting extracted wording.', type: 'identification', options: [] }
+    ]
+  }]);
+  assert.equal(conflictingSamePage.questions.length, 2, 'conflicting duplicates must be preserved for teacher review');
+  assert.equal(conflictingSamePage.diagnostics.some(item => item.code === 'duplicate_source_id'), true);
+
+  assert.equal(worksheetSourceIdentifiersEqual('Question IV', 'IV'), true);
+  assert.equal(worksheetSourceIdentifiersEqual('IV', '4'), false, 'Roman and Arabic printed identifiers are distinct metadata');
+});

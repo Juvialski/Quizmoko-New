@@ -456,12 +456,13 @@
             const match = comparable.match(/^(\d+)(.*)$/);
             if (match) return `numeric:${match[1]}:${match[2].trim().toLowerCase()}`;
             const romanMatch = comparable.match(/^\(?([IVXLCDM]+)\)?(.*)$/i);
-            const roman = romanMatch && (!romanMatch[2] || /^[.):\-]/.test(romanMatch[2].trim()))
-                ? romanIdentifierValue(romanMatch[1])
-                : null;
-            return roman !== null
-                ? `numeric:${roman}:${romanMatch[2].trim().toLowerCase()}`
-                : `text:${comparable.toLowerCase()}`;
+            if (romanMatch && (!romanMatch[2] || /^[.):\-]/.test(romanMatch[2].trim()))) {
+                const roman = romanIdentifierValue(romanMatch[1]);
+                if (roman !== null) {
+                    return `roman:${romanMatch[1].toUpperCase()}:${romanMatch[2].trim().toLowerCase()}`;
+                }
+            }
+            return `text:${comparable.toLowerCase()}`;
         }
 
         function sourceIdentifiersEqual(left, right) {

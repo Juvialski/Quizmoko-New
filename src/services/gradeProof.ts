@@ -146,7 +146,9 @@ export function createQuestionDigest(question: unknown): string {
       points: canonical.points,
       grading_mode: canonical.grading_mode ?? null,
       solution: canonical.solution ?? '',
-      answer_policy: canonical.answer_policy ?? null
+      answer_policy: canonical.answer_policy ?? null,
+      ...(canonical.grading_rubric ? { grading_rubric: canonical.grading_rubric } : {}),
+      ...(canonical.response_contract ? { response_contract: canonical.response_contract } : {})
     });
   }
   // Invalid questions cannot produce an authoritative grade, but a stable digest

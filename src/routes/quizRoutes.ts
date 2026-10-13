@@ -70,6 +70,7 @@ const PUBLIC_QUIZ_ANSWER_FIELDS = [
   'qa_metadata'
 ];
 const PUBLIC_QUESTION_ANSWER_FIELDS = [
+  'grading_rubric', 'response_contract', 'tikz_source', 'tikz_rendered_digest', 'diagram_evidence',
   ...ANSWER_KEY_FIELDS,
   ...PUBLIC_QUIZ_ANSWER_FIELDS,
   'feedback',

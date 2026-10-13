@@ -10,6 +10,7 @@ import type {
   QuestionValidationResult,
   QuizScoreSummary
 } from '../types.ts';
+import { validateRubric, validateResponseContract } from './gradingEvidence.ts';
 
 export type { CanonicalQuestionType, GradeStatus, NormalizedQuestion } from '../types.ts';
 
@@ -157,6 +158,7 @@ function resolveQuestionType(question: Record<string, unknown>): {
   }
   const declaredType = TYPE_ALIASES[normalizedTypeToken(raw)];
   const numericIdentification = declaredType === 'open_ended'
+    && question.grading_rubric === undefined && question.response_contract === undefined
     && getQuestionOptions(question).length === 0
     && normalizePlainNumericIdentificationAnswer(getCorrectAnswer(question)) !== null;
   return { type: numericIdentification ? 'identification' : declaredType, explicit: true };
@@ -476,6 +478,8 @@ export function normalizeQuestion(input: unknown): QuestionValidationResult {
     ? question.verification as NormalizedQuestion['verification']
     : undefined;
   const answerPolicy = readAnswerPolicy(question);
+  if (question.grading_rubric !== undefined && !validateRubric(question.grading_rubric)) return {valid:false,errors:[validationError('invalid_question','Rubric must contain unique criteria with explicit positive weights summing to one.','grading_rubric')]};
+  if (question.response_contract !== undefined && !validateResponseContract(question.response_contract)) return {valid:false,errors:[validationError('invalid_question','Invalid final-answer response contract.','response_contract')]};
 
   return {
     valid: true,
@@ -491,7 +495,9 @@ export function normalizeQuestion(input: unknown): QuestionValidationResult {
       ...(solution ? { solution } : {}),
       ...(source ? { source: { ...source, original_index: source.original_index.trim() } } : {}),
       ...(verification ? { verification } : {}),
-      ...(answerPolicy ? { answer_policy: answerPolicy } : {})
+      ...(answerPolicy ? { answer_policy: answerPolicy } : {}),
+      ...(question.grading_rubric !== undefined ? {grading_rubric: question.grading_rubric as NormalizedQuestion['grading_rubric']} : {}),
+      ...(question.response_contract !== undefined ? {response_contract: question.response_contract as NormalizedQuestion['response_contract']} : {})
     }
   };
 }

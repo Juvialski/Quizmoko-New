@@ -50,6 +50,8 @@ export interface NormalizedQuestion {
   source?: WorksheetQuestionSource;
   verification?: QuestionVerification;
   answer_policy?: NumericAnswerPolicy;
+  grading_rubric?: import('./services/gradingEvidence.ts').GradingRubric;
+  response_contract?: import('./services/gradingEvidence.ts').MathematicalResponseContract;
 }
 
 export type QuestionValidationCode =

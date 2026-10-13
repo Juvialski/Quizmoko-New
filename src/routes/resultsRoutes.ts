@@ -19,6 +19,7 @@ import {
   scoreQuizDetails
 } from '../services/grading.ts';
 import { gradeSemanticQuestion } from '../services/semanticGrading.ts';
+import { validateLatexText, normalizeAiLatexText } from '../services/latex.ts';
 import {
   createAnswerDigest,
   createGradeProof,
@@ -140,7 +141,11 @@ function enrichDetails(rawResult: any): any[] {
 
 function withResultAliases(rawResult: any, fallbackId = ''): any {
   const { access_token_hash: _accessTokenHash, ...safeResult } = rawResult || {};
-  const details = enrichDetails(rawResult);
+  const details = enrichDetails(rawResult).map((detail:any) => {
+    if (!detail || typeof detail !== 'object') return detail;
+    const {grade_correction_audit:_audit,...safeDetail} = detail;
+    return safeDetail;
+  });
   const score = resultScore(rawResult);
   const total = resultTotal(rawResult, details);
   const createdAt = rawResult?.created_at ?? rawResult?.timestamp ?? new Date().toISOString();
@@ -350,7 +355,24 @@ router.post('/api/results/:result_id/recheck', tokenRequired, async (req: AuthRe
     let scoreFraction = normalizeGradeScore(localGrade.scoreFraction) ?? 0;
     let feedback = '';
     let gradeProof: string | undefined;
-    if (localGrade.gradeStatus !== 'graded') {
+    const assessment = req.body?.teacher_assessment;
+    if (assessment !== undefined) {
+      if (!req.user || !['teacher','admin'].includes(req.user.role) || working.is_in_progress === true || normalized.question.grading_mode !== 'semantic') return res.status(403).json({success:false,error:'Teacher grade correction requires an authorized teacher and a finalized semantic result. Exact-answer corrections use the canonical key and Re-check.'});
+      if (!assessment || typeof assessment.score_fraction !== 'number' || !Number.isFinite(assessment.score_fraction)
+        || assessment.score_fraction < 0 || assessment.score_fraction > 1 || typeof assessment.reason !== 'string'
+        || !assessment.reason.trim() || assessment.reason.length > 2000 || validateLatexText(assessment.reason).length) return res.status(400).json({success:false,error:'Provide a valid score fraction and a concise, valid assessment reason.'});
+      const gradeRevision = Number(detail.grade_revision || 0);
+      if (assessment.expected_grade_revision !== gradeRevision || assessment.question_digest !== questionDigest
+        || assessment.answer_revision !== answerRevision) return res.status(409).json({success:false,error:'The grade or question changed. Refresh the result before correcting it.'});
+      scoreFraction = Math.round(assessment.score_fraction*10000)/10000;
+      feedback = normalizeAiLatexText(assessment.reason.replace(/[<>]/g,''));
+      detail.grade_revision = gradeRevision+1;
+      detail.grade_correction_audit = [...(Array.isArray(detail.grade_correction_audit)?detail.grade_correction_audit:[]),{
+        actor_uid:req.user.uid,at:new Date().toISOString(),previous_score:detail.score_fraction??null,
+        score_fraction:scoreFraction,reason:feedback,grade_revision:detail.grade_revision,question_digest:questionDigest,answer_revision:answerRevision
+      }];
+      // Correct exactly one reviewed item through the existing locked, acknowledged write path.
+    } else if (localGrade.gradeStatus !== 'graded') {
       const semanticGrade = await gradeSemanticQuestion({
         clients: getQuizCreatorGeminiClients(quiz),
         question: normalized.question,

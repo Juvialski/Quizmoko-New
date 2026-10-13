@@ -11,6 +11,10 @@ export const requestContext: RequestHandler = (req, res, next) => {
   requests.run(controller.signal, next);
 };
 export function requestAbortSignal(): AbortSignal | undefined { return requests.getStore(); }
+/** Opt-in CLI jobs inherit the same queue/transport cancellation boundary as HTTP requests. */
+export function withRequestAbortSignal<T>(signal: AbortSignal, operation: () => T): T {
+  return requests.run(signal, operation);
+}
 
 export function waitWithSignal<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
   if (signal.aborted) {

@@ -17,7 +17,7 @@
     <% quiz.questions.forEach((q, i) => { %>
       <section class="card">
         <h2>Question <%= q.original_index ?? q.source_id ?? i + 1 %></h2>
-        <div class="r4-math"><%- q.question %></div>
+        <div class="r4-math" data-preview-html="<%= q.question %>"></div>
         <% if (q.options.length) { %>
           <ol type="A" class="r4-preview-choices">
             <% q.options.forEach(option => { %><li><%= option %></li><% }); %>
@@ -26,6 +26,6 @@
       </section>
     <% }); %>
   </main>
-  <script>window.QuizMoKoMath?.typeset(document.querySelector('main'));</script>
+  <script src="/js/teacher-preview.js"></script>
 </body>
 </html>

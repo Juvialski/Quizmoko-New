@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import { JSDOM } from 'jsdom';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import express from 'express';
@@ -20,6 +22,12 @@ test('R4 explicit drafts, owner preview, publication and stale updates retain le
     assert.equal(preview.status,200); const html = await preview.text();
     assert.match(html,/Question 7b/); assert.doesNotMatch(html,/grade_individual|submit_quiz|socket\.io|Alpha.*correct/i);
     assert.equal(results.size,count);
+    const original = quizzes.get(id).questions[0].question;
+    quizzes.get(id).questions[0].question = '<script>window.r4Injected=true</script><img src="data:image/png;base64,AAAA" onerror="window.r4Injected=true">';
+    const inertPreview = await (await fetch(base+'/preview/'+id,{headers:owner})).text();
+    assert.doesNotMatch(inertPreview,/<script>window.r4Injected/);
+    assert.match(inertPreview,/&lt;script&gt;window.r4Injected/);
+    quizzes.get(id).questions[0].question = original;
     assert.equal((await fetch(base+'/preview/'+id,{headers:{authorization:'Bearer user_other'}})).status,403);
     assert.equal((await update({title:'Saved draft',save_intent:'save',expected_revision:0})).status,200);
     assert.equal(quizzes.get(id).is_draft,true);
@@ -43,4 +51,15 @@ test('R4 explicit drafts, owner preview, publication and stale updates retain le
     assert.equal((await update({title:'Stale other tool',expected_version:version})).status,409);
     assert.equal(quizzes.get(id).title,'Changed by another existing tool');
   } finally { quizzes.delete(id); await new Promise<void>(resolve=>server.close(()=>resolve())); }
+});
+
+
+test('teacher preview removes source scripts, event handlers and unsafe image URLs', () => {
+  const dom=new JSDOM('<main><div data-preview-html=""></div></main>',{runScripts:'outside-only'});
+  dom.window.document.querySelector('[data-preview-html]')!.setAttribute('data-preview-html','<script>window.r4Injected=true</script><img src="javascript:alert(1)" onerror="window.r4Injected=true"><p onclick="alert(1)">Safe $1+1$ <b>text</b></p>');
+  dom.window.eval(fs.readFileSync('public/js/teacher-preview.js','utf8'));
+  assert.equal((dom.window as any).r4Injected,undefined);
+  assert.equal(dom.window.document.querySelectorAll('script,img,[onclick],[onerror]').length,0);
+  assert.match(dom.window.document.querySelector('main')!.textContent!,/Safe \$1\+1\$ text/);
+  dom.window.close();
 });

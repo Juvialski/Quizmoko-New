@@ -43,8 +43,8 @@ function readClientProjectId(): string | undefined {
   return cachedProjectId || undefined;
 }
 
-function parseServiceAccount(): Record<string, unknown> | undefined {
-  const rawJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+export function parseServiceAccount(): Record<string, unknown> | undefined {
+  const rawJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_JSON;
   const rawBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
   if (!rawJson && !rawBase64) return undefined;
 
@@ -94,6 +94,7 @@ export function hasFirebaseAdminCredentials(): boolean {
   if (!envFlag('FIREBASE_ADMIN_ENABLED', true)) return false;
   return Boolean(
     process.env.FIREBASE_SERVICE_ACCOUNT_JSON ||
+    process.env.FIREBASE_JSON ||
     process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 ||
     process.env.GOOGLE_APPLICATION_CREDENTIALS ||
     isGoogleManagedRuntime()

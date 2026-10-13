@@ -647,3 +647,13 @@ test('all EJS templates compile and shared browser JavaScript parses', () => {
     }), file);
   }
 });
+
+test('dashboard disclaimer callbacks tolerate the absent banner', () => {
+  const html = fs.readFileSync(path.join(VIEWS_DIR, 'index.ejs'), 'utf8');
+  const callback = html.match(/function closeDisclaimer\(\) \{([\s\S]*?)\n        \}/)?.[1];
+  assert.ok(callback);
+  const dom = new JSDOM('<html><body></body></html>', { url: 'https://quiz.example.invalid' });
+  assert.doesNotThrow(() => new Function('document', 'localStorage', callback!)(dom.window.document, dom.window.localStorage));
+  assert.equal(dom.window.localStorage.getItem('hide_ai_disclaimer'), 'true');
+  dom.window.close();
+});

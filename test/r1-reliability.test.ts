@@ -1,3 +1,4 @@
+import { parseServiceAccount, hasFirebaseAdminCredentials } from '../src/services/firebaseAdmin.ts';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtempSync, rmSync } from 'node:fs';
@@ -139,10 +140,23 @@ test('isolated production startup never listens without credentials or seeds dem
   const directory = mkdtempSync(path.join(os.tmpdir(), 'quizmoko-startup-'));
   const env = { ...process.env, NODE_ENV: 'production', RENDER: 'true', REQUIRE_FIRESTORE: '',
     ALLOW_DEMO_AUTH: 'false', FIREBASE_ADMIN_ENABLED: 'false', FIREBASE_WEB_FALLBACK: 'false',
-    FIREBASE_SERVICE_ACCOUNT_JSON: '', FIREBASE_SERVICE_ACCOUNT_BASE64: '', GOOGLE_APPLICATION_CREDENTIALS: '',
+    FIREBASE_JSON: '', FIREBASE_SERVICE_ACCOUNT_JSON: '', FIREBASE_SERVICE_ACCOUNT_BASE64: '', GOOGLE_APPLICATION_CREDENTIALS: '',
     AI_STUDIO_SANDBOX: 'false', AIS_SANDBOX: 'false', QUIZMOKO_DATA_DIR: directory };
   try {
     const output = await promisify(execFile)(process.execPath, ['--import', 'tsx', 'test/r1-startup-child.ts'], { env, timeout: 60_000 });
     assert.match(output.stdout, /startup rejected/);
   } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test('legacy Render FIREBASE_JSON is recognized without logging or migrating credentials', () => {
+  const previous = { ...process.env };
+  try {
+    process.env.AI_STUDIO_SANDBOX = 'false'; process.env.FIREBASE_ADMIN_ENABLED = 'true';
+    delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON; delete process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+    process.env.FIREBASE_JSON = JSON.stringify({ type: 'service_account', project_id: 'offline-test', private_key: 'synthetic-key', client_email: 'test@example.invalid' });
+    assert.equal(hasFirebaseAdminCredentials(), true);
+    assert.equal(parseServiceAccount()?.project_id, 'offline-test');
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON = JSON.stringify({ project_id: 'canonical-wins' });
+    assert.equal(parseServiceAccount()?.project_id, 'canonical-wins');
+  } finally { process.env = previous; }
 });

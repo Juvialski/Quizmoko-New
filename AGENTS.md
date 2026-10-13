@@ -157,3 +157,5 @@ You are the DevOps & Package Guard for QuizMoKo. Your domain is repository confi
 - Request abort/deadline context is centralized; permanent model errors must not receive validation retries. Preserve existing providers/high-thinking profiles.
 - Offline AI baseline is mocked, not Gemini accuracy evidence. Keep live credentialed/visual evaluations opt-in. CI classifies fixed known advisories and rejects new unclassified findings.
 - Consult `docs/PRODUCTION_OPERATIONS.md` before merge/deployment. Actual Render prerequisites and hosted CI must be proven separately from local tests.
+
+- Preserve the existing Render `FIREBASE_JSON` service-account alias; prefer FIREBASE_SERVICE_ACCOUNT_JSON when both are set. Verify real secret-field strength rather than masked display text. Optional dashboard banners must be null-guarded when a saved dismissal flag survives UI changes.

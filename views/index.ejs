@@ -933,7 +933,8 @@
         }
 
         function closeDisclaimer() {
-            document.getElementById('aiDisclaimer').style.display = 'none';
+            const disclaimer = document.getElementById('aiDisclaimer');
+            if (disclaimer) disclaimer.style.display = 'none';
             localStorage.setItem('hide_ai_disclaimer', 'true');
         }
 
@@ -958,7 +959,8 @@
 
             // Check Disclaimer
             if(localStorage.getItem('hide_ai_disclaimer') === 'true') {
-                document.getElementById('aiDisclaimer').style.display = 'none';
+                const disclaimer = document.getElementById('aiDisclaimer');
+                if (disclaimer) disclaimer.style.display = 'none';
             }
 
             if (!canManageApiKeys) {

@@ -45,3 +45,13 @@ Read `docs/PRODUCTION_OPERATIONS.md`. Before merging into an auto-deploying main
 ## Next phase
 
 Phase 2: deterministic mathematical verification, choice quality, diagram-aware checking and measured adjudication improvements, retaining the same providers and APIs. Do not infer model accuracy gains from the offline mock results.
+
+## Browser verification and deployment compatibility follow-up
+
+Using the authorized Chrome profile, Render showed the live service at `https://quizmoko.onrender.com`, running starting-main `1ac623d`. Cold start completed; the teacher library and a public quiz start screen loaded. No attempt was started/submitted and no data was modified.
+
+Render logs confirmed unauthenticated web-SDK fallback despite an existing service-account JSON under legacy `FIREBASE_JSON`. R1 now recognizes that alias (canonical FIREBASE_SERVICE_ACCOUNT_JSON takes precedence), preserving the current secret rather than requiring a credential migration. The JSON's project/account matched Google Cloud; the service account was enabled and had the Firebase SDK administrator role. Session-secret inspection returned only strength metadata: the actual value is 64 characters and passes R1 checks. An earlier five-character observation was masked display text and was corrected; no secret rotation is needed.
+
+The live dashboard also raised a missing `aiDisclaimer` null-style error when a saved dismissal flag was present. Both callbacks now guard the absent banner; a DOM regression covers it. Focused configuration/UI tests and build passed. Raw secrets were never printed, saved to source, copied to other accounts, or included in screenshots; inspected secrets were re-masked. The legacy alias and missing-banner regression add two tests to the suite (141 total on the final CI head).
+
+Browser navigation to health/admin endpoints reported ERR_BLOCKED_BY_CLIENT. Browser proof of starting-main UI is not R1 deployment acceptance; retain the exact-head CI and deployment gates separately.

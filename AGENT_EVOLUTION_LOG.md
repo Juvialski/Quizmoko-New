@@ -119,3 +119,5 @@ This file tracks the historical evolution of the AI Agent's rules, constraints, 
 
 ### 2026-10-13 — R1 production stability
 Established mandatory normal-production Firestore/secret/origin validation and demo isolation; acknowledged checkpoint/new-quiz/final persistence, execution-time deduplication and drain-before-flush; exact result identity privacy; bounded upload/raster preflight and AI cancellation/deadlines; 136 gold plus six review fixtures and PR CI. Preserved collections, providers, grading/source contracts and single writable process. Local proof is distinct from unverified Render configuration/live model acceptance; deployment prerequisites block automatic merge.
+
+R1 browser follow-up: existing Render credentials use FIREBASE_JSON; added compatible alias instead of migration. Actual SESSION_SECRET passed strength checks. Fixed missing-disclaimer callbacks discovered in the deployed dashboard. Existing Cloud principal/role verified read-only; starting-main UI proof remains separate from R1 deployment proof.

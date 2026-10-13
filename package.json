@@ -12,11 +12,12 @@
     "check": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "npm run check",
-    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts test/ui-consistency.test.ts test/ai-quality.test.ts test/r1-reliability.test.ts test/r1-durability.test.ts test/r1-ai-baseline.test.ts",
+    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts test/ui-consistency.test.ts test/ai-quality.test.ts test/r1-reliability.test.ts test/r1-durability.test.ts test/r1-ai-baseline.test.ts test/r2-quality.test.ts",
     "build": "npm run check && npm run typecheck",
     "start": "tsx server.ts",
     "eval:ai": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-ai-quality.ts --offline",
-    "eval:ai:live": "tsx scripts/evaluate-ai-quality.ts --live"
+    "eval:ai:live": "tsx scripts/evaluate-ai-quality.ts --live",
+    "eval:r2": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-r2-quality.ts"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

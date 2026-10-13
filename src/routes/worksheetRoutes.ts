@@ -51,6 +51,7 @@ import {
   solveWorksheetQuestionsInBatches,
   WORKSHEET_JOB_TIMEOUT_MS
 } from '../services/worksheetSolver.ts';
+import { detectPrintedSourceIds } from '../services/questionQuality.ts';
 import {
   acquireAiWork,
   AiWorkLimitError,
@@ -228,6 +229,7 @@ function worksheetUploadAny(req: any, res: any, next: any): void {
 }
 
 interface UploadedFilePage {
+  detectedSourceIds?: string[];
   buffer: Buffer;
   mimeType: string;
   pageIndex: number;
@@ -252,14 +254,15 @@ async function forEachUploadedFilePage(
 
   await renderPdfPageRange(
     file.buffer,
-    { maxPages: MAX_PDF_PAGES_PER_FILE },
+    { maxPages: MAX_PDF_PAGES_PER_FILE, includeSourceText:true },
     async page => {
       await onPage({
         buffer: page.image,
         mimeType: 'image/png',
         pageIndex: page.pageIndex,
         pageNumber: page.pageNumber,
-        pageCount: page.pageCount
+        pageCount: page.pageCount,
+        ...(page.sourceText !== undefined ? {detectedSourceIds:detectPrintedSourceIds(page.sourceText)} : {})
       });
     }
   );
@@ -728,7 +731,8 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
               source_file: file.originalname || `worksheet_${fileIdx + 1}`,
               page_number: page.pageNumber,
               file_order: fileIdx,
-              questions: parsed
+              questions: parsed,
+              detected_source_ids:page.detectedSourceIds
             });
         });
       }
@@ -1289,7 +1293,8 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
               source_file: wsFiles[fileIdx].originalname || `worksheet_${fileIdx + 1}`,
               page_number: page.pageNumber,
               file_order: fileIdx,
-              questions: parsed
+              questions: parsed,
+              detected_source_ids:page.detectedSourceIds
             });
         });
       }

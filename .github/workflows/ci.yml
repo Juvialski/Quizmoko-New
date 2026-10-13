@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # R2 comparison loads the pinned R1 verifier from Git.
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -24,6 +26,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run eval:ai -- --output=ai-baseline.json
+      - run: npm run eval:r2 -- --output=r2-comparison.json
       - name: Classify dependency vulnerabilities
         run: |
           npm audit --json > audit.json || test -s audit.json
@@ -34,4 +37,5 @@ jobs:
           name: baseline-and-audit
           path: |
             ai-baseline.json
+            r2-comparison.json
             audit.json

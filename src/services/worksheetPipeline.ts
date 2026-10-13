@@ -6,6 +6,8 @@ import {
   stripLatex
 } from './grading.ts';
 import { validateQuestionLatex } from './latex.ts';
+import { evaluateQuestionQuality, extractionQualityIssues } from './questionQuality.ts';
+import { verifyMathExpression } from './mathVerification.ts';
 import {
   getWorksheetSourceIdentifier,
   worksheetSourceIdentifierMatchKey
@@ -33,6 +35,7 @@ export interface WorksheetSolverTrace {
 }
 
 export interface WorksheetQaMetadata {
+  local_evidence?: ReturnType<typeof evaluateQuestionQuality>;
   golden_answer?: string | string[];
   solver_candidates?: WorksheetSolverTrace[];
   adjudicator_reason?: string;
@@ -120,6 +123,7 @@ export interface AnswerMappingResult {
 }
 
 export interface ExtractedWorksheetPage {
+  detected_source_ids?: readonly string[];
   source_file?: string;
   page_number: number;
   file_order?: number;
@@ -471,6 +475,7 @@ export function areCanonicalWorksheetAnswersEquivalent(question: unknown, left: 
     return JSON.stringify(leftResult.answer) === JSON.stringify(rightResult.answer);
   }
   const type = strictQuestionType(question);
+  if (type === 'identification' && verifyMathExpression(leftResult.answer,rightResult.answer).outcome === 'pass') return true;
   if (type === 'open_ended' || type === 'graphing') {
     return normalizedComparableText(leftResult.answer) === normalizedComparableText(rightResult.answer);
   }
@@ -530,7 +535,8 @@ export function validateWorksheetQuestion(
         ...(textValue(rawVerification.reason) ? { reason: textValue(rawVerification.reason) } : {}),
         ...(Array.isArray(rawVerification.solver_models)
           ? { solver_models: rawVerification.solver_models.map(textValue).filter(Boolean) }
-          : {})
+          : {}),
+        ...(Array.isArray(rawVerification.issues) ? {issues: rawVerification.issues.slice(0,20).filter(isRecord).map(item=>({code:textValue(item.code).slice(0,100),message:textValue(item.message).slice(0,600),action:textValue(item.action).slice(0,600)}))} : {})
       } as QuestionVerification
     : undefined;
   const normalized: NormalizedWorksheetQuestion = {
@@ -845,6 +851,10 @@ export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]
   };
 
   for (const { page } of orderedPages) {
+    const extractedIds = new Set(page.questions.filter(isRecord).map(q => worksheetSourceIdentifierMatchKey(getWorksheetSourceId(q))));
+    for (const id of new Set(page.detected_source_ids || [])) {
+      if (!extractedIds.has(worksheetSourceIdentifierMatchKey(id))) diagnostics.push({ ...diagnostic('review_required', `Printed source ID "${id}" has no extracted question; recover this item from its source page.`, id), source_file:page.source_file, page_number:page.page_number });
+    }
     const pageFragments: WorksheetPageFragment[] = [...(page.fragments ?? [])];
     for (const rawValue of page.questions) {
       if (!isRecord(rawValue)) continue;
@@ -855,6 +865,9 @@ export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]
         continue;
       }
       const sourceId = getWorksheetSourceId(rawValue);
+      for (const problem of extractionQualityIssues(rawValue)) {
+        diagnostics.push({ ...diagnostic('review_required', problem.message, sourceId), page_number: page.page_number, source_file: page.source_file });
+      }
       if (!sourceId) {
         diagnostics.push({ ...diagnostic('invalid_source_id', 'Extracted question has no source identifier.'), page_number: page.page_number, source_file: page.source_file });
         unresolved.push({ kind: 'text', text, page_number: page.page_number, source_file: page.source_file, reason: 'Missing stable source identifier.' });
@@ -977,7 +990,8 @@ export function adjudicateWorksheetSolverCandidates(
     return review('Independent solver coverage is incomplete or invalid; teacher review is required.', 'solver_failure');
   }
   const first = valid[0];
-  const allAgree = valid.slice(1).every(item => areCanonicalWorksheetAnswersEquivalent(first.question, first.question.answer, item.question.answer));
+  const allAgree = valid.slice(1).every(item => areCanonicalWorksheetAnswersEquivalent(first.question, first.question.answer, item.question.answer)
+    || (first.question.type === 'identification' && verifyMathExpression(first.question.answer,item.question.answer).outcome === 'pass'));
   let selected = allAgree ? first.question : undefined;
   if (!allAgree) {
     if (!adjudicator || adjudicator.status === 'failed') return review('Independent solvers disagree and no valid adjudication is available.', 'solver_disagreement');
@@ -992,13 +1006,22 @@ export function adjudicateWorksheetSolverCandidates(
     }
     if (!selected) return review('Checker did not provide a complete, valid correction for the solver disagreement.', 'invalid_checker_response');
   }
+  const localEvidence = evaluateQuestionQuality(selected);
+  const localIssues = [...localEvidence.issues, ...(allAgree ? valid.flatMap(item => evaluateQuestionQuality(item.question).issues) : [])];
+  if (localIssues.length) {
+    const result = review(localIssues[0].message, 'review_required');
+    result.verification.issues = localIssues;
+    result.worksheet_qa.local_evidence = localEvidence;
+    result.question = { ...selected, verification: result.verification, worksheet_qa: result.worksheet_qa };
+    return result;
+  }
   const verification: QuestionVerification = {
     answer_source: 'solver_consensus',
     verification_status: 'verified',
     reason: allAgree ? 'Independent normalized solver answers agree.' : (adjudicator?.reason || 'A valid adjudicator resolved the disagreement.'),
     solver_models: candidates.map(candidate => candidate.model)
   };
-  const qa: WorksheetQaMetadata = { solver_candidates: traces, adjudicator_reason: adjudicator?.reason };
+  const qa: WorksheetQaMetadata = { solver_candidates: traces, adjudicator_reason: adjudicator?.reason, local_evidence: localEvidence };
   return { publishable: true, question: { ...selected, verification, worksheet_qa: qa }, verification, worksheet_qa: qa, diagnostics };
 }
 

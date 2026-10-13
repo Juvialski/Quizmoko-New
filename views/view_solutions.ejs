@@ -159,7 +159,7 @@
             <% if (item) { %>
             <div class="solution-card" id="card-<%= itemIdx %>">
                 <div class="question-header">
-                    <span class="q-num">Question <%= itemIdx + 1 %></span>
+                    <span class="q-num">Question <%= item.original_index || (typeof quiz !== 'undefined' && quiz?.questions?.[itemIdx]?.original_index) || itemIdx + 1 %></span>
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <% const sfItem = Number(item.score_fraction !== undefined ? item.score_fraction : (item.is_correct ? 1 : 0)); %>
                         <% const maxPointsItem = Number.isFinite(Number(item.points)) ? Number(item.points) : 1; %>
@@ -200,6 +200,7 @@
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <% if (typeof session !== 'undefined' && session.user && ['teacher', 'admin'].includes(session.user.role)) { %>
                                 <button class="edit-btn" onclick='recheckAnswer(<%= itemIdx %>, this)' style="background: transparent; border: none; color: var(--warning); font-size: 11px; cursor: pointer; font-weight: 800;"><i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK</button>
+                                <button class="edit-btn" onclick='correctTeacherGrade(<%= itemIdx %>, this)' style="min-height:44px;background:transparent;border:none;color:var(--warning);cursor:pointer;">CORRECT GRADE</button>
                                 <% } %>
                             </div>
                         </div>
@@ -429,6 +430,26 @@
                 saveBtn.innerText = originalText;
                 saveBtn.disabled = false;
             }
+        }
+
+        async function correctTeacherGrade(index, btn) {
+            const fraction = prompt('Score fraction from 0 to 1 for this reviewed answer:');
+            if (fraction === null) return;
+            const score = Number(fraction);
+            if (!fraction.trim() || !Number.isFinite(score) || score < 0 || score > 1) return alert('Enter a score from 0 to 1.');
+            const reason = prompt('Reason for this correction (required; mathematical values use LaTeX delimiters):');
+            if (!reason?.trim()) return;
+            btn.disabled = true;
+            try {
+                const current = await fetch(`/api/get_result/${resultId}`).then(r => r.json());
+                const item = current.details?.[index];
+                if (!item) throw new Error('The result is unavailable. Refresh the page.');
+                const response = await fetch(`/api/results/${resultId}/recheck`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q_index:index,teacher_assessment:{score_fraction:score,reason,expected_grade_revision:item.grade_revision || 0,question_digest:item.question_digest,answer_revision:item.answer_revision || 0}})});
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.error || 'Correction failed.');
+                window.location.reload();
+            } catch (error) { alert(error.message); }
+            finally { btn.disabled = false; }
         }
 
         async function recheckAnswer(index, btn = null, acknowledgeQuestionChange = false) {

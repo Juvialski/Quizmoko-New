@@ -1,7 +1,8 @@
 import { mathText, verifyMathematicalAnswer, verifyMathExpression, verifySolutionForQuestion, type MathEvidence } from './mathVerification.ts';
+import { analyzeDiagram, isSafeTikzSource } from './diagramEvidence.ts';
 
 export interface QualityIssue { code: string; message: string; action: string }
-export interface QualityEvidence { version: string; mathematical: MathEvidence; explanation: MathEvidence; diagram: { outcome: string; rendered: boolean }; issues: QualityIssue[] }
+export interface QualityEvidence { version: string; mathematical: MathEvidence; explanation: MathEvidence; diagram: { outcome: string; rendered: boolean; source_validated?: boolean; render_validated?: boolean; semantic_validated?: boolean; source_digest?: string }; issues: QualityIssue[] }
 const issue = (code: string, message: string, action: string): QualityIssue => ({ code, message, action });
 
 /** Source validation is distinct from rendering and visual correctness. No TeX execution. */
@@ -16,6 +17,7 @@ export function checkDiagram(question: unknown): { outcome: string; rendered: bo
   }
   for (const block of blocks) {
     const code = block[1].replace(/(?<!\\)%[^\r\n]*/g, '');
+    if (!isSafeTikzSource(code)) issues.push(issue('invalid_diagram','TikZ uses commands outside the safe preview vocabulary.','Remove unsupported commands and preview again.'));
     const stack: string[] = []; let depth = 0, bad = !code.trim();
     for (const char of code.replace(/\\[{}]/g, '')) { if (char === '{') depth++; if (char === '}' && --depth < 0) bad = true; }
     for (const m of code.matchAll(/\\(begin|end)\s*\{([^}]+)\}/g)) {
@@ -30,6 +32,9 @@ export function checkDiagram(question: unknown): { outcome: string; rendered: bo
       const stated = prose.match(new RegExp(`\\b${coord[1]}\\s*(?:=|is at)?\\s*\\$?\\((-?\\d+(?:\\.\\d+)?),\\s*(-?\\d+(?:\\.\\d+)?)\\)`));
       if (stated && (Number(stated[1]) !== Number(coord[2]) || Number(stated[2]) !== Number(coord[3]))) issues.push(issue('diagram_coordinate_conflict','A named diagram coordinate contradicts the question text.','Correct the coordinate or the question, then re-solve.'));
     }
+  }
+  if (blocks.length) for (const problem of analyzeDiagram(text).issues.filter(p=>!p.startsWith('Structured renderer'))) {
+    issues.push(issue('diagram_consistency',problem,'Correct the source coordinates, visible labels or shape, then preview and re-solve.'));
   }
   // Remote Kroki/browser rendering is not an independently verified visual representation.
   if (blocks.length && !issues.length) issues.push(issue('diagram_render_unverified', 'Diagram source was checked; rendering and visual correctness need review.', 'Preview the graph, labels, scale and placement before approving.'));
@@ -70,7 +75,8 @@ export function evaluateQuestionQuality(question: any): QualityEvidence {
   }
   if (/\b(?:correct answer\b\s*:|answer is\b|answer\s*:)\s*(?:[A-D](?=\s*(?:[.!]|$))|\$)/i.test(text)) issues.push(issue('answer_leak','The question reveals an answer.','Remove the answer hint from the question.'));
   if (/\b(?:all|none) of the above\b/i.test(options.join(' '))) issues.push(issue('ambiguous_choices','Choices depend on other choices rather than a standalone answer.','Use explicit choices and confirm a unique answer.'));
-  return { version:'question-quality-v1', mathematical, explanation, diagram:{outcome:diagram.outcome,rendered:diagram.rendered}, issues };
+  const evidence = analyzeDiagram(text);
+  return { version:'question-quality-v2', mathematical, explanation, diagram:{outcome:diagram.outcome,rendered:evidence.render_validated,source_validated:evidence.source_validated,render_validated:evidence.render_validated,semantic_validated:evidence.semantic_validated,source_digest:evidence.source_digest}, issues };
 }
 
 /** Safe extraction warnings; no missing text is fabricated and source identifiers are untouched. */
@@ -91,4 +97,21 @@ export function detectPrintedSourceIds(sourceText: string): string[] {
     if (m && ids.length<500) ids.push(m[1]);
   }
   return ids;
+}
+
+/** Compares only explicit per-ID text spans. Layout/OCR ambiguity is a warning, never reconstructed text. */
+export function compareWorksheetTextLayer(sourceText: string, id: string, extracted: unknown): QualityIssue[] {
+  const lines = sourceText.slice(0,100000).split(/\r?\n/);
+  const entries: {id:string;text:string}[] = [];
+  for (const line of lines) {
+    const match = line.match(/^\s*(?:Question\s+|Q\s*)?(\d+[a-z]?(?:\([ivxlcdm]+\))?|[IVXLCDM]+|[A-Z]-\d+)\s*[.)](?:\s+|$)(.*)$/);
+    if (match) entries.push({id:match[1],text:match[2]});
+    else if(entries.length) entries.at(-1)!.text += ' '+line;
+  }
+  const matches=entries.filter(e=>e.id===id);
+  if(matches.length!==1) return [];
+  const signature=(v:unknown)=>mathText(v).match(/\d+(?:\.\d+)?/g) || [];
+  const a=signature(matches[0].text),b=signature(extracted);
+  if(!a.length || JSON.stringify(a)===JSON.stringify(b))return [];
+  return [issue('worksheet_text_disagreement','Extracted numeric content differs from the PDF text layer for this printed item.','Inspect fractions, exponents, radicals, options and page continuation; recover only this item/page. Text-layer layout may also be incomplete.')];
 }

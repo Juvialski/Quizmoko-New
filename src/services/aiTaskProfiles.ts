@@ -59,7 +59,7 @@ const PROFILES: Record<AiTaskName, AiTaskProfile> = {
   },
   semantic_grading: {
     task: 'semantic_grading',
-    promptVersion: 'semantic-grading-v4',
+    promptVersion: 'semantic-grading-v5',
     thinkingLevel: 'high',
     maxOutputTokens: 4_096
   },

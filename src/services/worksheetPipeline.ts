@@ -6,7 +6,7 @@ import {
   stripLatex
 } from './grading.ts';
 import { validateQuestionLatex } from './latex.ts';
-import { evaluateQuestionQuality, extractionQualityIssues } from './questionQuality.ts';
+import { evaluateQuestionQuality, extractionQualityIssues, compareWorksheetTextLayer } from './questionQuality.ts';
 import { verifyMathExpression } from './mathVerification.ts';
 import {
   getWorksheetSourceIdentifier,
@@ -123,6 +123,7 @@ export interface AnswerMappingResult {
 }
 
 export interface ExtractedWorksheetPage {
+  source_text?: string;
   detected_source_ids?: readonly string[];
   source_file?: string;
   page_number: number;
@@ -865,6 +866,9 @@ export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]
         continue;
       }
       const sourceId = getWorksheetSourceId(rawValue);
+      if (page.source_text) for (const problem of compareWorksheetTextLayer(page.source_text,sourceId,`${text} ${itemOptions.join(' ')}`)) {
+        diagnostics.push({...diagnostic('review_required',`${problem.message} ${problem.action}`,sourceId),source_file:page.source_file,page_number:page.page_number});
+      }
       for (const problem of extractionQualityIssues(rawValue)) {
         diagnostics.push({ ...diagnostic('review_required', problem.message, sourceId), page_number: page.page_number, source_file: page.source_file });
       }

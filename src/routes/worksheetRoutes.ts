@@ -230,6 +230,7 @@ function worksheetUploadAny(req: any, res: any, next: any): void {
 
 interface UploadedFilePage {
   detectedSourceIds?: string[];
+  sourceText?: string;
   buffer: Buffer;
   mimeType: string;
   pageIndex: number;
@@ -262,7 +263,7 @@ async function forEachUploadedFilePage(
         pageIndex: page.pageIndex,
         pageNumber: page.pageNumber,
         pageCount: page.pageCount,
-        ...(page.sourceText !== undefined ? {detectedSourceIds:detectPrintedSourceIds(page.sourceText)} : {})
+        ...(page.sourceText !== undefined ? {detectedSourceIds:detectPrintedSourceIds(page.sourceText),sourceText:page.sourceText} : {})
       });
     }
   );
@@ -732,7 +733,8 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
               page_number: page.pageNumber,
               file_order: fileIdx,
               questions: parsed,
-              detected_source_ids:page.detectedSourceIds
+              detected_source_ids:page.detectedSourceIds,
+              source_text:page.sourceText
             });
         });
       }
@@ -1294,7 +1296,8 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
               page_number: page.pageNumber,
               file_order: fileIdx,
               questions: parsed,
-              detected_source_ids:page.detectedSourceIds
+              detected_source_ids:page.detectedSourceIds,
+              source_text:page.sourceText
             });
         });
       }

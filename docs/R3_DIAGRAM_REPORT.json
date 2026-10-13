@@ -1,0 +1,206 @@
+{
+  "version": "r3-evaluation-v1",
+  "mode": "actual local structured SVG to PNG decoding; not Kroki or semantic visual acceptance",
+  "total": 17,
+  "rendered": 10,
+  "semantic_validated": 0,
+  "expectations_met": 17,
+  "requests": 0,
+  "elapsed_ms": 84.80880000000002,
+  "rss_bytes": 96149504,
+  "items": [
+    {
+      "id": "points",
+      "source_validated": true,
+      "render_validated": true,
+      "semantic_validated": false,
+      "width": 160,
+      "height": 200,
+      "issues": [],
+      "expectation_met": true
+    },
+    {
+      "id": "swapped",
+      "source_validated": true,
+      "render_validated": true,
+      "semantic_validated": false,
+      "width": 80,
+      "height": 80,
+      "issues": [
+        "Point A contradicts its declared coordinates."
+      ],
+      "expectation_met": true
+    },
+    {
+      "id": "missing-label",
+      "source_validated": true,
+      "render_validated": true,
+      "semantic_validated": false,
+      "width": 160,
+      "height": 200,
+      "issues": [
+        "Missing visible label A."
+      ],
+      "expectation_met": true
+    },
+    {
+      "id": "missing-point",
+      "source_validated": true,
+      "render_validated": true,
+      "semantic_validated": false,
+      "width": 80,
+      "height": 80,
+      "issues": [
+        "Missing visible point B.",
+        "Missing visible label B."
+      ],
+      "expectation_met": true
+    },
+    {
+      "id": "right-conflict",
+      "source_validated": true,
+      "render_validated": true,
+      "semantic_validated": false,
+      "width": 160,
+      "height": 160,
+      "issues": [
+        "Declared right angle contradicts the vertices."
+      ],
+      "expectation_met": true
+    },
+    {
+      "id": "right-triangle",
+      "source_validated": true,
+      "render_validated": true,
+      "semantic_validated": false,
+      "width": 160,
+      "height": 160,
+      "issues": [],
+      "expectation_met": true
+    },
+    {
+      "id": "circle",
+      "source_validated": true,
+      "render_validated": true,
+      "semantic_validated": false,
+      "width": 240,
+      "height": 240,
+      "issues": [],
+      "expectation_met": true
+    },
+    {
+      "id": "grid",
+      "source_validated": true,
+      "render_validated": true,
+      "semantic_validated": false,
+      "width": 240,
+      "height": 240,
+      "issues": [],
+      "expectation_met": true
+    },
+    {
+      "id": "number-line",
+      "source_validated": true,
+      "render_validated": true,
+      "semantic_validated": false,
+      "width": 320,
+      "height": 80,
+      "issues": [],
+      "expectation_met": true
+    },
+    {
+      "id": "bar",
+      "source_validated": true,
+      "render_validated": true,
+      "semantic_validated": false,
+      "width": 120,
+      "height": 200,
+      "issues": [],
+      "expectation_met": true
+    },
+    {
+      "id": "empty",
+      "source_validated": true,
+      "render_validated": false,
+      "semantic_validated": false,
+      "width": null,
+      "height": null,
+      "issues": [
+        "Diagram output is empty."
+      ],
+      "expectation_met": true
+    },
+    {
+      "id": "resource",
+      "source_validated": true,
+      "render_validated": false,
+      "semantic_validated": false,
+      "width": null,
+      "height": null,
+      "issues": [
+        "Diagram dimensions exceed the bounded renderer."
+      ],
+      "expectation_met": true
+    },
+    {
+      "id": "file-access",
+      "source_validated": false,
+      "render_validated": false,
+      "semantic_validated": false,
+      "width": null,
+      "height": null,
+      "issues": [
+        "Unsafe or unsupported TikZ commands."
+      ],
+      "expectation_met": true
+    },
+    {
+      "id": "obfuscation",
+      "source_validated": false,
+      "render_validated": false,
+      "semantic_validated": false,
+      "width": null,
+      "height": null,
+      "issues": [
+        "Unsafe or unsupported TikZ commands."
+      ],
+      "expectation_met": true
+    },
+    {
+      "id": "curve",
+      "source_validated": true,
+      "render_validated": false,
+      "semantic_validated": false,
+      "width": null,
+      "height": null,
+      "issues": [
+        "Structured renderer does not cover this complete source; preview and visual review required."
+      ],
+      "expectation_met": true
+    },
+    {
+      "id": "unequal-scale",
+      "source_validated": true,
+      "render_validated": false,
+      "semantic_validated": false,
+      "width": null,
+      "height": null,
+      "issues": [
+        "Structured renderer does not cover this complete source; preview and visual review required."
+      ],
+      "expectation_met": true
+    },
+    {
+      "id": "invalid",
+      "source_validated": true,
+      "render_validated": false,
+      "semantic_validated": false,
+      "width": null,
+      "height": null,
+      "issues": [
+        "Structured renderer does not cover this complete source; preview and visual review required."
+      ],
+      "expectation_met": true
+    }
+  ]
+}

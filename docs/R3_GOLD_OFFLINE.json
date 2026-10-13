@@ -1,0 +1,298 @@
+{
+  "version": "r3-evaluation-v1",
+  "mode": "offline mocked regression (not model accuracy)",
+  "generated_at": "2026-10-13T05:20:46.451Z",
+  "elapsed_ms": 91,
+  "total": 136,
+  "requested_questions": 136,
+  "correct": 136,
+  "incorrect": 0,
+  "answer_unscorable": 0,
+  "rate_definitions": {
+    "false_acceptance": "Verified expected-review fixture / expected-review fixtures",
+    "false_rejection": "Nonverified expected-valid fixture / expected-valid fixtures"
+  },
+  "false_acceptance_rate": null,
+  "false_rejection_rate": 0,
+  "category_results": {
+    "whole-number arithmetic": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "fractions": {
+      "total": 9,
+      "correct": 9,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "percentages": {
+      "total": 9,
+      "correct": 9,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "linear equations": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "order of operations": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "geometry": {
+      "total": 9,
+      "correct": 9,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "prime factorization": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "ratios": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "probability": {
+      "total": 9,
+      "correct": 9,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "sequences": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "geometry concepts": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "multiple select": {
+      "total": 6,
+      "correct": 6,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "decimals": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "exponents": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "averages": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "angles": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "English grammar": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "biology": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "identification": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "multi-step word problems": {
+      "total": 1,
+      "correct": 1,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "arithmetic": {
+      "total": 8,
+      "correct": 8,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "algebra": {
+      "total": 8,
+      "correct": 8,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "coordinate geometry": {
+      "total": 8,
+      "correct": 8,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "statistics": {
+      "total": 8,
+      "correct": 8,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "trigonometry": {
+      "total": 8,
+      "correct": 8,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "science": {
+      "total": 15,
+      "correct": 15,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "language and non-math": {
+      "total": 10,
+      "correct": 10,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "multiple choice": {
+      "total": 5,
+      "correct": 5,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "worksheet numbering": {
+      "total": 5,
+      "correct": 5,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    },
+    "LaTeX edge cases": {
+      "total": 4,
+      "correct": 4,
+      "incorrect": 0,
+      "verified_wrong": 0,
+      "review_required": 0
+    }
+  },
+  "final_answer_accuracy_percent": 100,
+  "verified": 136,
+  "review_required": 0,
+  "invalid": 0,
+  "verified_wrong": 0,
+  "accuracy_among_verified_percent": 100,
+  "review_required_percent": 0,
+  "adjudication_count": 0,
+  "adjudication_percent": 0,
+  "malformed_output_count": 0,
+  "malformed_output_percent": 0,
+  "request_count": 2,
+  "live_budget": null,
+  "aborted": false,
+  "requests_per_accepted_question": 0.0147,
+  "deterministic_validation": {
+    "pass": 34,
+    "fail": 0,
+    "inconclusive": 102
+  },
+  "diagram_rendering_failures": null,
+  "visual_rendering_evaluated": false,
+  "categories": {
+    "whole-number arithmetic": 1,
+    "fractions": 9,
+    "percentages": 9,
+    "linear equations": 1,
+    "order of operations": 1,
+    "geometry": 9,
+    "prime factorization": 1,
+    "ratios": 1,
+    "probability": 9,
+    "sequences": 1,
+    "geometry concepts": 1,
+    "multiple select": 6,
+    "decimals": 1,
+    "exponents": 1,
+    "averages": 1,
+    "angles": 1,
+    "English grammar": 1,
+    "biology": 1,
+    "identification": 1,
+    "multi-step word problems": 1,
+    "arithmetic": 8,
+    "algebra": 8,
+    "coordinate geometry": 8,
+    "statistics": 8,
+    "trigonometry": 8,
+    "science": 15,
+    "language and non-math": 10,
+    "multiple choice": 5,
+    "worksheet numbering": 5,
+    "LaTeX edge cases": 4
+  },
+  "solver_agreement_percent": 100,
+  "model_accuracy": {
+    "gemini-3.5-flash-lite": {
+      "correct": 136,
+      "answered": 136,
+      "accuracy_percent": 100
+    },
+    "gemini-3.1-flash-lite": {
+      "correct": 136,
+      "answered": 136,
+      "accuracy_percent": 100
+    }
+  },
+  "model_failures": [],
+  "items_needing_attention": []
+}

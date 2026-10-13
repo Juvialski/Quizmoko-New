@@ -49,7 +49,7 @@
     },
     "aiRoutes": {
       "file": "src/routes/aiRoutes.ts",
-      "endpoints": ["GET /api/ai/config", "GET /api/ollama_tags", "POST /generate_ai", "POST /api/generate_ai", "POST /api/generate_question", "POST /api/polish_questions", "POST /api/resolve_question", "POST /api/transfer_question", "POST /api/bulk_import_questions", "POST /api/reprocess_question", "POST /api/generate_variant"]
+      "endpoints": ["POST /api/diagram_preview", "GET /api/ai/config", "GET /api/ollama_tags", "POST /generate_ai", "POST /api/generate_ai", "POST /api/generate_question", "POST /api/polish_questions", "POST /api/resolve_question", "POST /api/transfer_question", "POST /api/bulk_import_questions", "POST /api/reprocess_question", "POST /api/generate_variant"]
     },
     "resultsRoutes": {
       "file": "src/routes/resultsRoutes.ts",
@@ -84,7 +84,10 @@
     "gradeProof.ts": "digests and signed semantic grade proof",
     "resultSession.ts": "attempt locks and revision high-water",
     "resultAccess.ts": "result capability tokens",
-    "semanticGrading.ts": "semantic grading",
+    "semanticGrading.ts": "strict semantic grading with at most two hosted attempts and conservative evidence review",
+    "gradingEvidence.ts": "explicit weighted rubric/final-answer contracts and bounded image decoding",
+    "diagramEvidence.ts": "closed source-safe structured SVG subset and geometric contradiction diagnostics",
+    "requestContext.ts": "HTTP and explicit CLI queue/transport abort context",
     "gemini.ts": "Gemini client/model/key/JSON helpers",
     "geminiRateLimiter.ts": "per-model rolling-window queue",
     "aiTaskProfiles.ts": "central task profiles",
@@ -116,9 +119,9 @@
     "auth": ["Firebase ID token", "verified server-side", "persist user", "signed session cookie", "role/ownership guards"],
     "manual_authoring": ["dashboard", "create/edit/duplicate/merge", "canonical normalization", "verification/draft gate", "persist", "sanitized public quiz"],
     "ai_authoring": ["AI request", "AI work guard", "Gemini RPM queue", "structured draft", "canonical + LaTeX + local quality preflight", "answerless dual solve with actual vision parts", "target only missing outputs", "adjudicate disagreement", "local consensus/correction quality gate", "verified/review_required with private evidence", "editor/publication"],
-    "worksheet": ["PDF/image upload", "page rasterize + optional bounded text-layer IDs", "structured extraction", "source provenance and printed coverage diagnostics", "reconcile/order", "optional golden key", "bounded dual-model solve with targeted field repair", "anonymous adjudication", "shared local quality gate", "teacher review/publication gate", "persist quiz"],
-    "attempt": ["published quiz", "crypto session ID", "answer revisions/digests", "individual grade", "progress save", "live telemetry", "final attempt lock", "authoritative final grade", "durable result", "capability token"],
-    "results": ["UID/owner/capability access", "display historical grade", "optional share token", "teacher recheck", "question-version acknowledgement", "audited regrade"],
+    "worksheet": ["PDF/image upload", "page rasterize + optional bounded text-layer IDs", "structured extraction", "source provenance and printed coverage diagnostics", "per-printed-ID numeric text-layer disagreement warning", "reconcile/order", "optional golden key", "bounded dual-model solve with targeted field repair", "anonymous adjudication", "shared local quality gate", "teacher review/publication gate", "persist quiz"],
+    "attempt": ["published quiz", "crypto session ID", "answer revisions/digests", "optional explicit final-answer math or teacher-weighted semantic assessment", "individual grade", "progress save", "live telemetry", "final attempt lock", "authoritative final grade", "durable result", "capability token"],
+    "results": ["UID/owner/capability access", "display historical grade", "optional share token", "teacher recheck", "question-version acknowledgement", "audited regrade", "single-item authorized semantic correction with grade/question/answer revision guards"],
     "live": ["student ping/socket", "live session update", "persisted score authority", "room broadcast", "teacher controls"]
   },
   "persistence": {
@@ -178,5 +181,18 @@
     "diagram": "TikZ source checks do not establish rendered/visual correctness; teacher preview required. Embedded images supplied as actual vision parts.",
     "compatibility": "Optional private evidence; no historical rewrites, database migration, provider or public API changes.",
     "validation": "153 local regressions pass; 38 adversarial fixtures + retained 136 gold; offline mocked rather than live model accuracy. Hosted exact-head CI is separate."
+  },
+  "r3_update": {
+    "date": "2026-10-13",
+    "implementation": "docs/R3_IMPLEMENTATION_REPORT.md",
+    "evidence": [
+      "docs/R3_GRADING_COMPARISON.json",
+      "docs/R3_DIAGRAM_REPORT.json"
+    ],
+    "grading": "Strict score bounds; explicit weighted rubrics and final-answer contracts; decoded/readable images; at most two attempts; unresolved disagreement pending",
+    "diagram": "Teacher-only bounded SVG/PNG preview; source/render/semantic evidence separate; semantic review required; no local TeX",
+    "compatibility": "Optional private metadata and digest additions only when present; no historical rewrites or migration",
+    "live": "Opt-in existing environment credentials only; at most 20 questions/60 actual SDK calls; live certification unperformed here",
+    "validation": "Local full suite 165 tests; R3 grading 71 synthetic cases await teacher review; 17 local diagram cases; exact-head CI recorded separately"
   }
 }

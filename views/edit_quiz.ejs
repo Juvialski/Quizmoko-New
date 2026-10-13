@@ -475,6 +475,15 @@
 
         document.getElementById('share-link').value = window.location.origin + '/quiz/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>';
         const quizData = <%- JSON.stringify(quiz).replace(/</g, "\\u003c") %>;
+        const structuredDiagramPreviews = new Map();
+        quizData.questions.forEach(q => {
+            if (typeof q.tikz_source === 'string' && q.tikz_rendered_digest === diagramDisplayFingerprint(q.question) && /<img\b/i.test(q.question) && !/\[TIKZ\]/i.test(q.question)) q.question = q.tikz_source;
+        });
+        function diagramDisplayFingerprint(text) {
+            let hash = 2166136261;
+            for (const ch of String(text || '')) hash = Math.imul(hash ^ ch.charCodeAt(0), 16777619);
+            return String(hash >>> 0);
+        }
         // Never send a legacy persisted API key back to the server or Firebase.
         delete quizData['api_key'];
 
@@ -1052,6 +1061,8 @@
             if (!text) return "";
             const safeWidth = normalizeTikzWidth(width);
             return text.replace(/\[TIKZ\]([\s\S]*?)\[\/TIKZ\]/gi, (match, code) => {
+                if (!isPreviewTikzSafe(code)) return '<span>Diagram failed: unsupported or unsafe source. Correct the original TikZ.</span>';
+                if (structuredDiagramPreviews.has(text)) return `<div class="resizable-image-wrapper"><div class="image-content-box" style="width:${safeWidth}%;"><img src="${structuredDiagramPreviews.get(text)}" alt="Math Diagram"></div></div>`;
                 const cleanCode = code.replace(/```tikz/g, "").replace(/```/g, "").trim();
 
                 // --- ROBUST CLEANUP (Same as Backend) ---
@@ -1074,6 +1085,13 @@
                 const imgUrl = `https://kroki.io/tikz/svg/${b64}`;
                 return `<div class="resizable-image-wrapper"><div class="image-content-box" style="width: ${safeWidth}%;"><img src="${imgUrl}" alt="Math Diagram"></div></div>`;
             });
+        }
+
+        function isPreviewTikzSafe(code) {
+            const allowed = new Set('begin end draw path node coordinate fill filldraw foreach pgfmathsetmacro pgfmathsetseed pgfmathparse pgfmathresult sin cos tan sqrt frac dfrac text mathrm pi theta alpha beta gamma delta angle times cdot le ge leq geq infty left right x y'.split(' '));
+            return code.length <= 20000 && !/\^\^|(?:https?|file):/i.test(code)
+                && [...code.matchAll(/\\([a-z]+|.)/gi)].every(m => allowed.has(m[1]) || ['{','}',',',';','!','%',' ','$','_'].includes(m[1]))
+                && [...code.matchAll(/\\(?:begin|end)\s*\{([^}]+)\}/g)].every(m => m[1] === 'tikzpicture');
         }
 
         function cleanNewlinesInMath(str) {
@@ -1227,7 +1245,29 @@
             }
 
             previewBox.innerHTML = html;
-            if (q.qa_metadata?.local_evidence || q.worksheet_qa?.local_evidence) {
+            if (hasTikzBlock(q.question)) {
+                const original = q.question;
+                fetch('/api/diagram_preview', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:original}),signal:AbortSignal.timeout(8000)})
+                    .then(r => r.json()).then(data => {
+                        if (quizData.questions[qIndex]?.question !== original || !previewBox.isConnected) return;
+                        if (data.success && /^data:image\/png;base64,[a-z0-9+/=]+$/i.test(data.image)) {
+                            const image = previewBox.querySelector('img');
+                            if (image) image.src = data.image;
+                            q.diagram_evidence = data.evidence;
+                            q.tikz_source = original;
+                            if (data.image.length <= 500000) {
+                                if (structuredDiagramPreviews.size >= 10) structuredDiagramPreviews.delete(structuredDiagramPreviews.keys().next().value);
+                                structuredDiagramPreviews.set(original, data.image);
+                            }
+                            // Keep the original source in the editor. Render success never approves an answer.
+                        } else {
+                            const notice = document.createElement('div');
+                            notice.textContent = 'Diagram needs visual review: ' + (data.error || data.evidence?.issues?.[0] || 'Structured rendering is unavailable; inspect the existing preview.');
+                            previewBox.appendChild(notice);
+                        }
+                    }).catch(() => { /* Kroki preview and explicit visual review remain available. */ });
+            }
+            if (hasTikzBlock(q.question) || q.qa_metadata?.local_evidence || q.worksheet_qa?.local_evidence) {
                 previewBox.querySelectorAll('img').forEach(image => {
                     const reportFailure = () => {
                         markQuestionNeedsReview(qIndex, 'Diagram rendering failed. Repair or restore the diagram before approving.');
@@ -1237,6 +1277,10 @@
                         image.after(notice);
                     };
                     image.addEventListener('error', reportFailure, { once: true });
+                    image.addEventListener('load', () => { if (image.naturalWidth < 2 || image.naturalHeight < 2 || image.naturalWidth > 10000 || image.naturalHeight > 10000) reportFailure(); }, {once:true});
+                    const timeout = setTimeout(() => { if (image.isConnected && !image.complete) reportFailure(); }, 10000);
+                    image.addEventListener('load', () => clearTimeout(timeout), {once:true});
+                    image.addEventListener('error', () => clearTimeout(timeout), {once:true});
                     if (image.complete && image.naturalWidth === 0) reportFailure();
                 });
             }
@@ -1774,6 +1818,32 @@
                     optsContainer.innerHTML = '<p style="font-size: 12px; color: var(--body);">Student will see a text box to type their answer.</p>';
                 }
                 leftCol.appendChild(optsContainer);
+                if (q.type === 'open_ended' || q.type === 'graphing') {
+                    const rubricLabel = document.createElement('label');
+                    rubricLabel.textContent = 'TEACHER RUBRIC (OPTIONAL JSON; EXPLICIT WEIGHTS SUM TO 1)';
+                    const rubricInput = document.createElement('textarea');
+                    rubricInput.value = q.grading_rubric ? JSON.stringify(q.grading_rubric, null, 2) : '';
+                    rubricInput.placeholder = '{"version":1,"criteria":[{"id":"method","description":"Valid transformation","weight":0.6},{"id":"answer","description":"Correct final answer","weight":0.4}]}';
+                    rubricInput.onchange = () => {
+                        try {
+                            if (!rubricInput.value.trim()) delete q.grading_rubric;
+                            else q.grading_rubric = JSON.parse(rubricInput.value);
+                            rubricInput.setCustomValidity('');
+                            markQuestionNeedsReview(qIndex, 'Teacher rubric changed. Check the assessment criteria before approval.');
+                        } catch { rubricInput.setCustomValidity('Enter valid rubric JSON.'); rubricInput.reportValidity(); }
+                    };
+                    leftCol.appendChild(rubricLabel); leftCol.appendChild(rubricInput);
+                    const contractLabel = document.createElement('label');
+                    const contractInput = document.createElement('input'); contractInput.type = 'checkbox';
+                    contractInput.checked = q.response_contract?.mode === 'final_answer';
+                    contractInput.onchange = () => {
+                        if (contractInput.checked) q.response_contract = {version:1,mode:'final_answer'};
+                        else delete q.response_contract;
+                        markQuestionNeedsReview(qIndex, 'The final-answer assessment contract changed. Confirm the question requirements.');
+                    };
+                    contractLabel.appendChild(contractInput); contractLabel.appendChild(document.createTextNode(' Assess final answer only (supported exact mathematics)'));
+                    leftCol.appendChild(contractLabel);
+                }
 
                 const ansLabel = document.createElement('label');
                 ansLabel.style.display = 'flex';
@@ -1796,7 +1866,8 @@
                     const reviewNotice = document.createElement('div');
                     reviewNotice.style.cssText = 'margin: 6px 0 10px; padding: 9px 11px; border: 1px solid var(--m-red); border-radius: 7px; color: var(--m-red); font-size: 12px; font-weight: 700;';
                     const firstIssue = Array.isArray(q.verification.issues) ? q.verification.issues[0] : null;
-                    reviewNotice.textContent = `Teacher review required: ${firstIssue?.message || q.verification.reason || 'Independent answer checks did not reach a reliable consensus.'}${firstIssue?.action ? ' ' + firstIssue.action : ' Correct the item and run Re-solve, or explicitly approve it after checking.'}`;
+                    const statusLabel = firstIssue?.code === 'missing_worksheet_content' ? 'Missing worksheet content' : firstIssue?.code === 'invalid_diagram' ? 'Diagram failed' : firstIssue?.code?.startsWith('diagram') ? 'Diagram needs visual review' : 'Needs answer review';
+                    reviewNotice.textContent = `${statusLabel}: ${firstIssue?.message || q.verification.reason || 'Independent answer checks did not reach a reliable consensus.'}${firstIssue?.action ? ' ' + firstIssue.action : ' Correct the item and run Re-solve, or explicitly approve it after checking.'}`;
                     leftCol.appendChild(reviewNotice);
                 }
 
@@ -2610,7 +2681,10 @@
             }
 
             quizData.questions.forEach((q, qIndex) => {
+                const renderedSource = hasTikzBlock(q.question);
+                if (renderedSource) q.tikz_source = q.question;
                 quizData.questions[qIndex].question = processTikzToImageJS(q.question, q.tikz_width);
+                if (renderedSource) q.tikz_rendered_digest = diagramDisplayFingerprint(q.question);
             });
             const title = document.getElementById('quiz-title').value.trim();
             const timeLimit = Number.parseInt(document.getElementById('quiz-time').value, 10);

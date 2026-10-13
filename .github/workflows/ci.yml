@@ -27,6 +27,8 @@ jobs:
       - run: npm run build
       - run: npm run eval:ai -- --output=ai-baseline.json
       - run: npm run eval:r2 -- --output=r2-comparison.json
+      - run: npm run eval:r3:grading -- --output=r3-grading.json
+      - run: npm run eval:r3:diagrams -- --output=r3-diagrams.json
       - name: Classify dependency vulnerabilities
         run: |
           npm audit --json > audit.json || test -s audit.json
@@ -38,4 +40,8 @@ jobs:
           path: |
             ai-baseline.json
             r2-comparison.json
+            r3-grading.json
+            r3-grading.md
+            r3-diagrams.json
+            r3-diagrams.md
             audit.json

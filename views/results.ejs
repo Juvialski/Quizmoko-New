@@ -296,7 +296,8 @@ if (results && results.length > 0) {
                                 <% (r.details || []).forEach((item, itemIdx) => { %>
                                 <% if (item) { %>
                                 <div class="review-block <% if (item.is_correct) { %>review-correct<% } else { %>review-wrong<% } %>">
-                                    <div style="font-weight: 700; margin-bottom: 8px;">Question <%= itemIdx + 1 %></div>
+                                    <div style="font-weight: 700; margin-bottom: 8px;">Question <%= item.original_index || (typeof quiz !== 'undefined' && quiz?.questions?.[itemIdx]?.original_index) || itemIdx + 1 %></div>
+                                    <div><%= item.grade_status === 'pending' || item.grade_status === 'invalid_response' ? 'Needs teacher review' : item.grade_status === 'retryable_error' ? 'Grading unavailable' : Number(item.score_fraction) > 0 && Number(item.score_fraction) < 1 ? 'Partially correct' : 'Graded' %></div>
                                     <div class="results-q-text" style="font-size: 15px;" data-raw="<%= typeof item.question !== 'undefined' && item.question ? encodeURIComponent(item.question) : '' %>"></div>
                                     <div style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.1); border-radius: 4px; font-size: 13px;">
                                         <b>Your Answer:</b> <span class="results-user-ans" data-raw="<%= typeof item.user_answer !== 'undefined' && item.user_answer ? encodeURIComponent(item.user_answer) : '' %>"></span><br>

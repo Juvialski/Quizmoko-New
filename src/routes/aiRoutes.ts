@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Router } from 'express';
+import sharp from 'sharp';
+import { analyzeDiagram } from '../services/diagramEvidence.ts';
 import { Type } from '@google/genai';
 import { tokenRequired } from '../middleware/auth.ts';
 import { generateAiLimiter } from '../middleware/rateLimit.ts';
@@ -42,6 +44,23 @@ import {
 } from '../../prompts.ts';
 
 const router = Router();
+let activeDiagramRenders = 0;
+router.post('/api/diagram_preview', tokenRequired, generateAiLimiter, async (req: AuthRequest, res) => {
+  if (!req.user || !['teacher','admin'].includes(req.user.role)) return res.status(403).json({success:false});
+  if (typeof req.body?.question !== 'string' || req.body.question.length > 24000) return res.status(400).json({success:false,error:'Diagram source exceeds the preview limit.'});
+  if (activeDiagramRenders >= 2) return res.status(429).json({success:false,error:'Diagram renderer is busy.'});
+  activeDiagramRenders++;
+  try {
+    const evidence = analyzeDiagram(req.body.question);
+    const {svg,...metadata} = evidence;
+    if (!svg) return res.json({success:false,evidence:metadata,review_required:true});
+    const buffer = await sharp(Buffer.from(svg),{limitInputPixels:12_000_000}).timeout({seconds:5}).png().toBuffer();
+    const image = await sharp(buffer).metadata();
+    const renderValidated = Boolean(image.width && image.height && image.width>=2 && image.height>=2 && buffer.length>0);
+    return res.json({success:renderValidated,image:renderValidated?`data:image/png;base64,${buffer.toString('base64')}`:undefined,evidence:{...metadata,render_validated:renderValidated},review_required:true});
+  } catch {return res.status(422).json({success:false,error:'Diagram rendering failed. Original source is retained.',review_required:true});}
+  finally {activeDiagramRenders--;}
+});
 const MAX_GENERATED_QUESTIONS = 50;
 
 function hasBrowserApiKey(value: unknown): boolean {

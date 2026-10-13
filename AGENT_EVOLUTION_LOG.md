@@ -127,3 +127,7 @@ R1 live acceptance: PR #4 merged, both exact-head CI runs passed 141 tests. Corr
 # 2026-10-13 — R2 deterministic accuracy
 
 Added bounded exact math and shared choice/explanation/diagram/extraction gates to generation and worksheet consensus. Definite contradictions override high-confidence AI agreement; unsupported claims remain inconclusive. Added per-item solver repair, anonymous worksheet adjudication, embedded-image vision, optional PDF text-layer numbering coverage and concise teacher actions. TikZ source checks require preview rather than claiming visual proof. New optional private evidence leaves historical quizzes and grades unchanged; actual-R1/current mocked comparisons run in CI. See docs/R2_IMPLEMENTATION_REPORT.md.
+
+# 2026-10-13 — R3 grading and rendering evidence
+
+Added strict semantic fractions, explicit weighted rubric coverage, final-answer deterministic contracts, two-attempt grading caps, decoded/readable image evidence and targeted review. Added a bounded closed SVG-to-PNG teacher preview without local TeX, separate source/render/semantic evidence and original-source retention. Added PDF text-layer numeric disagreement diagnostics and audited revision-checked single-item teacher semantic correction. Versioned opt-in live runs cap actual calls and inherit cancellation; offline actual-R2/current grading and real local diagram decoding remain distinct from Gemini/handwriting accuracy. No production data or credential operations. See docs/R3_IMPLEMENTATION_REPORT.md.

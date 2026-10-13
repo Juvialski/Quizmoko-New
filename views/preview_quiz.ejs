@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Preview — <%= quiz.title %></title>
+  <link rel="stylesheet" href="/css/quizmoko-ui.css">
+  <script src="/js/quizmoko-theme.js"></script>
+  <script src="/js/math-display.js"></script>
+  <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]}};</script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body class="r4-teacher">
+  <main class="r4-preview">
+    <a class="btn btn-secondary" href="/edit/<%= encodeURIComponent(quiz.id) %>">Back to editor</a>
+    <h1><%= quiz.title %></h1>
+    <p class="r4-muted">Student appearance preview of your saved quiz. No attempt is started and no answers are recorded.</p>
+    <% quiz.questions.forEach((q, i) => { %>
+      <section class="card">
+        <h2>Question <%= q.original_index ?? q.source_id ?? i + 1 %></h2>
+        <div class="r4-math" data-preview-html="<%= q.question %>"></div>
+        <% if (q.options.length) { %>
+          <ol type="A" class="r4-preview-choices">
+            <% q.options.forEach(option => { %><li><%= option %></li><% }); %>
+          </ol>
+        <% } else { %><p class="r4-muted">Students enter their answer here.</p><% } %>
+      </section>
+    <% }); %>
+  </main>
+  <script src="/js/teacher-preview.js"></script>
+</body>
+</html>

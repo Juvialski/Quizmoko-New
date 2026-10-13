@@ -12,7 +12,7 @@
     "check": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "npm run check",
-    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts test/ui-consistency.test.ts test/ai-quality.test.ts test/r1-reliability.test.ts test/r1-durability.test.ts test/r1-ai-baseline.test.ts test/r2-quality.test.ts test/r3-quality.test.ts",
+    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts test/ui-consistency.test.ts test/ai-quality.test.ts test/r1-reliability.test.ts test/r1-durability.test.ts test/r1-ai-baseline.test.ts test/r2-quality.test.ts test/r3-quality.test.ts test/r4-workflow.test.ts",
     "build": "npm run check && npm run typecheck",
     "start": "tsx server.ts",
     "eval:ai": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-ai-quality.ts --offline",
@@ -20,7 +20,8 @@
     "eval:r2": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-r2-quality.ts",
     "eval:r3:grading": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-r3-grading.ts",
     "eval:r3:diagrams": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-r3-diagrams.ts",
-    "eval:grading:live": "tsx scripts/evaluate-r3-grading.ts --live"
+    "eval:grading:live": "tsx scripts/evaluate-r3-grading.ts --live",
+    "test:ui": "node scripts/test-r4-browser.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
@@ -49,6 +50,7 @@
     "ejs-lint": "^2.0.1",
     "glob": "^13.0.6",
     "jsdom": "^29.1.1",
+    "playwright": "1.62.1",
     "postcss": "^8.5.25",
     "typescript": "^5.9.3"
   }

@@ -25,6 +25,8 @@ jobs:
       # worksheet/grading contracts and mocked AI corpus regression.
       - run: npm test
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
       - run: npm run eval:ai -- --output=ai-baseline.json
       - run: npm run eval:r2 -- --output=r2-comparison.json
       - run: npm run eval:r3:grading -- --output=r3-grading.json
@@ -45,3 +47,4 @@ jobs:
             r3-diagrams.json
             r3-diagrams.md
             audit.json
+            docs/r4-browser/

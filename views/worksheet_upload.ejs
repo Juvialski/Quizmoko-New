@@ -94,8 +94,9 @@
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/teacher-workflow.js"></script>
 </head>
-<body>
+<body class="r4-teacher r4-worksheet-upload">
     <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
         <div>
             <h1 style="margin: 0; color: var(--body-strong); font-weight: 700; font-size: 36px; letter-spacing: -0.5px;" id="dashboard-header">
@@ -135,6 +136,8 @@
             </div>
                 <div class="card worksheet-panel" id="upload-card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
                     <h1><i data-lucide="file-text" class="icon-sm"></i> Worksheet to Quiz</h1>
+                    <ol class="r4-steps" aria-label="Worksheet workflow"><li>Upload</li><li>Review extraction</li><li>Check answers</li><li>Create draft</li><li>Review and publish</li></ol>
+                    <p class="r4-muted">PNG, JPEG, WebP, GIF or PDF. Default limits: 12 files, 20 MB each, 60 MB total and 40 pages per upload. Larger files may need splitting; server limits still apply.</p>
                     <div class="m-stripe"></div>
                     <p style="color: var(--body); margin-bottom: 32px;">Convert your existing worksheet images or PDFs into a live, interactive quiz with AI.</p>
 
@@ -144,14 +147,14 @@
                             <div style="font-size: 40px; margin-bottom: 8px;"><i data-lucide="upload" class="icon-sm"></i></div>
                             <div style="font-weight: 700;">Click, Drag, or Paste Worksheet Files</div>
                             <div style="font-size: 12px; color: var(--body); margin-top: 4px;">Supports PNG, JPG, JPEG, and PDF</div>
-                            <input type="file" id="file-input" name="files" multiple accept='image/*,.pdf' onchange="updateFileList()">
+                            <input type="file" id="file-input" name="files" multiple accept='.png,.jpg,.jpeg,.webp,.gif,.pdf' onchange="updateFileList()">
                         </div>
                         <div class="file-list" id="file-list"></div>
 
-                        <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr; gap: 16px;">
+<details class="r4-details"><summary>Extraction options</summary>                        <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr; gap: 16px;">
                             <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline);">
                                 <input type="checkbox" id="use_screenshots" style="width: 18px; height: 18px; cursor: pointer;">
-                                <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--on-dark);"><i data-lucide="camera" class="icon-sm"></i> Capture real screenshots of diagrams (Gemini 2.5+ recommended)</label>
+                                <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--on-dark);"><i data-lucide="camera" class="icon-sm"></i> Keep source images for diagrams</label>
                             </div>
                             <div>
                                 <label>AI Model</label>
@@ -183,14 +186,14 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-block" id="extract-btn" style="margin-top: 16px;"><i data-lucide="search" class="icon-sm"></i> EXTRACT QUESTIONS</button>
+</details>                        <button type="submit" class="btn btn-primary btn-block" id="extract-btn" style="margin-top: 16px;"><i data-lucide="search" class="icon-sm"></i> EXTRACT QUESTIONS</button>
                     </form>
                 </div>
             </div>
 
             <div id="right-col">
                 <div id="extraction-preview" class="card worksheet-panel" style="margin-top: 0;">
-                    <h2><i data-lucide="edit-3" class="icon-sm"></i> Extracted Questions</h2>
+                    <h2><i data-lucide="edit-3" class="icon-sm"></i> Review Extraction</h2>
                     <div class="m-stripe"></div>
                     <p style="font-size: 14px; color: var(--body); margin-bottom: 24px;">Review the extracted questions below. If everything looks good, proceed to solve and generate the quiz.</p>
 
@@ -225,14 +228,14 @@
                             <label for="require_solution" style="margin: 0; cursor: pointer; font-size: 15px; color: var(--on-dark);"><i data-lucide="edit-3" class="icon-sm"></i> Require Solution for All Questions</label>
                         </div>
 
-                        <button onclick="handleSolve()" class="btn btn-primary btn-block" id="solve-btn"><i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ</button>
+                        <button onclick="handleSolve()" class="btn btn-primary btn-block" id="solve-btn"><i data-lucide="sparkles" class="icon-sm"></i> CHECK ANSWERS & CREATE DRAFT</button>
                     </div>
                 </div>
 
                 <!-- Empty State for Right Column -->
                 <div id="empty-preview" class="card worksheet-panel" style="margin-top: 0; text-align: center; padding: 100px 40px;">
                     <div style="font-size: 64px; margin-bottom: 24px; opacity: 0.3;"><i data-lucide="file-text" class="icon-sm"></i></div>
-                    <h3 style="color: var(--body);">Questions will appear here after extraction</h3>
+                    <h3 style="color: var(--body);">Your questions will appear here</h3>
                     <p style="color: var(--body); font-size: 14px;">Upload your worksheet on the left to begin.</p>
                 </div>
             </div>
@@ -467,10 +470,13 @@
             fileListContainer.innerHTML = '';
 
             // Show files from the input
-            for (let file of fileInput.files) {
+            for (let [fileIndex,file] of Array.from(fileInput.files).entries()) {
                 const tag = document.createElement('div');
                 tag.className = 'file-tag';
                 tag.innerText = file.name;
+                const remove = document.createElement('button'); remove.type='button'; remove.className='btn btn-secondary';
+                remove.textContent='Remove'; remove.setAttribute('aria-label','Remove '+file.name);
+                remove.onclick=()=>{const transfer=new DataTransfer(); Array.from(fileInput.files).forEach((f,i)=>{if(i!==fileIndex) transfer.items.add(f);}); fileInput.files=transfer.files;updateFileList();}; tag.appendChild(remove);
                 fileListContainer.appendChild(tag);
             }
 
@@ -479,7 +485,8 @@
                 const tag = document.createElement('div');
                 tag.className = 'file-tag';
                 tag.style.borderColor = 'var(--primary)';
-                tag.innerHTML = `<i data-lucide="clipboard" class="icon-sm"></i> ${file.name} <span onclick="removePasted(${index})" style="cursor:pointer; margin-left:5px; color:var(--m-red);">×</span>`;
+                tag.textContent=file.name;
+                const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';remove.className='btn btn-secondary';remove.onclick=()=>removePasted(index);tag.appendChild(remove);
                 fileListContainer.appendChild(tag);
             });
             window.refreshQuizmokoIcons?.();
@@ -563,7 +570,7 @@
                     if (!contentType || !contentType.includes('application/json')) return;
                     
                     const data = await res.json();
-                    if (data.message) progressText.innerText = data.message;
+                    if (data.message) progressText.innerText = window.QuizMoKoTeacher.progressLabel(data.message);
                     if (data.percentage) progressBar.style.width = data.percentage + '%';
                 } catch(e) {}
             }, 2000);
@@ -760,6 +767,7 @@
                 `;
                 item.querySelector('[data-source-question-label]').textContent = `Question ${sourceQuestionId}`;
                 const editor = item.querySelector('.question-editor');
+                editor.setAttribute('role','textbox');editor.setAttribute('aria-label','Worksheet question '+sourceQuestionId);
                 if (editor) editor.textContent = cleanQuestionText;
                 list.appendChild(item);
             });
@@ -914,7 +922,7 @@
             progressText.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> Solving & Generating Quiz...';
             window.refreshQuizmokoIcons?.();
             overlay.style.display = 'flex';
-            progressBar.style.width = '5%';
+            progressBar.style.width = '0%';
 
             const startTime = Date.now();
             const POLL_TIMEOUT = 600000; // 10 minutes total max for solving
@@ -930,7 +938,7 @@
                         isSolving = false;
                         if (solveBtn) {
                             solveBtn.disabled = false;
-                            solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ';
+                            solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> CHECK ANSWERS & CREATE DRAFT';
                             window.refreshQuizmokoIcons?.();
                         }
                         return;
@@ -943,7 +951,7 @@
 
                     const data = await res.json();
 
-                    if (data.message) progressText.innerText = data.message;
+                    if (data.message) progressText.innerText = window.QuizMoKoTeacher.progressLabel(data.message);
                     if (data.percentage) progressBar.style.width = data.percentage + '%';
 
                     if (data.status === 'completed' && data.quiz_id) {
@@ -959,7 +967,7 @@
                         isSolving = false;
                         if (solveBtn) {
                             solveBtn.disabled = false;
-                            solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ';
+                            solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> CHECK ANSWERS & CREATE DRAFT';
                             window.refreshQuizmokoIcons?.();
                         }
                     }
@@ -974,6 +982,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         questions: extractedQuestions,
+                        create_draft: true,
                         batch_size: batchSize,
                         api_key: apiKey,
                         subject: subject,
@@ -999,7 +1008,7 @@
                 isSolving = false;
                 if (solveBtn) {
                     solveBtn.disabled = false;
-                    solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ';
+                    solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> CHECK ANSWERS & CREATE DRAFT';
                     window.refreshQuizmokoIcons?.();
                 }
             }
@@ -1016,7 +1025,7 @@
             const solveBtn = document.getElementById('solve-btn');
             if (solveBtn) {
                 solveBtn.disabled = false;
-                solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> GENERATE LIVE QUIZ';
+                solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> CHECK ANSWERS & CREATE DRAFT';
             }
             const overlay = document.getElementById('loading-overlay');
             if (overlay) overlay.style.display = 'none';

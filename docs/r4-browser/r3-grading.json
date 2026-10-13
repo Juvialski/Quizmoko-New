@@ -1,0 +1,3742 @@
+{
+  "version": "r3-evaluation-v1",
+  "mode": "offline mocked grading comparison; not Gemini accuracy",
+  "baseline_ref": "9e885e2accec00cdb8f57d5472584ad4ca3fa3d3",
+  "provenance": {
+    "version": "grading-fixtures-v1",
+    "source": "Synthetic independently specified arithmetic/rubric expectations. Human teacher review has not been performed.",
+    "historical_student_data": false
+  },
+  "before": {
+    "total": 71,
+    "incorrect_full_credit": 3,
+    "incorrect_zero_credit": 23,
+    "absolute_score_error": 14,
+    "range_deviation": 16.7,
+    "false_teacher_review": 0,
+    "missed_review": 21,
+    "invalid_responses": 1,
+    "pending": 0,
+    "rubric_compliance": 6,
+    "rubric_cases": 18,
+    "deterministic_coverage": 27,
+    "request_count": 45,
+    "failures": 0,
+    "elapsed_ms": 17.381099999999833,
+    "peak_process_rss_bytes": 111091712,
+    "items": [
+      {
+        "id": "exact arithmetic-1",
+        "category": "exact arithmetic",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 2.309500000000071,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "incorrect arithmetic-1",
+        "category": "incorrect arithmetic",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.20499999999992724,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "fraction equivalence-1",
+        "category": "fraction equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 4.207200000000057,
+        "feedback": "Equivalent fraction."
+      },
+      {
+        "id": "linear solution-1",
+        "category": "linear solution",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 1,
+        "absolute_score_error": 1,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.14190000000007785,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "polynomial equivalence-1",
+        "category": "polynomial equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.6821999999999662,
+        "feedback": "Equivalent expression."
+      },
+      {
+        "id": "rounding-1",
+        "category": "rounding",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 1,
+        "absolute_score_error": 1,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.44290000000000873,
+        "feedback": "No credit."
+      },
+      {
+        "id": "exact arithmetic-2",
+        "category": "exact arithmetic",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.09789999999998145,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "incorrect arithmetic-2",
+        "category": "incorrect arithmetic",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.08249999999998181,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "fraction equivalence-2",
+        "category": "fraction equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.363399999999956,
+        "feedback": "Equivalent fraction."
+      },
+      {
+        "id": "linear solution-2",
+        "category": "linear solution",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 1,
+        "absolute_score_error": 1,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.12220000000002074,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "polynomial equivalence-2",
+        "category": "polynomial equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.3630999999998039,
+        "feedback": "Equivalent expression."
+      },
+      {
+        "id": "rounding-2",
+        "category": "rounding",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 1,
+        "absolute_score_error": 1,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.23049999999989268,
+        "feedback": "No credit."
+      },
+      {
+        "id": "exact arithmetic-3",
+        "category": "exact arithmetic",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.08230000000003201,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "incorrect arithmetic-3",
+        "category": "incorrect arithmetic",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.05089999999995598,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "fraction equivalence-3",
+        "category": "fraction equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.22719999999981155,
+        "feedback": "Equivalent fraction."
+      },
+      {
+        "id": "linear solution-3",
+        "category": "linear solution",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 1,
+        "absolute_score_error": 1,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.053599999999960346,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "polynomial equivalence-3",
+        "category": "polynomial equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.32989999999995234,
+        "feedback": "Equivalent expression."
+      },
+      {
+        "id": "rounding-3",
+        "category": "rounding",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 1,
+        "absolute_score_error": 1,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.24929999999994834,
+        "feedback": "No credit."
+      },
+      {
+        "id": "exact arithmetic-4",
+        "category": "exact arithmetic",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.0988999999999578,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "incorrect arithmetic-4",
+        "category": "incorrect arithmetic",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.06319999999982429,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "fraction equivalence-4",
+        "category": "fraction equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.37439999999992324,
+        "feedback": "Equivalent fraction."
+      },
+      {
+        "id": "linear solution-4",
+        "category": "linear solution",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 1,
+        "absolute_score_error": 1,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.04940000000010514,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "polynomial equivalence-4",
+        "category": "polynomial equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.17739999999980682,
+        "feedback": "Equivalent expression."
+      },
+      {
+        "id": "rounding-4",
+        "category": "rounding",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 1,
+        "absolute_score_error": 1,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.21479999999996835,
+        "feedback": "No credit."
+      },
+      {
+        "id": "partial method-1",
+        "category": "partial method",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.6,
+        "absolute_score_error": 0.6,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.14439999999990505,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "invalid method correct answer-1",
+        "category": "invalid method correct answer",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.4,
+        "absolute_score_error": 0.4,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.06410000000005311,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "rubric contradiction-1",
+        "category": "rubric contradiction",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.6,
+        "absolute_score_error": 0.6,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.044499999999970896,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "alternative method-1",
+        "category": "alternative method",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.23039999999991778,
+        "feedback": "Valid alternative balancing method."
+      },
+      {
+        "id": "missing steps-1",
+        "category": "missing steps",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.4,
+        "absolute_score_error": 0.4,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.04150000000004184,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "unsupported full credit-1",
+        "category": "unsupported full credit",
+        "expected": {
+          "range": [
+            0.2,
+            0.5
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": true,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0.5,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.15640000000007603,
+        "feedback": "Invalid reasoning but the final result matches."
+      },
+      {
+        "id": "unsupported zero-1",
+        "category": "unsupported zero",
+        "expected": {
+          "range": [
+            0.4,
+            0.8
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.4,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.1711999999999989,
+        "feedback": "Correct method but incomplete."
+      },
+      {
+        "id": "science explanation-1",
+        "category": "science explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.17870000000016262,
+        "feedback": "The mechanism is correctly explained."
+      },
+      {
+        "id": "language explanation-1",
+        "category": "language explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.11670000000003711,
+        "feedback": "The definition is supported."
+      },
+      {
+        "id": "student injection-1",
+        "category": "student injection",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.1089999999999236,
+        "feedback": "No relevant explanation was demonstrated."
+      },
+      {
+        "id": "invalid score-1",
+        "category": "invalid score",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.13789999999994507,
+        "feedback": "A score was generated."
+      },
+      {
+        "id": "unit mistake-1",
+        "category": "unit mistake",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.6,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.20630000000005566,
+        "feedback": "Valid conversion factor; the final unit is incorrect."
+      },
+      {
+        "id": "malformed snapshot-1",
+        "category": "malformed snapshot",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.3977999999999611,
+        "feedback": "Correct drawing."
+      },
+      {
+        "id": "blank response-1",
+        "category": "blank response",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.03770000000008622,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "conflicting rubric-1",
+        "category": "conflicting rubric",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.12159999999994398,
+        "feedback": "Full credit."
+      },
+      {
+        "id": "partial method-2",
+        "category": "partial method",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.6,
+        "absolute_score_error": 0.6,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.048900000000003274,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "invalid method correct answer-2",
+        "category": "invalid method correct answer",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.4,
+        "absolute_score_error": 0.4,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.03289999999992688,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "rubric contradiction-2",
+        "category": "rubric contradiction",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.6,
+        "absolute_score_error": 0.6,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.03160000000002583,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "alternative method-2",
+        "category": "alternative method",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.15470000000004802,
+        "feedback": "Valid alternative balancing method."
+      },
+      {
+        "id": "missing steps-2",
+        "category": "missing steps",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.4,
+        "absolute_score_error": 0.4,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.037500000000136424,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "unsupported full credit-2",
+        "category": "unsupported full credit",
+        "expected": {
+          "range": [
+            0.2,
+            0.5
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": true,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0.5,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.12379999999984648,
+        "feedback": "Invalid reasoning but the final result matches."
+      },
+      {
+        "id": "unsupported zero-2",
+        "category": "unsupported zero",
+        "expected": {
+          "range": [
+            0.4,
+            0.8
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.4,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.12269999999989523,
+        "feedback": "Correct method but incomplete."
+      },
+      {
+        "id": "science explanation-2",
+        "category": "science explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.15869999999995343,
+        "feedback": "The mechanism is correctly explained."
+      },
+      {
+        "id": "language explanation-2",
+        "category": "language explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.10759999999982028,
+        "feedback": "The definition is supported."
+      },
+      {
+        "id": "student injection-2",
+        "category": "student injection",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.12359999999989668,
+        "feedback": "No relevant explanation was demonstrated."
+      },
+      {
+        "id": "invalid score-2",
+        "category": "invalid score",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.11339999999995598,
+        "feedback": "A score was generated."
+      },
+      {
+        "id": "unit mistake-2",
+        "category": "unit mistake",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.6,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.236299999999801,
+        "feedback": "Valid conversion factor; the final unit is incorrect."
+      },
+      {
+        "id": "malformed snapshot-2",
+        "category": "malformed snapshot",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.3953999999998814,
+        "feedback": "Correct drawing."
+      },
+      {
+        "id": "blank response-2",
+        "category": "blank response",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.047200000000202635,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "conflicting rubric-2",
+        "category": "conflicting rubric",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.12869999999998072,
+        "feedback": "Full credit."
+      },
+      {
+        "id": "partial method-3",
+        "category": "partial method",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.6,
+        "absolute_score_error": 0.6,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.047100000000000364,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "invalid method correct answer-3",
+        "category": "invalid method correct answer",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.4,
+        "absolute_score_error": 0.4,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.031899999999950523,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "rubric contradiction-3",
+        "category": "rubric contradiction",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.6,
+        "absolute_score_error": 0.6,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.031200000000126238,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "alternative method-3",
+        "category": "alternative method",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.1148000000000593,
+        "feedback": "Valid alternative balancing method."
+      },
+      {
+        "id": "missing steps-3",
+        "category": "missing steps",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.4,
+        "absolute_score_error": 0.4,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": false,
+        "requests": 0,
+        "elapsed_ms": 0.031800000000203,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "unsupported full credit-3",
+        "category": "unsupported full credit",
+        "expected": {
+          "range": [
+            0.2,
+            0.5
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": true,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0.5,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.12770000000000437,
+        "feedback": "Invalid reasoning but the final result matches."
+      },
+      {
+        "id": "unsupported zero-3",
+        "category": "unsupported zero",
+        "expected": {
+          "range": [
+            0.4,
+            0.8
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": true,
+        "score_deviation": 0.4,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.13119999999980791,
+        "feedback": "Correct method but incomplete."
+      },
+      {
+        "id": "science explanation-3",
+        "category": "science explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.10550000000012005,
+        "feedback": "The mechanism is correctly explained."
+      },
+      {
+        "id": "language explanation-3",
+        "category": "language explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.12339999999994689,
+        "feedback": "The definition is supported."
+      },
+      {
+        "id": "student injection-3",
+        "category": "student injection",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.1347000000000662,
+        "feedback": "No relevant explanation was demonstrated."
+      },
+      {
+        "id": "invalid score-3",
+        "category": "invalid score",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "invalid_response",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 0.2240999999999076,
+        "feedback": "The semantic grader returned an invalid response. Teacher review is required."
+      },
+      {
+        "id": "unit mistake-3",
+        "category": "unit mistake",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.6,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.13530000000014297,
+        "feedback": "Valid conversion factor; the final unit is incorrect."
+      },
+      {
+        "id": "malformed snapshot-3",
+        "category": "malformed snapshot",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.10030000000006112,
+        "feedback": "Correct drawing."
+      },
+      {
+        "id": "blank response-3",
+        "category": "blank response",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.026000000000067303,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "conflicting rubric-3",
+        "category": "conflicting rubric",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.09120000000007167,
+        "feedback": "Full credit."
+      },
+      {
+        "id": "graphical evidence-1",
+        "category": "graphical evidence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.10560000000009495,
+        "feedback": "The supplied line passes through the axes origin and rises."
+      },
+      {
+        "id": "unreadable evidence-1",
+        "category": "unreadable evidence",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": false,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.08030000000007931,
+        "feedback": "Correct drawing."
+      }
+    ]
+  },
+  "after": {
+    "total": 71,
+    "incorrect_full_credit": 0,
+    "incorrect_zero_credit": 0,
+    "absolute_score_error": 0,
+    "range_deviation": 0,
+    "false_teacher_review": 0,
+    "missed_review": 0,
+    "invalid_responses": 6,
+    "pending": 16,
+    "rubric_compliance": 18,
+    "rubric_cases": 18,
+    "deterministic_coverage": 27,
+    "request_count": 54,
+    "failures": 0,
+    "elapsed_ms": 105.76339999999982,
+    "peak_process_rss_bytes": 115097600,
+    "items": [
+      {
+        "id": "exact arithmetic-1",
+        "category": "exact arithmetic",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 4.372100000000046,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "incorrect arithmetic-1",
+        "category": "incorrect arithmetic",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.3950999999999567,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "fraction equivalence-1",
+        "category": "fraction equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.4753000000000611,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "linear solution-1",
+        "category": "linear solution",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.9692000000000007,
+        "feedback": "Complete exact real solution set checked for a degree-at-most-two polynomial."
+      },
+      {
+        "id": "polynomial equivalence-1",
+        "category": "polynomial equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.4859000000001288,
+        "feedback": "Exact polynomial comparison over real x,y with constant nonzero denominators."
+      },
+      {
+        "id": "rounding-1",
+        "category": "rounding",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.4067000000000007,
+        "feedback": "Exact absolute-error comparison with caller-supplied tolerance."
+      },
+      {
+        "id": "exact arithmetic-2",
+        "category": "exact arithmetic",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.17260000000010223,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "incorrect arithmetic-2",
+        "category": "incorrect arithmetic",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.11509999999998399,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "fraction equivalence-2",
+        "category": "fraction equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.16240000000016153,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "linear solution-2",
+        "category": "linear solution",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.27559999999994034,
+        "feedback": "Complete exact real solution set checked for a degree-at-most-two polynomial."
+      },
+      {
+        "id": "polynomial equivalence-2",
+        "category": "polynomial equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.1956000000000131,
+        "feedback": "Exact polynomial comparison over real x,y with constant nonzero denominators."
+      },
+      {
+        "id": "rounding-2",
+        "category": "rounding",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.19899999999984175,
+        "feedback": "Exact absolute-error comparison with caller-supplied tolerance."
+      },
+      {
+        "id": "exact arithmetic-3",
+        "category": "exact arithmetic",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.12309999999979482,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "incorrect arithmetic-3",
+        "category": "incorrect arithmetic",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.11050000000000182,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "fraction equivalence-3",
+        "category": "fraction equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.13409999999998945,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "linear solution-3",
+        "category": "linear solution",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.274199999999837,
+        "feedback": "Complete exact real solution set checked for a degree-at-most-two polynomial."
+      },
+      {
+        "id": "polynomial equivalence-3",
+        "category": "polynomial equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.22680000000013933,
+        "feedback": "Exact polynomial comparison over real x,y with constant nonzero denominators."
+      },
+      {
+        "id": "rounding-3",
+        "category": "rounding",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.15779999999995198,
+        "feedback": "Exact absolute-error comparison with caller-supplied tolerance."
+      },
+      {
+        "id": "exact arithmetic-4",
+        "category": "exact arithmetic",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.11140000000000327,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "incorrect arithmetic-4",
+        "category": "incorrect arithmetic",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.10329999999999018,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "fraction equivalence-4",
+        "category": "fraction equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.12940000000003238,
+        "feedback": "Exact rational calculation from the complete supported question template."
+      },
+      {
+        "id": "linear solution-4",
+        "category": "linear solution",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.21929999999997563,
+        "feedback": "Complete exact real solution set checked for a degree-at-most-two polynomial."
+      },
+      {
+        "id": "polynomial equivalence-4",
+        "category": "polynomial equivalence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.2423999999998614,
+        "feedback": "Exact polynomial comparison over real x,y with constant nonzero denominators."
+      },
+      {
+        "id": "rounding-4",
+        "category": "rounding",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.13800000000014734,
+        "feedback": "Exact absolute-error comparison with caller-supplied tolerance."
+      },
+      {
+        "id": "partial method-1",
+        "category": "partial method",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.6,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 1.5243000000000393,
+        "feedback": "Valid transformation; final arithmetic needs correction."
+      },
+      {
+        "id": "invalid method correct answer-1",
+        "category": "invalid method correct answer",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.4,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.473700000000008,
+        "feedback": "Final value matches, but dividing by zero is invalid."
+      },
+      {
+        "id": "rubric contradiction-1",
+        "category": "rubric contradiction",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 2,
+        "elapsed_ms": 1.422900000000027,
+        "feedback": "Needs teacher review: Score contradicts the teacher-weighted rubric."
+      },
+      {
+        "id": "alternative method-1",
+        "category": "alternative method",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.5106999999998152,
+        "feedback": "Valid alternative balancing method."
+      },
+      {
+        "id": "missing steps-1",
+        "category": "missing steps",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 2,
+        "elapsed_ms": 0.4752000000000862,
+        "feedback": "Needs teacher review: Score contradicts the teacher-weighted rubric. Full-credit feedback describes incomplete or incorrect work."
+      },
+      {
+        "id": "unsupported full credit-1",
+        "category": "unsupported full credit",
+        "expected": {
+          "range": [
+            0.2,
+            0.5
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 0.3510999999998603,
+        "feedback": "Needs teacher review: Full-credit feedback describes incomplete or incorrect work."
+      },
+      {
+        "id": "unsupported zero-1",
+        "category": "unsupported zero",
+        "expected": {
+          "range": [
+            0.4,
+            0.8
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 0.7209000000000287,
+        "feedback": "Needs teacher review: Zero-credit feedback describes demonstrated correctness."
+      },
+      {
+        "id": "science explanation-1",
+        "category": "science explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.33380000000011023,
+        "feedback": "The mechanism is correctly explained."
+      },
+      {
+        "id": "language explanation-1",
+        "category": "language explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.26470000000017535,
+        "feedback": "The definition is supported."
+      },
+      {
+        "id": "student injection-1",
+        "category": "student injection",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.2315000000000964,
+        "feedback": "No relevant explanation was demonstrated."
+      },
+      {
+        "id": "invalid score-1",
+        "category": "invalid score",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "invalid_response",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 0.3103000000000975,
+        "feedback": "The semantic grader returned an invalid response. Teacher review is required."
+      },
+      {
+        "id": "unit mistake-1",
+        "category": "unit mistake",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.6,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.26119999999991705,
+        "feedback": "Valid conversion factor; the final unit is incorrect."
+      },
+      {
+        "id": "malformed snapshot-1",
+        "category": "malformed snapshot",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 1.2519000000002052,
+        "feedback": "Needs teacher review: Solution image could not be decoded. Please attach a readable image."
+      },
+      {
+        "id": "blank response-1",
+        "category": "blank response",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.08820000000014261,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "conflicting rubric-1",
+        "category": "conflicting rubric",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "invalid_response",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 0,
+        "elapsed_ms": 0.1512000000000171,
+        "feedback": "Needs teacher review: invalid grading rubric or response contract."
+      },
+      {
+        "id": "partial method-2",
+        "category": "partial method",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.6,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.3410999999998694,
+        "feedback": "Valid transformation; final arithmetic needs correction."
+      },
+      {
+        "id": "invalid method correct answer-2",
+        "category": "invalid method correct answer",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.4,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.3144999999999527,
+        "feedback": "Final value matches, but dividing by zero is invalid."
+      },
+      {
+        "id": "rubric contradiction-2",
+        "category": "rubric contradiction",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 2,
+        "elapsed_ms": 0.7338000000002012,
+        "feedback": "Needs teacher review: Score contradicts the teacher-weighted rubric."
+      },
+      {
+        "id": "alternative method-2",
+        "category": "alternative method",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.2639000000001488,
+        "feedback": "Valid alternative balancing method."
+      },
+      {
+        "id": "missing steps-2",
+        "category": "missing steps",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 2,
+        "elapsed_ms": 0.4451000000001386,
+        "feedback": "Needs teacher review: Score contradicts the teacher-weighted rubric. Full-credit feedback describes incomplete or incorrect work."
+      },
+      {
+        "id": "unsupported full credit-2",
+        "category": "unsupported full credit",
+        "expected": {
+          "range": [
+            0.2,
+            0.5
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 0.342200000000048,
+        "feedback": "Needs teacher review: Full-credit feedback describes incomplete or incorrect work."
+      },
+      {
+        "id": "unsupported zero-2",
+        "category": "unsupported zero",
+        "expected": {
+          "range": [
+            0.4,
+            0.8
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 0.3668999999999869,
+        "feedback": "Needs teacher review: Zero-credit feedback describes demonstrated correctness."
+      },
+      {
+        "id": "science explanation-2",
+        "category": "science explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.22739999999998872,
+        "feedback": "The mechanism is correctly explained."
+      },
+      {
+        "id": "language explanation-2",
+        "category": "language explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.21199999999998909,
+        "feedback": "The definition is supported."
+      },
+      {
+        "id": "student injection-2",
+        "category": "student injection",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.28140000000007603,
+        "feedback": "No relevant explanation was demonstrated."
+      },
+      {
+        "id": "invalid score-2",
+        "category": "invalid score",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "invalid_response",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 0.27919999999994616,
+        "feedback": "The semantic grader returned an invalid response. Teacher review is required."
+      },
+      {
+        "id": "unit mistake-2",
+        "category": "unit mistake",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.6,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.20479999999997744,
+        "feedback": "Valid conversion factor; the final unit is incorrect."
+      },
+      {
+        "id": "malformed snapshot-2",
+        "category": "malformed snapshot",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.7622000000001208,
+        "feedback": "Needs teacher review: Solution image could not be decoded. Please attach a readable image."
+      },
+      {
+        "id": "blank response-2",
+        "category": "blank response",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.07720000000017535,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "conflicting rubric-2",
+        "category": "conflicting rubric",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "invalid_response",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 0,
+        "elapsed_ms": 0.06669999999985521,
+        "feedback": "Needs teacher review: invalid grading rubric or response contract."
+      },
+      {
+        "id": "partial method-3",
+        "category": "partial method",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.6,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.2875000000001364,
+        "feedback": "Valid transformation; final arithmetic needs correction."
+      },
+      {
+        "id": "invalid method correct answer-3",
+        "category": "invalid method correct answer",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.4,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.28719999999998436,
+        "feedback": "Final value matches, but dividing by zero is invalid."
+      },
+      {
+        "id": "rubric contradiction-3",
+        "category": "rubric contradiction",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 2,
+        "elapsed_ms": 0.6060999999999694,
+        "feedback": "Needs teacher review: Score contradicts the teacher-weighted rubric."
+      },
+      {
+        "id": "alternative method-3",
+        "category": "alternative method",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.30930000000012114,
+        "feedback": "Valid alternative balancing method."
+      },
+      {
+        "id": "missing steps-3",
+        "category": "missing steps",
+        "expected": {
+          "range": [
+            0.4,
+            0.4
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 2,
+        "elapsed_ms": 0.5132999999998447,
+        "feedback": "Needs teacher review: Score contradicts the teacher-weighted rubric. Full-credit feedback describes incomplete or incorrect work."
+      },
+      {
+        "id": "unsupported full credit-3",
+        "category": "unsupported full credit",
+        "expected": {
+          "range": [
+            0.2,
+            0.5
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 0.3084999999998672,
+        "feedback": "Needs teacher review: Full-credit feedback describes incomplete or incorrect work."
+      },
+      {
+        "id": "unsupported zero-3",
+        "category": "unsupported zero",
+        "expected": {
+          "range": [
+            0.4,
+            0.8
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 0.25759999999991123,
+        "feedback": "Needs teacher review: Zero-credit feedback describes demonstrated correctness."
+      },
+      {
+        "id": "science explanation-3",
+        "category": "science explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.195699999999988,
+        "feedback": "The mechanism is correctly explained."
+      },
+      {
+        "id": "language explanation-3",
+        "category": "language explanation",
+        "expected": {
+          "range": [
+            0.8,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.1815999999998894,
+        "feedback": "The definition is supported."
+      },
+      {
+        "id": "student injection-3",
+        "category": "student injection",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 0.17309999999997672,
+        "feedback": "No relevant explanation was demonstrated."
+      },
+      {
+        "id": "invalid score-3",
+        "category": "invalid score",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "invalid_response",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 0.22749999999996362,
+        "feedback": "The semantic grader returned an invalid response. Teacher review is required."
+      },
+      {
+        "id": "unit mistake-3",
+        "category": "unit mistake",
+        "expected": {
+          "range": [
+            0.6,
+            0.6
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0.6,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 1,
+        "elapsed_ms": 0.21010000000001128,
+        "feedback": "Valid conversion factor; the final unit is incorrect."
+      },
+      {
+        "id": "malformed snapshot-3",
+        "category": "malformed snapshot",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.5941000000000258,
+        "feedback": "Needs teacher review: Solution image could not be decoded. Please attach a readable image."
+      },
+      {
+        "id": "blank response-3",
+        "category": "blank response",
+        "expected": {
+          "range": [
+            0,
+            0
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 0,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 0,
+        "elapsed_ms": 0.07089999999993779,
+        "feedback": "Deterministic canonical score."
+      },
+      {
+        "id": "conflicting rubric-3",
+        "category": "conflicting rubric",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "invalid_response",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": true,
+        "requests": 0,
+        "elapsed_ms": 0.05559999999991305,
+        "feedback": "Needs teacher review: invalid grading rubric or response contract."
+      },
+      {
+        "id": "graphical evidence-1",
+        "category": "graphical evidence",
+        "expected": {
+          "range": [
+            1,
+            1
+          ],
+          "review": false,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "graded",
+        "score": 1,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": 0,
+        "absolute_score_error": 0,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 1,
+        "elapsed_ms": 37.04250000000002,
+        "feedback": "The supplied line passes through the axes origin and rises."
+      },
+      {
+        "id": "unreadable evidence-1",
+        "category": "unreadable evidence",
+        "expected": {
+          "range": [
+            0,
+            1
+          ],
+          "review": true,
+          "feedback": [
+            "Nonempty assessment tied to demonstrated work; no invented image evidence."
+          ]
+        },
+        "status": "pending",
+        "score": null,
+        "incorrect_full_credit": false,
+        "incorrect_zero_credit": false,
+        "score_deviation": null,
+        "absolute_score_error": null,
+        "false_teacher_review": false,
+        "expected_review_met": true,
+        "rubric_compliant": null,
+        "requests": 2,
+        "elapsed_ms": 40.81029999999987,
+        "feedback": "Needs teacher review: The model could not inspect sufficient evidence. Snapshot readability was not established."
+      }
+    ]
+  }
+}

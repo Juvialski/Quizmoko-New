@@ -37,7 +37,7 @@
     },
     "quizRoutes": {
       "file": "src/routes/quizRoutes.ts",
-      "endpoints": ["GET /", "GET /quiz/:quiz_id", "GET /edit/:quiz_id", "GET /api/quiz/:quiz_id", "POST /update/:quiz_id", "DELETE /api/quiz/:quiz_id", "GET /create_blank", "POST /merge", "POST /api/move_quiz", "GET /api/list_quizzes", "GET /api/get_quiz_details/:id", "POST /api/quiz/:quiz_id/duplicate", "POST /api/quiz/:quiz_id/folder"]
+      "endpoints": ["GET /", "GET /quiz/:quiz_id", "GET /edit/:quiz_id", "GET /preview/:quiz_id", "GET /api/quiz/:quiz_id", "POST /update/:quiz_id", "DELETE /api/quiz/:quiz_id", "GET /create_blank", "POST /merge", "POST /api/move_quiz", "GET /api/list_quizzes", "GET /api/get_quiz_details/:id", "POST /api/quiz/:quiz_id/duplicate", "POST /api/quiz/:quiz_id/folder"]
     },
     "liveRoutes": {
       "file": "src/routes/liveRoutes.ts",
@@ -194,5 +194,13 @@
     "compatibility": "Optional private metadata and digest additions only when present; no historical rewrites or migration",
     "live": "Opt-in existing environment credentials only; at most 20 questions/60 actual SDK calls; live certification unperformed here",
     "validation": "Local full suite 165 tests; R3 grading 71 synthetic cases await teacher review; 17 local diagram cases; exact-head CI recorded separately"
+  },
+  "r4_teacher_workflows": {
+    "ui": "Existing EJS dashboard, generator, library, editor, worksheet and results; shared teacher-workflow.js and CSS",
+    "preview": "Owner/admin-only read-only saved student appearance; inert teacher-preview.js formatting/image rendering; no attempt or grading scripts",
+    "save": "Existing update endpoints accept optional save_intent (save/draft/publish), expected_revision and expected_version. Serialized updates await persistence. Legacy intent-less API calls retain behavior.",
+    "creation": "Blank quizzes start as drafts; generator/worksheet create_draft opt-in keeps new interface work private without changing legacy API defaults.",
+    "library": "Status and review counts derived from hydrated quizzes; existing timestamp helper prefers modification time; no new database reads",
+    "browser_tests": "npm run test:ui starts port 3000 in test sandbox with synthetic records and mocked AI/extraction; isolated headless Chromium; optional R4_EXTERNAL_UI=1 tests actual MathJax/CDN assets."
   }
 }

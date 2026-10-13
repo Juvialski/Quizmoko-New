@@ -210,15 +210,13 @@
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/teacher-workflow.js"></script>
 </head>
-<body>
+<body class="r4-teacher r4-editor">
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
             <div style="display: flex; gap: 12px; align-items: center;">
                 <a href="/" class="back-link" style="margin-bottom: 0;"><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>
-                <form action="/delete/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" method="POST" onsubmit="return confirm('Discard this quiz? This will delete it permanently.');" style="display: inline;">
-                    <button type="submit" class="btn btn-danger" style="font-size: 11px; padding: 6px 12px;"><i data-lucide="trash-2" class="icon-sm"></i> Discard</button>
-                </form>
                 <% if (quiz.golden_reference || quiz.worksheet_source) { %>
                 <button class="btn" onclick="toggleGoldenSidebar()" style="background: var(--warning); color: black; border: none; font-size: 11px; padding: 6px 12px;"><i data-lucide="shield" class="icon-sm"></i> Reference</button>
                 <% } %>
@@ -226,27 +224,37 @@
             <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
         </div>
         
-        <div class="card share-card edit-quiz-card">
-            <label class="share-label"><i data-lucide="link" class="icon-sm"></i> Student Share Link</label>
-            <input type="text" id="share-link" class="share-input" readonly onclick="this.select(); document.execCommand('copy'); alert('Copied!');">
+        <div class="r4-editor-bar">
+          <span id="publication-status" class="r4-status"></span>
+          <span id="save-status" role="status" aria-live="polite">Saved</span>
+          <a class="btn btn-secondary" href="/preview/<%= encodeURIComponent(quiz.id) %>" target="_blank">Preview</a>
+          <button class="btn btn-primary r4-save" onclick="saveQuiz(false)">Save Changes</button>
+          <button class="btn btn-secondary" id="publish-button" onclick="publishQuiz()">Publish Quiz</button>
+          <button class="btn btn-secondary" id="share-button" onclick="shareQuiz()" hidden>Share Quiz</button>
         </div>
-
+        <p id="publish-blockers" class="r4-feedback" role="status"></p>
+        <input type="text" id="share-link" hidden readonly aria-label="Published student link">
         <div class="card edit-quiz-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
-                <h2 style="margin: 0;"><i data-lucide="edit-2" class="icon-sm"></i>️ Edit Details</h2>
+                <h2 style="margin: 0;"><i data-lucide="edit-2" class="icon-sm"></i> Quiz details</h2>
                 
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <details class="r4-more"><summary>More quiz tools</summary><div class="r4-menu">
+
                     <button type="button" class="btn btn-secondary" onclick="openImportModal()" style="background: var(--primary); color: white; border: none; font-size: 13px;"><i data-lucide="download" class="icon-sm"></i> Import Qs</button>
                     <button type="button" class="btn btn-secondary" onclick="shuffleQuestions()" style="font-size: 13px;"><i data-lucide="shuffle" class="icon-sm"></i> Shuffle Qs</button>
                     <button type="button" class="btn btn-secondary" onclick="shuffleChoices()" style="font-size: 13px;"><i data-lucide="shuffle" class="icon-sm"></i> Shuffle Choices</button>
                     <button type="button" class="btn btn-secondary" onclick="manualPolish()" id="manual-polish-btn" style="font-size: 13px;"><i data-lucide="wand-2" class="icon-sm"></i> Polish Math</button>
                     <button type="button" class="btn btn-secondary" onclick="recheckAllAnswers()" id="recheck-ans-btn" style="font-size: 13px; border-color: var(--warning); color: var(--warning); background: transparent;"><i data-lucide="check-circle" class="icon-sm"></i> Re-Check</button>
                     <button type="button" class="btn btn-secondary" onclick="approveAllQuestionAnswers()" id="approve-all-ans-btn" style="font-size: 13px; border-color: var(--success); color: var(--success); background: transparent;"><i data-lucide="check-check" class="icon-sm"></i> Approve All Answers</button>
-                </div>
+                <form action="/delete/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" method="POST" onsubmit="return confirm('Discard this quiz? This will delete it permanently.');" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" style="font-size: 11px; padding: 6px 12px;"><i data-lucide="trash-2" class="icon-sm"></i> Discard</button>
+                </form>
+<a class="btn btn-secondary" href="/export/<%= encodeURIComponent(quiz.id) %>" target="_blank">Export</a>
+                </div></details>
             </div>
             <div class="edit-details-grid">
                 <div><label for="quiz-title" class="form-label">Quiz Title</label><input type="text" id="quiz-title" class="form-control"></div>
-                <div><label for="quiz-time" class="form-label">Time Limit (Seconds)</label><input type="number" id="quiz-time" class="form-control"></div>
+                <details class="r4-details r4-quiz-settings"><summary>Quiz settings</summary><div><label for="quiz-time" class="form-label">Time Limit (Seconds)</label><input type="number" id="quiz-time" class="form-control"></div>
                 <div>
                     <label for="quiz-mode" class="form-label">Quiz Mode</label>
                     <select id="quiz-mode" class="form-control">
@@ -254,12 +262,11 @@
                         <option value="back_and_forth" selected>Back-and-Forth (Unified Timer)</option>
                     </select>
                 </div>
-            </div>
 
             <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-soft); padding: 16px; border: 1px solid var(--hairline); border-radius: var(--radius-sm);">
                 <input type="checkbox" id="require-solution" style="width: 20px; height: 20px; cursor: pointer;">
                 <label for="require-solution" style="margin: 0; cursor: pointer; font-size: 15px; color: var(--body-strong); text-transform: none; letter-spacing: normal;"><i data-lucide="edit-3" class="icon-sm"></i> Require Solution for All Questions (Split-screen Whiteboard)</label>
-            </div>
+            </div></details></div>
         </div>
 
         <div class="card edit-quiz-card" id="worksheet-source-card" style="display: none;">
@@ -270,12 +277,18 @@
             <div id="worksheet-source-content" style="display: none; max-height: 400px; overflow-y: auto; border-top: 1px solid var(--hairline); padding-top: 16px;"></div>
         </div>
 
+        <nav class="r4-navigator" aria-label="Question navigator">
+          <label>Questions<select id="question-filter" onchange="refreshQuestionNavigation()"><option value="all">All questions</option><option value="review">Needs review</option></select></label>
+          <span id="review-count" role="status"></span>
+          <div id="question-jumps" class="r4-jumps"></div>
+        </nav>
+        <button class="btn btn-secondary" onclick="addManualQuestion()">Add Question</button>
         <div id="questions-container"></div>
         
         <button id="add-q-btn" class="btn btn-save" onclick="addAIQuestion()" style="background-color: transparent; border: 1px dashed var(--body); color: var(--body-strong);"><i data-lucide="plus-circle" class="icon-sm"></i> Generate Question</button>
 
-        <button class="btn btn-save" onclick="saveQuiz()"><i data-lucide="save" class="icon-sm"></i> Save Changes</button>
-        <a href="/export/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" target='_blank' class="btn-export"><i data-lucide="file-down" class="icon-sm"></i> Export</a>
+        <button id="bottom-save" class="btn btn-save" onclick="saveQuiz(false)"><i data-lucide="save" class="icon-sm"></i> Save Changes</button>
+        <a hidden href="/export/<%= typeof quiz.id !== 'undefined' ? quiz.id : '' %>" target='_blank' class="btn-export"><i data-lucide="file-down" class="icon-sm"></i> Export</a>
     </div>
 
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleGoldenSidebar()"></div>
@@ -740,6 +753,7 @@
             markQuestionChanged(index);
             refreshQuestionApprovalControl(index);
             updateApproveAllButtonState();
+            updateQuestionStatus(index);
         }
 
         function normalizeApprovalType(value) {
@@ -1672,9 +1686,76 @@
             }
         }
 
+        let selectedQuestion = 0;
+        let saveBusy = false;
+        let expectedRevision = quizData.edit_revision || 0;
+        let expectedVersion = quizData.edit_version;
+        let savedSnapshot = '';
+        function editorSnapshot() {
+            return JSON.stringify({questions:quizData.questions,title:document.getElementById('quiz-title').value,
+                time:document.getElementById('quiz-time').value,mode:document.getElementById('quiz-mode').value,
+                solution:document.getElementById('require-solution').checked});
+        }
+        function setSaveState(text) { document.getElementById('save-status').textContent = text; }
+        function reviewQuestions() { return quizData.questions.map((q,i)=>({q,i})).filter(({q}) => q.verification?.verification_status && q.verification.verification_status !== 'verified'); }
+        function updatePublicationState() {
+            const count = reviewQuestions().length;
+            const draft = quizData.is_draft === true || count > 0;
+            document.getElementById('publication-status').textContent = draft ? 'Draft' : 'Published';
+            document.querySelectorAll('.r4-save,#bottom-save').forEach(el => el.textContent = draft ? 'Save Draft' : 'Save Changes');
+            document.getElementById('publish-button').hidden = !draft;
+            document.getElementById('share-button').hidden = draft;
+            document.getElementById('publish-blockers').textContent = count ? `${count} questions need review before publishing. Use Needs review to find them.` : draft ? 'Save your draft, preview it, then publish when ready. Students cannot open this draft.' : 'Students can open the saved published quiz.';
+            document.getElementById('share-link').value = draft ? '' : location.origin + '/quiz/' + encodeURIComponent(quizData.id);
+        }
+        function refreshQuestionNavigation() {
+            const reviewOnly = document.getElementById('question-filter').value === 'review';
+            const indices = quizData.questions.map((q,i)=>i).filter(i => !reviewOnly || reviewQuestions().some(item=>item.i===i));
+            if (!indices.includes(selectedQuestion)) selectedQuestion = indices[0] ?? -1;
+            document.getElementById('review-count').textContent = `${reviewQuestions().length} remaining review items`;
+            const jumps = document.getElementById('question-jumps'); jumps.replaceChildren();
+            indices.forEach(i => {
+                const button = document.createElement('button'); button.type = 'button'; button.className = 'btn btn-secondary';
+                button.textContent = worksheetQuestionLabel(i); button.setAttribute('aria-label','Question '+worksheetQuestionLabel(i));
+                button.setAttribute('aria-current',i===selectedQuestion?'true':'false');
+                button.onclick = () => { selectedQuestion=i; refreshQuestionNavigation(); document.getElementById(`question-block-${i}`)?.scrollIntoView({block:'start'}); };
+                jumps.appendChild(button);
+            });
+            if (!indices.length) jumps.textContent = reviewOnly ? 'All questions reviewed.' : 'Add your first question.';
+            quizData.questions.forEach((q,i) => {
+                const block = document.getElementById(`question-block-${i}`);
+                if (block) { block.hidden = i !== selectedQuestion; if (!block.hidden) window.QuizMoKoMath?.typeset(block); }
+            });
+            updatePublicationState();
+        }
+        function updateQuestionStatus(index) {
+            const block=document.getElementById(`question-block-${index}`);
+            const status=window.QuizMoKoTeacher.status(quizData.questions[index]);
+            const line=block?.querySelector('.r4-question-status');
+            if(line) line.textContent=status.label+' · '+status.reason;
+            document.getElementById('review-count').textContent=`${reviewQuestions().length} remaining review items`;
+            updatePublicationState();
+        }
+        function addManualQuestion() {
+            quizData.questions.push({id:crypto.randomUUID(),type:'multiple_choice',question:'Enter your question',options:['First choice','Second choice','Third choice','Fourth choice'],answer:'A',points:1,
+                verification:{answer_source:'manual',verification_status:'review_required',reason:'New question needs teacher review.'}});
+            selectedQuestion = quizData.questions.length-1;
+            document.getElementById('question-filter').value='all'; renderQuestions();
+        }
+        async function publishQuiz() {
+            if (reviewQuestions().length) { document.getElementById('question-filter').value='review'; refreshQuestionNavigation(); return; }
+            if (!confirm('Publish this quiz so students can open it?')) return;
+            await saveQuiz(false,null,null,'publish');
+        }
+        async function shareQuiz() {
+            const link = document.getElementById('share-link').value;
+            if (!link) return;
+            try { await navigator.clipboard.writeText(link); setSaveState('Published link copied'); }
+            catch { window.prompt('Copy your published quiz link',link); }
+        }
         function renderQuestions() {
             container.innerHTML = '';
-            if(quizData.questions.length === 0) { container.innerHTML = '<p style="text-align:center;">No questions left.</p>'; return; }
+            if(quizData.questions.length === 0) { container.innerHTML = '<p>Add a question to start your draft.</p>'; refreshQuestionNavigation(); return; }
             
             quizData.questions.forEach((q, qIndex) => {
                 if (!q || typeof q !== 'object') {
@@ -1726,14 +1807,23 @@
                             </select>
                         </div>
                     </div>
-                    <div class="header-buttons">
+                    <details class="r4-more"><summary>Question tools</summary><div class="header-buttons r4-menu">
                         <button id="save-btn-${qIndex}" class="btn" onclick="saveQuiz(false, this, ${qIndex})" style="background: var(--success); color: white; border: none; font-size: 11px; padding: 6px 12px; display: none;"><i data-lucide="save" class="icon-sm"></i> Save</button>
                         <button class="btn btn-secondary" onclick="resolveQuestionSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--success); color: var(--success); background: transparent;"><i data-lucide="lightbulb" class="icon-sm"></i> Re-solve</button>
                         <button class="btn btn-secondary" onclick="manualPolishSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--primary); color: var(--primary); background: transparent;"><i data-lucide="sparkles" class="icon-sm"></i> Polish</button>
                         <button id="regen-btn-${qIndex}" class="btn btn-regen" onclick="regenerateQuestion(${qIndex})"><i data-lucide="refresh-cw" class="icon-sm"></i> Regenerate</button>
                         <button class="btn btn-danger" onclick="removeQuestion(${qIndex})"><i data-lucide="trash-2" class="icon-sm"></i> Remove</button>
-                    </div>`;
+                    </div></details>`;
                 block.appendChild(header);
+                const teacherStatus = window.QuizMoKoTeacher.status(q);
+                const statusLine = document.createElement('p'); statusLine.className='r4-feedback r4-question-status';
+                statusLine.textContent = teacherStatus.label + ' · ' + teacherStatus.reason;
+                block.appendChild(statusLine);
+                if (teacherStatus.label !== 'Verified') {
+                    const nextAction=document.createElement('button');nextAction.type='button';nextAction.className='btn btn-secondary';nextAction.textContent=teacherStatus.action;
+                    nextAction.onclick=()=>{const target=teacherStatus.action==='Preview Diagram'?block.querySelector('.live-preview'):block.querySelector('textarea');if(target){if(!target.matches('input,textarea,select,button,a'))target.tabIndex=-1;target.focus();target.scrollIntoView({block:'center'});}};
+                    block.appendChild(nextAction);
+                }
 
                 const gridDiv = document.createElement('div');
                 gridDiv.className = 'edit-grid';
@@ -1761,6 +1851,7 @@
                 leftCol.appendChild(qTextLabel);
                 
                 const qTextInput = document.createElement('textarea'); 
+                qTextInput.setAttribute('aria-label','Question text');
                 qTextInput.value = extractedData.text; 
                 qTextInput.dataset.imagePart = extractedData.imagePart; 
                 leftCol.appendChild(qTextInput);
@@ -1792,6 +1883,7 @@
 
                         const optInput = document.createElement('input');
                         optInput.type = 'text';
+                        optInput.setAttribute('aria-label','Choice '+String.fromCharCode(65+optIndex));
                         optInput.value = opt;
                         optInput.style.margin = '0';
                         optInput.oninput = (e) => {
@@ -1802,6 +1894,7 @@
 
                         const removeBtn = document.createElement('button');
                         removeBtn.innerHTML = '×';
+                        removeBtn.setAttribute('aria-label','Remove choice '+String.fromCharCode(65+optIndex));
                         removeBtn.style.background = 'transparent';
                         removeBtn.style.border = 'none';
                         removeBtn.style.color = 'var(--m-red)';
@@ -1832,7 +1925,8 @@
                             markQuestionNeedsReview(qIndex, 'Teacher rubric changed. Check the assessment criteria before approval.');
                         } catch { rubricInput.setCustomValidity('Enter valid rubric JSON.'); rubricInput.reportValidity(); }
                     };
-                    leftCol.appendChild(rubricLabel); leftCol.appendChild(rubricInput);
+                    const assessment = document.createElement('details'); assessment.className='r4-details';
+                    const assessmentSummary = document.createElement('summary'); assessmentSummary.textContent='Advanced grading'; assessment.append(assessmentSummary,rubricLabel,rubricInput); leftCol.appendChild(assessment);
                     const contractLabel = document.createElement('label');
                     const contractInput = document.createElement('input'); contractInput.type = 'checkbox';
                     contractInput.checked = q.response_contract?.mode === 'final_answer';
@@ -1842,7 +1936,7 @@
                         markQuestionNeedsReview(qIndex, 'The final-answer assessment contract changed. Confirm the question requirements.');
                     };
                     contractLabel.appendChild(contractInput); contractLabel.appendChild(document.createTextNode(' Assess final answer only (supported exact mathematics)'));
-                    leftCol.appendChild(contractLabel);
+                    assessment.appendChild(contractLabel);
                 }
 
                 const ansLabel = document.createElement('label');
@@ -1868,10 +1962,13 @@
                     const firstIssue = Array.isArray(q.verification.issues) ? q.verification.issues[0] : null;
                     const statusLabel = firstIssue?.code === 'missing_worksheet_content' ? 'Missing worksheet content' : firstIssue?.code === 'invalid_diagram' ? 'Diagram failed' : firstIssue?.code?.startsWith('diagram') ? 'Diagram needs visual review' : 'Needs answer review';
                     reviewNotice.textContent = `${statusLabel}: ${firstIssue?.message || q.verification.reason || 'Independent answer checks did not reach a reliable consensus.'}${firstIssue?.action ? ' ' + firstIssue.action : ' Correct the item and run Re-solve, or explicitly approve it after checking.'}`;
-                    leftCol.appendChild(reviewNotice);
+                    const evidenceDetails = document.createElement('details'); evidenceDetails.className='r4-details';
+                    const evidenceSummary = document.createElement('summary'); evidenceSummary.textContent='Review details';
+                    evidenceDetails.append(evidenceSummary,reviewNotice); leftCol.appendChild(evidenceDetails);
                 }
 
                 const ansInput = document.createElement('textarea');
+                ansInput.setAttribute('aria-label','Correct answer');
                 ansInput.value = (typeof q.answer === 'object') ? JSON.stringify(q.answer, null, 2) : q.answer;
                 ansInput.id = `ans-input-${qIndex}`;
                 ansInput.style.height = '80px';
@@ -1882,6 +1979,11 @@
                 };
                 leftCol.appendChild(ansInput);
                 
+                const explanationDetails=document.createElement('details');explanationDetails.className='r4-details';
+                const explanationSummary=document.createElement('summary');explanationSummary.textContent='Explanation or solution';
+                const explanationInput=document.createElement('textarea');explanationInput.value=q.solution || '';explanationInput.setAttribute('aria-label','Explanation or solution');
+                explanationInput.oninput=()=>{q.solution=explanationInput.value;markQuestionNeedsReview(qIndex,'The explanation changed. Review it before approval.');};
+                explanationDetails.append(explanationSummary,explanationInput);leftCol.appendChild(explanationDetails);
                 const rightCol = document.createElement('div');
                 const previewLabel = document.createElement('label');
                 previewLabel.style.display = 'flex';
@@ -1930,6 +2032,7 @@
             });
             window.refreshQuizmokoIcons();
             updateApproveAllButtonState();
+            refreshQuestionNavigation();
         }
 
         function removeQuestion(index) {
@@ -2639,7 +2742,9 @@
             }
         }
 
-        async function saveQuiz(redirect = true, btn = null, singleIndex = null) {
+        async function saveQuiz(redirect = false, btn = null, singleIndex = null, intent = 'save') {
+            if (saveBusy) return false;
+            if (intent !== 'publish' && editorSnapshot() === savedSnapshot) return true;
             // --- NEW: PRE-FLIGHT VALIDATION ---
             let invalidQuestions = [];
 
@@ -2716,10 +2821,17 @@
             const savePayload = {
                 ...quizData,
                 questions: quizData.questions.map(question => ({ ...question })),
-                allow_review_required: true
+                allow_review_required: intent !== 'publish',
+                save_intent: intent,
+                expected_revision: expectedRevision,
+                expected_version: expectedVersion
             };
             delete savePayload.api_key;
 
+            const submittedSnapshot = editorSnapshot();
+            saveBusy = true;
+            setSaveState('Saving…');
+            document.querySelectorAll('.r4-save,#bottom-save,#publish-button').forEach(el => el.disabled = true);
             try {
                 const response = await fetch('/update/' + encodeURIComponent(quizData.id), {
                     method: 'POST',
@@ -2730,11 +2842,17 @@
                 if (!response.ok || !data || !data.success) {
                     throw new Error(data && data.error ? data.error : `Save failed (HTTP ${response.status})`);
                 }
-                    if (data.quiz && data.quiz.title) {
+                    const unchanged = editorSnapshot() === submittedSnapshot;
+                    expectedRevision = data.quiz.edit_revision || 0;
+                    expectedVersion = data.quiz.edit_version;
+                    quizData.is_draft = data.quiz.is_draft;
+                    if (unchanged && data.quiz.title) {
                         quizData.title = data.quiz.title;
-                        const titleInput = document.getElementById('quiz-title');
-                        if (titleInput) titleInput.value = data.quiz.title;
+                        document.getElementById('quiz-title').value = data.quiz.title;
                     }
+                    savedSnapshot = unchanged ? editorSnapshot() : submittedSnapshot;
+                    setSaveState(unchanged ? 'Saved' : 'Unsaved changes');
+                    updatePublicationState();
                     if (btn) {
                         btn.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> SAVED';
                         btn.style.background = 'var(--success)';
@@ -2752,6 +2870,7 @@
                     }
                 return true;
             } catch (error) {
+                setSaveState('Save Failed — edits retained');
                 console.error('Quiz save failed:', error);
                 alert('Quiz could not be saved: ' + error.message);
                 if (btn) {
@@ -2761,17 +2880,20 @@
                     window.refreshQuizmokoIcons?.();
                 }
                 return false;
+            } finally {
+                saveBusy = false;
+                document.querySelectorAll('.r4-save,#bottom-save,#publish-button').forEach(el => el.disabled = false);
             }
         }
         renderQuestions();
-        const firstReviewIndex = quizData.questions.findIndex(question =>
-            question?.verification?.verification_status && question.verification.verification_status !== 'verified'
-        );
-        if (firstReviewIndex >= 0) {
-            window.setTimeout(() => {
-                document.getElementById(`question-block-${firstReviewIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 250);
-        }
+        savedSnapshot = editorSnapshot();
+        updatePublicationState();
+        window.addEventListener('beforeunload', event => {
+            if (saveBusy || editorSnapshot() !== savedSnapshot) { event.preventDefault(); event.returnValue=''; }
+        });
+        setInterval(() => {
+            if (!saveBusy && editorSnapshot() !== savedSnapshot && !document.getElementById('save-status').textContent.startsWith('Save Failed')) setSaveState('Unsaved changes');
+        }, 300);
     </script>
     <script>window.refreshQuizmokoIcons?.();</script>
 </body>

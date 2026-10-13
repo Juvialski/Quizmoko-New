@@ -1,0 +1,1056 @@
+{
+  "mode": "offline adversarial mocked pipeline comparison; not Gemini accuracy",
+  "baseline_ref": "0925c696f9fc2a0f912312b6060f5572ad57a5a3",
+  "generated_at": "2026-10-13T08:15:31.765Z",
+  "before": {
+    "total": 38,
+    "verified": 37,
+    "verified_wrong": 12,
+    "unsafe_verified": 21,
+    "accuracy_among_verified_percent": 67.57,
+    "review_required": 1,
+    "false_rejections": 0,
+    "known_correct": 16,
+    "deterministic": {
+      "pass": 0,
+      "fail": 0,
+      "inconclusive": 0
+    },
+    "solver_agreement_count": 36,
+    "adjudication_count": 2,
+    "adjudication_verified": 2,
+    "adjudication_success_rate_percent": 100,
+    "diagram_rendering_failures": null,
+    "visual_rendering_evaluated": false,
+    "diagram_source_failures": 0,
+    "requests": 78,
+    "requests_per_accepted_question": 2.108,
+    "elapsed_ms": 33.98,
+    "items": [
+      {
+        "id": "wrong_consensus",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 9.281,
+        "issues": []
+      },
+      {
+        "id": "wrong_solvers_correct_draft",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.216,
+        "issues": []
+      },
+      {
+        "id": "correct_linear",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.108,
+        "issues": []
+      },
+      {
+        "id": "negative_fraction",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 2.501,
+        "issues": []
+      },
+      {
+        "id": "fraction",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.156,
+        "issues": []
+      },
+      {
+        "id": "decimal",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.845,
+        "issues": []
+      },
+      {
+        "id": "order",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.766,
+        "issues": []
+      },
+      {
+        "id": "percent",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.668,
+        "issues": []
+      },
+      {
+        "id": "wrong_letter",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 2.021,
+        "issues": []
+      },
+      {
+        "id": "equivalent_choices",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.943,
+        "issues": []
+      },
+      {
+        "id": "missing_choice",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.66,
+        "issues": []
+      },
+      {
+        "id": "multi_mapping",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.255,
+        "issues": []
+      },
+      {
+        "id": "false_solution",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.444,
+        "issues": []
+      },
+      {
+        "id": "false_transformation",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.441,
+        "issues": []
+      },
+      {
+        "id": "undefined",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.283,
+        "issues": []
+      },
+      {
+        "id": "extraneous_root",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.264,
+        "issues": []
+      },
+      {
+        "id": "quadratic_complete",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.374,
+        "issues": []
+      },
+      {
+        "id": "quadratic_missing_root",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.29,
+        "issues": []
+      },
+      {
+        "id": "geometry",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.338,
+        "issues": []
+      },
+      {
+        "id": "slope",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.285,
+        "issues": []
+      },
+      {
+        "id": "midpoint",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.458,
+        "issues": []
+      },
+      {
+        "id": "distance",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.858,
+        "issues": []
+      },
+      {
+        "id": "units",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.691,
+        "issues": []
+      },
+      {
+        "id": "correct_units",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.551,
+        "issues": []
+      },
+      {
+        "id": "mean",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.481,
+        "issues": []
+      },
+      {
+        "id": "probability",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.539,
+        "issues": []
+      },
+      {
+        "id": "missing_diagram",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.526,
+        "issues": []
+      },
+      {
+        "id": "invalid_tikz",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.354,
+        "issues": []
+      },
+      {
+        "id": "coordinate_conflict",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.245,
+        "issues": []
+      },
+      {
+        "id": "unrendered_diagram",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.221,
+        "issues": []
+      },
+      {
+        "id": "ambiguous_choices",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.34,
+        "issues": []
+      },
+      {
+        "id": "golden_conflict",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "authoritative_key_check",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.373,
+        "issues": []
+      },
+      {
+        "id": "symbolic",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.282,
+        "issues": []
+      },
+      {
+        "id": "symbolic_wrong",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.286,
+        "issues": []
+      },
+      {
+        "id": "linear_system",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.308,
+        "issues": []
+      },
+      {
+        "id": "malformed_extraction",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": null,
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.394,
+        "issues": []
+      },
+      {
+        "id": "wrong_adjudication",
+        "expected": "review_required",
+        "status": "verified",
+        "known_wrong_answer": true,
+        "method": "adjudicated",
+        "mathematical": null,
+        "agreement": false,
+        "requests": 3,
+        "elapsed_ms": 0.946,
+        "issues": []
+      },
+      {
+        "id": "correct_adjudication",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "adjudicated",
+        "mathematical": null,
+        "agreement": false,
+        "requests": 3,
+        "elapsed_ms": 0.446,
+        "issues": []
+      }
+    ]
+  },
+  "after": {
+    "total": 38,
+    "verified": 16,
+    "verified_wrong": 0,
+    "unsafe_verified": 0,
+    "accuracy_among_verified_percent": 100,
+    "review_required": 22,
+    "false_rejections": 0,
+    "known_correct": 16,
+    "deterministic": {
+      "pass": 20,
+      "fail": 12,
+      "inconclusive": 6
+    },
+    "solver_agreement_count": 17,
+    "adjudication_count": 2,
+    "adjudication_verified": 1,
+    "adjudication_success_rate_percent": 50,
+    "diagram_rendering_failures": null,
+    "visual_rendering_evaluated": false,
+    "diagram_source_failures": 1,
+    "requests": 40,
+    "requests_per_accepted_question": 2.5,
+    "elapsed_ms": 57.677,
+    "items": [
+      {
+        "id": "wrong_consensus",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "manual_review",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 10.625,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "incorrect_mathematical_answer"
+        ]
+      },
+      {
+        "id": "wrong_solvers_correct_draft",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "dual_agreement",
+        "mathematical": "fail",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 3.527,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "incorrect_mathematical_answer"
+        ]
+      },
+      {
+        "id": "correct_linear",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 3.721,
+        "issues": []
+      },
+      {
+        "id": "negative_fraction",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.901,
+        "issues": []
+      },
+      {
+        "id": "fraction",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.778,
+        "issues": []
+      },
+      {
+        "id": "decimal",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.646,
+        "issues": []
+      },
+      {
+        "id": "order",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "manual_review",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.46,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "incorrect_mathematical_answer"
+        ]
+      },
+      {
+        "id": "percent",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.906,
+        "issues": []
+      },
+      {
+        "id": "wrong_letter",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "manual_review",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 1.841,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "incorrect_choice_mapping",
+          "incorrect_mathematical_answer",
+          "incorrect_choice_mapping"
+        ]
+      },
+      {
+        "id": "equivalent_choices",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "manual_review",
+        "mathematical": "pass",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 2.858,
+        "issues": [
+          "multiple_correct_choices",
+          "incorrect_choice_mapping",
+          "equivalent_options",
+          "multiple_correct_choices",
+          "incorrect_choice_mapping",
+          "equivalent_options"
+        ]
+      },
+      {
+        "id": "missing_choice",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "manual_review",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 1.18,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "missing_correct_choice",
+          "incorrect_choice_mapping",
+          "incorrect_mathematical_answer",
+          "missing_correct_choice",
+          "incorrect_choice_mapping"
+        ]
+      },
+      {
+        "id": "multi_mapping",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "manual_review",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 2.074,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "incorrect_choice_mapping",
+          "incorrect_mathematical_answer",
+          "incorrect_choice_mapping"
+        ]
+      },
+      {
+        "id": "false_solution",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "manual_review",
+        "mathematical": "pass",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.356,
+        "issues": [
+          "unverified_explanation",
+          "unverified_explanation"
+        ]
+      },
+      {
+        "id": "false_transformation",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "manual_review",
+        "mathematical": "pass",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.62,
+        "issues": [
+          "unverified_explanation",
+          "unverified_explanation"
+        ]
+      },
+      {
+        "id": "undefined",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "manual_review",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.44,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "incorrect_mathematical_answer"
+        ]
+      },
+      {
+        "id": "extraneous_root",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "manual_review",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.403,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "incorrect_mathematical_answer"
+        ]
+      },
+      {
+        "id": "quadratic_complete",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.188,
+        "issues": []
+      },
+      {
+        "id": "quadratic_missing_root",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "manual_review",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.54,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "incorrect_mathematical_answer"
+        ]
+      },
+      {
+        "id": "geometry",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.784,
+        "issues": []
+      },
+      {
+        "id": "slope",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.031,
+        "issues": []
+      },
+      {
+        "id": "midpoint",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.953,
+        "issues": []
+      },
+      {
+        "id": "distance",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.858,
+        "issues": []
+      },
+      {
+        "id": "units",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "manual_review",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.797,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "incorrect_mathematical_answer"
+        ]
+      },
+      {
+        "id": "correct_units",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.014,
+        "issues": []
+      },
+      {
+        "id": "mean",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.904,
+        "issues": []
+      },
+      {
+        "id": "probability",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.935,
+        "issues": []
+      },
+      {
+        "id": "missing_diagram",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "manual_review",
+        "mathematical": "inconclusive",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.667,
+        "issues": [
+          "missing_diagram",
+          "missing_diagram"
+        ]
+      },
+      {
+        "id": "invalid_tikz",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "manual_review",
+        "mathematical": "inconclusive",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 3.806,
+        "issues": [
+          "invalid_diagram",
+          "invalid_diagram"
+        ]
+      },
+      {
+        "id": "coordinate_conflict",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "manual_review",
+        "mathematical": "inconclusive",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 1.056,
+        "issues": [
+          "diagram_coordinate_conflict",
+          "diagram_consistency",
+          "diagram_consistency",
+          "diagram_coordinate_conflict",
+          "diagram_consistency",
+          "diagram_consistency"
+        ]
+      },
+      {
+        "id": "unrendered_diagram",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "manual_review",
+        "mathematical": "inconclusive",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.612,
+        "issues": [
+          "diagram_render_unverified",
+          "diagram_render_unverified"
+        ]
+      },
+      {
+        "id": "ambiguous_choices",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "manual_review",
+        "mathematical": "inconclusive",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.367,
+        "issues": [
+          "ambiguous_choices",
+          "ambiguous_choices"
+        ]
+      },
+      {
+        "id": "golden_conflict",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "authoritative_key_check",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 0.794,
+        "issues": []
+      },
+      {
+        "id": "symbolic",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.415,
+        "issues": []
+      },
+      {
+        "id": "symbolic_wrong",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "manual_review",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.344,
+        "issues": [
+          "incorrect_mathematical_answer",
+          "incorrect_mathematical_answer"
+        ]
+      },
+      {
+        "id": "linear_system",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "dual_agreement",
+        "mathematical": "pass",
+        "agreement": true,
+        "requests": 2,
+        "elapsed_ms": 1.725,
+        "issues": []
+      },
+      {
+        "id": "malformed_extraction",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": false,
+        "method": "manual_review",
+        "mathematical": "inconclusive",
+        "agreement": false,
+        "requests": 0,
+        "elapsed_ms": 0.464,
+        "issues": [
+          "missing_worksheet_content",
+          "missing_worksheet_content"
+        ]
+      },
+      {
+        "id": "wrong_adjudication",
+        "expected": "review_required",
+        "status": "review_required",
+        "known_wrong_answer": true,
+        "method": "adjudicated",
+        "mathematical": "fail",
+        "agreement": false,
+        "requests": 3,
+        "elapsed_ms": 1.133,
+        "issues": [
+          "incorrect_mathematical_answer"
+        ]
+      },
+      {
+        "id": "correct_adjudication",
+        "expected": "verified",
+        "status": "verified",
+        "known_wrong_answer": false,
+        "method": "adjudicated",
+        "mathematical": "pass",
+        "agreement": false,
+        "requests": 3,
+        "elapsed_ms": 0.667,
+        "issues": []
+      }
+    ]
+  },
+  "worksheet_coverage": {
+    "detected": 3,
+    "extracted": 2,
+    "missing": 1
+  },
+  "live_evaluation": "Not run in hermetic offline mode; this script never invokes a live provider.",
+  "latency_note": "Local wall time includes fixture/mock orchestration, not network/model latency. No visual renderer was invoked."
+}

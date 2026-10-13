@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap" rel="stylesheet">
-    
+
     <!-- Driver.js (For the Guided Tour) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
@@ -15,23 +15,23 @@
     <script src="/js/quizmoko-theme.js"></script>
 
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; 
-            padding: 40px 20px; 
-            color: var(--body-strong); 
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            color: var(--body-strong);
             background-color: var(--canvas);
             font-weight: 400;
             transition: background-color 0.3s ease, color 0.3s ease;
         }
-        
+
         .container { max-width: 1440px; margin: auto; }
         .dashboard-container {
             width: 100%;
             max-width: 1800px;
-            margin: auto; 
-            display: grid; 
-            grid-template-columns: 1fr; 
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1fr;
             gap: 32px;
             align-items: start;
         }
@@ -82,22 +82,22 @@
             margin-top: 10px;
         }
 
-        h2, h3 { 
-            margin-top: 0; 
-            color: var(--on-dark); 
-            font-weight: 700; 
+        h2, h3 {
+            margin-top: 0;
+            color: var(--on-dark);
+            font-weight: 700;
             letter-spacing: -0.5px;
         }
 
         .difficulty-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-        
+
         .search-bar { width: 100%; padding: 16px; border: 1px solid var(--hairline); border-radius: 0px; font-size: 14px; box-sizing: border-box; background: var(--surface-soft); color: var(--on-dark); padding-left: 40px; margin-bottom: 0;}
         .search-bar::placeholder { color: var(--body); }
-        
+
         .subject-group { margin-bottom: 15px; }
-        .subject-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            background: var(--surface-elevated); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--hairline); 
+        .subject-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--surface-elevated); padding: 16px 20px; border-radius: var(--radius-md); border: 1px solid var(--hairline);
             cursor: pointer; transition: all 0.3s ease;
         }
         .subject-header:hover { border-color: var(--primary); }
@@ -105,7 +105,7 @@
         .subject-badge { background: var(--primary); color: #ffffff; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 4px;}
         .chevron { transition: transform 0.3s ease; stroke: var(--body); width: 18px; height: 18px;}
         .chevron.open { transform: rotate(180deg); }
-        
+
         .folder-content { display: none; padding-top: 15px; }
         .folder-content.open { display: block; }
 
@@ -113,19 +113,19 @@
 
         .quiz-item { background: var(--surface-card); border: 1px solid var(--hairline); padding: 20px; border-radius: var(--radius-md); transition: all 0.3s ease; display: flex; flex-direction: column; position: relative; box-shadow: var(--shadow); }
         .quiz-item:hover { border-color: var(--primary); transform: translateY(-2px);}
-        
+
         .quiz-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--on-dark); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .quiz-meta { font-size: 12px; color: var(--body); margin-bottom: 16px; font-weight: 400; display: flex; align-items: center; gap: 5px;}
-        
+
         .link-display { background: var(--surface-soft); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--hairline); font-size: 12px; color: var(--primary); font-family: monospace; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;}
         .link-display:hover { border-color: var(--primary); }
-        
+
         .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--hairline);}
-        .actions form { display: contents; } 
-        
+        .actions form { display: contents; }
+
         .btn-action { background: var(--surface-soft); color: var(--body-strong); border: 1px solid var(--hairline); padding: 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; text-decoration: none; }
         .btn-action:hover { border-color: var(--primary); color: var(--primary); }
-        .btn-delete { grid-column: span 2; color: var(--m-red); } 
+        .btn-delete { grid-column: span 2; color: var(--m-red); }
         .btn-delete:hover { border-color: var(--m-red); color: var(--m-red); }
 
         .limit-status-green { color: var(--success); font-weight: 600;}
@@ -143,12 +143,12 @@
         .modal-card {
             background: var(--surface-card); padding: 40px; border-radius: var(--radius-md); width: 100%; max-width: 450px; border: 1px solid var(--hairline); box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
-    
-        /* --- Refined AI Generator & Accodions --- */
+
+        /* --- Refined Quick Create & Accodions --- */
         .accordion-item { border-bottom: 1px solid var(--hairline); margin-bottom: 8px; }
-        .accordion-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 12px 16px; background: var(--surface-elevated); 
+        .accordion-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 16px; background: var(--surface-elevated);
             border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 14px;
             color: var(--on-dark); transition: background 0.2s;
         }
@@ -156,7 +156,7 @@
         .accordion-header:hover { background: var(--surface-soft); }
         .accordion-body { padding: 12px 4px; display: none; }
         .accordion-body.open { display: block; }
-        
+
         .quiz-card-horizontal {
             display: flex; flex-direction: row !important; justify-content: space-between; align-items: center;
             background: var(--surface-card); padding: 16px 20px;
@@ -186,7 +186,7 @@
             border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;
             margin-right: 12px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center;
         }
-        
+
         /* Stepper for Distribution */
         .stepper-group { display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--surface-elevated); padding: 8px 4px; border-radius: var(--radius-sm); gap: 4px; }
         .stepper-group > div { display: flex; align-items: center; justify-content: center; }
@@ -194,8 +194,8 @@
         .stepper-input { width: 32px; padding: 0 !important; text-align: center; background: transparent !important; border: none !important; color: var(--on-dark) !important; font-weight: bold; font-size: 14px !important; pointer-events: none; box-shadow: none !important; -moz-appearance: textfield; }
         .stepper-input::-webkit-outer-spin-button, .stepper-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-    
-        
+
+
         /* Responsive Mobile Styles */
         @media (max-width: 768px) {
             body {
@@ -259,20 +259,22 @@
             }
         }
     </style>
-    
+
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/teacher-workflow.js"></script>
 </head>
-<body>
-    
+<body class="r4-teacher r4-dashboard">
+
     <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
         <div>
             <h1 style="margin: 0; color: var(--body-strong); font-weight: 700; font-size: 36px; letter-spacing: -0.5px;" id="dashboard-header">
                 <i data-lucide="rocket" class="icon-md" style="margin-right:6px;"></i> QuizMoKo <span style="font-size:16px; color:var(--body); font-weight:400; letter-spacing: 0; vertical-align: middle;">Teacher</span>
             </h1>
-            
+
         </div>
         <div class="header-nav-actions" style="display: flex; gap: 16px; align-items: center;">
+            <button id="api-key-btn" class="btn btn-secondary" onclick="openApiKeyModal()">AI Settings</button>
             <% if (is_admin) { %>
             <a href="/admin" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield" class="icon-sm"></i>️ Admin Panel</a>
             <% } %>
@@ -281,22 +283,41 @@
         </div>
     </div>
 
+    <section class="r4-home" aria-labelledby="today-title">
+        <h2 id="today-title">What do you want to do today?</h2>
+        <div class="r4-actions">
+            <button class="btn btn-secondary" onclick="openCreateBlankModal()">Create Quiz</button>
+            <button class="btn btn-primary" onclick="document.getElementById('ai-generator-card').hidden=false;document.getElementById('topic-input').focus()">Generate with AI</button>
+            <a class="btn btn-secondary" href="/worksheet">Upload Worksheet</a>
+            <a class="btn btn-secondary" href="#saved-quizzes-card">My Quizzes</a>
+        </div>
+        <div class="r4-library-overview">
+          <button class="btn btn-secondary" onclick="document.getElementById('library-status').value='draft';filterQuizzes();document.getElementById('saved-quizzes-card').scrollIntoView()"><%= typeof draft_count !== 'undefined' ? draft_count : 0 %> drafts · Review and finish</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('library-status').value='published';filterQuizzes();document.getElementById('saved-quizzes-card').scrollIntoView()"><%= typeof published_count !== 'undefined' ? published_count : 0 %> published · Share and see results</button>
+        </div>
+        <nav class="r4-recent" aria-label="Recent quizzes">
+          <h3>Recent quizzes</h3>
+          <% for (const rq of (typeof recent_quizzes !== 'undefined' ? recent_quizzes : [])) { %>
+            <a href="/edit/<%= encodeURIComponent(rq.id) %>"><%= rq.title %> <span class="r4-muted">· <%= rq.is_draft ? 'Draft' : 'Published' %></span></a>
+          <% } %>
+        </nav>
+    </section>
     <!-- Layout logic: Center form for students, grid for teachers -->
     <div class="dashboard-container teacher-view">
-        
-        <div class="sticky-col" id="ai-generator-card">
+
+        <div class="sticky-col" id="ai-generator-card" hidden>
             <div class="mode-tabs">
                 <a href="/" class="mode-tab active" aria-current="page">
                     <span><i data-lucide="bot" class="icon-sm"></i></span>
-                    AI GEN
+                    Generate with AI
                 </a>
                 <a href="/worksheet" class="mode-tab">
                     <span><i data-lucide="file-text" class="icon-sm"></i></span>
-                    WORKSHEET
+                    Worksheet
                 </a>
                 <a href="/worksheet_answers" class="mode-tab">
                     <span><i data-lucide="key" class="icon-sm"></i></span>
-                    ANSWERS
+                    Answer key
                 </a>
                 <% if (is_rmx_authorized) { %>
                 <a href="/rmxflash" class="mode-tab">
@@ -312,36 +333,20 @@
             <div class="card index-dashboard-card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 16px; margin-bottom: 20px;">
                     <h3 style="margin:0; font-size: 18px; text-transform: none;">
-                        <i data-lucide="sparkles" class="icon-sm"></i> AI Generator
+                        <i data-lucide="sparkles" class="icon-sm"></i> Quick Create
                     </h3>
-                    <% if (user) { %>
-                    <button type="button" onclick="openApiKeyModal()" class="btn-secondary" id="api-key-btn"><i data-lucide="key" class="icon-sm"></i> API Key</button>
-                    <% } %>
+
                 </div>
 
-                
-<form action="/generate_ai" method="POST" onsubmit="handleAILoading(event, this); return false;">
+
+<form novalidate id="ai-generator-form" action="/generate_ai" method="POST" onsubmit="handleAILoading(event, this); return false;">
+    <input type="hidden" name="create_draft" value="true">
     <input type="hidden" name="api_key" id="hidden_api_key">
     <input type="hidden" name="ollama_url" id="hidden_ollama_url" value="">
-    
+
     <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion('acc-basic')">
-            <span><i data-lucide="settings" class="icon-sm"></i> Basic Setup</span>
-            <i data-lucide="chevron-down" class="icon-sm"></i>
-        </div>
+
         <div class="accordion-body open" id="acc-basic">
-            <label style="margin-top:0;">Select AI Model</label>
-            <div style="display: grid; grid-template-columns: 1fr 140px; gap: 10px; align-items: center; margin-bottom: 16px;">
-                <select name="model_name" id="model_select" style="margin-bottom: 0;" onchange="updateCounterUI()">
-                    <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite</option>
-                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-                    <optgroup id="ollama-model-group" label="Server-configured Local Models (Ollama)" disabled hidden></optgroup>
-                </select>
-                <div id="api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px 12px; border-radius: var(--radius-sm); font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase;">
-                    Loading...
-                </div>
-            </div>
-            
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                 <div>
                     <label style="margin-top:0;">Quiz Topic</label>
@@ -360,13 +365,40 @@
             </div>
         </div>
     </div>
-    
+
+    <div class="r4-quick-grid">
+        <div><label for="quick-count">Number of questions</label><input id="quick-count" type="number" name="num_items" value="10" min="1" max="50" required></div>
+                <div>
+                    <label style="margin-top:0;">Question type</label>
+                    <select name="test_type" id="test_type_select" required onchange="toggleTypeDistribution()" style="margin-bottom: 0;">
+                        <option value="Multiple Choice" selected>Multiple Choice</option>
+                        <option value="True/False">True/False</option>
+                        <option value="Identification">Identification</option>
+                        <option value="Open Ended">Open Ended</option>
+                        <option value="Graphing">Graphing / Drawing</option>
+                        <option value="Mixed">Mixed (All)</option>
+                    </select>
+                </div>
+        <div><label for="quick-difficulty">Difficulty</label><select id="quick-difficulty" onchange="applyQuickDifficulty(this.value)"><option value="balanced">Balanced</option><option value="easy">Easy</option><option value="average">Average</option><option value="hard">Hard</option></select></div>
+    </div>
+    <details id="generator-advanced" class="r4-details"><summary>Advanced Options</summary>
+    <p class="r4-muted">Model, question distribution, diagrams, timing and test settings.</p>
+    <button type="button" class="btn btn-secondary" onclick="openOllamaModal()">Local AI settings</button>
+            <label style="margin-top:0;">Select AI Model</label>
+            <div style="display: grid; grid-template-columns: 1fr 140px; gap: 10px; align-items: center; margin-bottom: 16px;">
+                <select name="model_name" id="model_select" style="margin-bottom: 0;" onchange="updateCounterUI()">
+                    <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite</option>
+                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+                    <optgroup id="ollama-model-group" label="Server-configured Local Models (Ollama)" disabled hidden></optgroup>
+                </select>
+                <div id="api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px 12px; border-radius: var(--radius-sm); font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase;">
+                    Loading...
+                </div>
+            </div>
+
     <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion('acc-types')">
-            <span><i data-lucide="layers" class="icon-sm"></i> Question Types & Limits</span>
-            <i data-lucide="chevron-down" class="icon-sm"></i>
-        </div>
-        <div class="accordion-body" id="acc-types">
+
+        <div class="accordion-body open" id="acc-types">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                 <div>
                     <label style="margin-top:0;">Question Style</label>
@@ -376,19 +408,9 @@
                         <option value="Mixed" selected>Mixed</option>
                     </select>
                 </div>
-                <div>
-                    <label style="margin-top:0;">Test Type</label>
-                    <select name="test_type" id="test_type_select" required onchange="toggleTypeDistribution()" style="margin-bottom: 0;">
-                        <option value="Multiple Choice">Multiple Choice</option>
-                        <option value="True/False">True/False</option>
-                        <option value="Identification">Identification</option>
-                        <option value="Open Ended">Open Ended</option>
-                        <option value="Graphing">Graphing / Drawing</option>
-                        <option value="Mixed" selected>Mixed (All)</option>
-                    </select>
-                </div>
+
             </div>
-            
+
             <div id="mixed-distribution-group" style="margin-bottom: 12px;">
                 <label style="margin-top:0;">Mixed Distribution <span id="type-total" class="limit-status-green" style="font-size:10px; margin-left:5px;">(Total: 10)</span></label>
                 <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;">
@@ -434,22 +456,19 @@
                     </div>
                 </div>
             </div>
-            
+
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;" id="limits-group">
-                <div><label>Total Qs</label><input type="number" name="num_items" value="10" min="1" max="50" required></div>
+
                 <div><label>Time(s)</label><input type="number" name="time_limit" value="200" required></div>
                 <div><label title="Exact number of generated questions that must include a TikZ graph or diagram">Diagrams</label><input type="number" name="images_count" value="0" min='0' required title="Exact number of questions that must include a generated TikZ graph or diagram"></div>
                 <div><label>Batch</label><input type="number" name="batch_size" value="3" min='1' max='10' required></div>
             </div>
         </div>
     </div>
-    
+
     <div class="accordion-item">
-        <div class="accordion-header" onclick="toggleAccordion('acc-diff')">
-            <span><i data-lucide="bar-chart" class="icon-sm"></i> Difficulty & Mode</span>
-            <i data-lucide="chevron-down" class="icon-sm"></i>
-        </div>
-        <div class="accordion-body" id="acc-diff">
+
+        <div class="accordion-body open" id="acc-diff">
             <div style="margin-bottom: 12px;">
                 <label style="margin-top:0;">Quiz Mode</label>
                 <select name="quiz_mode" style="margin-bottom: 0;">
@@ -467,7 +486,9 @@
             </div>
         </div>
     </div>
-    
+
+    </details>
+    <p id="generator-feedback" class="r4-feedback" role="alert" aria-live="polite"></p>
     <div style="margin-top: 16px;">
         <button type="submit" class="btn-primary" id="generate-btn" style="padding: 14px; font-size: 16px; font-weight: 700; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px;">
             <i data-lucide="zap"></i> Generate Quiz
@@ -477,13 +498,13 @@
         </button>
     </div>
     <div id="loading-overlay" style="display:none; margin-top: 10px; text-align: center; color: var(--body);">
-        <i data-lucide="loader-2" class="spin-icon"></i> Generating... Please wait.
+        <i data-lucide="loader-2" class="spin-icon"></i> Generating questions and checking answers. You can stay on this page.
     </div>
 </form>
-    
+
             </div>
 
-            <!-- API USAGE DASHBOARD (Isolated) -->
+<details class="r4-details"><summary>AI settings and usage</summary>            <!-- API USAGE DASHBOARD (Isolated) -->
             <div class="card index-dashboard-card" id="api-usage-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 12px; margin-bottom: 15px;">
                     <h3 style="margin:0; font-size: 16px; text-transform: none;"><i data-lucide="bar-chart-2" class="icon-sm"></i> API Usage Tracker</h3>
@@ -519,36 +540,43 @@
 
                 <button onclick="toggleUsageDetails()" id="usage-toggle-btn" class="btn-secondary" style="width: 100%; margin-top: 15px; font-size: 11px; padding: 10px;"><i data-lucide="trending-down" class="icon-sm"></i> Show Detailed Breakdown</button>
             </div>
+</details>
         </div>
 
         <div class="card" id="saved-quizzes-card" style="background: transparent; border: none; padding: 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <h2 style="font-size: 28px; margin: 0;"><i data-lucide="book-open" class="icon-sm"></i> Library</h2>
+                <h2 style="font-size: 28px; margin: 0;">My Quizzes</h2>
                 <button onclick="openCreateBlankModal()" class="btn-primary" style="width: auto; margin: 0; padding: 10px 20px; font-size: 14px;"><i data-lucide="plus-circle" class="icon-sm"></i> New Blank Quiz</button>
             </div>
-            
-            <% if (grouped_quizzes) { %>
+
+            <div class="r4-library-filters">
+              <label>Show<select id="library-status" onchange="filterQuizzes()"><option value="">All quizzes</option><option value="draft">Drafts requiring attention</option><option value="published">Published</option></select></label>
+              <label>Subject<select id="library-subject" onchange="filterQuizzes()"><option value="">All subjects</option><% for (const subject of all_subjects) { %><option><%= subject %></option><% } %></select></label>
+              <label>Folder<select id="library-folder" onchange="filterQuizzes()"><option value="">All folders</option><% for (const folder of all_folders) { %><option><%= folder %></option><% } %></select></label>
+            </div>
+            <p id="library-empty" class="r4-muted" hidden>No matching quizzes. Try another title or clear the filters.</p>
+            <% if (Object.values(grouped_quizzes || {}).some(list => list.length)) { %>
                 <div style="display: flex; gap: 12px; margin-bottom: 32px;" id="search-merge-bar">
                     <input type="search" id="searchInput" name="search_quizzes_query" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeyup='filterQuizzes()' oninput='filterQuizzes()' placeholder="Search quizzes..." class="search-bar" style="border-radius: var(--radius-sm);">
                     <button id="mergeModeBtn" onclick="toggleMergeMode()" class="btn-primary" style="width: auto; margin-top: 0; white-space: nowrap; padding: 14px 24px;"><i data-lucide="link" class="icon-sm"></i> Merge Mode</button>
                 </div>
-                
+
                 <div id="quiz-list-container">
                     <% let groupIdx = 0; for (let [subject, quizzes] of Object.entries(grouped_quizzes || {})) { groupIdx++; %>
                         <div class="subject-group" data-subject="<%= typeof subject !== 'undefined' && subject ? subject : '' %>">
-                            
+
                             <div class="subject-header" onclick="toggleFolder(this)">
                                 <h3 class="subject-title">
-                                    <i data-lucide="folder" class="icon-sm"></i> <%= typeof subject !== 'undefined' ? subject : '' %> 
+                                    <i data-lucide="folder" class="icon-sm"></i> <%= typeof subject !== 'undefined' ? subject : '' %>
                                     <span class="subject-badge"><%= (quizzes || []).length %></span>
                                 </h3>
                                 <svg class="chevron open" width='20' height='20' viewBox='0 0 24 24' fill='none' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>
                             </div>
-                            
+
                             <div class="folder-content open">
                                 <div class="quiz-grid">
                                     <% for (let sq of (quizzes || [])) { %>
-                                        <div class="quiz-card-horizontal quiz-item" data-title="<%= typeof sq.title !== 'undefined' && sq.title ? sq.title : '' %>" data-id="<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
+                                        <div class="quiz-card-horizontal quiz-item" data-status="<%= sq.is_draft ? 'draft' : 'published' %>" data-folder="<%= sq.folder || '' %>" data-title="<%= typeof sq.title !== 'undefined' && sq.title ? sq.title : '' %>" data-id="<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
     <div class="quiz-info">
         <div style="font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 4px; text-transform: uppercase; display: flex; align-items: center; gap: 4px;">
             <i data-lucide="book-open" class="icon-xs"></i> <%= typeof sq.subject !== 'undefined' ? sq.subject : 'Quiz' %>
@@ -557,24 +585,28 @@
             <%= typeof sq.title !== 'undefined' ? sq.title : '' %>
         </div>
         <div class="quiz-meta" style="margin-bottom: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center;">
-            <i data-lucide="clock" class="icon-xs" style="margin-right:4px;"></i> <%= typeof sq.time_limit !== 'undefined' ? sq.time_limit : '' %>s / Q • 
-            <span class="link-display" style="border:none; background:transparent; padding:0; margin-left:8px; cursor:pointer; min-width: 0;" id="url-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"></span>
+            <i data-lucide="clock" class="icon-xs" style="margin-right:4px;"></i> <%= sq.is_draft ? 'Draft' : 'Published' %> · <%= sq.questions.length %> questions · <%= sq.review_count || 0 %> to review
+            <span class="link-display" style="border:none; background:transparent; padding:0; margin-left:8px; cursor:pointer; min-width: 0;" style-r4="link" hidden id="url-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"></span>
         </div>
     </div>
-    
+
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-        <a href="/live/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="primary-action-btn"><i data-lucide="radio" class="icon-sm" style="color:white;"></i> Launch</a>
+        <a href="/preview/<%= encodeURIComponent(sq.id) %>" class="primary-action-btn">Preview</a>
+        <% if (!sq.is_draft) { %><button class="btn btn-secondary" onclick="copyLink('<%= sq.id %>')">Share</button><% } %>
+        <a href="/results/<%= encodeURIComponent(sq.id) %>" class="primary-action-btn">Results</a>
         <a href="/edit/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="primary-action-btn" style="background: var(--surface-soft); color: var(--on-dark);"><i data-lucide="edit-3" class="icon-sm"></i> Edit</a>
-        
+
         <div class="quiz-actions-menu">
             <button type="button" onclick="toggleQuizDropdown('dropdown-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')" style="background:none; border:none; color:var(--body); cursor:pointer; padding: 8px;">
-                <i data-lucide="more-vertical"></i>
+                <span>More</span>
             </button>
             <div class="quiz-actions-dropdown" id="dropdown-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
-                <button type="button" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"><i data-lucide="copy" class="icon-sm"></i> Copy Link</button>
+                <% if (!sq.is_draft) { %><button type="button" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"><i data-lucide="copy" class="icon-sm"></i> Copy Link</button><% } %>
                 <button type="button" onclick="duplicateQuiz('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"><i data-lucide="copy-plus" class="icon-sm"></i> Duplicate</button>
                 <button type="button" onclick="openMoveModal('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>', '<%= typeof sq.subject !== 'undefined' ? sq.subject : '' %>')"><i data-lucide="folder-output" class="icon-sm"></i> Move</button>
                 <a href="/results/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>"><i data-lucide="bar-chart-2" class="icon-sm"></i> Results</a>
+                <a href="/export/<%= encodeURIComponent(sq.id) %>" target="_blank">Export</a>
+                <a href="/live/<%= encodeURIComponent(sq.id) %>">Live classroom</a>
                 <form action="/delete/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" method="POST" onsubmit="return confirm('Delete this quiz?');">
                     <button type="submit" style="color: var(--m-red);"><i data-lucide="trash-2" class="icon-sm"></i> Delete</button>
                 </form>
@@ -602,7 +634,7 @@
             <% } %>
         </div>
     </div>
-    
+
     <!-- Merge Floating Action Bar -->
     <div id="mergeActionBar" style="display:none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--surface-elevated); border: 1px solid var(--hairline); color: var(--on-dark); padding: 16px 32px; border-radius: var(--radius-md); box-shadow: var(--shadow); z-index: 1000; align-items: center; gap: 24px;">
         <span id="mergeCount" style="font-weight: 600; font-size: 14px;">0 Selected</span>
@@ -615,9 +647,9 @@
     <div id="apiKeyModal" class="modal-overlay">
         <div class="modal-card">
             <h2 id="api-key-modal-title" style="margin-bottom: 16px; font-size: 24px; text-transform: none; display: inline-flex; align-items: center; gap: 8px;"><i data-lucide="key" class="icon-sm"></i> API Key Setup</h2>
-            
+
             <p id="api-key-modal-desc" style="color: var(--body); font-size: 14px; margin-bottom: 24px; line-height: 1.5;">To generate quizzes and access AI tools, provide your Google Gemini API Key.</p>
-            
+
             <div id="gemini_key_container">
                 <div style="background: var(--surface-soft); border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 24px; font-size: 12px; color: var(--body-strong); line-height: 1.5;">
                     <strong style="color: var(--on-dark);">SECURITY & REPLACEMENT:</strong> Do not share your key. It is saved locally and synced to your server profile.<br>
@@ -634,7 +666,7 @@
                 <label style="margin-top: 0;">Secondary Key 2 (Backup)</label>
                 <input type="password" id="modal_api_key_3" placeholder="Optional backup key..." autocomplete='off' spellcheck='false' style="margin-bottom: 20px;">
             </div>
-            
+
             <button onclick="saveApiKey()" class="btn btn-primary btn-block" style="margin-top: 0;"><i data-lucide="save" class="icon-sm"></i> Save Settings</button>
             <button onclick="closeApiKeyModal()" class="btn btn-secondary" id="modal-cancel-btn" style="width: 100%; margin-top: 12px; padding: 14px; display: none;"><i data-lucide="x-circle" class="icon-sm"></i> Cancel</button>
         </div>
@@ -645,7 +677,7 @@
     <div id="ollamaModal" class="modal-overlay">
         <div class="modal-card">
             <h2 style="margin-bottom: 16px; font-size: 24px; text-transform: none;"><i data-lucide="box" class="icon-sm"></i> Setup Local AI</h2>
-            
+
             <p style="color: var(--body); font-size: 14px; margin-bottom: 16px;">Local models are available only when the QuizMoKo server administrator configures an Ollama host.</p>
 
             <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 12px; color: var(--warning); line-height: 1.4;">
@@ -661,7 +693,7 @@
     <div id="createBlankModal" class="modal-overlay">
         <div class="modal-card">
             <h2 style="margin-bottom: 16px; font-size: 24px;"><i data-lucide="plus-circle" class="icon-sm"></i> New Blank Quiz</h2>
-            
+
 
             <label>Quiz Title</label>
             <input type="text" id="blank-quiz-title" placeholder="e.g. My Custom Test">
@@ -686,7 +718,7 @@
     <div id="moveModal" class="modal-overlay">
         <div class="modal-card">
             <h2 style="margin-bottom: 16px; font-size: 24px;"><i data-lucide="folder-output" class="icon-sm"></i> Move to Folder</h2>
-            
+
 
             <input type="hidden" id="move-quiz-id">
             <label>Select Destination Folder</label>
@@ -766,7 +798,7 @@
             modalApiInput.value = keys[0] || localStorage.getItem('gemini_api_key') || '';
             modalApiInput2.value = keys[1] || '';
             modalApiInput3.value = keys[2] || '';
-            cancelBtn.style.display = (modalApiInput.value || serverAiConfigured) ? 'inline-flex' : 'none';
+            cancelBtn.style.display = 'inline-flex';
 
             const modalTitle = document.getElementById('api-key-modal-title');
             const modalDesc = document.getElementById('api-key-modal-desc');
@@ -822,7 +854,7 @@
                     }
                     document.getElementById('model_select').value = 'ollama:' + data.models[0];
                     updateCounterUI();
-                    
+
                     setTimeout(() => {
                         closeOllamaModal();
                         closeApiKeyModal();
@@ -898,7 +930,7 @@
 
             if (!key1 && !serverAiConfigured) {
                 alert('Please enter at least a Primary Gemini API Key.');
-                return; 
+                return;
             }
 
             const keys = key1 ? [key1] : [];
@@ -994,7 +1026,7 @@
 
                 checkAndRunTour();
             } else if (!serverAiConfigured) {
-                openApiKeyModal(); // Force modal on first load
+                document.getElementById('generator-feedback').textContent = 'Set up your AI connection in settings when you are ready to generate.';
             } else {
                 checkAndRunTour();
             }
@@ -1005,8 +1037,9 @@
             if (localStorage.getItem('tour_completed') === 'true') return;
 
             const isTeacher = canManageApiKeys;
-            const driver = window.driver.js.driver;
-            
+            const driver = window.driver?.js?.driver;
+            if (!driver) return;
+
             const steps = [
                 { popover: { title: 'Welcome to QuizMoKo!', description: 'Let’s take a quick tour to show you how to generate awesome quizzes in seconds.' } },
                 { element: '#ai-generator-card', popover: { title: 'AI Generator', description: 'Configure your topic, difficulty, and AI models here to generate your quiz.' } },
@@ -1023,7 +1056,7 @@
                 steps.push({ element: '#saved-quizzes-card', popover: { title: 'Your Library', description: 'All your generated quizzes will be saved here safely.' } });
                 steps.push({ element: '#search-merge-bar', popover: { title: 'Merge Tool', description: 'Select multiple quizzes and merge them into a single big worksheet!' } });
             }
-            
+
             steps.push({ popover: { title: 'You are ready!', description: 'Enjoy generating your quizzes. Click Done to begin!' } });
 
             const tourObj = driver({
@@ -1179,7 +1212,7 @@
             }
 
             let remaining = isLocal ? '∞' : Math.max(0, totalLimit - totalUsed);
-            
+
             let badge = document.getElementById('api-counter-badge');
             if (badge) {
                 badge.innerHTML = `⏳ <b>${remaining} / ${totalLimit}</b><br>Requests Left`;
@@ -1194,8 +1227,41 @@
             }
         }
 
-        // --- FORM SUBMIT LOGIC ---
+        let generationBusy = false;
         async function handleAILoading(event, form) {
+            event.preventDefault();
+            if (generationBusy) return false;
+            const feedback = document.getElementById('generator-feedback');
+            feedback.textContent = '';
+            if (!form.checkValidity()) { document.getElementById('generator-advanced').open=true; form.reportValidity(); return false; }
+            const count = Number(form.num_items.value);
+            const diagrams = Number(form.images_count.value);
+            const distribution = ['mc_count','tf_count','id_count','oe_count','gr_count'].reduce((sum,name) => sum + Number(form.elements[name].value),0);
+            if (form.test_type.value === 'Mixed' && distribution !== count) {
+                feedback.textContent = 'Question distribution must add up to the number of questions.'; return false;
+            }
+            if (!Number.isInteger(diagrams) || diagrams < 0 || diagrams > count) {
+                feedback.textContent = 'Diagram count must be between zero and the number of questions.'; return false;
+            }
+            const difficulty = ['easy_pct','avg_pct','hard_pct'].map(name => Number(form.elements[name].value));
+            if (difficulty.some(n => !Number.isFinite(n) || n < 0 || n > 100) || difficulty.reduce((a,b)=>a+b,0) !== 100) {
+                feedback.textContent = 'Difficulty percentages must add up to 100.'; return false;
+            }
+            generationBusy = true;
+            document.getElementById('generate-btn').disabled = true;
+            try { await selectGenerationKey(event, form); }
+            catch (error) { feedback.textContent = error.message; }
+            finally {
+                generationBusy = false;
+                document.getElementById('generate-btn').disabled = false;
+                document.getElementById('generate-btn').textContent = 'Generate Quiz';
+                form.style.opacity = ''; form.style.pointerEvents = '';
+                document.getElementById('loading-overlay').style.display = 'none';
+            }
+            return false;
+        }
+        // --- FORM SUBMIT LOGIC ---
+        async function selectGenerationKey(event, form) {
             event.preventDefault();
             let model = form.model_name.value;
             let isLocal = model.startsWith('ollama:');
@@ -1242,7 +1308,7 @@
                 alert('Batch size must be a whole number between 1 and 10.');
                 return false;
             }
-            
+
             // Optimization for 20+ questions: Ensure batch size is reasonable
             if (numItems >= 20 && batchSize > 5) {
                 form.batch_size.value = 5;
@@ -1259,10 +1325,10 @@
             }
 
             let estimatedRequests = Math.ceil(numItems / batchSize);
-            
+
             let isStudent = false;
             if (isStudent) {
-                estimatedRequests *= 2; 
+                estimatedRequests *= 2;
             }
 
             const today = new Date().toISOString().split('T')[0];
@@ -1303,18 +1369,28 @@
             } else {
                 btn.innerHTML = '⏳ GENERATING AI QUIZ... (PLEASE WAIT)';
             }
-            
+
             // LOCK THE FORM & BUTTON TO PREVENT DOUBLE-CLICKS
             btn.style.color = 'var(--warning)';
             btn.style.borderColor = 'var(--warning)';
-            btn.disabled = true; 
+            btn.disabled = true;
             form.style.opacity = '0.5';
             form.style.pointerEvents = 'none';
             document.getElementById('loading-overlay').style.display = 'block';
 
             // onsubmit was cancelled synchronously above; submit only after
             // asynchronous key selection and validation have completed.
-            HTMLFormElement.prototype.submit.call(form);
+            const payload = Object.fromEntries(new FormData(form));
+            payload.create_draft = true;
+            try {
+                const response = await fetch('/api/generate_ai', {method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
+                const data = await response.json().catch(() => null);
+                if (!response.ok || !data?.success) {
+                    const wait = response.headers.get('Retry-After');
+                    throw new Error(response.status === 429 ? `AI is busy. ${wait ? 'Try again in ' + wait + ' seconds.' : 'Wait a minute before trying again.'}` : (data?.error || 'Could not finish generation. Your settings are retained. Check My Quizzes before retrying.'));
+                }
+                window.location.href = data.redirect || '/edit/' + encodeURIComponent(data.quiz_id);
+            } catch (error) { throw error; }
             return false;
         }
 
@@ -1347,29 +1423,33 @@
         function filterQuizzes() {
             let searchInputElem = document.getElementById('searchInput');
             if (!searchInputElem) return; // For students, this doesn't exist
-            
+
             let input = searchInputElem.value.toLowerCase();
             let subjectGroups = document.querySelectorAll('.subject-group');
-            
+
+            let visibleCount = 0;
             subjectGroups.forEach(group => {
                 let items = group.querySelectorAll('.quiz-item');
                 let hasVisibleItems = false;
                 let folderContent = group.querySelector('.folder-content');
                 let chevron = group.querySelector('.chevron');
-                
+
                 items.forEach(item => {
                     let titleText = item.getAttribute('data-title');
                     let subjectText = group.getAttribute('data-subject');
-                    
-                    if(titleText.toLowerCase().includes(input) || subjectText.toLowerCase().includes(input)) {
-                        item.style.display = 'flex'; 
-                        hasVisibleItems = true;
+
+                    if ((titleText.toLowerCase().includes(input) || subjectText.toLowerCase().includes(input))
+                      && (!document.getElementById('library-status').value || item.dataset.status === document.getElementById('library-status').value)
+                      && (!document.getElementById('library-subject').value || subjectText === document.getElementById('library-subject').value)
+                      && (!document.getElementById('library-folder').value || item.dataset.folder === document.getElementById('library-folder').value)) {
+                        item.style.display = 'flex';
+                        hasVisibleItems = true; visibleCount++;
                     } else {
                         item.style.display = 'none';
                     }
                 });
-                
-                if (input.trim() !== '') {
+
+                if (input.trim() !== '' || ['library-status','library-subject','library-folder'].some(id => document.getElementById(id).value)) {
                     group.style.display = hasVisibleItems ? 'block' : 'none';
                     if (hasVisibleItems) {
                         folderContent.classList.add('open');
@@ -1379,8 +1459,15 @@
                     group.style.display = 'block';
                 }
             });
+            document.getElementById('library-empty').hidden = visibleCount > 0;
         }
 
+        function applyQuickDifficulty(value) {
+            const form = document.getElementById('ai-generator-form');
+            const values = {balanced:[50,25,25],easy:[100,0,0],average:[0,100,0],hard:[0,0,100]}[value];
+            ['easy_pct','avg_pct','hard_pct'].forEach((name,i) => form.elements[name].value = values[i]);
+            updateTotal();
+        }
         function toggleTypeDistribution() {
             const select = document.getElementById('test_type_select');
             const group = document.getElementById('mixed-distribution-group');
@@ -1418,8 +1505,8 @@
         }
 
         function updateTotal() {
-            let total = (parseFloat(document.getElementsByName('easy_pct')[0].value) || 0) + 
-                        (parseFloat(document.getElementsByName('avg_pct')[0].value) || 0) + 
+            let total = (parseFloat(document.getElementsByName('easy_pct')[0].value) || 0) +
+                        (parseFloat(document.getElementsByName('avg_pct')[0].value) || 0) +
                         (parseFloat(document.getElementsByName('hard_pct')[0].value) || 0);
             let label = document.getElementById('pct-total');
             label.innerText = '(Total: ' + total + '%)';
@@ -1462,7 +1549,7 @@
         }
 
         updateCounterUI();
-        
+
         function toggleCustomSubject(selectElem) {
             const customInput = selectElem.parentElement.querySelector('.custom-subject-input');
             if (selectElem.value === '__custom__') {
@@ -1493,7 +1580,7 @@
             const modal = document.getElementById('createBlankModal');
             const createBtn = modal.querySelector('.btn-primary');
             const cancelBtn = modal.querySelector('.btn-secondary');
-            
+
             if (createBtn) {
                 createBtn.disabled = true;
                 createBtn.innerHTML = '⏳ Creating Quiz...';
@@ -1514,7 +1601,7 @@
             // Restore blank quiz buttons and AI generator form if page is loaded from cache (like browser Back button)
             isCreatingBlank = false;
             isMerging = false;
-            
+
             const modal = document.getElementById('createBlankModal');
             if (modal) {
                 const createBtn = modal.querySelector('.btn-primary');
@@ -1541,7 +1628,7 @@
                 if (overlay) overlay.style.display = 'none';
                 window.refreshQuizmokoIcons();
             }
-            
+
             const mergeBtn = document.querySelector('#mergeActionBar button[onclick="executeMerge()"]');
             const mergeCancelBtn = document.querySelector('#mergeActionBar button[onclick="toggleMergeMode()"]');
             if (mergeBtn) {
@@ -1597,13 +1684,13 @@
         function toggleMergeMode() {
             mergeMode = !mergeMode;
             selectedQuizzes.clear();
-            
+
             document.getElementById('mergeActionBar').style.display = mergeMode ? 'flex' : 'none';
             const btn = document.getElementById('mergeModeBtn');
             btn.style.color = mergeMode ? 'var(--m-red)' : 'var(--on-dark)';
             btn.style.borderColor = mergeMode ? 'var(--m-red)' : 'var(--on-dark)';
             btn.innerText = mergeMode ? 'CANCEL MERGE' : 'MERGE MODE';
-            
+
             document.querySelectorAll('.quiz-item').forEach(item => {
                 if(mergeMode) {
                     item.style.cursor = 'pointer';
@@ -1645,7 +1732,7 @@
 
             isMerging = true;
             document.getElementById('mergeCount').innerText = 'MERGING...';
-            
+
             const mergeBtn = document.querySelector('#mergeActionBar button[onclick="executeMerge()"]');
             const cancelBtn = document.querySelector('#mergeActionBar button[onclick="toggleMergeMode()"]');
             if (mergeBtn) {
@@ -1719,7 +1806,7 @@
         });
         document.getElementById(id).classList.toggle('open');
     }
-    
+
     function toggleQuizDropdown(id) {
         document.querySelectorAll('.quiz-actions-dropdown').forEach(el => {
             if(el.id !== id) {
@@ -1735,7 +1822,7 @@
             if(card) card.style.zIndex = isShowing ? '50' : '';
         }
     }
-    
+
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.quiz-actions-menu')) {
             document.querySelectorAll('.quiz-actions-dropdown').forEach(el => {

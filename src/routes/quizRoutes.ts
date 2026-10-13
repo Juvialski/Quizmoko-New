@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Router, type NextFunction, type Response } from 'express';
 import { tokenRequired } from '../middleware/auth.ts';
 import { createQuizLimiter } from '../middleware/rateLimit.ts';
@@ -19,6 +20,16 @@ import {
 } from '../services/grading.ts';
 
 const router = Router();
+// Serialize updates through the existing persistence acknowledgment, including rollback.
+const quizUpdates = new Map<string, Promise<unknown>>();
+async function orderedQuizUpdate(id: string, work: () => Promise<unknown>) {
+  const previous = quizUpdates.get(id) || Promise.resolve();
+  const current = previous.catch(() => {}).then(work);
+  quizUpdates.set(id, current);
+  try { return await current; }
+  finally { if (quizUpdates.get(id) === current) quizUpdates.delete(id); }
+}
+
 
 function asyncRoute(
   handler: (req: AuthRequest, res: Response) => Promise<unknown>
@@ -141,6 +152,12 @@ function quizReviewRequiredIds(quiz: any): string[] {
     .filter(Boolean);
 }
 
+function quizEditVersion(quiz: any): string {
+  const value = sanitizeQuiz(quiz);
+  delete value.edit_version;
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
 function quizIsDraft(quiz: any): boolean {
   return quiz?.is_draft === true || quizReviewRequiredIds(quiz).length > 0;
 }
@@ -157,6 +174,11 @@ function validateQuizUpdate(body: any): { valid: boolean; error?: string; value?
   const value = sanitizeQuiz(body);
   const allowReviewRequired = body.allow_review_required === true;
   delete value.allow_review_required;
+  delete value.save_intent;
+  delete value.expected_revision;
+  delete value.edit_revision;
+  delete value.expected_version;
+  delete value.edit_version;
   if (value.title !== undefined) {
     if (typeof value.title !== 'string' || !value.title.trim() || value.title.length > 200) {
       return { valid: false, error: 'title must be a non-empty string of at most 200 characters' };
@@ -300,7 +322,7 @@ function quizForTaking(quiz: any): any {
 router.get('/', tokenRequired, (req: AuthRequest, res) => {
   const user = req.user!;
   const rawUserQuizzes = Array.from(quizzes.values()).filter(q => canManageQuiz(user, q));
-  const userQuizzes = rawUserQuizzes.map(publicQuiz);
+  const userQuizzes = rawUserQuizzes.map(q => ({ ...publicQuiz(q), is_draft: quizIsDraft(q), review_count: quizReviewRequiredIds(q).length }));
 
   userQuizzes.sort((a, b) => getQuizTimestamp(b) - getQuizTimestamp(a));
 
@@ -336,6 +358,9 @@ router.get('/', tokenRequired, (req: AuthRequest, res) => {
 
   res.render('index', {
     grouped_quizzes: sortedGroupedQuizzes,
+    recent_quizzes: userQuizzes.slice(0, 5),
+    draft_count: userQuizzes.filter(q => q.is_draft).length,
+    published_count: userQuizzes.filter(q => !q.is_draft).length,
     all_subjects: Array.from(new Set(allSubjects)).sort(),
     all_folders: allFolders,
     is_admin: user.role === 'admin',
@@ -362,7 +387,17 @@ router.get(['/edit/:quiz_id', '/edit_quiz/:quiz_id'], tokenRequired, (req: AuthR
     return res.status(404).send('Quiz not found');
   }
   if (!canManageQuiz(req.user, quiz)) return res.status(403).send('You do not have access to this quiz');
-  res.render('edit_quiz', { quiz: sanitizeQuiz(quiz), quiz_id: req.params.quiz_id });
+  res.render('edit_quiz', { quiz: { ...sanitizeQuiz(quiz), edit_version: quizEditVersion(quiz) }, quiz_id: req.params.quiz_id });
+});
+
+// Teacher preview is read-only and has no attempt/session/grading code.
+router.get('/preview/:quiz_id', tokenRequired, (req: AuthRequest, res) => {
+  const quiz = quizzes.get(req.params.quiz_id);
+  if (!quiz) return res.status(404).send('Quiz not found');
+  if (!canManageQuiz(req.user, quiz)) return res.status(403).send('You do not have access to this quiz');
+  const preview = quizForTaking(quiz);
+  preview.questions.forEach((q: any, i: number) => q.original_index = quiz.questions[i]?.source?.original_index ?? q.original_index);
+  res.render('preview_quiz', { quiz: preview });
 });
 
 router.get('/api/quiz/:quiz_id', (req, res) => {
@@ -378,27 +413,40 @@ router.get('/api/quiz/:quiz_id', (req, res) => {
 
 router.post(['/update/:quiz_id', '/api/quiz/:quiz_id/update'], tokenRequired, asyncRoute(async (req, res) => {
   const quizId = req.params.quiz_id;
-  const storedQuiz = quizzes.get(quizId);
-  if (!storedQuiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
-  if (!canManageQuiz(req.user, storedQuiz)) return rejectQuizAccess(res);
-  const existing = sanitizeQuiz(storedQuiz);
-  const validation = validateQuizUpdate(req.body);
-  if (!validation.valid) {
-    return res.status(400).json({ success: false, error: validation.error });
-  }
-  const incoming = validation.value || {};
-  if (incoming.title) {
-    incoming.title = getUniqueQuizTitle(incoming.title, quizId);
-  }
-  const updated = sanitizeQuiz({
-    ...existing,
-    ...incoming,
-    id: quizId,
-    user_id: existing.user_id,
-    created_at: existing.created_at || new Date().toISOString()
+  return orderedQuizUpdate(quizId, async () => {
+    const storedQuiz = quizzes.get(quizId);
+    if (!storedQuiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
+    if (!canManageQuiz(req.user, storedQuiz)) return rejectQuizAccess(res);
+    const intent = req.body?.save_intent;
+    if (intent !== undefined && !['draft', 'save', 'publish'].includes(intent)) {
+      return res.status(400).json({ success: false, error: 'Unknown save action' });
+    }
+    if ((req.body?.expected_revision !== undefined && req.body.expected_revision !== (storedQuiz.edit_revision || 0)) || (req.body?.expected_version !== undefined && req.body.expected_version !== quizEditVersion(storedQuiz))) {
+      return res.status(409).json({ success: false, error: 'This quiz changed in another window. Your edits are still here. Open the latest quiz in a new tab and reconcile them before saving.' });
+    }
+    const existing = sanitizeQuiz(storedQuiz);
+    const validation = validateQuizUpdate(intent === 'publish' ? { ...req.body, questions: req.body?.questions ?? storedQuiz.questions, allow_review_required: false } : req.body);
+    if (!validation.valid) {
+      return res.status(400).json({ success: false, error: validation.error });
+    }
+    const incoming = validation.value || {};
+    if (incoming.title) {
+      incoming.title = getUniqueQuizTitle(incoming.title, quizId);
+    }
+    const updated = sanitizeQuiz({
+      ...existing,
+      ...incoming,
+      id: quizId,
+      user_id: existing.user_id,
+      created_at: existing.created_at || new Date().toISOString()
   });
   const remainingReviewIds = quizReviewRequiredIds(updated);
-  updated.is_draft = remainingReviewIds.length > 0;
+  if (intent === 'publish' && (!updated.questions?.length || remainingReviewIds.length)) {
+    return res.status(409).json({ success: false, error: 'Review all questions before publishing.' });
+  }
+  updated.is_draft = remainingReviewIds.length > 0 || intent === 'draft' || (intent === 'save' && existing.is_draft === true);
+  updated.edit_revision = (storedQuiz.edit_revision || 0) + 1;
+  updated.updated_at = new Date().toISOString();
   updated.review_required_ids = remainingReviewIds;
   if (!updated.is_draft) delete updated.worksheet_validation;
   quizzes.set(quizId, updated);
@@ -410,7 +458,8 @@ router.post(['/update/:quiz_id', '/api/quiz/:quiz_id/update'], tokenRequired, as
     savePersistentData();
     throw error;
   }
-  res.json({ success: true, quiz_id: quizId, quiz: updated, redirect: `/edit/${quizId}` });
+  res.json({ success: true, quiz_id: quizId, quiz: { ...updated, edit_version: quizEditVersion(updated) }, redirect: `/edit/${quizId}` });
+  });
 }));
 
 router.post('/delete/:quiz_id', tokenRequired, asyncRoute(async (req, res) => {
@@ -438,6 +487,7 @@ router.get('/create_blank', tokenRequired, createQuizLimiter, asyncRoute(async (
     id: newId,
     user_id: req.user ? req.user.uid : 'teacher_test',
     title: uniqueTitle,
+    is_draft: true,
     subject,
     time_limit: 30,
     quiz_mode: 'back_and_forth',

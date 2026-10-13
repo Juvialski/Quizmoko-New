@@ -131,3 +131,8 @@ Added bounded exact math and shared choice/explanation/diagram/extraction gates 
 # 2026-10-13 — R3 grading and rendering evidence
 
 Added strict semantic fractions, explicit weighted rubric coverage, final-answer deterministic contracts, two-attempt grading caps, decoded/readable image evidence and targeted review. Added a bounded closed SVG-to-PNG teacher preview without local TeX, separate source/render/semantic evidence and original-source retention. Added PDF text-layer numeric disagreement diagnostics and audited revision-checked single-item teacher semantic correction. Versioned opt-in live runs cap actual calls and inherit cancellation; offline actual-R2/current grading and real local diagram decoding remain distinct from Gemini/handwriting accuracy. No production data or credential operations. See docs/R3_IMPLEMENTATION_REPORT.md.
+
+
+# 2026-10-13 — R4 teacher workflows
+
+Implemented the actual EJS dashboard/action hierarchy, single-form Quick Create, hydrated library filters, editor review navigator and optional tools, read-only teacher preview, explicit draft/publication and revision/content-version save protection. Preserved existing providers, correctness boundaries, worksheet source identity and historical grading. Shared focus/labels/progress presentation stays separate from authority. Browser tests run synthetic journeys with mocked AI and isolated Chromium; optional actual static CDN rendering remains distinct from provider/production evidence. Fixed results analytics variable scope found in browser testing. Teacher preview escapes stored/source HTML and rebuilds a closed inert display subset, with regression coverage for scripts/events/unsafe URLs. See docs/R4_IMPLEMENTATION_REPORT.md.

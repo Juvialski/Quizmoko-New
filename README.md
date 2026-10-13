@@ -62,10 +62,15 @@ See [`docs/IMPLEMENTATION_REPORT.md`](docs/IMPLEMENTATION_REPORT.md) for the his
 npm run check   # TypeScript validation
 npm test        # TypeScript validation and regression suite
 npm run build   # Validation build gate
-npm run eval:ai # Run the 20-question live gold evaluation (requires GEMINI_API_KEY)
+npm run eval:ai # Run the 136-question mocked offline regression baseline
+npm run eval:ai:live # Explicit live evaluation (requires credentials)
 npm start       # Start the production server
 ```
 
 ## Important deployment boundary
 
 Use a stable `SESSION_SECRET` in production. QuizMoKo's attempt locks and revision high-water guards are process-local, so deploy one writable server process unless durable transactional compare-and-swap protection is added.
+
+## R1 production stability
+
+See [implementation and validation](docs/R1_IMPLEMENTATION_REPORT.md) and [production prerequisites](docs/PRODUCTION_OPERATIONS.md). Production credentials, stable secret and trusted origins must be verified before merging/deploying. Offline evaluation uses mocked responses; live evaluation is explicitly opt-in.

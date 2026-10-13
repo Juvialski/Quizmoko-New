@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
@@ -632,4 +633,27 @@ test('UI Consistency - Back-and-forth question buttons preserve guarded grading 
     !content.includes("question-jump-btn.correct") && !content.includes("question-jump-btn.incorrect"),
     'Question-number navigation must not reveal correctness in back-and-forth mode'
   );
+});
+
+test('all EJS templates compile and shared browser JavaScript parses', () => {
+  const ejs = createRequire(import.meta.url)('ejs');
+  for (const file of getEjsFiles()) {
+    assert.doesNotThrow(() => ejs.compile(fs.readFileSync(file, 'utf8'), { filename: file }), file);
+  }
+  const scripts = path.join(process.cwd(), 'public/js');
+  for (const file of fs.readdirSync(scripts).filter(name => name.endsWith('.js'))) {
+    assert.doesNotThrow(() => acorn.parse(fs.readFileSync(path.join(scripts, file), 'utf8'), {
+      ecmaVersion: 'latest', sourceType: 'module'
+    }), file);
+  }
+});
+
+test('dashboard disclaimer callbacks tolerate the absent banner', () => {
+  const html = fs.readFileSync(path.join(VIEWS_DIR, 'index.ejs'), 'utf8');
+  const callback = html.match(/function closeDisclaimer\(\) \{([\s\S]*?)\n        \}/)?.[1];
+  assert.ok(callback);
+  const dom = new JSDOM('<html><body></body></html>', { url: 'https://quiz.example.invalid' });
+  assert.doesNotThrow(() => new Function('document', 'localStorage', callback!)(dom.window.document, dom.window.localStorage));
+  assert.equal(dom.window.localStorage.getItem('hide_ai_disclaimer'), 'true');
+  dom.window.close();
 });

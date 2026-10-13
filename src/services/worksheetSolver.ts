@@ -1,3 +1,4 @@
+import { waitWithSignal } from './requestContext.ts';
 import { Type } from '@google/genai';
 import { getGeminiClient, safeParseJSON } from './gemini.ts';
 import { generateGeminiContent, GeminiRateLimitError } from './geminiRateLimiter.ts';
@@ -123,7 +124,8 @@ function retryableModelFailure(error: unknown): boolean {
   const status = errorStatus(error);
   if (status !== null) return status === 408 || status === 429 || status >= 500;
   const name = String((error as any)?.name || '');
-  if (name === 'AbortError' || name === 'TimeoutError') return true;
+  if (name === 'AbortError') return false;
+  if (name === 'TimeoutError') return true;
   const message = String((error as any)?.message || error || '').toLowerCase();
   return /timeout|timed out|temporar|rate limit|quota|network|fetch|connection|socket|econn|invalid json|omitted|coverage|source_id|source_index|solver result|latex delimiter|invalid latex|unsupported_type|validation failed/.test(message);
 }
@@ -150,7 +152,7 @@ export async function runBoundedWorksheetModelRequest<T>(input: {
     const timeoutMs = Math.max(1, Math.min(input.timeoutMs ?? WORKSHEET_MODEL_TIMEOUT_MS, remaining));
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      return await input.operation(controller.signal);
+      return await waitWithSignal(input.operation(controller.signal), controller.signal);
     } catch (error) {
       lastError = error;
       const canRetry = attempt < maximumAttempts

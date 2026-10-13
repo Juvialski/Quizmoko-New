@@ -816,3 +816,11 @@ Use these documents for different purposes:
 - `AI_QUALITY.md` — detailed AI-quality policy and evaluation system.
 
 A roadmap item must not be described as current behavior until its implementation has been merged and the canonical architecture map has been updated.
+
+## R1 implementation update (2026-10-13)
+
+The original baseline above is historical. R1 implements production startup enforcement, acknowledged/coalesced checkpoints, ordered-deduplication correction, shutdown draining, result identity privacy, demo isolation, upload resource preflight, AI deadlines/cancellation, offline corpus expansion and PR CI. See [R1 implementation/evidence](../R1_IMPLEMENTATION_REPORT.md), [deployment gate](../PRODUCTION_OPERATIONS.md) and [retained advisories](../DEPENDENCY_AUDIT.md).
+
+Production now hydrates credentialed Firestore before listening and does not merge JSON fallback into canonical production state. Public health is minimal; details require admin auth. New generated quizzes/final results require persistence acknowledgment. Progress saves await a checkpoint; individual academic grading may still precede persistence. Demo seeding is restricted to tests/explicit development. Modern result access no longer uses names/emails. Live controls remain ephemeral, but stale student sessions are pruned and origins restricted.
+
+No migration, production deployment/database change, live Gemini evaluation or distributed coordination was introduced. Verify actual Render credentials/secret/origins and administrator access before merge. These are completed local changes with hosted/production acceptance pending, not claims that every risk in the historical roadmap is resolved. Phase 2 accuracy work remains future work.

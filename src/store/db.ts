@@ -1,3 +1,4 @@
+import { demoDataEnabled, isProductionRuntime } from '../services/runtimeConfig.ts';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -36,7 +37,7 @@ export const sessionProgress = new Map<string, any>();
 export const liveSessions = new Map<string, LiveSessionState>();
 
 // Pre-populate Default Teacher User
-users.set('teacher_test', {
+if (demoDataEnabled()) users.set('teacher_test', {
   uid: 'teacher_test',
   email: 'teacher@quizmoko.com',
   name: 'Teacher Test',
@@ -127,7 +128,7 @@ const sampleQuizzes: Quiz[] = [
   }
 ];
 
-sampleQuizzes.forEach(q => quizzes.set(q.id, q));
+if (demoDataEnabled()) sampleQuizzes.forEach(q => quizzes.set(q.id, q));
 
 // --- FILE-BASED & FIREBASE PERSISTENCE ---
 type FirestoreBackend =
@@ -182,7 +183,7 @@ function envFlag(name: string, fallback: boolean): boolean {
 }
 
 export function isFirestoreRequired(): boolean {
-  return envFlag('REQUIRE_FIRESTORE', false);
+  return !isAiStudioSandbox() && (isProductionRuntime() || envFlag('REQUIRE_FIRESTORE', false));
 }
 
 function positiveInteger(raw: string | undefined, fallback: number, maximum: number): number {
@@ -264,6 +265,7 @@ try {
 
 export const firestoreDbs: FirestoreBackend[] = [];
 const pendingPersistence = new Set<Promise<void>>();
+const failedPersistenceTargets = new Set<string>();
 const firestoreMutationQueues = new Map<string, Promise<void>>();
 let backendsConfigured = false;
 let databaseInitialization: Promise<void> | null = null;
@@ -305,8 +307,7 @@ function errorMessage(error: unknown, fallback: string): string {
 }
 
 function markFirestoreFailure(context: string, error?: unknown): string {
-  const detail = errorMessage(error, 'unknown Firestore error');
-  const message = `${context}: ${detail}`;
+  const message = `${context}: persistence operation failed`;
   firestoreFailureGeneration += 1;
   firestoreHealthy = false;
   lastFirestoreError = message;
@@ -465,7 +466,8 @@ function beginLocalSnapshot(): Promise<void> {
   ]).then(
     () => undefined,
     (error) => {
-      console.warn('[Persistence] Failed to save a local snapshot atomically:', error instanceof Error ? error.message : 'unknown error');
+      console.warn('[Persistence] Failed to save a local snapshot atomically.');
+      throw error;
     }
   );
 
@@ -483,13 +485,21 @@ function beginLocalSnapshot(): Promise<void> {
   return localSaveInFlight;
 }
 
+async function acknowledgedLocalSnapshot(): Promise<void> {
+  // An in-flight snapshot may have captured state before this mutation.
+  // Await it, then capture the current store rather than acknowledging its old data.
+  if (localSaveInFlight) await localSaveInFlight;
+  if (localSaveTimer) { clearTimeout(localSaveTimer); localSaveTimer = undefined; }
+  await beginLocalSnapshot();
+}
+
 function scheduleLocalSnapshot(delayMs = positiveInteger(process.env.LOCAL_SAVE_DEBOUNCE_MS, 250, 5_000)) {
   if (!localPersistenceAvailable || isAiStudioSandbox()) return;
   localSaveRequested = true;
   if (localSaveTimer || localSaveInFlight) return;
   localSaveTimer = setTimeout(() => {
     localSaveTimer = undefined;
-    void beginLocalSnapshot();
+    void beginLocalSnapshot().catch(() => undefined);
   }, delayMs);
 }
 
@@ -918,7 +928,12 @@ function enqueueFirestoreMutation(
   const queueKey = `${collectionName}\u0000${documentId}`;
   const previous = firestoreMutationQueues.get(queueKey) || Promise.resolve();
   // A failed predecessor must not permanently poison the document queue.
-  const operation = previous.catch(() => undefined).then(mutation);
+  const operation = previous.catch(() => undefined).then(mutation).then(() => {
+    failedPersistenceTargets.delete(queueKey);
+  }, error => {
+    failedPersistenceTargets.add(queueKey);
+    throw error;
+  });
   firestoreMutationQueues.set(queueKey, operation);
   operation.then(
     () => {
@@ -939,6 +954,9 @@ const lastSyncedDocHashes = new Map<string, string>();
 const pendingProgressiveSyncs = new Map<string, {
   data: any;
   timer: NodeJS.Timeout;
+  completion: Promise<void>;
+  resolve(): void;
+  reject(error: unknown): void;
 }>();
 
 function computeDocumentHash(value: any): string {
@@ -946,44 +964,33 @@ function computeDocumentHash(value: any): string {
   return createHash('sha256').update(JSON.stringify(plain)).digest('hex');
 }
 
-export function syncProgressiveDocToFirestore(
-  collectionName: string,
-  documentId: string,
-  data: any,
-  throttleMs = 12_000
-): void {
-  if (isAiStudioSandbox()) return;
+export function checkpointProgressToFirestore(
+  collectionName: string, documentId: string, data: any, throttleMs = 3_000
+): Promise<void> {
+  if (isAiStudioSandbox()) return Promise.resolve();
   const docKey = `${collectionName}/${documentId}`;
-
-  // If identical to last remote state, don't schedule a sync
-  const docHash = computeDocumentHash(data);
-  if (lastSyncedDocHashes.get(docKey) === docHash) {
-    const existing = pendingProgressiveSyncs.get(docKey);
-    if (existing) {
-      clearTimeout(existing.timer);
-      pendingProgressiveSyncs.delete(docKey);
-    }
-    return;
-  }
-
   const existing = pendingProgressiveSyncs.get(docKey);
   if (existing) {
-    // Update pending payload to newest state
-    existing.data = data;
-    return;
+    existing.data = toPlainPersistenceValue(data);
+    return existing.completion;
   }
-
+  let resolve!: () => void;
+  let reject!: (error: unknown) => void;
+  const completion = new Promise<void>((yes, no) => { resolve = yes; reject = no; });
   const timer = setTimeout(() => {
     const entry = pendingProgressiveSyncs.get(docKey);
     pendingProgressiveSyncs.delete(docKey);
-    if (entry) {
-      void syncDocToFirestore(collectionName, documentId, entry.data).catch((error) => {
-        console.warn(`[Firebase] Throttled progressive sync failed for ${docKey}:`, error);
-      });
-    }
+    if (entry) void syncDocToFirestore(collectionName, documentId, entry.data).then(entry.resolve, entry.reject);
   }, throttleMs);
+  pendingProgressiveSyncs.set(docKey, { data: toPlainPersistenceValue(data), timer, completion, resolve, reject });
+  return completion;
+}
 
-  pendingProgressiveSyncs.set(docKey, { data, timer });
+export function syncProgressiveDocToFirestore(
+  collectionName: string, documentId: string, data: any, throttleMs = 3_000
+): void {
+  void checkpointProgressToFirestore(collectionName, documentId, data, throttleMs)
+    .catch(() => console.warn('[Persistence] Progressive checkpoint failed; progress remains unacknowledged.'));
 }
 
 export function syncDocToFirestore(collectionName: string, documentId: string, data: any) {
@@ -994,7 +1001,7 @@ export function syncDocToFirestore(collectionName: string, documentId: string, d
     validateFirestoreTarget(collectionName, documentId);
   } catch (error) {
     console.warn('[Firebase] Refused an invalid persistence target:', error instanceof Error ? error.message : 'unknown error');
-    return Promise.resolve();
+    return Promise.reject(error);
   }
 
   const docKey = `${collectionName}/${documentId}`;
@@ -1011,12 +1018,9 @@ export function syncDocToFirestore(collectionName: string, documentId: string, d
   const docHash = computeDocumentHash(persistenceSnapshot);
 
   // Write deduplication: bypass Firestore network write if doc state is identical
-  if (lastSyncedDocHashes.get(docKey) === docHash) {
-    return Promise.resolve();
-  }
-
-  return enqueueFirestoreMutation(collectionName, documentId, async () => {
+  const operation = enqueueFirestoreMutation(collectionName, documentId, async () => {
     const failureGenerationAtStart = firestoreFailureGeneration;
+    if (lastSyncedDocHashes.get(docKey) === docHash) return;
     const required = isFirestoreRequired();
     const backends = activeFirestoreBackends();
     if (required && backends.length === 0) {
@@ -1034,7 +1038,7 @@ export function syncDocToFirestore(collectionName: string, documentId: string, d
         failures.push({ backend, error });
         console.warn(
           `[Firebase] Error syncing ${collectionName}/${documentId} through ${backend.label}:`,
-          errorMessage(error, 'Firestore write failed')
+          'Firestore write failed'
         );
       }
     }
@@ -1045,12 +1049,17 @@ export function syncDocToFirestore(collectionName: string, documentId: string, d
         `Failed to persist ${collectionName}/${documentId} through ${failure.backend.label}`,
         failure.error
       );
-      if (required) throw new PersistenceUnavailableError(message);
-      return;
+      throw new PersistenceUnavailableError(message);
+    }
+    if (backends.length === 0) {
+      if (!localPersistenceAvailable) throw new PersistenceUnavailableError("No durable persistence is available.");
+      await acknowledgedLocalSnapshot();
     }
     lastSyncedDocHashes.set(docKey, docHash);
     if (backends.length > 0) markFirestoreHealthy(failureGenerationAtStart);
   });
+  if (pending) void operation.then(pending.resolve, pending.reject);
+  return operation;
 }
 
 export function deleteDocFromFirestore(collectionName: string, documentId: string) {
@@ -1061,7 +1070,7 @@ export function deleteDocFromFirestore(collectionName: string, documentId: strin
     validateFirestoreTarget(collectionName, documentId);
   } catch (error) {
     console.warn('[Firebase] Refused an invalid delete target:', error instanceof Error ? error.message : 'unknown error');
-    return Promise.resolve();
+    return Promise.reject(error);
   }
 
   const docKey = `${collectionName}/${documentId}`;
@@ -1072,7 +1081,7 @@ export function deleteDocFromFirestore(collectionName: string, documentId: strin
   }
   lastSyncedDocHashes.delete(docKey);
 
-  return enqueueFirestoreMutation(collectionName, documentId, async () => {
+  const operation = enqueueFirestoreMutation(collectionName, documentId, async () => {
     const failureGenerationAtStart = firestoreFailureGeneration;
     const required = isFirestoreRequired();
     const backends = activeFirestoreBackends();
@@ -1096,7 +1105,7 @@ export function deleteDocFromFirestore(collectionName: string, documentId: strin
         failures.push({ backend, error });
         console.warn(
           `[Firebase] Error deleting ${collectionName}/${documentId} through ${backend.label}:`,
-          errorMessage(error, 'Firestore delete failed')
+          'Firestore delete failed'
         );
       }
     }
@@ -1107,11 +1116,16 @@ export function deleteDocFromFirestore(collectionName: string, documentId: strin
         `Failed to delete ${collectionName}/${documentId} through ${failure.backend.label}`,
         failure.error
       );
-      if (required) throw new PersistenceUnavailableError(message);
-      return;
+      throw new PersistenceUnavailableError(message);
+    }
+    if (backends.length === 0) {
+      if (!localPersistenceAvailable) throw new PersistenceUnavailableError("No durable persistence is available.");
+      await acknowledgedLocalSnapshot();
     }
     if (backends.length > 0) markFirestoreHealthy(failureGenerationAtStart);
   });
+  if (pending) void operation.then(pending.resolve, pending.reject);
+  return operation;
 }
 
 interface CollectionLoadResult {
@@ -1202,7 +1216,7 @@ export async function loadFromFirestore(generation = ++firestoreLoadGeneration):
     const sampleIds = new Set(sampleQuizzes.map((s) => s.id));
     if (stagedCanonicalQuizzes.size > 0) {
       for (const sampleId of sampleIds) {
-        quizzes.delete(sampleId);
+        if (demoDataEnabled() && !stagedCanonicalQuizzes.has(sampleId)) quizzes.delete(sampleId);
       }
     }
     // Canonical records win globally, including across multiple databases.
@@ -1348,7 +1362,8 @@ export function getPersistenceStatus() {
     firestoreHydrated,
     firestoreHealthy,
     firestoreBackends: firestoreDbs.map((backend) => backend.label),
-    pendingWrites: pendingPersistence.size,
+    pendingWrites: pendingPersistence.size + pendingProgressiveSyncs.size,
+    failedWrites: failedPersistenceTargets.size,
     lastError: lastPersistenceError || null
   };
 }
@@ -1361,7 +1376,7 @@ export async function flushPendingPersistence(timeoutMs = 10_000): Promise<boole
     pendingProgressiveSyncs.delete(docKey);
     const [col, id] = docKey.split('/');
     if (col && id) {
-      void syncDocToFirestore(col, id, entry.data);
+      void syncDocToFirestore(col, id, entry.data).then(entry.resolve, entry.reject);
     }
   }
 
@@ -1371,11 +1386,11 @@ export async function flushPendingPersistence(timeoutMs = 10_000): Promise<boole
       localSaveTimer = undefined;
     }
     if (localSaveRequested && !localSaveInFlight) {
-      void beginLocalSnapshot();
+      void beginLocalSnapshot().catch(() => undefined);
     }
 
     const operations = Array.from(pendingPersistence);
-    if (operations.length === 0 && !localSaveRequested && !localSaveInFlight) return true;
+    if (operations.length === 0 && !localSaveRequested && !localSaveInFlight) return failedPersistenceTargets.size === 0 && (!isFirestoreRequired() || firestoreHealthy);
 
     const remaining = deadline - Date.now();
     if (remaining <= 0) return false;
@@ -1401,7 +1416,7 @@ export function initDatabase(): Promise<void> {
       return;
     }
 
-    loadPersistentData();
+    if (!isProductionRuntime()) loadPersistentData();
     configureFirestoreBackends();
 
     const required = isFirestoreRequired();
@@ -1454,7 +1469,7 @@ export function initDatabase(): Promise<void> {
 export function exportDatabaseSnapshot() {
   const allQuizzes = Array.from(quizzes.values()).map(q => ({ ...q }));
   const allResults = Array.from(results.values()).map(r => ({ ...r }));
-  const allUsers = Array.from(users.values()).map(u => ({ ...u }));
+  const allUsers = Array.from(users.values()).map(redactUserCredentials);
   return {
     exported_at: new Date().toISOString(),
     summary: {
@@ -1466,4 +1481,32 @@ export function exportDatabaseSnapshot() {
     results: allResults,
     users: allUsers
   };
+}
+
+/** Hermetic fault injection; never available to a production process. */
+export function configurePersistenceBackendForTests(db: any): void {
+  if (process.env.NODE_ENV !== 'test' || isProductionRuntime()) throw new Error('Test backend forbidden.');
+  firestoreDbs.length = 0;
+  firestoreDbs.push({ kind: 'admin', db, label: 'test-admin' });
+  backendsConfigured = true;
+}
+
+export function redactUserCredentials<T extends Record<string, any>>(user: T): Omit<T, 'stored_custom_key'> {
+  const { stored_custom_key: _key, ...safe } = user;
+  return safe;
+}
+
+/** Publish new AI/worksheet quizzes to hot state only after a durable acknowledgment. */
+export async function persistQuizCreation(quiz: Quiz): Promise<void> {
+  const previous = quizzes.get(quiz.id);
+  if (!isFirestoreRequired()) quizzes.set(quiz.id, quiz);
+  try {
+    await syncDocToFirestore('quizzes', quiz.id, quiz);
+  } catch (error) {
+    if (previous) quizzes.set(quiz.id, previous); else quizzes.delete(quiz.id);
+    savePersistentData();
+    throw error;
+  }
+  quizzes.set(quiz.id, quiz);
+  savePersistentData();
 }

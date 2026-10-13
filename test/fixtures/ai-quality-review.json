@@ -1,0 +1,68 @@
+[
+  {
+    "id": "review_1",
+    "category": "ambiguous",
+    "question": "What is the best number?",
+    "options": [],
+    "answer": "1",
+    "solution": "Teacher review required.",
+    "type": "identification",
+    "scenario": "low_confidence",
+    "expected_status": "review_required"
+  },
+  {
+    "id": "review_2",
+    "category": "unsolvable",
+    "question": "Solve $x+1=x+2$.",
+    "options": [],
+    "answer": "no solution",
+    "solution": "Teacher review required.",
+    "type": "identification",
+    "scenario": "low_confidence",
+    "expected_status": "review_required"
+  },
+  {
+    "id": "review_3",
+    "category": "diagram missing",
+    "question": "In the referenced diagram, find the shaded area. The diagram is not supplied.",
+    "options": [],
+    "answer": "unknown",
+    "solution": "Teacher review required.",
+    "type": "identification",
+    "scenario": "low_confidence",
+    "expected_status": "review_required"
+  },
+  {
+    "id": "review_4",
+    "category": "golden conflict",
+    "question": "What is $2+3$?",
+    "options": [],
+    "answer": "4",
+    "solution": "Teacher review required.",
+    "type": "identification",
+    "scenario": "golden_conflict",
+    "expected_status": "review_required"
+  },
+  {
+    "id": "review_5",
+    "category": "malformed output",
+    "question": "Evaluate $4+5$.",
+    "options": [],
+    "answer": "9",
+    "solution": "Teacher review required.",
+    "type": "identification",
+    "scenario": "malformed",
+    "expected_status": "review_required"
+  },
+  {
+    "id": "review_6",
+    "category": "LaTeX malformed",
+    "question": "Evaluate $\\dfrac{1}{2$.",
+    "options": [],
+    "answer": "0.5",
+    "solution": "Teacher review required.",
+    "type": "identification",
+    "scenario": "invalid",
+    "expected_status": "review_required"
+  }
+]

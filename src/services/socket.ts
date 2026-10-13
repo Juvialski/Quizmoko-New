@@ -1,5 +1,6 @@
+import { isProductionRuntime, trustedSocketOrigins } from './runtimeConfig.ts';
 import { Server as SocketIOServer } from 'socket.io';
-import { getOrCreateLiveState, quizzes, results } from '../store/db.ts';
+import { getOrCreateLiveState, quizzes, results, liveSessions } from '../store/db.ts';
 
 const LIVE_ID_PATTERN = /^[A-Za-z0-9_-]{1,160}$/;
 const RESERVED_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
@@ -25,9 +26,11 @@ export function updateLiveSession(quizId: string, payload: any) {
     return { liveState: null, sessionId: '', session: null, error: 'invalid_session' };
   }
 
+  pruneInactiveLiveSessions();
   const liveState = getOrCreateLiveState(quizId);
   const requestedStatus = String(payload?.status || '').trim().slice(0, 64);
-  if (liveState.terminated && requestedStatus.toLowerCase() === 'started') {
+  if (liveState.terminated && requestedStatus.toLowerCase() === 'started'
+    && results.get(`res_${sessionId}`)?.is_in_progress !== false) {
     // A fresh attempt after a terminated run starts a new live lifecycle.
     liveState.terminated = false;
     liveState.paused = false;
@@ -91,10 +94,10 @@ export function updateLiveSession(quizId: string, payload: any) {
     0,
     Math.min(
       existing.max_score || maxScore || totalQuestions,
-      authoritativeScore ?? finiteNumber(payload?.score, finiteNumber(existing.score, 0))
+      authoritativeScore ?? 0
     )
   );
-  existing.status = requestedStatus || existing.status || 'Active';
+  existing.status = progressiveResult?.is_in_progress === false ? 'Completed' : requestedStatus || existing.status || 'Active';
   existing.last_active = Date.now();
   existing.whiteboard_disabled = Boolean(existing.whiteboard_disabled);
 
@@ -103,12 +106,18 @@ export function updateLiveSession(quizId: string, payload: any) {
 }
 
 export function initSocketServer(server: any) {
+  const origins = trustedSocketOrigins();
   const io = new SocketIOServer(server, {
+    allowRequest: (req, callback) => callback(null, !isProductionRuntime()
+      || !req.headers.origin || origins.includes(req.headers.origin)),
     cors: {
-      origin: "*",
+      origin: isProductionRuntime() ? trustedSocketOrigins() : "*",
       methods: ["GET", "POST"]
     }
   });
+  const cleanup = setInterval(pruneInactiveLiveSessions, 60_000);
+  cleanup.unref();
+  io.engine.once('close', () => clearInterval(cleanup));
   io.on('connection', (socket) => {
     let currentRoom: string | null = null;
 
@@ -183,4 +192,13 @@ export function initSocketServer(server: any) {
   });
 
   return io;
+}
+
+export function pruneInactiveLiveSessions(now = Date.now()): void {
+  for (const [quizId, state] of liveSessions) {
+    for (const [id, session] of Object.entries(state.sessions)) {
+      if (now - Number(session.last_active || 0) > 2 * 60 * 60 * 1000) delete state.sessions[id];
+    }
+    if (!quizzes.has(quizId)) liveSessions.delete(quizId);
+  }
 }

@@ -1,3 +1,4 @@
+import { requestContext } from '../services/requestContext.ts';
 import type { Express } from 'express';
 import adminRoutes from './adminRoutes.ts';
 import aiRoutes from './aiRoutes.ts';
@@ -22,7 +23,19 @@ const appRouters = [
 ];
 
 export function registerRoutes(app: Express): void {
+  app.use(requestContext);
   for (const router of appRouters) {
+    // Express 4 does not forward rejected async handlers automatically.
+    for (const layer of (router as any).stack) {
+      for (const handler of layer.route?.stack || []) {
+        const original = handler.handle;
+        if (original.length === 4) continue;
+        handler.handle = (req: any, res: any, next: any) => {
+          try { Promise.resolve(original(req, res, next)).catch(next); }
+          catch (error) { next(error); }
+        };
+      }
+    }
     app.use(router);
   }
 }

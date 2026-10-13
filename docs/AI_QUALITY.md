@@ -98,20 +98,16 @@ Student/public payload sanitation continues to remove private answer and QA meta
 - invalid-LaTeX fail-closed behavior
 - raw-template regressions involving JavaScript backslash escapes
 - prompt regressions involving JSON newlines and over-wrapped numbers
-- canonical validity of the 20-question gold evaluation fixture
+- canonical validity of the 136-question gold evaluation fixture
 - editor invalidation of stale AI verification after semantic content changes
 - per-model rolling-window RPM queuing and independent model buckets
 
 ## Live gold evaluation
 
-Run `npm run eval:ai` with `GEMINI_API_KEY` or `API_KEY` configured. The harness in `scripts/evaluate-ai-quality.ts` sends the answerless 20-question fixture in `test/fixtures/ai-quality-gold.json` through the real verification pipeline and reports:
+Run `npm run eval:ai` for hermetic mocked pipeline measurement. The 136-question gold corpus includes 30 category labels, arithmetic oracles, choice/identification questions, science/language, LaTeX and stable worksheet numbering. Six separate negative fixtures cover ambiguity, inconsistent equations, missing diagrams, golden conflicts, malformed output and broken LaTeX. Their review outcomes are regression expectations driven by mocks, not automatic detection of mathematical ambiguity.
 
-- final answer accuracy
-- per-model solver accuracy
-- solver agreement rate
-- verified, review-required, and invalid counts
-- verified-but-wrong count
-- model failures and item-level reasons
-- total elapsed time
+`docs/AI_BASELINE_OFFLINE.json` records the mocked baseline: 136 correct/verified, no verified-wrong results, two solver requests. This **does not measure Gemini accuracy or demonstrate an accuracy gain**. `npm run eval:ai:live` explicitly requires credentials and uses batches of ten; it is never run by CI. Both modes report final/verified accuracy, agreement, review/adjudication rates, malformed frequency, request count, total latency and model failures. Gold answers/solutions/oracles are excluded from solver/adjudicator question payloads.
 
-Use this command before promoting prompt or model-profile changes. The fixture answers are used only for evaluation after model responses are received; they are not included in solver or adjudicator prompts.
+Actual visual acceptance and live Gemini runs are separate from offline regression. Diagram-dependent missing-context behavior is mocked here; supplying real worksheet diagrams and measuring vision accuracy is deferred to an explicitly credentialed evaluation. Existing TikZ tests continue to cover deterministic diagram-plan validation.
+
+See [R1 report](R1_IMPLEMENTATION_REPORT.md) for operational limits and evidence.

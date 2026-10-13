@@ -46,14 +46,6 @@ function canManageResult(user: any, result: any): boolean {
   if (!user || !result) return false;
   if (user.role === 'admin') return true;
   if (result.user_id && result.user_id === user.uid) return true;
-  if (
-    user.role === 'student' &&
-    result.student_name &&
-    ((user.name && result.student_name.trim().toLowerCase() === user.name.trim().toLowerCase()) ||
-     (user.email && result.student_name.trim().toLowerCase() === user.email.trim().toLowerCase()))
-  ) {
-    return true;
-  }
   return canManageQuiz(user, quizzes.get(result.quiz_id));
 }
 
@@ -82,16 +74,6 @@ function hasResultAccess(req: any, result: any, resultId: string): boolean {
   if (canManageResult(req.user, result)) return true;
   if (isLegacyCapabilityResult(result, resultId)) return true;
   if (verifyResultAccessToken(requestResultAccessToken(req, resultId), result?.access_token_hash)) return true;
-  if (req.user && result) {
-    if (result.user_id && result.user_id === req.user.uid) return true;
-    if (
-      result.student_name &&
-      ((req.user.name && result.student_name.trim().toLowerCase() === req.user.name.trim().toLowerCase()) ||
-       (req.user.email && result.student_name.trim().toLowerCase() === req.user.email.trim().toLowerCase()))
-    ) {
-      return true;
-    }
-  }
   return false;
 }
 
@@ -611,11 +593,7 @@ router.get('/results/:id', optionalAuth, (req: AuthRequest, res) => {
       userResults = Array.from(results.values()).filter(r => r.quiz_id === id);
     } else if (req.user) {
       userResults = Array.from(results.values()).filter(r =>
-        r.quiz_id === id && (
-          (r.user_id && r.user_id === req.user?.uid) ||
-          (r.student_name && req.user?.name && r.student_name.trim().toLowerCase() === req.user.name.trim().toLowerCase()) ||
-          (r.student_name && req.user?.email && r.student_name.trim().toLowerCase() === req.user.email.trim().toLowerCase())
-        )
+        r.quiz_id === id && Boolean(r.user_id && r.user_id === req.user?.uid)
       );
     }
 

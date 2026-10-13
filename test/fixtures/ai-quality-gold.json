@@ -3,7 +3,12 @@
     "id": "gold_arithmetic_1",
     "category": "whole-number arithmetic",
     "question": "What is $48+37$?",
-    "options": ["A) 75", "B) 82", "C) 85", "D) 95"],
+    "options": [
+      "A) 75",
+      "B) 82",
+      "C) 85",
+      "D) 95"
+    ],
     "answer": "C",
     "solution": "$48+37=85$.",
     "type": "multiple_choice"
@@ -12,7 +17,12 @@
     "id": "gold_fraction_1",
     "category": "fractions",
     "question": "Evaluate $\\dfrac{3}{4}+\\dfrac{1}{6}$.",
-    "options": ["A) $\\dfrac{5}{10}$", "B) $\\dfrac{7}{12}$", "C) $\\dfrac{9}{10}$", "D) $\\dfrac{11}{12}$"],
+    "options": [
+      "A) $\\dfrac{5}{10}$",
+      "B) $\\dfrac{7}{12}$",
+      "C) $\\dfrac{9}{10}$",
+      "D) $\\dfrac{11}{12}$"
+    ],
     "answer": "D",
     "solution": "$\\dfrac{3}{4}+\\dfrac{1}{6}=\\dfrac{9}{12}+\\dfrac{2}{12}=\\dfrac{11}{12}$.",
     "type": "multiple_choice"
@@ -21,7 +31,12 @@
     "id": "gold_percent_1",
     "category": "percentages",
     "question": "What is $15\\%$ of $240$?",
-    "options": ["A) 24", "B) 30", "C) 36", "D) 40"],
+    "options": [
+      "A) 24",
+      "B) 30",
+      "C) 36",
+      "D) 40"
+    ],
     "answer": "C",
     "solution": "$0.15(240)=36$.",
     "type": "multiple_choice"
@@ -30,7 +45,12 @@
     "id": "gold_algebra_1",
     "category": "linear equations",
     "question": "Solve $3x-7=20$.",
-    "options": ["A) $x=7$", "B) $x=8$", "C) $x=9$", "D) $x=11$"],
+    "options": [
+      "A) $x=7$",
+      "B) $x=8$",
+      "C) $x=9$",
+      "D) $x=11$"
+    ],
     "answer": "C",
     "solution": "$3x=27$, so $x=9$.",
     "type": "multiple_choice"
@@ -39,7 +59,12 @@
     "id": "gold_order_1",
     "category": "order of operations",
     "question": "Evaluate $6+4\\times 3$.",
-    "options": ["A) 18", "B) 30", "C) 42", "D) 54"],
+    "options": [
+      "A) 18",
+      "B) 30",
+      "C) 42",
+      "D) 54"
+    ],
     "answer": "A",
     "solution": "$6+4\\times3=6+12=18$.",
     "type": "multiple_choice"
@@ -48,7 +73,12 @@
     "id": "gold_geometry_1",
     "category": "geometry",
     "question": "A rectangle has length $8$ cm and width $5$ cm. What is its area?",
-    "options": ["A) $13\\text{ cm}^2$", "B) $26\\text{ cm}^2$", "C) $40\\text{ cm}^2$", "D) $80\\text{ cm}^2$"],
+    "options": [
+      "A) $13\\text{ cm}^2$",
+      "B) $26\\text{ cm}^2$",
+      "C) $40\\text{ cm}^2$",
+      "D) $80\\text{ cm}^2$"
+    ],
     "answer": "C",
     "solution": "$A=lw=8(5)=40\\text{ cm}^2$.",
     "type": "multiple_choice"
@@ -57,7 +87,12 @@
     "id": "gold_factor_1",
     "category": "prime factorization",
     "question": "Which is the prime factorization of $84$?",
-    "options": ["A) $2\\times3\\times14$", "B) $2^2\\times3\\times7$", "C) $2^3\\times3\\times7$", "D) $4\\times21$"],
+    "options": [
+      "A) $2\\times3\\times14$",
+      "B) $2^2\\times3\\times7$",
+      "C) $2^3\\times3\\times7$",
+      "D) $4\\times21$"
+    ],
     "answer": "B",
     "solution": "$84=2^2\\times3\\times7$.",
     "type": "multiple_choice"
@@ -66,7 +101,12 @@
     "id": "gold_ratio_1",
     "category": "ratios",
     "question": "Red and blue counters are in the ratio $2:5$. There are $42$ counters altogether. How many are red?",
-    "options": ["A) 10", "B) 12", "C) 14", "D) 30"],
+    "options": [
+      "A) 10",
+      "B) 12",
+      "C) 14",
+      "D) 30"
+    ],
     "answer": "B",
     "solution": "There are $7$ equal parts, so each part is $42\\div7=6$ and the red count is $2(6)=12$.",
     "type": "multiple_choice"
@@ -75,7 +115,12 @@
     "id": "gold_probability_1",
     "category": "probability",
     "question": "A fair six-sided die is rolled once. What is the probability of an even result?",
-    "options": ["A) $\\dfrac{1}{3}$", "B) $\\dfrac{1}{2}$", "C) $\\dfrac{2}{3}$", "D) $\\dfrac{5}{6}$"],
+    "options": [
+      "A) $\\dfrac{1}{3}$",
+      "B) $\\dfrac{1}{2}$",
+      "C) $\\dfrac{2}{3}$",
+      "D) $\\dfrac{5}{6}$"
+    ],
     "answer": "B",
     "solution": "Three of the six outcomes are even, so the probability is $\\dfrac{3}{6}=\\dfrac{1}{2}$.",
     "type": "multiple_choice"
@@ -84,7 +129,12 @@
     "id": "gold_sequence_1",
     "category": "sequences",
     "question": "What is the next term in $2,6,12,20,\\ldots$?",
-    "options": ["A) 24", "B) 28", "C) 30", "D) 32"],
+    "options": [
+      "A) 24",
+      "B) 28",
+      "C) 30",
+      "D) 32"
+    ],
     "answer": "C",
     "solution": "The differences are $4,6,8$, so the next difference is $10$ and the next term is $30$.",
     "type": "multiple_choice"
@@ -93,7 +143,10 @@
     "id": "gold_true_false_1",
     "category": "geometry concepts",
     "question": "Every square is a rectangle.",
-    "options": ["A) True", "B) False"],
+    "options": [
+      "A) True",
+      "B) False"
+    ],
     "answer": "A",
     "solution": "A square has four right angles, so it satisfies the definition of a rectangle.",
     "type": "true_false"
@@ -102,7 +155,12 @@
     "id": "gold_multi_1",
     "category": "multiple select",
     "question": "Which numbers are prime? Select all correct answers.",
-    "options": ["A) 9", "B) 11", "C) 15", "D) 17"],
+    "options": [
+      "A) 9",
+      "B) 11",
+      "C) 15",
+      "D) 17"
+    ],
     "answer": "B, D",
     "solution": "$11$ and $17$ have exactly two positive factors.",
     "type": "multiple_choice_multi"
@@ -111,7 +169,12 @@
     "id": "gold_decimal_1",
     "category": "decimals",
     "question": "Evaluate $2.5\\times0.4$.",
-    "options": ["A) 0.1", "B) 0.8", "C) 1", "D) 10"],
+    "options": [
+      "A) 0.1",
+      "B) 0.8",
+      "C) 1",
+      "D) 10"
+    ],
     "answer": "C",
     "solution": "$2.5\\times0.4=1$.",
     "type": "multiple_choice"
@@ -120,7 +183,12 @@
     "id": "gold_exponent_1",
     "category": "exponents",
     "question": "Evaluate $2^5\\times2^3$.",
-    "options": ["A) 64", "B) 128", "C) 256", "D) 512"],
+    "options": [
+      "A) 64",
+      "B) 128",
+      "C) 256",
+      "D) 512"
+    ],
     "answer": "C",
     "solution": "$2^5\\times2^3=2^8=256$.",
     "type": "multiple_choice"
@@ -129,7 +197,12 @@
     "id": "gold_average_1",
     "category": "averages",
     "question": "Find the mean of $7,9,10,14$.",
-    "options": ["A) 9", "B) 10", "C) 11", "D) 12"],
+    "options": [
+      "A) 9",
+      "B) 10",
+      "C) 11",
+      "D) 12"
+    ],
     "answer": "B",
     "solution": "$\\dfrac{7+9+10+14}{4}=\\dfrac{40}{4}=10$.",
     "type": "multiple_choice"
@@ -138,7 +211,12 @@
     "id": "gold_angle_1",
     "category": "angles",
     "question": "Two angles of a triangle are $50^\\circ$ and $60^\\circ$. Find the third angle.",
-    "options": ["A) $60^\\circ$", "B) $70^\\circ$", "C) $80^\\circ$", "D) $110^\\circ$"],
+    "options": [
+      "A) $60^\\circ$",
+      "B) $70^\\circ$",
+      "C) $80^\\circ$",
+      "D) $110^\\circ$"
+    ],
     "answer": "B",
     "solution": "$180^\\circ-50^\\circ-60^\\circ=70^\\circ$.",
     "type": "multiple_choice"
@@ -147,7 +225,12 @@
     "id": "gold_english_1",
     "category": "English grammar",
     "question": "Which word is the verb in the sentence: The students carefully measured the table?",
-    "options": ["A) students", "B) carefully", "C) measured", "D) table"],
+    "options": [
+      "A) students",
+      "B) carefully",
+      "C) measured",
+      "D) table"
+    ],
     "answer": "C",
     "solution": "Measured is the action word in the sentence.",
     "type": "multiple_choice"
@@ -156,7 +239,12 @@
     "id": "gold_biology_1",
     "category": "biology",
     "question": "Which organelle is the main site of aerobic cellular respiration?",
-    "options": ["A) Nucleus", "B) Mitochondrion", "C) Ribosome", "D) Vacuole"],
+    "options": [
+      "A) Nucleus",
+      "B) Mitochondrion",
+      "C) Ribosome",
+      "D) Vacuole"
+    ],
     "answer": "B",
     "solution": "Aerobic cellular respiration mainly occurs in mitochondria.",
     "type": "multiple_choice"
@@ -174,9 +262,1722 @@
     "id": "gold_word_problem_1",
     "category": "multi-step word problems",
     "question": "A shop discounts an $80$-peso item by $25\\%$. What is the sale price?",
-    "options": ["A) 20 pesos", "B) 55 pesos", "C) 60 pesos", "D) 75 pesos"],
+    "options": [
+      "A) 20 pesos",
+      "B) 55 pesos",
+      "C) 60 pesos",
+      "D) 75 pesos"
+    ],
     "answer": "C",
     "solution": "The discount is $0.25(80)=20$ pesos, so the sale price is $80-20=60$ pesos.",
     "type": "multiple_choice"
+  },
+  {
+    "id": "r1_021",
+    "category": "arithmetic",
+    "question": "Evaluate $11+8$.",
+    "options": [],
+    "answer": "19",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "sum",
+      "args": [
+        11,
+        8
+      ]
+    }
+  },
+  {
+    "id": "r1_022",
+    "category": "arithmetic",
+    "question": "Evaluate $22+9$.",
+    "options": [],
+    "answer": "31",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "sum",
+      "args": [
+        22,
+        9
+      ]
+    }
+  },
+  {
+    "id": "r1_023",
+    "category": "arithmetic",
+    "question": "Evaluate $33+10$.",
+    "options": [],
+    "answer": "43",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "sum",
+      "args": [
+        33,
+        10
+      ]
+    }
+  },
+  {
+    "id": "r1_024",
+    "category": "arithmetic",
+    "question": "Evaluate $44+11$.",
+    "options": [],
+    "answer": "55",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "sum",
+      "args": [
+        44,
+        11
+      ]
+    }
+  },
+  {
+    "id": "r1_025",
+    "category": "arithmetic",
+    "question": "Evaluate $55+12$.",
+    "options": [],
+    "answer": "67",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "sum",
+      "args": [
+        55,
+        12
+      ]
+    }
+  },
+  {
+    "id": "r1_026",
+    "category": "arithmetic",
+    "question": "Evaluate $66+13$.",
+    "options": [],
+    "answer": "79",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "sum",
+      "args": [
+        66,
+        13
+      ]
+    }
+  },
+  {
+    "id": "r1_027",
+    "category": "arithmetic",
+    "question": "Evaluate $77+14$.",
+    "options": [],
+    "answer": "91",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "sum",
+      "args": [
+        77,
+        14
+      ]
+    }
+  },
+  {
+    "id": "r1_028",
+    "category": "arithmetic",
+    "question": "Evaluate $88+15$.",
+    "options": [],
+    "answer": "103",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "sum",
+      "args": [
+        88,
+        15
+      ]
+    }
+  },
+  {
+    "id": "r1_029",
+    "category": "algebra",
+    "question": "Solve $2x+2=10$ for $x$.",
+    "options": [],
+    "answer": "4",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "linear",
+      "args": [
+        2,
+        2,
+        10
+      ]
+    }
+  },
+  {
+    "id": "r1_030",
+    "category": "algebra",
+    "question": "Solve $3x+4=19$ for $x$.",
+    "options": [],
+    "answer": "5",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "linear",
+      "args": [
+        3,
+        4,
+        19
+      ]
+    }
+  },
+  {
+    "id": "r1_031",
+    "category": "algebra",
+    "question": "Solve $4x+6=30$ for $x$.",
+    "options": [],
+    "answer": "6",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "linear",
+      "args": [
+        4,
+        6,
+        30
+      ]
+    }
+  },
+  {
+    "id": "r1_032",
+    "category": "algebra",
+    "question": "Solve $5x+8=43$ for $x$.",
+    "options": [],
+    "answer": "7",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "linear",
+      "args": [
+        5,
+        8,
+        43
+      ]
+    }
+  },
+  {
+    "id": "r1_033",
+    "category": "algebra",
+    "question": "Solve $6x+10=58$ for $x$.",
+    "options": [],
+    "answer": "8",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "linear",
+      "args": [
+        6,
+        10,
+        58
+      ]
+    }
+  },
+  {
+    "id": "r1_034",
+    "category": "algebra",
+    "question": "Solve $7x+12=75$ for $x$.",
+    "options": [],
+    "answer": "9",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "linear",
+      "args": [
+        7,
+        12,
+        75
+      ]
+    }
+  },
+  {
+    "id": "r1_035",
+    "category": "algebra",
+    "question": "Solve $8x+14=94$ for $x$.",
+    "options": [],
+    "answer": "10",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "linear",
+      "args": [
+        8,
+        14,
+        94
+      ]
+    }
+  },
+  {
+    "id": "r1_036",
+    "category": "algebra",
+    "question": "Solve $9x+16=115$ for $x$.",
+    "options": [],
+    "answer": "11",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "linear",
+      "args": [
+        9,
+        16,
+        115
+      ]
+    }
+  },
+  {
+    "id": "r1_037",
+    "category": "fractions",
+    "question": "Evaluate $\\dfrac{3}{4}+\\dfrac{3}{4}$. Give a decimal.",
+    "options": [],
+    "answer": "1.5",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "fractionSum",
+      "args": [
+        3,
+        4,
+        3,
+        4
+      ]
+    }
+  },
+  {
+    "id": "r1_038",
+    "category": "fractions",
+    "question": "Evaluate $\\dfrac{4}{4}+\\dfrac{4}{4}$. Give a decimal.",
+    "options": [],
+    "answer": "2.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "fractionSum",
+      "args": [
+        4,
+        4,
+        4,
+        4
+      ]
+    }
+  },
+  {
+    "id": "r1_039",
+    "category": "fractions",
+    "question": "Evaluate $\\dfrac{5}{4}+\\dfrac{5}{4}$. Give a decimal.",
+    "options": [],
+    "answer": "2.5",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "fractionSum",
+      "args": [
+        5,
+        4,
+        5,
+        4
+      ]
+    }
+  },
+  {
+    "id": "r1_040",
+    "category": "fractions",
+    "question": "Evaluate $\\dfrac{6}{4}+\\dfrac{6}{4}$. Give a decimal.",
+    "options": [],
+    "answer": "3.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "fractionSum",
+      "args": [
+        6,
+        4,
+        6,
+        4
+      ]
+    }
+  },
+  {
+    "id": "r1_041",
+    "category": "fractions",
+    "question": "Evaluate $\\dfrac{7}{4}+\\dfrac{7}{4}$. Give a decimal.",
+    "options": [],
+    "answer": "3.5",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "fractionSum",
+      "args": [
+        7,
+        4,
+        7,
+        4
+      ]
+    }
+  },
+  {
+    "id": "r1_042",
+    "category": "fractions",
+    "question": "Evaluate $\\dfrac{8}{4}+\\dfrac{8}{4}$. Give a decimal.",
+    "options": [],
+    "answer": "4.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "fractionSum",
+      "args": [
+        8,
+        4,
+        8,
+        4
+      ]
+    }
+  },
+  {
+    "id": "r1_043",
+    "category": "fractions",
+    "question": "Evaluate $\\dfrac{9}{4}+\\dfrac{9}{4}$. Give a decimal.",
+    "options": [],
+    "answer": "4.5",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "fractionSum",
+      "args": [
+        9,
+        4,
+        9,
+        4
+      ]
+    }
+  },
+  {
+    "id": "r1_044",
+    "category": "fractions",
+    "question": "Evaluate $\\dfrac{10}{4}+\\dfrac{10}{4}$. Give a decimal.",
+    "options": [],
+    "answer": "5.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "fractionSum",
+      "args": [
+        10,
+        4,
+        10,
+        4
+      ]
+    }
+  },
+  {
+    "id": "r1_045",
+    "category": "percentages",
+    "question": "What is $5\\%$ of $80$?",
+    "options": [],
+    "answer": "4.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "percent",
+      "args": [
+        5,
+        80
+      ]
+    }
+  },
+  {
+    "id": "r1_046",
+    "category": "percentages",
+    "question": "What is $10\\%$ of $80$?",
+    "options": [],
+    "answer": "8.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "percent",
+      "args": [
+        10,
+        80
+      ]
+    }
+  },
+  {
+    "id": "r1_047",
+    "category": "percentages",
+    "question": "What is $15\\%$ of $80$?",
+    "options": [],
+    "answer": "12.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "percent",
+      "args": [
+        15,
+        80
+      ]
+    }
+  },
+  {
+    "id": "r1_048",
+    "category": "percentages",
+    "question": "What is $20\\%$ of $80$?",
+    "options": [],
+    "answer": "16.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "percent",
+      "args": [
+        20,
+        80
+      ]
+    }
+  },
+  {
+    "id": "r1_049",
+    "category": "percentages",
+    "question": "What is $25\\%$ of $80$?",
+    "options": [],
+    "answer": "20.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "percent",
+      "args": [
+        25,
+        80
+      ]
+    }
+  },
+  {
+    "id": "r1_050",
+    "category": "percentages",
+    "question": "What is $30\\%$ of $80$?",
+    "options": [],
+    "answer": "24.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "percent",
+      "args": [
+        30,
+        80
+      ]
+    }
+  },
+  {
+    "id": "r1_051",
+    "category": "percentages",
+    "question": "What is $35\\%$ of $80$?",
+    "options": [],
+    "answer": "28.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "percent",
+      "args": [
+        35,
+        80
+      ]
+    }
+  },
+  {
+    "id": "r1_052",
+    "category": "percentages",
+    "question": "What is $40\\%$ of $80$?",
+    "options": [],
+    "answer": "32.0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "percent",
+      "args": [
+        40,
+        80
+      ]
+    }
+  },
+  {
+    "id": "r1_053",
+    "category": "geometry",
+    "question": "A rectangle has sides $4$ cm and $2$ cm. Give its area in square centimeters.",
+    "options": [],
+    "answer": "8",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "product",
+      "args": [
+        4,
+        2
+      ]
+    }
+  },
+  {
+    "id": "r1_054",
+    "category": "geometry",
+    "question": "A rectangle has sides $5$ cm and $3$ cm. Give its area in square centimeters.",
+    "options": [],
+    "answer": "15",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "product",
+      "args": [
+        5,
+        3
+      ]
+    }
+  },
+  {
+    "id": "r1_055",
+    "category": "geometry",
+    "question": "A rectangle has sides $6$ cm and $4$ cm. Give its area in square centimeters.",
+    "options": [],
+    "answer": "24",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "product",
+      "args": [
+        6,
+        4
+      ]
+    }
+  },
+  {
+    "id": "r1_056",
+    "category": "geometry",
+    "question": "A rectangle has sides $7$ cm and $5$ cm. Give its area in square centimeters.",
+    "options": [],
+    "answer": "35",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "product",
+      "args": [
+        7,
+        5
+      ]
+    }
+  },
+  {
+    "id": "r1_057",
+    "category": "geometry",
+    "question": "A rectangle has sides $8$ cm and $6$ cm. Give its area in square centimeters.",
+    "options": [],
+    "answer": "48",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "product",
+      "args": [
+        8,
+        6
+      ]
+    }
+  },
+  {
+    "id": "r1_058",
+    "category": "geometry",
+    "question": "A rectangle has sides $9$ cm and $7$ cm. Give its area in square centimeters.",
+    "options": [],
+    "answer": "63",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "product",
+      "args": [
+        9,
+        7
+      ]
+    }
+  },
+  {
+    "id": "r1_059",
+    "category": "geometry",
+    "question": "A rectangle has sides $10$ cm and $8$ cm. Give its area in square centimeters.",
+    "options": [],
+    "answer": "80",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "product",
+      "args": [
+        10,
+        8
+      ]
+    }
+  },
+  {
+    "id": "r1_060",
+    "category": "geometry",
+    "question": "A rectangle has sides $11$ cm and $9$ cm. Give its area in square centimeters.",
+    "options": [],
+    "answer": "99",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "product",
+      "args": [
+        11,
+        9
+      ]
+    }
+  },
+  {
+    "id": "r1_061",
+    "category": "coordinate geometry",
+    "question": "Find the slope of the line through $(0,1)$ and $(2,7)$.",
+    "options": [],
+    "answer": "3",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "slope",
+      "args": [
+        0,
+        1,
+        2,
+        7
+      ]
+    }
+  },
+  {
+    "id": "r1_062",
+    "category": "coordinate geometry",
+    "question": "Find the slope of the line through $(0,2)$ and $(2,8)$.",
+    "options": [],
+    "answer": "3",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "slope",
+      "args": [
+        0,
+        2,
+        2,
+        8
+      ]
+    }
+  },
+  {
+    "id": "r1_063",
+    "category": "coordinate geometry",
+    "question": "Find the slope of the line through $(0,3)$ and $(2,9)$.",
+    "options": [],
+    "answer": "3",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "slope",
+      "args": [
+        0,
+        3,
+        2,
+        9
+      ]
+    }
+  },
+  {
+    "id": "r1_064",
+    "category": "coordinate geometry",
+    "question": "Find the slope of the line through $(0,4)$ and $(2,10)$.",
+    "options": [],
+    "answer": "3",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "slope",
+      "args": [
+        0,
+        4,
+        2,
+        10
+      ]
+    }
+  },
+  {
+    "id": "r1_065",
+    "category": "coordinate geometry",
+    "question": "Find the slope of the line through $(0,5)$ and $(2,11)$.",
+    "options": [],
+    "answer": "3",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "slope",
+      "args": [
+        0,
+        5,
+        2,
+        11
+      ]
+    }
+  },
+  {
+    "id": "r1_066",
+    "category": "coordinate geometry",
+    "question": "Find the slope of the line through $(0,6)$ and $(2,12)$.",
+    "options": [],
+    "answer": "3",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "slope",
+      "args": [
+        0,
+        6,
+        2,
+        12
+      ]
+    }
+  },
+  {
+    "id": "r1_067",
+    "category": "coordinate geometry",
+    "question": "Find the slope of the line through $(0,7)$ and $(2,13)$.",
+    "options": [],
+    "answer": "3",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "slope",
+      "args": [
+        0,
+        7,
+        2,
+        13
+      ]
+    }
+  },
+  {
+    "id": "r1_068",
+    "category": "coordinate geometry",
+    "question": "Find the slope of the line through $(0,8)$ and $(2,14)$.",
+    "options": [],
+    "answer": "3",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "slope",
+      "args": [
+        0,
+        8,
+        2,
+        14
+      ]
+    }
+  },
+  {
+    "id": "r1_069",
+    "category": "statistics",
+    "question": "Find the mean of $1$, $3$, and $5$.",
+    "options": [],
+    "answer": "3",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "mean",
+      "args": [
+        1,
+        3,
+        5
+      ]
+    }
+  },
+  {
+    "id": "r1_070",
+    "category": "statistics",
+    "question": "Find the mean of $2$, $4$, and $6$.",
+    "options": [],
+    "answer": "4",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "mean",
+      "args": [
+        2,
+        4,
+        6
+      ]
+    }
+  },
+  {
+    "id": "r1_071",
+    "category": "statistics",
+    "question": "Find the mean of $3$, $5$, and $7$.",
+    "options": [],
+    "answer": "5",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "mean",
+      "args": [
+        3,
+        5,
+        7
+      ]
+    }
+  },
+  {
+    "id": "r1_072",
+    "category": "statistics",
+    "question": "Find the mean of $4$, $6$, and $8$.",
+    "options": [],
+    "answer": "6",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "mean",
+      "args": [
+        4,
+        6,
+        8
+      ]
+    }
+  },
+  {
+    "id": "r1_073",
+    "category": "statistics",
+    "question": "Find the mean of $5$, $7$, and $9$.",
+    "options": [],
+    "answer": "7",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "mean",
+      "args": [
+        5,
+        7,
+        9
+      ]
+    }
+  },
+  {
+    "id": "r1_074",
+    "category": "statistics",
+    "question": "Find the mean of $6$, $8$, and $10$.",
+    "options": [],
+    "answer": "8",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "mean",
+      "args": [
+        6,
+        8,
+        10
+      ]
+    }
+  },
+  {
+    "id": "r1_075",
+    "category": "statistics",
+    "question": "Find the mean of $7$, $9$, and $11$.",
+    "options": [],
+    "answer": "9",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "mean",
+      "args": [
+        7,
+        9,
+        11
+      ]
+    }
+  },
+  {
+    "id": "r1_076",
+    "category": "statistics",
+    "question": "Find the mean of $8$, $10$, and $12$.",
+    "options": [],
+    "answer": "10",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "mean",
+      "args": [
+        8,
+        10,
+        12
+      ]
+    }
+  },
+  {
+    "id": "r1_077",
+    "category": "probability",
+    "question": "A fair coin is tossed $1$ time(s). Give the probability of all heads as a decimal.",
+    "options": [],
+    "answer": "0.5",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "coin",
+      "args": [
+        1
+      ]
+    }
+  },
+  {
+    "id": "r1_078",
+    "category": "probability",
+    "question": "A fair coin is tossed $2$ time(s). Give the probability of all heads as a decimal.",
+    "options": [],
+    "answer": "0.25",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "coin",
+      "args": [
+        2
+      ]
+    }
+  },
+  {
+    "id": "r1_079",
+    "category": "probability",
+    "question": "A fair coin is tossed $3$ time(s). Give the probability of all heads as a decimal.",
+    "options": [],
+    "answer": "0.125",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "coin",
+      "args": [
+        3
+      ]
+    }
+  },
+  {
+    "id": "r1_080",
+    "category": "probability",
+    "question": "A fair coin is tossed $4$ time(s). Give the probability of all heads as a decimal.",
+    "options": [],
+    "answer": "0.0625",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "coin",
+      "args": [
+        4
+      ]
+    }
+  },
+  {
+    "id": "r1_081",
+    "category": "probability",
+    "question": "A fair coin is tossed $5$ time(s). Give the probability of all heads as a decimal.",
+    "options": [],
+    "answer": "0.03125",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "coin",
+      "args": [
+        5
+      ]
+    }
+  },
+  {
+    "id": "r1_082",
+    "category": "probability",
+    "question": "A fair coin is tossed $6$ time(s). Give the probability of all heads as a decimal.",
+    "options": [],
+    "answer": "0.015625",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "coin",
+      "args": [
+        6
+      ]
+    }
+  },
+  {
+    "id": "r1_083",
+    "category": "probability",
+    "question": "A fair coin is tossed $7$ time(s). Give the probability of all heads as a decimal.",
+    "options": [],
+    "answer": "0.0078125",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "coin",
+      "args": [
+        7
+      ]
+    }
+  },
+  {
+    "id": "r1_084",
+    "category": "probability",
+    "question": "A fair coin is tossed $8$ time(s). Give the probability of all heads as a decimal.",
+    "options": [],
+    "answer": "0.00390625",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "oracle": {
+      "op": "coin",
+      "args": [
+        8
+      ]
+    }
+  },
+  {
+    "id": "r1_085",
+    "category": "trigonometry",
+    "question": "Evaluate $\\sin 0^\\circ$. Give a decimal.",
+    "options": [],
+    "answer": "0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_086",
+    "category": "trigonometry",
+    "question": "Evaluate $\\cos 0^\\circ$. Give a decimal.",
+    "options": [],
+    "answer": "1",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_087",
+    "category": "trigonometry",
+    "question": "Evaluate $\\sin 90^\\circ$. Give a decimal.",
+    "options": [],
+    "answer": "1",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_088",
+    "category": "trigonometry",
+    "question": "Evaluate $\\cos 90^\\circ$. Give a decimal.",
+    "options": [],
+    "answer": "0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_089",
+    "category": "trigonometry",
+    "question": "Evaluate $\\tan 45^\\circ$. Give a decimal.",
+    "options": [],
+    "answer": "1",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_090",
+    "category": "trigonometry",
+    "question": "Evaluate $\\sin 30^\\circ$. Give a decimal.",
+    "options": [],
+    "answer": "0.5",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_091",
+    "category": "trigonometry",
+    "question": "Evaluate $\\cos 60^\\circ$. Give a decimal.",
+    "options": [],
+    "answer": "0.5",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_092",
+    "category": "trigonometry",
+    "question": "Evaluate $\\tan 0^\\circ$. Give a decimal.",
+    "options": [],
+    "answer": "0",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_093",
+    "category": "science",
+    "question": "What is the chemical symbol of oxygen?",
+    "options": [],
+    "answer": "O",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_094",
+    "category": "science",
+    "question": "What is the chemical symbol of sodium?",
+    "options": [],
+    "answer": "Na",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_095",
+    "category": "science",
+    "question": "What is the chemical symbol of gold?",
+    "options": [],
+    "answer": "Au",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_096",
+    "category": "science",
+    "question": "Which gas do plants absorb during photosynthesis?",
+    "options": [],
+    "answer": "carbon dioxide",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_097",
+    "category": "science",
+    "question": "Which organ pumps blood through the human body?",
+    "options": [],
+    "answer": "heart",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_098",
+    "category": "science",
+    "question": "Which planet is nearest to the Sun?",
+    "options": [],
+    "answer": "Mercury",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_099",
+    "category": "science",
+    "question": "What is the SI unit of force?",
+    "options": [],
+    "answer": "newton",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_100",
+    "category": "science",
+    "question": "What is the SI unit of electrical current?",
+    "options": [],
+    "answer": "ampere",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_101",
+    "category": "science",
+    "question": "What is the SI unit of energy?",
+    "options": [],
+    "answer": "joule",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_102",
+    "category": "science",
+    "question": "What is the change from liquid to gas called?",
+    "options": [],
+    "answer": "evaporation",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_103",
+    "category": "science",
+    "question": "What is the change from gas to liquid called?",
+    "options": [],
+    "answer": "condensation",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_104",
+    "category": "science",
+    "question": "What organelle contains most genetic material in a typical eukaryotic cell?",
+    "options": [],
+    "answer": "nucleus",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_105",
+    "category": "science",
+    "question": "Which particles in atoms have a negative electric charge?",
+    "options": [],
+    "answer": "electrons",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_106",
+    "category": "science",
+    "question": "What force attracts objects with mass to one another?",
+    "options": [],
+    "answer": "gravity",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_107",
+    "category": "science",
+    "question": "Which part of a plant primarily absorbs water from soil?",
+    "options": [],
+    "answer": "roots",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_108",
+    "category": "language and non-math",
+    "question": "Give the plural of child.",
+    "options": [],
+    "answer": "children",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_109",
+    "category": "language and non-math",
+    "question": "Give the plural of mouse.",
+    "options": [],
+    "answer": "mice",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_110",
+    "category": "language and non-math",
+    "question": "Give the past tense of go.",
+    "options": [],
+    "answer": "went",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_111",
+    "category": "language and non-math",
+    "question": "Give the opposite of hot.",
+    "options": [],
+    "answer": "cold",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_112",
+    "category": "language and non-math",
+    "question": "Give the opposite of above.",
+    "options": [],
+    "answer": "below",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_113",
+    "category": "language and non-math",
+    "question": "In the sentence \"The dog runs\", identify the verb.",
+    "options": [],
+    "answer": "runs",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_114",
+    "category": "language and non-math",
+    "question": "In the sentence \"The blue sky shines\", identify the adjective.",
+    "options": [],
+    "answer": "blue",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_115",
+    "category": "language and non-math",
+    "question": "Which punctuation mark ends a direct question?",
+    "options": [],
+    "answer": "?",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_116",
+    "category": "language and non-math",
+    "question": "What language is the word \"bonjour\" from?",
+    "options": [],
+    "answer": "French",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_117",
+    "category": "language and non-math",
+    "question": "What is the capital of Japan?",
+    "options": [],
+    "answer": "Tokyo",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_118",
+    "category": "multiple choice",
+    "question": "Evaluate $1+4$.",
+    "options": [
+      "$4$",
+      "$5$",
+      "$6$",
+      "$7$"
+    ],
+    "answer": "B",
+    "solution": "The answer follows from the stated information.",
+    "type": "multiple_choice",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_119",
+    "category": "multiple choice",
+    "question": "Evaluate $2+4$.",
+    "options": [
+      "$5$",
+      "$6$",
+      "$7$",
+      "$8$"
+    ],
+    "answer": "B",
+    "solution": "The answer follows from the stated information.",
+    "type": "multiple_choice",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_120",
+    "category": "multiple choice",
+    "question": "Evaluate $3+4$.",
+    "options": [
+      "$6$",
+      "$7$",
+      "$8$",
+      "$9$"
+    ],
+    "answer": "B",
+    "solution": "The answer follows from the stated information.",
+    "type": "multiple_choice",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_121",
+    "category": "multiple choice",
+    "question": "Evaluate $4+4$.",
+    "options": [
+      "$7$",
+      "$8$",
+      "$9$",
+      "$10$"
+    ],
+    "answer": "B",
+    "solution": "The answer follows from the stated information.",
+    "type": "multiple_choice",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_122",
+    "category": "multiple choice",
+    "question": "Evaluate $5+4$.",
+    "options": [
+      "$8$",
+      "$9$",
+      "$10$",
+      "$11$"
+    ],
+    "answer": "B",
+    "solution": "The answer follows from the stated information.",
+    "type": "multiple_choice",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_123",
+    "category": "multiple select",
+    "question": "Select all even integers from the options (set $1$).",
+    "options": [
+      "$2$",
+      "$3$",
+      "$4$",
+      "$5$"
+    ],
+    "answer": "A, C",
+    "solution": "The answer follows from the stated information.",
+    "type": "multiple_choice_multi",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_124",
+    "category": "multiple select",
+    "question": "Select all even integers from the options (set $2$).",
+    "options": [
+      "$2$",
+      "$3$",
+      "$4$",
+      "$5$"
+    ],
+    "answer": "A, C",
+    "solution": "The answer follows from the stated information.",
+    "type": "multiple_choice_multi",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_125",
+    "category": "multiple select",
+    "question": "Select all even integers from the options (set $3$).",
+    "options": [
+      "$2$",
+      "$3$",
+      "$4$",
+      "$5$"
+    ],
+    "answer": "A, C",
+    "solution": "The answer follows from the stated information.",
+    "type": "multiple_choice_multi",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_126",
+    "category": "multiple select",
+    "question": "Select all even integers from the options (set $4$).",
+    "options": [
+      "$2$",
+      "$3$",
+      "$4$",
+      "$5$"
+    ],
+    "answer": "A, C",
+    "solution": "The answer follows from the stated information.",
+    "type": "multiple_choice_multi",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_127",
+    "category": "multiple select",
+    "question": "Select all even integers from the options (set $5$).",
+    "options": [
+      "$2$",
+      "$3$",
+      "$4$",
+      "$5$"
+    ],
+    "answer": "A, C",
+    "solution": "The answer follows from the stated information.",
+    "type": "multiple_choice_multi",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_128",
+    "category": "worksheet numbering",
+    "question": "Source item 7a: Evaluate $3+4$.",
+    "options": [],
+    "answer": "7",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "source_id": "7a",
+    "original_index": "7a"
+  },
+  {
+    "id": "r1_129",
+    "category": "worksheet numbering",
+    "question": "Source item 7b: Evaluate $3+4$.",
+    "options": [],
+    "answer": "7",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "source_id": "7b",
+    "original_index": "7b"
+  },
+  {
+    "id": "r1_130",
+    "category": "worksheet numbering",
+    "question": "Source item 10(i): Evaluate $3+4$.",
+    "options": [],
+    "answer": "7",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "source_id": "10(i)",
+    "original_index": "10(i)"
+  },
+  {
+    "id": "r1_131",
+    "category": "worksheet numbering",
+    "question": "Source item 10(ii): Evaluate $3+4$.",
+    "options": [],
+    "answer": "7",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "source_id": "10(ii)",
+    "original_index": "10(ii)"
+  },
+  {
+    "id": "r1_132",
+    "category": "worksheet numbering",
+    "question": "Source item A-3: Evaluate $3+4$.",
+    "options": [],
+    "answer": "7",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified",
+    "source_id": "A-3",
+    "original_index": "A-3"
+  },
+  {
+    "id": "r1_133",
+    "category": "LaTeX edge cases",
+    "question": "Evaluate $\\dfrac{1}{2}$.",
+    "options": [],
+    "answer": "0.5",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_134",
+    "category": "LaTeX edge cases",
+    "question": "Evaluate $2\\times 3$.",
+    "options": [],
+    "answer": "6",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_135",
+    "category": "LaTeX edge cases",
+    "question": "Evaluate $\\left(2+3\\right)^2$.",
+    "options": [],
+    "answer": "25",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
+  },
+  {
+    "id": "r1_136",
+    "category": "LaTeX edge cases",
+    "question": "Evaluate $(-3)^2$.",
+    "options": [],
+    "answer": "9",
+    "solution": "The answer follows from the stated information.",
+    "type": "identification",
+    "expected_status": "verified"
   }
 ]

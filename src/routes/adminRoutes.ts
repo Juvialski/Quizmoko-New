@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { adminRequired, tokenRequired } from '../middleware/auth.ts';
 import {
   users,
+  redactUserCredentials,
   quizzes,
   results,
   sessionProgress,
@@ -16,7 +17,7 @@ const VALID_ROLES = new Set(['admin', 'teacher', 'student']);
 const VALID_STATUSES = new Set(['active', 'blocked']);
 
 router.get('/admin', adminRequired, (req, res) => {
-  res.render('admin', { users: Array.from(users.values()) });
+  res.render('admin', { users: Array.from(users.values()).map(redactUserCredentials) });
 });
 
 router.get('/api/admin/system_health', adminRequired, (_req, res) => {
@@ -48,7 +49,7 @@ router.get('/api/admin/export_database', adminRequired, (_req, res) => {
 });
 
 router.get('/api/admin/users', adminRequired, (req, res) => {
-  res.json({ success: true, users: Array.from(users.values()) });
+  res.json({ success: true, users: Array.from(users.values()).map(redactUserCredentials) });
 });
 
 router.post('/api/admin/update_user_status', adminRequired, async (req, res, next) => {
@@ -84,7 +85,7 @@ router.post('/api/admin/update_user_status', adminRequired, async (req, res, nex
     next(error);
     return;
   }
-  res.json({ success: true, user: updatedUser });
+  res.json({ success: true, user: redactUserCredentials(updatedUser) });
 });
 
 router.post('/api/install_model', adminRequired, (_req, res) => {

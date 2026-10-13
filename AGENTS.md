@@ -122,9 +122,9 @@ You are the Data & Firebase Architect for QuizMoKo. Your domain covers Firestore
 
 ### Key Architectural Guidelines:
 1. Firestore Data Structures: Design clean document structures for quizzes, user accounts, attempt results, and live session states. Maintain dual sync between Firestore and in-memory caches where applicable.
-2. Read & Write Performance Optimization: Keep inline writes fast by bypassing redundant chunk listing queries via `knownChunkedDocs` in `src/store/db.ts`. Parallelize multi-collection and multi-document hydration reads using `Promise.all`. For high-frequency progressive result updates during live/quiz attempts, run `syncDocToFirestore` asynchronously in the background so HTTP response latency remains under 10ms.
+2. Read & Write Performance Optimization: Keep inline writes fast by bypassing redundant chunk listing queries via `knownChunkedDocs` in `src/store/db.ts`. Parallelize multi-collection and multi-document hydration reads using `Promise.all`. For progressive saves, await the coalesced `checkpointProgressToFirestore` acknowledgment before returning durable success. Individual academic grading may enqueue a background checkpoint but must not claim durability.
 3. Security Rules & RBAC: Ensure firestore.rules strictly restricts read/write permissions based on user roles (admin, teacher, student) and document ownership (request.auth.uid).
-4. Graceful Degradation: Support offline or local fallbacks using /data/*.json when Firebase credentials are not provisioned, ensuring the app remains fully functional.
+4. Graceful Degradation: Support local/AI Studio fallback only outside normal production. Production must hydrate credentialed Admin Firestore and must not merge stale JSON into remote authoritative state.
 5. Data Integrity & Seeding: Maintain valid JSON formatting in data seeds and ensure document updates perform atomic operations or proper set/update merges.
 
 ### CRITICAL FORBIDDEN ACTIONS
@@ -148,3 +148,14 @@ You are the DevOps & Package Guard for QuizMoKo. Your domain is repository confi
 - Do NOT modify the PORT variable or dev server startup port away from 3000.
 - Do NOT remove required scripts (start, dev) from package.json.
 - Do NOT delete or rename package.json or metadata.json.
+
+## R1 production invariants (2026-10-13)
+- Runtime configuration belongs in `src/services/runtimeConfig.ts`: production requires Firestore, a strong stable secret and trusted Socket.IO origins; demo auth/seeding is forbidden there. Preserve real persisted admin accounts and sample-like remote IDs.
+- Critical creation/final success requires durability acknowledgment; AI/worksheet creation uses `persistQuizCreation`. Checkpoint snapshots are immutable and coalesced. Deduplicate inside ordered document execution; never skip A -> B -> A at enqueue time. Drain requests before shutdown flushing.
+- Modern result access is exact identity/owner/admin/token, never display-name or email text. Public anonymous attempts retain cryptographic session capabilities.
+- `worksheetUploadSafety.ts` validates magic bytes and whole-job decoded work before AI. Keep two upload/raster slots, page/pixel/dimension bounds and cleanup on every failure.
+- Request abort/deadline context is centralized; permanent model errors must not receive validation retries. Preserve existing providers/high-thinking profiles.
+- Offline AI baseline is mocked, not Gemini accuracy evidence. Keep live credentialed/visual evaluations opt-in. CI classifies fixed known advisories and rejects new unclassified findings.
+- Consult `docs/PRODUCTION_OPERATIONS.md` before merge/deployment. Actual Render prerequisites and hosted CI must be proven separately from local tests.
+
+- Preserve the existing Render `FIREBASE_JSON` service-account alias; prefer FIREBASE_SERVICE_ACCOUNT_JSON when both are set. Verify real secret-field strength rather than masked display text. Optional dashboard banners must be null-guarded when a saved dismissal flag survives UI changes.

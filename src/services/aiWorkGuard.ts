@@ -18,6 +18,7 @@ export interface AiWorkLease {
 
 export interface AcquireAiWorkOptions {
   userId: string;
+  workKey?: string;
   cost?: number;
   byok?: boolean;
   perUserConcurrency?: number;
@@ -41,6 +42,7 @@ export class AiWorkLimitError extends Error {
   }
 }
 
+const activeWorkKeys = new Set<string>();
 const userBuckets = new Map<string, WorkBucket>();
 let globalBucket: WorkBucket = {
   used: 0,
@@ -93,6 +95,8 @@ export function acquireAiWork(options: AcquireAiWorkOptions): AiWorkLease {
     );
   }
 
+  const workKey = options.workKey ? `${userId}:${options.workKey}` : null;
+  if (workKey && activeWorkKeys.has(workKey)) throw new AiWorkLimitError('AI_CONCURRENCY_EXCEEDED', 'This AI job is already running.', 10);
   const cost = positiveInt(options.cost, 1, 500);
   const perUserConcurrency = positiveInt(
     options.perUserConcurrency,
@@ -132,6 +136,7 @@ export function acquireAiWork(options: AcquireAiWorkOptions): AiWorkLease {
     );
   }
 
+  if (workKey) activeWorkKeys.add(workKey);
   user.used += cost;
   user.active += 1;
   globalBucket.used += cost;
@@ -143,6 +148,7 @@ export function acquireAiWork(options: AcquireAiWorkOptions): AiWorkLease {
     release() {
       if (released) return;
       released = true;
+      if (workKey) activeWorkKeys.delete(workKey);
       user.active = Math.max(0, user.active - 1);
       globalBucket.active = Math.max(0, globalBucket.active - 1);
       user.lastSeenAt = Date.now();
@@ -153,6 +159,7 @@ export function acquireAiWork(options: AcquireAiWorkOptions): AiWorkLease {
 
 export function resetAiWorkGuardForTests(): void {
   if (process.env.NODE_ENV !== 'test') return;
+  activeWorkKeys.clear();
   userBuckets.clear();
   const now = Date.now();
   globalBucket = {

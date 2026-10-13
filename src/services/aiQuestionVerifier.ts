@@ -1,3 +1,4 @@
+import { isPermanentGeminiFailure } from './geminiRateLimiter.ts';
 import { Type } from '@google/genai';
 import type { QuestionVerification } from '../types.ts';
 import { gradeQuestionLocally, isSemanticQuestion, normalizeQuestion, normalizeQuestionForStorage } from './grading.ts';
@@ -251,7 +252,7 @@ async function runSolver(
       return parseExactSolverCoverage(safeParseJSON(response.text || ''), questions);
     } catch (error) {
       lastError = error;
-      if (error instanceof GeminiRateLimitError) break;
+      if (error instanceof GeminiRateLimitError || isPermanentGeminiFailure(error) || (error as any)?.name === 'AbortError') break;
     }
   }
   throw lastError instanceof Error ? lastError : new Error('Solver failed after a targeted retry.');
@@ -325,7 +326,7 @@ async function runAdjudicator(
       return output;
     } catch (error) {
       lastError = error;
-      if (error instanceof GeminiRateLimitError) break;
+      if (error instanceof GeminiRateLimitError || isPermanentGeminiFailure(error) || (error as any)?.name === 'AbortError') break;
     }
   }
   throw lastError instanceof Error ? lastError : new Error('Adjudication failed after a targeted retry.');

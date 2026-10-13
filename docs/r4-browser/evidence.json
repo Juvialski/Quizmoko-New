@@ -1,0 +1,496 @@
+{
+  "mode": "isolated local synthetic data and mocked AI/extraction; no provider or production acceptance",
+  "journeys": [
+    {
+      "name": "Manual quiz: create, add, save draft, preview",
+      "pass": true
+    },
+    {
+      "name": "Save failure, unsaved leave warning and two-tab conflict",
+      "pass": true
+    },
+    {
+      "name": "Mock AI: generate once, find review, correct, approve, save, publish, share",
+      "pass": true
+    },
+    {
+      "name": "Rate limit recovery retains input and unlocks generator",
+      "pass": true
+    },
+    {
+      "name": "Mock worksheet extraction, edit source, check and create draft with 7b retained",
+      "pass": true
+    },
+    {
+      "name": "Library search, edit, save and return",
+      "pass": true
+    },
+    {
+      "name": "Results submission and individual feedback",
+      "pass": true
+    },
+    {
+      "name": "Mobile navigation and question editing",
+      "pass": true
+    }
+  ],
+  "layouts": [
+    {
+      "screen": "generator",
+      "testWidth": 1366,
+      "theme": "light",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "worksheet",
+      "testWidth": 1366,
+      "theme": "dark",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "dashboard",
+      "testWidth": 360,
+      "theme": "dark",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "dashboard",
+      "testWidth": 360,
+      "theme": "light",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "dashboard",
+      "testWidth": 768,
+      "theme": "dark",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "dashboard",
+      "testWidth": 768,
+      "theme": "light",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "dashboard",
+      "testWidth": 1366,
+      "theme": "dark",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "dashboard",
+      "testWidth": 1366,
+      "theme": "light",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "dashboard",
+      "testWidth": 1920,
+      "theme": "dark",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "dashboard",
+      "testWidth": 1920,
+      "theme": "light",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "dashboard",
+      "testWidth": 360,
+      "theme": "dark",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "generator",
+      "testWidth": 360,
+      "theme": "dark",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "generator",
+      "testWidth": 360,
+      "theme": "light",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "generator",
+      "testWidth": 768,
+      "theme": "dark",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "generator",
+      "testWidth": 768,
+      "theme": "light",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "generator",
+      "testWidth": 1366,
+      "theme": "dark",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "generator",
+      "testWidth": 1366,
+      "theme": "light",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "generator",
+      "testWidth": 1920,
+      "theme": "dark",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "generator",
+      "testWidth": 1920,
+      "theme": "light",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "editor",
+      "testWidth": 360,
+      "theme": "dark",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "editor",
+      "testWidth": 360,
+      "theme": "light",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "editor",
+      "testWidth": 768,
+      "theme": "dark",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "editor",
+      "testWidth": 768,
+      "theme": "light",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "editor",
+      "testWidth": 1366,
+      "theme": "dark",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "editor",
+      "testWidth": 1366,
+      "theme": "light",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "editor",
+      "testWidth": 1920,
+      "theme": "dark",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "editor",
+      "testWidth": 1920,
+      "theme": "light",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "editor",
+      "testWidth": 360,
+      "theme": "light",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "worksheet",
+      "testWidth": 360,
+      "theme": "dark",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "worksheet",
+      "testWidth": 360,
+      "theme": "light",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "worksheet",
+      "testWidth": 768,
+      "theme": "dark",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "worksheet",
+      "testWidth": 768,
+      "theme": "light",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "worksheet",
+      "testWidth": 1366,
+      "theme": "dark",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "worksheet",
+      "testWidth": 1366,
+      "theme": "light",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "worksheet",
+      "testWidth": 1920,
+      "theme": "dark",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "worksheet",
+      "testWidth": 1920,
+      "theme": "light",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "worksheet",
+      "testWidth": 360,
+      "theme": "light",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "worksheet-key",
+      "testWidth": 360,
+      "theme": "dark",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "worksheet-key",
+      "testWidth": 360,
+      "theme": "light",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "worksheet-key",
+      "testWidth": 768,
+      "theme": "dark",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "worksheet-key",
+      "testWidth": 768,
+      "theme": "light",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "worksheet-key",
+      "testWidth": 1366,
+      "theme": "dark",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "worksheet-key",
+      "testWidth": 1366,
+      "theme": "light",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "worksheet-key",
+      "testWidth": 1920,
+      "theme": "dark",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "worksheet-key",
+      "testWidth": 1920,
+      "theme": "light",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "results",
+      "testWidth": 360,
+      "theme": "dark",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "results",
+      "testWidth": 360,
+      "theme": "light",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "results",
+      "testWidth": 768,
+      "theme": "dark",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "results",
+      "testWidth": 768,
+      "theme": "light",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "results",
+      "testWidth": 1366,
+      "theme": "dark",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "results",
+      "testWidth": 1366,
+      "theme": "light",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "results",
+      "testWidth": 1920,
+      "theme": "dark",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "results",
+      "testWidth": 1920,
+      "theme": "light",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "feedback",
+      "testWidth": 360,
+      "theme": "dark",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "feedback",
+      "testWidth": 360,
+      "theme": "light",
+      "viewport": 360,
+      "width": 360
+    },
+    {
+      "screen": "feedback",
+      "testWidth": 768,
+      "theme": "dark",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "feedback",
+      "testWidth": 768,
+      "theme": "light",
+      "viewport": 768,
+      "width": 768
+    },
+    {
+      "screen": "feedback",
+      "testWidth": 1366,
+      "theme": "dark",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "feedback",
+      "testWidth": 1366,
+      "theme": "light",
+      "viewport": 1366,
+      "width": 1366
+    },
+    {
+      "screen": "feedback",
+      "testWidth": 1920,
+      "theme": "dark",
+      "viewport": 1920,
+      "width": 1920
+    },
+    {
+      "screen": "feedback",
+      "testWidth": 1920,
+      "theme": "light",
+      "viewport": 1920,
+      "width": 1920
+    }
+  ],
+  "screenshots": [
+    "editor-desktop-dark.png",
+    "dashboard-desktop-dark.png",
+    "generator-desktop-light.png",
+    "worksheet-desktop-dark.png",
+    "dashboard-mobile-dark.png",
+    "editor-mobile-light.png",
+    "worksheet-mobile-light.png"
+  ],
+  "errors": [],
+  "before": {
+    "initialVisibleGeneratorFields": 3,
+    "uniqueFieldsAcrossSetupPanels": 18,
+    "expandedGeneratorFields": 4,
+    "panelsOpenedForQuestionTypeAndDifficulty": 2
+  },
+  "keyboard": {
+    "modalFocusTrapped": true
+  },
+  "quickFields": 5,
+  "afterGenerationRequestCount": 1,
+  "after": {
+    "quickFields": 5,
+    "generatorDisclosureClicks": 1,
+    "reviewFilterChanges": 1,
+    "draftPreviewClicks": 1,
+    "publishedShareClicks": 1
+  },
+  "externalUiAssets": false,
+  "pass": true
+}

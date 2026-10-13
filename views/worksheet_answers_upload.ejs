@@ -120,8 +120,9 @@
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/teacher-workflow.js"></script>
 </head>
-<body>
+<body class="r4-teacher r4-worksheet-answers-upload">
     <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
         <div>
             <h1 style="margin: 0; color: var(--body-strong); font-weight: 700; font-size: 36px; letter-spacing: -0.5px;" id="dashboard-header">
@@ -161,6 +162,8 @@
             </div>
                 <div class="card worksheet-panel" id="upload-card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
                     <h1><i data-lucide="edit-3" class="icon-sm"></i> Worksheet + Answer Key</h1>
+                    <ol class="r4-steps" aria-label="Worksheet workflow"><li>Upload</li><li>Review extraction</li><li>Check answers</li><li>Create draft</li><li>Review and publish</li></ol>
+                    <p class="r4-muted">PNG, JPEG, WebP, GIF or PDF. Default limits: 12 files, 20 MB each, 60 MB total and 40 pages per upload. Larger files may need splitting; server limits still apply.</p>
                     <div class="m-stripe"></div>
                     <p style="color: var(--body); margin-bottom: 32px;">Extract questions and answers from your files. The AI will strictly follow the answers provided in your key.</p>
 
@@ -171,7 +174,7 @@
                                 <div class="dropzone" id="worksheet-dropzone" style="min-height: 100px; padding: 20px;">
                                     <div style="font-size: 30px; margin-bottom: 8px;"><i data-lucide="file-text" class="icon-sm"></i></div>
                                     <div style="font-weight: 700; font-size: 13px;">Upload Questions</div>
-                                    <input type="file" id="worksheet-input" name="worksheet_files" multiple accept='image/*,.pdf' onchange="updateFileList('worksheet')">
+                                    <input type="file" id="worksheet-input" name="worksheet_files" multiple accept='.png,.jpg,.jpeg,.webp,.gif,.pdf' onchange="updateFileList('worksheet')">
                                     <div class="file-list" id="worksheet-file-list"></div>
                                 </div>
                             </div>
@@ -180,16 +183,16 @@
                                 <div class="dropzone" id="answer-dropzone" style="min-height: 100px; padding: 20px;">
                                     <div style="font-size: 30px; margin-bottom: 8px;"><i data-lucide="key" class="icon-sm"></i></div>
                                     <div style="font-weight: 700; font-size: 13px;">Upload Answer Key</div>
-                                    <input type="file" id="answer-input" name="answer_files" multiple accept='image/*,.pdf' onchange="updateFileList('answer')">
+                                    <input type="file" id="answer-input" name="answer_files" multiple accept='.png,.jpg,.jpeg,.webp,.gif,.pdf' onchange="updateFileList('answer')">
                                     <div class="file-list" id="answer-file-list"></div>
                                 </div>
                             </div>
                         </div>
 
-                        <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr; gap: 16px;">
+<details class="r4-details"><summary>Extraction options</summary>                        <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr; gap: 16px;">
                             <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline);">
                                 <input type="checkbox" id="use_screenshots" style="width: 18px; height: 18px; cursor: pointer;">
-                                <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--on-dark);"><i data-lucide="camera" class="icon-sm"></i> Capture real screenshots of diagrams (Gemini 2.5+ recommended)</label>
+                                <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--on-dark);"><i data-lucide="camera" class="icon-sm"></i> Keep source images for diagrams</label>
                             </div>
                             <div>
                                 <label>AI Model</label>
@@ -209,7 +212,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-block" id="extract-btn" style="margin-top: 16px;"><i data-lucide="search" class="icon-sm"></i> EXTRACT & MATCH</button>
+</details>                        <button type="submit" class="btn btn-primary btn-block" id="extract-btn" style="margin-top: 16px;"><i data-lucide="search" class="icon-sm"></i> EXTRACT & MATCH</button>
                     </form>
                 </div>
             </div>
@@ -573,10 +576,12 @@
             const input = type === 'worksheet' ? wsInput : ansInput;
             const container = document.getElementById(type + '-file-list');
             container.innerHTML = '';
-            for (let file of input.files) {
+            for (const [fileIndex,file] of Array.from(input.files).entries()) {
                 const tag = document.createElement('div');
                 tag.className = 'file-tag';
                 tag.innerText = file.name;
+                const remove=document.createElement('button');remove.type='button';remove.className='btn btn-secondary';remove.textContent='Remove';remove.setAttribute('aria-label','Remove '+file.name);
+                remove.onclick=()=>{const transfer=new DataTransfer();Array.from(input.files).forEach((f,i)=>{if(i!==fileIndex)transfer.items.add(f);});input.files=transfer.files;updateFileList(type);};tag.appendChild(remove);
                 container.appendChild(tag);
             }
         }
@@ -604,7 +609,7 @@
                     if (!contentType || !contentType.includes('application/json')) return;
 
                     const data = await res.json();
-                    if (data.message) progressText.innerText = data.message;
+                    if (data.message) progressText.innerText = window.QuizMoKoTeacher.progressLabel(data.message);
                     if (data.percentage) progressBar.style.width = data.percentage + '%';
                 } catch(e) {}
             }, 2000);
@@ -817,12 +822,16 @@
                     ${optionsHtml}
                     <div class="answer-box">
                         <label style="font-size: 10px; margin-bottom: 4px; color: var(--success);">Matched Answer</label>
-                        <div class="answer-editor" contenteditable='true' data-index="${i}" style="outline: none;">${q.answer}</div>
+                        <div class="answer-editor" contenteditable='true' data-index="${i}" style="outline: none;"></div>
                     </div>
                 `;
                 item.querySelector('[data-source-question-label]').textContent = `Question ${sourceQuestionId}`;
+                const answerEditor=item.querySelector('.answer-editor');answerEditor.textContent=String(q.answer ?? '');answerEditor.setAttribute('role','textbox');answerEditor.setAttribute('aria-label','Proposed answer for question '+sourceQuestionId);
+                const answerStatus=document.createElement('p');answerStatus.className='r4-feedback';
+                answerStatus.textContent=q.verification?.verification_status==='verified'?'Verified answer':q.verification?.issues?.some(issue=>/conflict|disagree/i.test(issue.code || ''))?'Answer conflict — compare the answer key and question':q.answer_source==='golden_key' || q.verification?.answer_source==='golden_key'?'Teacher-supplied answer — check against the question':'Unverified answer — review before creating your draft';
+                item.querySelector('.answer-box').prepend(answerStatus);
                 const questionEditor = item.querySelector('.question-editor');
-                if (questionEditor) questionEditor.textContent = cleanQuestionText;
+                if (questionEditor) {questionEditor.textContent = cleanQuestionText;questionEditor.setAttribute('role','textbox');questionEditor.setAttribute('aria-label','Worksheet question '+sourceQuestionId);}
                 list.appendChild(item);
             });
 
@@ -965,7 +974,7 @@
             progressText.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> Finalizing Quiz...';
             window.refreshQuizmokoIcons?.();
             overlay.style.display = 'flex';
-            progressBar.style.width = '5%';
+            progressBar.style.width = '0%';
 
             // Start Polling
             const pollInterval = setInterval(async () => {
@@ -976,7 +985,7 @@
                     if (!contentType || !contentType.includes('application/json')) return;
 
                     const data = await res.json();
-                    if (data.message) progressText.innerText = data.message;
+                    if (data.message) progressText.innerText = window.QuizMoKoTeacher.progressLabel(data.message);
                     if (data.percentage) progressBar.style.width = data.percentage + '%';
                 } catch(e) {}
             }, 2000);
@@ -987,6 +996,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         questions: extractedQuestions,
+                        create_draft: true,
                         golden_reference: goldenReference,
                         topic: document.getElementById('topic_hint').value || 'Matched Quiz',
                         subject: document.getElementById('subject_select').value,

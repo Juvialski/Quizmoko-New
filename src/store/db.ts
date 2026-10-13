@@ -1283,7 +1283,7 @@ export function getUniqueQuizTitle(title: string, currentQuizId?: string): strin
 
 export function getQuizTimestamp(q: any): number {
   if (!q) return 0;
-  const val = q.created_at || q.createdAt || q.timestamp;
+  const val = q.updated_at || q.updatedAt || q.created_at || q.createdAt || q.timestamp;
   if (!val) return 0;
 
   if (typeof val === 'object') {

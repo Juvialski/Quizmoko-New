@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import express from 'express';
+import quizRoutes from '../src/routes/quizRoutes.ts';
+import { quizzes, results } from '../src/store/db.ts';
+
+test('R4 explicit drafts, owner preview, publication and stale updates retain legacy compatibility', async () => {
+  const app = express(); app.set('view engine','ejs'); app.use(express.json()); app.use(quizRoutes);
+  const server = app.listen(0); await new Promise<void>(resolve => server.once('listening',resolve));
+  const base = `http://127.0.0.1:${(server.address() as any).port}`;
+  const id = 'r4_contract';
+  const question = {id:'stable-1',question:'Choose a word.',type:'multiple_choice',options:['Alpha','Beta','Gamma','Delta'],answer:'A',points:1,source:{original_index:'7b',page_number:1},verification:{answer_source:'manual',verification_status:'verified'}};
+  quizzes.set(id,{id,user_id:'r4_owner',title:'R4 draft',time_limit:30,is_draft:true,questions:[question]});
+  const owner = {authorization:'Bearer user_r4_owner','Content-Type':'application/json'};
+  const update = (body: any, headers=owner) => fetch(base+'/update/'+id,{method:'POST',headers,body:JSON.stringify(body)});
+  try {
+    assert.equal((await fetch(base+'/quiz/'+id)).status,409);
+    const count = results.size;
+    const preview = await fetch(base+'/preview/'+id,{headers:owner});
+    assert.equal(preview.status,200); const html = await preview.text();
+    assert.match(html,/Question 7b/); assert.doesNotMatch(html,/grade_individual|submit_quiz|socket\.io|Alpha.*correct/i);
+    assert.equal(results.size,count);
+    assert.equal((await fetch(base+'/preview/'+id,{headers:{authorization:'Bearer user_other'}})).status,403);
+    assert.equal((await update({title:'Saved draft',save_intent:'save',expected_revision:0})).status,200);
+    assert.equal(quizzes.get(id).is_draft,true);
+    assert.equal((await update({title:'stale',save_intent:'save',expected_revision:0})).status,409);
+    assert.equal(quizzes.get(id).title,'Saved draft');
+    const needsReview = {...question,verification:{answer_source:'manual',verification_status:'review_required'}};
+    assert.equal((await update({questions:[needsReview],save_intent:'publish',allow_review_required:true})).status,400);
+    assert.equal((await update({save_intent:'publish',expected_revision:1})).status,200);
+    assert.equal((await fetch(base+'/quiz/'+id)).status,200);
+    assert.equal((await update({title:'Unauthorized'}, {'Content-Type':'application/json',authorization:'Bearer user_other'})).status,403);
+    assert.equal((await update({save_intent:'draft',expected_revision:2})).status,200);
+    assert.equal((await fetch(base+'/api/quiz/'+id)).status,409);
+    // Legacy callers keep automatic publication after successful validation.
+    assert.equal((await update({questions:[question]})).status,200);
+    assert.equal(quizzes.get(id).is_draft,false);
+    const concurrent = await Promise.all([update({title:'First',save_intent:'save',expected_revision:4}),update({title:'Second',save_intent:'save',expected_revision:4})]);
+    assert.deepEqual(concurrent.map(r=>r.status),[200,409]);
+    const editor = await (await fetch(base+'/edit/'+id,{headers:owner})).text();
+    const version = editor.match(/"edit_version":"([a-f0-9]+)"/)![1];
+    quizzes.get(id).title = 'Changed by another existing tool';
+    assert.equal((await update({title:'Stale other tool',expected_version:version})).status,409);
+    assert.equal(quizzes.get(id).title,'Changed by another existing tool');
+  } finally { quizzes.delete(id); await new Promise<void>(resolve=>server.close(()=>resolve())); }
+});

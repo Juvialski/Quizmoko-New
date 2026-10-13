@@ -826,7 +826,7 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
       created_at: new Date().toISOString(),
       model_name: model,
       question_style: String(question_style || 'Mixed'),
-      is_draft: reviewRequiredIds.length > 0,
+      is_draft: req.body?.create_draft === true || req.body?.create_draft === 'true' || reviewRequiredIds.length > 0,
       review_required_ids: reviewRequiredIds,
       verification_summary: {
         verified: generatedQuestions.length - reviewRequiredIds.length,

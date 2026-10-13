@@ -732,3 +732,93 @@ svg.lucide:not(.icon-xs):not(.icon-sm):not(.icon-md):not(.icon-lg):not(.icon-xl)
     width: auto;
   }
 }
+
+/* R4 teacher workflows: practical density, native disclosures and mobile controls. */
+[hidden] { display: none !important; }
+.r4-teacher { padding: 24px; font-size: 15px; line-height: 1.55; }
+.r4-teacher h1,.r4-teacher h2,.r4-teacher h3 { text-transform: none; letter-spacing: normal; }
+.r4-teacher h1 { font-size: clamp(24px,3vw,32px) !important; }
+.r4-teacher input,.r4-teacher select,.r4-teacher textarea { font-size: 15px !important; min-width: 0; max-width: 100%; }
+.r4-teacher label { text-transform: none; letter-spacing: normal; font-size: 14px !important; }
+.r4-teacher button,.r4-teacher .btn,.r4-teacher .primary-action-btn,.r4-teacher summary { min-height: 44px; }
+.r4-teacher :focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.r4-teacher .card { box-shadow: none; border-radius: var(--radius-md); }
+.r4-teacher .modal-card { max-height: 90dvh; overflow-y: auto; }
+.r4-muted { color: var(--body); }
+.r4-home { max-width: 1440px; margin: 0 auto 24px; }
+.r4-actions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+.r4-actions .btn { margin: 0; padding: 16px; justify-content: center; text-decoration: none; }
+.r4-recent { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 20px; }
+.r4-recent h3 { margin: 0; font-size: 16px; }
+.r4-recent a { color: var(--body-strong); text-decoration: none; }
+.r4-dashboard .dashboard-container { display: flex !important; flex-direction: column; max-width: 1440px; gap: 24px; }
+.r4-dashboard .sticky-col { position: static; width: 100%; }
+.r4-dashboard #ai-generator-card { max-width: 860px; align-self: center; }
+.r4-dashboard #ai-generator-card .mode-tabs { display: none; }
+.r4-dashboard .index-dashboard-card { border-radius: var(--radius-md) !important; }
+.r4-dashboard .quiz-card-horizontal { transform: none; padding: 16px; gap: 12px; }
+.r4-dashboard .quiz-title { white-space: normal; overflow-wrap: anywhere; }
+.r4-dashboard .quiz-info { flex: 1; min-width: 0; }
+.r4-dashboard .quiz-card-horizontal > div:last-of-type { flex-wrap: wrap; }
+.r4-dashboard .accordion-item { border: 0; }
+.r4-dashboard .accordion-body { padding: 0; }
+.r4-quick-grid,.r4-library-filters { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+.r4-library-filters { margin: 12px 0; }
+.r4-details { border-top: 1px solid var(--hairline); margin: 16px 0; padding: 8px 0; }
+.r4-details summary,.r4-more summary { cursor: pointer; padding: 10px 8px; font-weight: 600; color: var(--body-strong); }
+.r4-feedback { color: var(--body); margin: 8px 0 16px; }
+.r4-feedback:empty { display: none; }
+.r4-editor .container { max-width: 1200px; }
+.r4-editor-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.r4-editor-bar .btn { margin: 0; width: auto; }
+.r4-editor-bar #save-status { margin-right: auto; color: var(--body); }
+.r4-status { color: var(--body-strong); font-weight: 700; }
+.r4-more { position: relative; }
+.r4-menu { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; background: var(--surface-elevated); border: 1px solid var(--hairline); border-radius: var(--radius-md); }
+.r4-menu .btn { justify-content: flex-start; margin: 0; width: 100%; }
+.r4-navigator { padding: 16px; background: var(--surface-card); border: 1px solid var(--hairline); border-radius: var(--radius-md); margin-bottom: 16px; }
+.r4-navigator label { display: inline-flex; align-items: center; gap: 12px; }
+.r4-navigator select { width: auto; margin: 0; }
+.r4-jumps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; max-height: 160px; overflow-y: auto; }
+.r4-jumps .btn { min-width: 44px; width: auto; margin: 0; }
+.r4-jumps [aria-current=true] { background: var(--primary); color: white; }
+.r4-editor .question-block { scroll-margin-top: 12px; padding: 20px; }
+.r4-editor .edit-grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; }
+.r4-editor .edit-details-grid { display: block; }
+.r4-editor .live-preview { position: static; overflow-wrap: anywhere; }
+.r4-editor .header-flex { flex-wrap: wrap; gap: 12px; }
+.r4-teacher img,.r4-teacher svg:not(.lucide) { max-width: 100%; height: auto; }
+.r4-teacher mjx-container { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.r4-preview { max-width: 900px; margin: auto; }
+.r4-preview .card { margin-top: 20px; padding: 24px; }
+.r4-preview-choices li { padding: 8px; }
+.r4-steps { display: flex; flex-wrap: wrap; gap: 8px 24px; padding-left: 24px; color: var(--body); font-size: 14px; margin: 16px 0; }
+.r4-teacher .dropzone { min-height: 150px; border-radius: var(--radius-md); }
+.r4-teacher .file-tag { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; overflow-wrap: anywhere; }
+.r4-teacher .table-responsive-wrapper { max-width: 100%; overflow-x: auto; }
+.r4-teacher table th { color: var(--body-strong); }
+@media (max-width: 768px) {
+ .r4-teacher { padding: 12px !important; }
+ .r4-teacher .top-header-bar,.r4-teacher .header-nav-actions { flex-wrap: wrap; gap: 12px !important; }
+ .r4-actions { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .r4-quick-grid,.r4-library-filters,.r4-editor .edit-grid { grid-template-columns: minmax(0,1fr); }
+ .r4-dashboard .quiz-card-horizontal { align-items: stretch; flex-direction: column; }
+ .r4-dashboard #search-merge-bar { flex-wrap: wrap; }
+ .r4-dashboard #search-merge-bar input { flex: 1 1 100%; }
+ .r4-editor-bar #save-status { flex: 1; }
+ .r4-teacher .container,.r4-teacher .question-block,.r4-teacher .card { min-width: 0; max-width: 100%; }
+ .r4-editor .question-block { padding: 12px !important; }
+ .r4-editor .question-block label { flex-wrap: wrap; gap: 8px; }
+ .r4-teacher .mode-tabs { flex-wrap: wrap; }
+ .r4-teacher .modal-card { width: calc(100vw - 24px) !important; padding: 16px !important; }
+ .r4-teacher .golden-sidebar { max-width: 100vw; }
+ .r4-results .container > div[style*='repeat(4'] { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+ .r4-teacher .header-buttons { flex-wrap: wrap; }
+}
+
+.r4-dashboard #saved-quizzes-card { width: 100%; max-width: none; }
+.r4-editor .header-flex > div { min-width: 0; max-width: 100%; }
+.r4-editor .header-flex > div > div { flex-wrap: wrap; }
+.r4-editor .header-flex select { flex: 1; min-width: 0; width: 100% !important; }
+
+.r4-library-overview { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }

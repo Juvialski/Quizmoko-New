@@ -933,7 +933,7 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         require_solution: requireSolution,
         worksheet_source: { extracted_questions: worksheetSourceSnapshot(questions) },
         questions: quizQuestions,
-        is_draft: isDraft,
+        is_draft: req.body?.create_draft === true || isDraft,
         review_required_ids: reviewRequiredIds,
         worksheet_validation: {
           review_required: reviewRequiredIds,
@@ -1729,6 +1729,7 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
         teacher_review_approved: explicitlyApproved
           && (carriedBlockingDiagnostics.length > 0 || explicitlyApprovedQuestionIds.size > 0)
       },
+      is_draft: req.body?.create_draft === true,
       questions: publication.questions,
       created_at: new Date().toISOString()
     };

@@ -124,8 +124,9 @@
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/teacher-workflow.js"></script>
 </head>
-<body>
+<body class="r4-teacher r4-view-solutions">
     <div class="height-control-panel">
         <label>Workings Box Height</label>
         <input type="range" min='100' max='800' value="350" class="height-slider" id="height-slider" oninput="updateWbHeight(this.value)">
@@ -149,7 +150,7 @@
 
             <% if (typeof session !== 'undefined' && session.user && ['teacher', 'admin'].includes(session.user.role)) { %>
             <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
-                <button id="force-sync-btn" onclick="forceSyncResults()" style="background: var(--surface-soft); color: var(--warning); border: 1px solid var(--warning); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s;"><i data-lucide="zap" class="icon-sm"></i> FORCE SYNC & REPAIR</button>
+                <button id="force-sync-btn" onclick="forceSyncResults()" style="background: var(--surface-soft); color: var(--warning); border: 1px solid var(--warning); padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s;"><i data-lucide="zap" class="icon-sm"></i> Refresh saved feedback</button>
             </div>
             <% } %>
         </div>
@@ -199,8 +200,9 @@
                             <span class="ans-label" style="margin-bottom: 0;">Correct Answer</span>
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <% if (typeof session !== 'undefined' && session.user && ['teacher', 'admin'].includes(session.user.role)) { %>
+                                <details class="r4-more"><summary>Assessment tools</summary>
                                 <button class="edit-btn" onclick='recheckAnswer(<%= itemIdx %>, this)' style="background: transparent; border: none; color: var(--warning); font-size: 11px; cursor: pointer; font-weight: 800;"><i data-lucide="refresh-cw" class="icon-sm"></i> RE-CHECK</button>
-                                <button class="edit-btn" onclick='correctTeacherGrade(<%= itemIdx %>, this)' style="min-height:44px;background:transparent;border:none;color:var(--warning);cursor:pointer;">CORRECT GRADE</button>
+                                <button class="edit-btn" onclick='correctTeacherGrade(<%= itemIdx %>, this)' style="min-height:44px;background:transparent;border:none;color:var(--warning);cursor:pointer;">CORRECT GRADE</button></details>
                                 <% } %>
                             </div>
                         </div>

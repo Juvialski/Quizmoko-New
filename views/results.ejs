@@ -12,6 +12,15 @@
     
     <!-- MATHJAX FOR EQUATIONS -->
     <script>
+        function filterStudentResults(value) {
+          document.querySelectorAll('tbody > tr:not([id^="details-"])').forEach(row => {
+            const match = row.textContent.toLowerCase().includes(value.toLowerCase());
+            row.hidden = !match;
+            const next = row.nextElementSibling;
+            if (!match && next?.id?.startsWith('details-')) next.style.display='none';
+          });
+        }
+
       window.MathJax = {
         tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
         startup: { typeset: false }
@@ -102,8 +111,9 @@
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/teacher-workflow.js"></script>
 </head>
-<body>
+<body class="r4-teacher r4-results">
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <a href="/" class="back-link">← BACK TO DASHBOARD</a>
@@ -121,14 +131,17 @@
     </div>
 </div>
 
+<p class="r4-muted">See who submitted, compare scores and open feedback to review missed or pending answers.</p>
+<input type="search" class="r4-result-search" aria-label="Search student submissions" placeholder="Search student submissions" oninput="filterStudentResults(this.value)">
 <% 
 // Compute Analytics
 let classAvg = 0, completionRate = 0, avgTime = 0, hardestQ = 'N/A';
+let qMisses = {};
 if (results && results.length > 0) {
     let totalScore = 0, totalQuestions = 0;
     let completedCount = 0;
     let totalActiveTime = 0;
-    let qMisses = {};
+
     
     results.forEach(r => {
         totalScore += r.score || 0;
@@ -183,7 +196,7 @@ if (results && results.length > 0) {
 <% if (results && results.length > 0 && Object.keys(qMisses).length > 0) { %>
 <div class="results-card" style="margin-bottom: 24px; padding: 20px;">
     <h3 style="margin-top: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
-        <i data-lucide="help-circle" class="icon-sm"></i> Item Analysis & Difficulty Breakdown
+        <i data-lucide="help-circle" class="icon-sm"></i> Questions students missed
     </h3>
     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
         <% for (let idx in qMisses) { 
@@ -283,7 +296,7 @@ if (results && results.length > 0) {
                         <td style="color: var(--body); font-size: 14px;"><%= typeof r.timestamp !== 'undefined' ? r.timestamp : '' %></td>
                         <td>
                             <% if (r.details) { %>
-                                <button class="toggle-btn" onclick="toggleDetails('<%= typeof r.id !== 'undefined' ? r.id : '' %>')"><i data-lucide="search" class="icon-sm"></i> Mistakes</button>
+                                <button class="toggle-btn" onclick="toggleDetails('<%= typeof r.id !== 'undefined' ? r.id : '' %>')"><i data-lucide="search" class="icon-sm"></i> View feedback</button>
                             <% } %>
                             <button class="toggle-btn" onclick="downloadTeacherPDF('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; background: var(--primary); color: white;"><i data-lucide="download" class="icon-sm"></i> Solutions</button>
                             <button class="toggle-btn" onclick="copySolutionsLink('<%= typeof r.id !== 'undefined' ? r.id : '' %>')" style="margin-left:8px; border-color: var(--success); color: var(--success);"><i data-lucide="link" class="icon-sm"></i> Share</button>

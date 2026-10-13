@@ -35,19 +35,19 @@ const PROFILES: Record<AiTaskName, AiTaskProfile> = {
   },
   question_drafting: {
     task: 'question_drafting',
-    promptVersion: 'question-drafting-v4',
+    promptVersion: 'question-drafting-v5',
     thinkingLevel: 'high',
     maxOutputTokens: 16_384
   },
   question_solving: {
     task: 'question_solving',
-    promptVersion: 'question-solving-v4',
+    promptVersion: 'question-solving-v5',
     thinkingLevel: 'high',
     maxOutputTokens: 16_384
   },
   question_adjudication: {
     task: 'question_adjudication',
-    promptVersion: 'question-adjudication-v3',
+    promptVersion: 'question-adjudication-v4',
     thinkingLevel: 'high',
     maxOutputTokens: 12_288
   },

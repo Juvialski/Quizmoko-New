@@ -148,6 +148,7 @@ async function renderLoadedPdfPage(pdfDocument: any, pageNumber: number): Promis
 }
 
 export interface RenderedPdfPage {
+  sourceText?: string;
   pageIndex: number;
   pageNumber: number;
   pageCount: number;
@@ -155,6 +156,7 @@ export interface RenderedPdfPage {
 }
 
 export interface PdfPageRangeOptions {
+  includeSourceText?: boolean;
   startPage?: number;
   endPage?: number;
   maxPages?: number;
@@ -199,12 +201,23 @@ export async function renderPdfPageRange(
     }
 
     for (let pageNumber = startPage; pageNumber <= endPage; pageNumber++) {
+      let sourceText: string | undefined;
+      if (options.includeSourceText) {
+        const textPage = await pdfDocument.getPage(pageNumber);
+        try {
+          const content = await textPage.getTextContent();
+          // Keep physical text-run boundaries: do not infer a sequential numbering scheme.
+          sourceText = content.items.slice(0,10_000).map((item: any) => typeof item.str === 'string' ? item.str : '').join('\n').slice(0,100_000);
+        } catch { sourceText = undefined; } // Scans/encrypted text layers remain vision-only.
+        finally { textPage.cleanup(); }
+      }
       const image = await renderLoadedPdfPage(pdfDocument, pageNumber);
       await onPage({
         pageIndex: pageNumber - 1,
         pageNumber,
         pageCount,
-        image
+        image,
+        ...(sourceText !== undefined ? { sourceText } : {})
       });
     }
     return pageCount;

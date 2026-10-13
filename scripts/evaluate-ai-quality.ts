@@ -28,7 +28,11 @@ function sameAnswer(left: unknown, right: unknown): boolean {
 }
 
 const fixtureUrl = new URL('../test/fixtures/ai-quality-gold.json', import.meta.url);
-const questions = JSON.parse(fs.readFileSync(fixtureUrl, 'utf8')) as GoldQuestion[];
+const corpus = JSON.parse(fs.readFileSync(fixtureUrl, 'utf8')) as GoldQuestion[];
+const limitArg = process.argv.find(arg=>arg.startsWith('--limit='));
+const limit = limitArg ? Number(limitArg.slice(8)) : corpus.length;
+if (!Number.isInteger(limit) || limit<1 || limit>corpus.length) throw new Error('Evaluation limit must be a positive integer within the gold corpus.');
+const questions = corpus.slice(0,limit);
 const live = process.argv.includes('--live');
 let requestCount = 0;
 let malformedOutputs = 0;
@@ -138,6 +142,10 @@ const report = {
   malformed_output_count: malformedOutputs,
   malformed_output_percent: percent(malformedOutputs, requestCount),
   request_count: requestCount,
+  requests_per_accepted_question: verified ? Number((requestCount/verified).toFixed(4)) : null,
+  deterministic_validation: Object.fromEntries(['pass','fail','inconclusive'].map(outcome=>[outcome,result.questions.filter(q=>q.qa_metadata?.local_evidence?.mathematical?.outcome===outcome).length])),
+  diagram_rendering_failures: null,
+  visual_rendering_evaluated: false,
   categories: Object.fromEntries([...new Set(questions.map(q => q.category))].map(category => [category, questions.filter(q => q.category === category).length])),
   solver_agreement_percent: percent(solverAgreement, questions.length),
   model_accuracy: Object.fromEntries(

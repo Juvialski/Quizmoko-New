@@ -1227,6 +1227,19 @@
             }
 
             previewBox.innerHTML = html;
+            if (q.qa_metadata?.local_evidence || q.worksheet_qa?.local_evidence) {
+                previewBox.querySelectorAll('img').forEach(image => {
+                    const reportFailure = () => {
+                        markQuestionNeedsReview(qIndex, 'Diagram rendering failed. Repair or restore the diagram before approving.');
+                        const notice = document.createElement('div');
+                        notice.textContent = 'Diagram rendering failed. Check the source, retry the preview, and run Re-solve.';
+                        notice.style.color = 'var(--m-red)';
+                        image.after(notice);
+                    };
+                    image.addEventListener('error', reportFailure, { once: true });
+                    if (image.complete && image.naturalWidth === 0) reportFailure();
+                });
+            }
             renderMath(previewBox);
         }
 
@@ -1782,7 +1795,8 @@
                 if (q.verification && q.verification.verification_status !== 'verified') {
                     const reviewNotice = document.createElement('div');
                     reviewNotice.style.cssText = 'margin: 6px 0 10px; padding: 9px 11px; border: 1px solid var(--m-red); border-radius: 7px; color: var(--m-red); font-size: 12px; font-weight: 700;';
-                    reviewNotice.textContent = `Teacher review required: ${q.verification.reason || 'Independent answer checks did not reach a reliable consensus.'}`;
+                    const firstIssue = Array.isArray(q.verification.issues) ? q.verification.issues[0] : null;
+                    reviewNotice.textContent = `Teacher review required: ${firstIssue?.message || q.verification.reason || 'Independent answer checks did not reach a reliable consensus.'}${firstIssue?.action ? ' ' + firstIssue.action : ' Correct the item and run Re-solve, or explicitly approve it after checking.'}`;
                     leftCol.appendChild(reviewNotice);
                 }
 

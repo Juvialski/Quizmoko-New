@@ -42,10 +42,10 @@ The queue is process-local, matching QuizMoKo's existing single-writable-process
 
 1. A drafting model creates structured question objects.
 2. The server normalizes types, choices, answers, IDs, and LaTeX.
-3. Deterministic checks reject duplicate choices, answer leaks, invalid answer mappings, broken LaTeX, and grading-contract failures.
+3. Deterministic checks reject duplicate/equivalent choices, answer leaks, invalid mappings, broken LaTeX, grading-contract failures and supported mathematical/solution contradictions before hosted calls.
 4. Both Flash-Lite models receive an answerless copy and solve independently.
-5. Canonical agreement produces `verified` with method `dual_agreement`.
-6. Disagreement is sent to a blind adjudicator. Only a safe, high-confidence result produces `verified` with method `adjudicated`.
+5. Canonical or exact supported identification equivalence produces `verified` with method `dual_agreement` only after the shared quality gate passes. Definite local contradictions override agreement/confidence. Unsupported math retains explicitly inconclusive evidence and is labeled AI consensus, not mathematical proof.
+6. Disagreement is sent to a blind adjudicator. Only a safe, high-confidence result that passes the quality gate produces `verified` with method `adjudicated`. Missing/invalid/unrendered diagrams remain review-required.
 7. One solver, failed coverage, low confidence, unresolved disagreement, or quality issues produce `review_required`.
 8. Structurally unusable content produces `invalid`.
 9. Public publication accepts only `verified` questions. The editor may retain review-required items as a draft.
@@ -109,5 +109,15 @@ Run `npm run eval:ai` for hermetic mocked pipeline measurement. The 136-question
 `docs/AI_BASELINE_OFFLINE.json` records the mocked baseline: 136 correct/verified, no verified-wrong results, two solver requests. This **does not measure Gemini accuracy or demonstrate an accuracy gain**. `npm run eval:ai:live` explicitly requires credentials and uses batches of ten; it is never run by CI. Both modes report final/verified accuracy, agreement, review/adjudication rates, malformed frequency, request count, total latency and model failures. Gold answers/solutions/oracles are excluded from solver/adjudicator question payloads.
 
 Actual visual acceptance and live Gemini runs are separate from offline regression. Diagram-dependent missing-context behavior is mocked here; supplying real worksheet diagrams and measuring vision accuracy is deferred to an explicitly credentialed evaluation. Existing TikZ tests continue to cover deterministic diagram-plan validation.
+
+## R2 deterministic and quality gates
+
+`mathVerification.ts` supplies exact rational arithmetic, bounded polynomial equivalence, complete rational linear/quadratic roots, systems, original-equation substitution, coordinate/line calculations, rectangle/triangle formulas, basic statistics/probability and unit conversions through complete supported wording templates. Undefined arithmetic and extraneous/missing roots cannot pass. Caller-supplied numeric tolerance is explicit. Unsupported wording/domains, irrational/transcendental math, arbitrary rational functions and irreducible factorization remain inconclusive.
+
+`questionQuality.ts` is shared by normal and worksheet verification. It checks supported choices independently, explicit worked equalities/transformations, diagram source/context and extraction completeness. Source-safe TikZ is still unrendered and requires teacher preview; no visual correctness is inferred from syntax. Embedded images go to actual vision inlineData rather than base64 text. PDF text-layer IDs supply optional file/page coverage evidence without invented numbering. Successful solver items survive bounded targeted field/coverage repair.
+
+Private versioned local evidence lives in optional QA metadata. Teacher notices show an issue and corrective action; existing explicit approval and Re-solve remain. Historical published quizzes/grades are not scanned or rewritten. Drafting/solving/adjudication prompt versions are v5/v5/v4; providers and high-thinking/RPM settings are unchanged.
+
+Run `npm run eval:r2` for the 38-item actual-R1/current adversarial mocked comparison, and `npm run eval:ai` for the retained 136-item gold corpus. `eval:ai:live -- --limit=N` supports bounded opt-in live subsets. See [R2 implementation and limitations](R2_IMPLEMENTATION_REPORT.md), [adversarial measurement](R2_COMPARISON_OFFLINE.json) and [gold measurement](R2_GOLD_OFFLINE.json). Offline measurements do not establish Gemini or visual accuracy.
 
 See [R1 report](R1_IMPLEMENTATION_REPORT.md) for operational limits and evidence.

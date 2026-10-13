@@ -171,7 +171,8 @@ export async function runBoundedWorksheetModelRequest<T>(input: {
 
 export function parseWorksheetSolverBatchOutput(
   text: string,
-  expectedQuestions: readonly Record<string, unknown>[]
+  expectedQuestions: readonly Record<string, unknown>[],
+  validateFields = true
 ): Record<string, unknown>[] {
   const parsed = safeParseJSON(text || '');
   if (!Array.isArray(parsed) || parsed.length !== expectedQuestions.length) {
@@ -196,7 +197,7 @@ export function parseWorksheetSolverBatchOutput(
     const latexIssues = latexFields.flatMap(field => (
       typeof field === 'string' ? validateLatexText(field) : []
     ));
-    if (latexIssues.length > 0) {
+    if (validateFields && latexIssues.length > 0) {
       throw new Error(
         `Solver returned invalid LaTeX for source_id ${expectedSourceId}: ${latexIssues[0].message}`
       );
@@ -221,7 +222,11 @@ async function requestWorksheetAdjudication(input: {
 }): Promise<WorksheetAdjudicatorDecision> {
   const fulfilled = input.candidates
     .filter(candidate => candidate.status === 'fulfilled')
-    .map(candidate => ({ model: candidate.model, output: candidate.output }));
+    .map(candidate => ({ model: candidate.model, output: candidate.output as any }));
+  if ([...getWorksheetSourceId(input.rawQuestion)].reduce((n,c)=>n+c.charCodeAt(0),0)%2) fulfilled.reverse();
+  const anonymousCandidates = fulfilled.map((candidate,index) => ({model:`candidate_${index===0?'a':'b'}`,output:{
+    answer:candidate.output?.answer, options:candidate.output?.options, type:candidate.output?.type, solution:candidate.output?.solution
+  }}));
   const contents: any[] = [];
   const prepared = prepareVisionText(
     input.rawQuestion.raw_text || input.rawQuestion.question || input.rawQuestion.statement || '',
@@ -233,7 +238,7 @@ SUBJECT: ${input.subject}
 TOPIC: ${input.topic}
 QUESTION: ${prepared.text}
 OPTIONS: ${JSON.stringify(input.rawQuestion.options || input.rawQuestion.choices || [])}
-INDEPENDENT CANDIDATES: ${JSON.stringify(fulfilled)}
+INDEPENDENT CANDIDATES: ${JSON.stringify(anonymousCandidates)}
 
 Return only strict JSON. If one candidate is fully correct, set verified=true and accepted_model to that exact model name. If neither is correct, set verified=false and provide corrected_answer, corrected_solution, and corrected_type. If the evidence is insufficient, set verified=false and leave correction fields empty so the item is sent for teacher review. Give only a concise verification reason; never output hidden reasoning.
 ${getSubjectPromptRules(input.subject, input.topic)}`;
@@ -260,7 +265,7 @@ ${getSubjectPromptRules(input.subject, input.topic)}`;
         return {
           status: 'fulfilled' as const,
           verified: (parsed as any).verified,
-          accepted_model: String((parsed as any).accepted_model || '').trim() || undefined,
+          accepted_model: (() => { const name=String((parsed as any).accepted_model || '').trim(); const index=anonymousCandidates.findIndex(c=>c.model===name); return index>=0 ? fulfilled[index].model : fulfilled.find(c=>c.model===name)?.model; })(),
           corrected_answer: (parsed as any).corrected_answer,
           corrected_solution: String((parsed as any).corrected_solution || '').trim() || undefined,
           corrected_type: String((parsed as any).corrected_type || '').trim() || undefined,
@@ -347,67 +352,72 @@ export async function solveWorksheetBatchWithConsensus(input: {
   const strictMathSubject = shouldUseStrictMathFormatting(input.subject, input.topic);
 
   const runModel = async (model: string): Promise<Record<string, unknown>[]> => {
-    const contents: any[] = [];
-    const promptQuestions = input.questions.map(rawQuestion => {
-      const originalText = rawQuestion.raw_text || rawQuestion.question || rawQuestion.statement || '';
-      const prepared = prepareVisionText(originalText, contents);
-      return {
-        ...stripWorksheetSolverState(rawQuestion),
-        question: prepared.text,
-        raw_text: prepared.text,
-        source_id: getWorksheetSourceId(rawQuestion)
-      };
-    });
-    contents.unshift(buildWorksheetSolverPrompt({
-      questions: promptQuestions,
-      subject: input.subject,
-      topic: input.topic,
-      non_math: !strictMathSubject
-    }));
-    return runBoundedWorksheetModelRequest({
-      label: `${model} worksheet batch`,
-      deadlineAt: input.deadlineAt,
-      operation: async signal => {
+    const completed = new Map<number, Record<string, unknown>>();
+    let validatorErrors = '';
+    const requestPending = async (signal: AbortSignal) => {
+      const pendingIndices = input.questions.map((_, index) => index).filter(index => !completed.has(index));
+      const pending = pendingIndices.map(index => input.questions[index]);
+      const contents: any[] = [];
+      const promptQuestions = pending.map(rawQuestion => {
+        const originalText = rawQuestion.raw_text || rawQuestion.question || rawQuestion.statement || '';
+        const prepared = prepareVisionText(originalText, contents);
+        return {
+          ...stripWorksheetSolverState(rawQuestion),
+          question: prepared.text,
+          raw_text: prepared.text,
+          source_id: getWorksheetSourceId(rawQuestion)
+        };
+      });
+      contents.unshift(buildWorksheetSolverPrompt({
+        questions: promptQuestions,
+        subject: input.subject,
+        topic: input.topic,
+        non_math: !strictMathSubject
+      }) + (validatorErrors ? `\nRetry only these pending items. Validator errors: ${validatorErrors}` : ''));
         const response = await generateGeminiContent(input.ai, {
           model,
           contents,
           config: buildAiTaskConfig('question_solving', {
             responseMimeType: 'application/json',
             responseSchema: SOLVED_QUESTION_SCHEMA,
-            maxOutputTokens: Math.min(32_768, Math.max(4_096, input.questions.length * 2_048)),
+            maxOutputTokens: Math.min(32_768, Math.max(4_096, pending.length * 2_048)),
             abortSignal: signal
           }) as any
         });
-        const outputs = parseWorksheetSolverBatchOutput(response.text || '', input.questions);
+        const outputs = parseWorksheetSolverBatchOutput(response.text || '', pending, false);
+        const errors: string[] = [];
         outputs.forEach((output, index) => {
-          const base = input.questions[index];
-          const sourceId = getWorksheetSourceId(base);
-          const candidate = preserveWorksheetSourceIdentity(base, {
-            ...base,
-            ...output,
-            question: String(base.question || base.raw_text || base.statement || '').trim(),
-            ...(sourceId ? { original_index: sourceId, source_id: sourceId } : {})
-          });
-          const checked = validateWorksheetQuestion(candidate);
-          if (!checked.valid) {
-            throw new Error(
-              `Solver result validation failed for "${getWorksheetSourceId(base)}": ${checked.diagnostics.map(item => item.message).join(' ')}`
-            );
-          }
+          const base = pending[index];
+          const checked = validateWorksheetQuestion(preserveWorksheetSourceIdentity(base, {
+            ...base, ...output, question: String(base.question || base.raw_text || base.statement || '')
+          }));
+          if (checked.valid) completed.set(pendingIndices[index], output);
+          else errors.push(`${getWorksheetSourceId(base)}: ${checked.diagnostics.map(d=>d.message).join(' ')}`);
         });
-        return outputs;
-      }
-    });
+        validatorErrors = errors.join(' ').slice(0, 2000);
+        if (errors.length) throw new Error(`Solver result validation failed: ${validatorErrors}`);
+        return input.questions.map((_, index) => completed.get(index)!);
+    };
+    try {
+      return await runBoundedWorksheetModelRequest({
+        label: `${model} worksheet batch`, deadlineAt: input.deadlineAt, operation: requestPending
+      });
+    } catch (error) {
+      if (error instanceof GeminiRateLimitError || (error as any)?.name === 'AbortError') throw error;
+      if (!completed.size) throw error;
+      // Missing outputs remain invalid at consensus; good items keep their exact evidence.
+      return input.questions.map((_, index) => completed.get(index) as Record<string, unknown>);
+    }
   };
 
   const settled = await Promise.allSettled(models.map(runModel));
   const candidatesByQuestion = input.questions.map((_question, questionIndex): IndependentSolverCandidate[] =>
     settled.map((result, modelIndex) => ({
       model: models[modelIndex],
-      status: result.status === 'fulfilled' ? 'fulfilled' : 'failed',
-      ...(result.status === 'fulfilled'
+      status: result.status === 'fulfilled' && result.value[questionIndex] ? 'fulfilled' : 'failed',
+      ...(result.status === 'fulfilled' && result.value[questionIndex]
         ? { output: result.value[questionIndex] }
-        : { error: String((result.reason as any)?.message || result.reason || 'Solver failed') })
+        : { error: result.status === 'rejected' ? String((result.reason as any)?.message || result.reason || 'Solver failed') : 'No valid solver output for this item.' })
     }))
   );
 

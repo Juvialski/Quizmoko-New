@@ -90,6 +90,8 @@
     "aiTaskProfiles.ts": "central task profiles",
     "aiWorkGuard.ts": "AI concurrency/cost guard",
     "aiQuestionVerifier.ts": "dual independent verification + adjudication",
+    "mathVerification.ts": "bounded exact rational/polynomial checks, original-domain substitution, complete supported roots; explicit pass/fail/inconclusive",
+    "questionQuality.ts": "shared choice, worked-solution, diagram source/context, extraction completeness and printed-ID detection",
     "quizCreatorAi.ts": "creator-key isolation",
     "latex.ts": "math text normalization/validation",
     "latexPatches.ts": "hash-guarded format patches",
@@ -113,8 +115,8 @@
   "flows": {
     "auth": ["Firebase ID token", "verified server-side", "persist user", "signed session cookie", "role/ownership guards"],
     "manual_authoring": ["dashboard", "create/edit/duplicate/merge", "canonical normalization", "verification/draft gate", "persist", "sanitized public quiz"],
-    "ai_authoring": ["AI request", "AI work guard", "Gemini RPM queue", "structured draft", "canonical + LaTeX validation", "answerless dual solve", "adjudicate disagreement", "verified/review_required", "editor/publication"],
-    "worksheet": ["PDF/image upload", "page rasterize", "structured extraction", "source provenance", "reconcile/order", "optional golden key", "bounded dual-model solve", "adjudicate", "teacher review/publication gate", "persist quiz"],
+    "ai_authoring": ["AI request", "AI work guard", "Gemini RPM queue", "structured draft", "canonical + LaTeX + local quality preflight", "answerless dual solve with actual vision parts", "target only missing outputs", "adjudicate disagreement", "local consensus/correction quality gate", "verified/review_required with private evidence", "editor/publication"],
+    "worksheet": ["PDF/image upload", "page rasterize + optional bounded text-layer IDs", "structured extraction", "source provenance and printed coverage diagnostics", "reconcile/order", "optional golden key", "bounded dual-model solve with targeted field repair", "anonymous adjudication", "shared local quality gate", "teacher review/publication gate", "persist quiz"],
     "attempt": ["published quiz", "crypto session ID", "answer revisions/digests", "individual grade", "progress save", "live telemetry", "final attempt lock", "authoritative final grade", "durable result", "capability token"],
     "results": ["UID/owner/capability access", "display historical grade", "optional share token", "teacher recheck", "question-version acknowledgement", "audited regrade"],
     "live": ["student ping/socket", "live session update", "persisted score authority", "room broadcast", "teacher controls"]
@@ -166,6 +168,15 @@
     "production": "required credentialed Firestore; strong stable secret; trusted origins; no demo seeding",
     "progress": "acknowledged coalesced checkpoints; final idempotent durable acknowledgment",
     "ai_evaluation": "136 gold + 6 review fixtures; offline mocked, live opt-in",
-    "validation": "139 local regressions passed; hosted/Render acceptance separate"
+    "validation": "R1 acceptance: PR-head and merged-main CI 141 tests; Render merge commit 256c2e6 accepted"
+  },
+  "r2_update": {
+    "date": "2026-10-13",
+    "implementation": "docs/R2_IMPLEMENTATION_REPORT.md",
+    "evidence": ["docs/R2_COMPARISON_OFFLINE.json", "docs/R2_GOLD_OFFLINE.json"],
+    "policy": "Definite local contradictions override model consensus/confidence. Unsupported mathematics is inconclusive, never deterministic proof.",
+    "diagram": "TikZ source checks do not establish rendered/visual correctness; teacher preview required. Embedded images supplied as actual vision parts.",
+    "compatibility": "Optional private evidence; no historical rewrites, database migration, provider or public API changes.",
+    "validation": "153 local regressions pass; 38 adversarial fixtures + retained 136 gold; offline mocked rather than live model accuracy. Hosted exact-head CI is separate."
   }
 }

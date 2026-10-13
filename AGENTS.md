@@ -5,6 +5,7 @@
 - Core Server: Modular Express.js server with clean entry point (server.ts) routing to modular controllers in /src/routes/, state & persistence in /src/store/db.ts, services in /src/services/, types in /src/types.ts, and auth middleware in /src/middleware/auth.ts
 - Frontend / Templating: EJS views under /views/, shared UI tokens in /public/css/quizmoko-ui.css, theme management in /public/js/quizmoko-theme.js, and guarded MathJax rendering through /public/js/math-display.js
 - AI Service Layer: @google/genai initialized in /src/services/gemini.ts; task profiles live in /src/services/aiTaskProfiles.ts, generation verification in /src/services/aiQuestionVerifier.ts, guarded LaTeX patches in /src/services/latexPatches.ts, semantic grading in /src/services/semanticGrading.ts, and bounded worksheet consensus in /src/services/worksheetSolver.ts
+- R2 Quality Layer: bounded exact mathematics in `src/services/mathVerification.ts` and shared choice, explanation, diagram and extraction checks in `src/services/questionQuality.ts`; both normal and worksheet verification consume these checks.
 - Grading Domain: canonical question normalization/scoring lives in /src/services/grading.ts, signed grade identity in /src/services/gradeProof.ts, and per-attempt ordering guards in /src/services/resultSession.ts
 - Data & Persistence: Firebase Firestore (firebase-admin, firebase/firestore), Firestore security rules (firestore.rules), in-memory Map stores, and JSON persistence in /src/store/db.ts with /data/*.json fallbacks
 - Document & Asset Processing: pdfjs-dist, exceljs, sharp, archiver, multer processed via /src/services/pdf.ts; worksheet validation/consensus rules are centralized in /src/services/worksheetPipeline.ts
@@ -161,3 +162,11 @@ You are the DevOps & Package Guard for QuizMoKo. Your domain is repository confi
 - Preserve the existing Render `FIREBASE_JSON` service-account alias; prefer FIREBASE_SERVICE_ACCOUNT_JSON when both are set. Verify real secret-field strength rather than masked display text. Optional dashboard banners must be null-guarded when a saved dismissal flag survives UI changes.
 
 - Render Start Command must be `npm start` (`tsx server.ts`), not plain `node server.ts`; strip-only TypeScript cannot execute parameter properties. Verify the provider's actual runtime command before rollout. R1 live code acceptance is merge commit 256c2e6; documentation-only acceptance commits may deliberately skip Render deployment.
+
+## R2 accuracy invariants (2026-10-13)
+- A definite local mathematical/choice/explanation contradiction blocks automatic verification, regardless of model agreement/confidence or adjudication. Unsupported mathematics stays explicitly inconclusive; AI consensus is not mathematical proof.
+- Parse bounded expressions safely with exact rationals and sound polynomial rules; never execute model expressions or treat numerical sampling as universal equivalence. Preserve original equation domains and complete root sets; per-choice substitution alone does not prove completeness.
+- New TikZ source checks do not certify rendering or visual correctness. Require teacher preview for unrendered diagrams and actual vision context for images. Keep diagram plans/counts and original source material intact.
+- Retries preserve successful stable-ID outputs and target only defective/missing items. A missing worksheet solver output must remain failed and cannot inherit a prior answer as evidence. Preserve quota/deadline wrappers.
+- PDF text-layer numbering is optional file/page-specific coverage evidence, never inferred sequential numbering. Incomplete extraction stays visible for teacher recovery; do not fabricate source text.
+- Apply quality checks only to new generation or explicit revalidation, with optional private versioned QA evidence. Keep historical published questions/results unchanged. Run `eval:r2` as a mocked actual-R1/current comparison; never label it live model accuracy.

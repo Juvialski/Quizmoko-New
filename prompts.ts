@@ -200,8 +200,8 @@ Generate exactly {batch_size} question objects in this exact order:
 {question_plan}
 
 RULES
-1. Every question must be unambiguous, self-contained, factually correct, and solvable from the supplied information.
-2. Multiple choice and multiple select require exactly four unique options. The options array must contain ONLY the option content. NEVER prefix option strings with A), B), C), D), A., B., "Option A", bullets, numbers, or any other choice label because QuizMoKo renders the A/B/C/D labels itself. Correct: ["50", "60", "65", "70"]. Wrong: ["A) 50", "B) 60", "C) 65", "D) 70"]. NEVER repeat, inline, or append those choices inside the question field. For multiple choice, answer is one letter. For multiple select, answer is two or more letters in ascending order.
+1. Supply sufficient conditions and explicit mathematical domains; use precise wording and supported facts. Solve before choosing distractors.
+2. Choice questions require four distinct, non-equivalent options. The options array must contain ONLY the option content, without labels or repeated choices in the stem. Single choice has exactly one correct value; multi-select has two or more correct letters in ascending order. Check every option against the conditions. Use plausible sign, operation-order, fraction, unit or formula mistakes as distractors.
 3. True/false requires exactly ["True", "False"] and answer A or B. Do not prefix True/False with A/B labels.
 4. Identification, open-ended, and graphing require an empty options array. Identification answers must be a concise raw number, symbol, word, or short phrase without units or LaTeX delimiters.
 5. Include a concise solution that allows an independent checker to verify the proposed answer. Do not expose hidden reasoning.

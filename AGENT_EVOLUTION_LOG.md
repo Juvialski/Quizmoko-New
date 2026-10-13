@@ -123,3 +123,7 @@ Established mandatory normal-production Firestore/secret/origin validation and d
 R1 browser follow-up: existing Render credentials use FIREBASE_JSON; added compatible alias instead of migration. Actual SESSION_SECRET passed strength checks. Fixed missing-disclaimer callbacks discovered in the deployed dashboard. Existing Cloud principal/role verified read-only; starting-main UI proof remains separate from R1 deployment proof.
 
 R1 live acceptance: PR #4 merged, both exact-head CI runs passed 141 tests. Corrected Render Start Command from node server.ts to npm start/tsx after strip-only TypeScript rejection. Merge 256c2e6 is live with Admin Firestore hydration and minimal ready health. Preserved existing credentials/IAM/data; public quiz start and dashboard guard verified. Recorded runtime prerequisite and remaining unperformed production write/load/provider drills.
+
+# 2026-10-13 — R2 deterministic accuracy
+
+Added bounded exact math and shared choice/explanation/diagram/extraction gates to generation and worksheet consensus. Definite contradictions override high-confidence AI agreement; unsupported claims remain inconclusive. Added per-item solver repair, anonymous worksheet adjudication, embedded-image vision, optional PDF text-layer numbering coverage and concise teacher actions. TikZ source checks require preview rather than claiming visual proof. New optional private evidence leaves historical quizzes and grades unchanged; actual-R1/current mocked comparisons run in CI. See docs/R2_IMPLEMENTATION_REPORT.md.

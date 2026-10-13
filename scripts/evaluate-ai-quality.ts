@@ -29,20 +29,40 @@ function sameAnswer(left: unknown, right: unknown): boolean {
 
 const fixtureUrl = new URL('../test/fixtures/ai-quality-gold.json', import.meta.url);
 const questions = JSON.parse(fs.readFileSync(fixtureUrl, 'utf8')) as GoldQuestion[];
-const ai = getGeminiClient();
-if (!ai) {
-  throw new Error('Set GEMINI_API_KEY or API_KEY before running npm run eval:ai.');
-}
+const live = process.argv.includes('--live');
+let requestCount = 0;
+let malformedOutputs = 0;
+const underlying = live ? getGeminiClient() : {
+  models: { async generateContent(request: any) {
+    // The mock is a regression oracle. It is not a measurement of Gemini accuracy.
+    const prompt = String(request.contents?.[0] || '');
+    if (prompt.includes('"answer":') || prompt.includes('"solution":') || prompt.includes('"oracle":')) {
+      throw new Error('Gold metadata leaked into solver prompt.');
+    }
+    return { text: JSON.stringify(questions.map(q => ({ id: q.id, answer: q.answer,
+      solution: 'The answer follows from the stated information.', confidence: 'high' }))) };
+  } }
+};
+if (!underlying) throw new Error('Live evaluation requires GEMINI_API_KEY or API_KEY.');
+const ai = { models: { async generateContent(request: any) {
+  requestCount++;
+  const response = await underlying.models.generateContent(request);
+  try { JSON.parse(response.text || ''); } catch { malformedOutputs++; }
+  return response;
+} } };
 
 const startedAt = Date.now();
-const result = await verifyQuestionBatch({
-  ai,
-  questions,
-  subject: 'Mixed evaluation set',
-  topic: 'QuizMoKo AI quality regression',
-  preferredModel: PRIMARY_FLASH_LITE_MODEL,
-  contextLabel: 'gold evaluation; answers are hidden from solvers'
-});
+const result: Awaited<ReturnType<typeof verifyQuestionBatch>> = { questions: [], reviewRequiredIds: [], invalidIds: [], modelFailures: [] };
+const batchSize = live ? 10 : questions.length;
+for (let offset = 0; offset < questions.length; offset += batchSize) {
+  const batch = await verifyQuestionBatch({ ai, questions: questions.slice(offset, offset + batchSize),
+    subject: 'Mixed evaluation set', topic: 'QuizMoKo AI quality regression',
+    preferredModel: PRIMARY_FLASH_LITE_MODEL, contextLabel: 'gold evaluation; answers are hidden from solvers' });
+  result.questions.push(...batch.questions);
+  result.reviewRequiredIds.push(...batch.reviewRequiredIds);
+  result.invalidIds.push(...batch.invalidIds);
+  result.modelFailures.push(...batch.modelFailures);
+}
 const elapsedMs = Date.now() - startedAt;
 
 const perModel = new Map<string, { correct: number; answered: number }>([
@@ -102,6 +122,7 @@ for (let index = 0; index < questions.length; index += 1) {
 
 const percent = (value: number, total: number) => total > 0 ? Number((100 * value / total).toFixed(1)) : 0;
 const report = {
+  mode: live ? "live Gemini measurement" : "offline mocked regression (not model accuracy)",
   generated_at: new Date().toISOString(),
   elapsed_ms: elapsedMs,
   total: questions.length,
@@ -110,6 +131,14 @@ const report = {
   review_required: reviewRequired,
   invalid,
   verified_wrong: verifiedWrong,
+  accuracy_among_verified_percent: percent(verified - verifiedWrong, verified),
+  review_required_percent: percent(reviewRequired, questions.length),
+  adjudication_count: result.questions.filter(q => q.verification?.method === 'adjudicated').length,
+  adjudication_percent: percent(result.questions.filter(q => q.verification?.method === 'adjudicated').length, questions.length),
+  malformed_output_count: malformedOutputs,
+  malformed_output_percent: percent(malformedOutputs, requestCount),
+  request_count: requestCount,
+  categories: Object.fromEntries([...new Set(questions.map(q => q.category))].map(category => [category, questions.filter(q => q.category === category).length])),
   solver_agreement_percent: percent(solverAgreement, questions.length),
   model_accuracy: Object.fromEntries(
     Array.from(perModel, ([model, stats]) => [model, {
@@ -121,4 +150,7 @@ const report = {
   items_needing_attention: failures
 };
 
+const outputArg = process.argv.find(arg => arg.startsWith('--output='));
+if (outputArg) fs.writeFileSync(outputArg.slice('--output='.length), JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(report, null, 2));
+if (!live && (verifiedWrong || finalCorrect !== questions.length || verified !== questions.length)) process.exitCode = 1;

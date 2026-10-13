@@ -1,3 +1,4 @@
+import { validateRuntimeConfig } from './runtimeConfig.ts';
 import type { Server as HttpServer } from 'http';
 import type { Server as SocketServer } from 'socket.io';
 import {
@@ -9,7 +10,7 @@ import {
 export function installGracefulShutdown(server: HttpServer, io: SocketServer): void {
   let shuttingDown = false;
 
-  const shutdown = async (signal: string) => {
+  const shutdown = async (signal: string, fatal = false) => {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`[Server] ${signal} received; draining requests and persistence.`);
@@ -30,27 +31,28 @@ export function installGracefulShutdown(server: HttpServer, io: SocketServer): v
       const timer = setTimeout(() => resolve(false), 10_000);
       timer.unref();
     });
-    const [flushed, drained] = await Promise.all([
-      flushPendingPersistence(10_000),
-      Promise.race([requestsDrained, drainDeadline])
-    ]);
+    const drained = await Promise.race([requestsDrained, drainDeadline]);
+    const flushed = await flushPendingPersistence(10_000);
     if (!flushed) console.warn('[Persistence] Shutdown flush timed out; verify Firestore connectivity.');
     if (!drained) console.warn('[Server] Shutdown request drain timed out.');
-    process.exit(flushed && drained ? 0 : 1);
+    process.exit(flushed && drained && !fatal ? 0 : 1);
   };
 
   process.once('SIGTERM', () => void shutdown('SIGTERM'));
   process.once('SIGINT', () => void shutdown('SIGINT'));
 
   process.on('unhandledRejection', (reason) => {
-    console.error('[Server] Unhandled promise rejection:', reason);
+    console.error('[Server] Unhandled promise rejection; shutting down.');
+    void shutdown('unhandledRejection', true);
   });
   process.on('uncaughtException', (error) => {
-    console.error('[Server] Uncaught exception:', error);
+    console.error('[Server] Uncaught exception; shutting down.');
+    void shutdown('uncaughtException', true);
   });
 }
 
 export async function startHttpServer(server: HttpServer): Promise<void> {
+  validateRuntimeConfig();
   await initDatabase();
   await new Promise<void>((resolve, reject) => {
     const onStartupError = (error: Error) => reject(error);

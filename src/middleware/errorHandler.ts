@@ -22,12 +22,11 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
     ? 'Invalid request payload'
     : status === 413
       ? 'Request payload is too large'
-      : 'Internal server error';
+      : status === 503 ? 'Service temporarily unavailable; retry shortly'
+      : status === 429 ? 'Too many requests; retry shortly' : 'Internal server error';
 
-  console.error(
-    `[HTTP] ${req.method} ${req.originalUrl} failed:`,
-    error instanceof Error ? error.message : 'unknown error'
-  );
+  if (error?.retryAfterSeconds) res.setHeader('Retry-After', String(error.retryAfterSeconds));
+  console.error(`[HTTP] ${req.method} ${req.path} failed (status ${status}).`);
 
   if (req.originalUrl.startsWith('/api/') || req.accepts(['html', 'json']) === 'json') {
     res.status(status).json({ success: false, error: message });

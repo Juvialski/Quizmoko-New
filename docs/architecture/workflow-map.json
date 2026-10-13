@@ -158,5 +158,14 @@
     "human": "docs/architecture/APP_WORKFLOW_MAP.md",
     "machine": "docs/architecture/workflow-map.json",
     "rule": "Update both when routes, views, services, stores, access boundaries, or major workflows change."
+  },
+  "r1_update": {
+    "date": "2026-10-13",
+    "implementation": "docs/R1_IMPLEMENTATION_REPORT.md",
+    "deployment_gate": "docs/PRODUCTION_OPERATIONS.md",
+    "production": "required credentialed Firestore; strong stable secret; trusted origins; no demo seeding",
+    "progress": "acknowledged coalesced checkpoints; final idempotent durable acknowledgment",
+    "ai_evaluation": "136 gold + 6 review fixtures; offline mocked, live opt-in",
+    "validation": "139 local regressions passed; hosted/Render acceptance separate"
   }
 }

@@ -1,3 +1,4 @@
+import { demoDataEnabled, validateRuntimeConfig } from '../services/runtimeConfig.ts';
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { Request, Response, NextFunction, CookieOptions } from 'express';
 import { getAuth, type DecodedIdToken } from 'firebase-admin/auth';
@@ -36,10 +37,11 @@ function envFlag(name: string, fallback: boolean): boolean {
 }
 
 export function isDemoAuthEnabled(): boolean {
-  return process.env.NODE_ENV === 'test' || envFlag('ALLOW_DEMO_AUTH', false);
+  return demoDataEnabled();
 }
 
 function sessionSecret(): Buffer {
+  validateRuntimeConfig();
   const configured = process.env.SESSION_SECRET;
   if (configured) {
     if (configured.length < 32 && !warnedAboutGeneratedSecret) {

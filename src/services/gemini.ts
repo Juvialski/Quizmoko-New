@@ -162,7 +162,7 @@ export function safeParseJSON(rawText: string): any {
       const parsed = JSON.parse(cleaned);
       return sanitizeParsedJSON(parsed);
     } catch (e2) {
-      console.warn('safeParseJSON failed after all repair attempts:', e2, '\nRaw text sample:', rawText.substring(0, 300));
+      console.warn('[AI] Structured output could not be parsed; content omitted.');
       return null;
     }
   }

@@ -76,7 +76,7 @@ export async function cropImageBoundingBox(fileBuffer: Buffer, bbox: any): Promi
 }
 
 async function loadPdfDocument(pdfBuffer: Buffer): Promise<any> {
-  if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {
+  if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.subarray(0, 5).toString() !== '%PDF-') {
     throw new Error('PDF buffer is empty');
   }
   const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
@@ -85,10 +85,27 @@ async function loadPdfDocument(pdfBuffer: Buffer): Promise<any> {
     isEvalSupported: false,
     useSystemFonts: true
   } as any);
-  return loadingTask.promise;
+  try { return await loadingTask.promise; }
+  catch (error) { await loadingTask.destroy().catch(() => undefined); throw error; }
+}
+
+const rasterWaiters: Array<() => void> = [];
+let activeRasters = 0;
+async function acquireRaster(): Promise<() => void> {
+  if (activeRasters >= 2) {
+    if (rasterWaiters.length >= 24) throw new Error('PDF rendering capacity reached; retry shortly.');
+    await new Promise<void>(resolve => rasterWaiters.push(resolve));
+  } else activeRasters++;
+  return () => {
+    const next = rasterWaiters.shift();
+    if (next) next();
+    else activeRasters--;
+  };
 }
 
 async function renderLoadedPdfPage(pdfDocument: any, pageNumber: number): Promise<Buffer> {
+  const release = await acquireRaster();
+  let canvas: any = null;
   let page: any = null;
   try {
     page = await pdfDocument.getPage(pageNumber);
@@ -103,21 +120,23 @@ async function renderLoadedPdfPage(pdfDocument: any, pageNumber: number): Promis
       throw new Error(`PDF page ${pageNumber} has invalid dimensions`);
     }
 
-    // Keep a single RGBA canvas near 48 MB so concurrent Render requests do not
+    // Keep a single RGBA canvas near 24 MB so concurrent Render requests do not
     // exhaust a small instance while retaining more than enough OCR detail.
-    const maxPixels = 12_000_000;
+    const maxPixels = 6_000_000;
     const pixelCount = initialViewport.width * initialViewport.height;
     const scale = pixelCount > maxPixels
       ? baseScale * Math.sqrt(maxPixels / pixelCount)
       : baseScale;
     const viewport = page.getViewport({ scale });
     const { createCanvas } = await import('@napi-rs/canvas');
-    const canvas = createCanvas(Math.max(1, Math.ceil(viewport.width)), Math.max(1, Math.ceil(viewport.height)));
+    canvas = createCanvas(Math.max(1, Math.ceil(viewport.width)), Math.max(1, Math.ceil(viewport.height)));
     const canvasContext = canvas.getContext('2d');
 
     await page.render({ canvasContext, viewport, canvas }).promise;
     return canvas.toBuffer('image/png');
   } finally {
+    if (canvas) { canvas.width = 1; canvas.height = 1; }
+    release();
     if (page) {
       try {
         page.cleanup();

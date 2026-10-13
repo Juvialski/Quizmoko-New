@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Router } from 'express';
 import { Type } from '@google/genai';
 import { tokenRequired } from '../middleware/auth.ts';
@@ -8,6 +9,7 @@ import {
   users,
   savePersistentData,
   syncDocToFirestore,
+  persistQuizCreation,
   getUniqueQuizTitle
 } from '../store/db.ts';
 import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
@@ -54,6 +56,7 @@ function acquireRequestAiWork(
 ): AiWorkLease {
   return acquireAiWork({
     userId: req.user?.uid || '',
+    workKey: createHash('sha256').update(req.path).update(JSON.stringify(req.body || {})).digest('hex'),
     cost,
     byok: hasBrowserApiKey(apiKey),
     perUserConcurrency: concurrency?.perUser,
@@ -642,7 +645,7 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
       res.setHeader('Retry-After', String(error.retryAfterSeconds));
       return fail(error.status, error.message);
     }
-    console.error('AI work guard error:', error);
+    console.error('AI work guard error:');
     return fail(500, 'AI generation could not be scheduled.');
   }
 
@@ -813,9 +816,7 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
       questions: generatedQuestions
     };
 
-    quizzes.set(quizId, quiz);
-    savePersistentData();
-    await syncDocToFirestore('quizzes', quizId, quiz);
+    await persistQuizCreation(quiz);
 
     if (wantsJson) {
       return res.status(201).json({
@@ -829,11 +830,11 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
     }
     return res.redirect(`/edit/${quizId}`);
   } catch (err: any) {
-    console.error('Generate quiz error:', err);
+    console.error('Generate quiz error:');
     const message = err?.name === 'AbortError'
       ? 'The AI request timed out. Try a smaller batch size.'
       : (err?.message || 'Unknown AI generation error');
-    return fail(502, message);
+    return fail(err?.status || 502, message);
   } finally {
     aiLease.release();
   }
@@ -950,7 +951,7 @@ router.post('/api/generate_question', tokenRequired, async (req: AuthRequest, re
     return res.json({ success: true, question: finalQuestion, review_required: reviewRequired });
   } catch (err: any) {
     if (respondAiWorkLimit(res, err)) return;
-    console.error('Generate question error:', err);
+    console.error('Generate question error:');
     return res.status(500).json({ success: false, error: err?.message || 'Question generation failed' });
   } finally {
     aiLease?.release();
@@ -1185,7 +1186,7 @@ ${JSON.stringify(patchRequests)}`;
     });
   } catch (err: any) {
     if (respondAiWorkLimit(res, err)) return;
-    console.error('Polish questions error:', err);
+    console.error('Polish questions error:');
     res.status(500).json({ success: false, error: err.message });
   } finally {
     aiLease?.release();
@@ -1280,7 +1281,7 @@ router.post('/api/resolve_question', tokenRequired, async (req: AuthRequest, res
     });
   } catch (err: any) {
     if (respondAiWorkLimit(res, err)) return;
-    console.error('Resolve question error:', err);
+    console.error('Resolve question error:');
     res.status(500).json({ success: false, error: err.message });
   } finally {
     aiLease?.release();
@@ -1514,7 +1515,7 @@ Rules:
     });
   } catch (err: any) {
     if (respondAiWorkLimit(res, err)) return;
-    console.error('Reprocess question error:', err);
+    console.error('Reprocess question error:');
     res.status(500).json({ success: false, error: err.message });
   } finally {
     aiLease?.release();
@@ -1615,18 +1616,12 @@ router.post('/api/generate_variant', tokenRequired, generateAiLimiter, async (re
       questions: normalizedQuestions
     };
 
-    quizzes.set(newId, newQuiz as any);
-    savePersistentData();
-    try {
-      await syncDocToFirestore('quizzes', newId, newQuiz);
-    } catch (err) {
-      console.warn('[AI Variant] Firestore sync warning:', err);
-    }
+    await persistQuizCreation(newQuiz as any);
 
     res.json({ success: true, new_quiz_id: newId, new_quiz: newQuiz });
   } catch (error) {
-    console.error('[AI Variant] Generation error:', error);
-    res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Variant generation failed' });
+    console.error('[AI Variant] Generation error:');
+    res.status((error as any)?.status || 500).json({ success: false, error: error instanceof Error ? error.message : 'Variant generation failed' });
   } finally {
     aiLease?.release();
   }

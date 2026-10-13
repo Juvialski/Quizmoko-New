@@ -1,0 +1,32 @@
+# Production operations and R1 rollout gate
+
+## Required configuration
+
+Use one writable Node process (supported Node 22.13–24). Render supplies the application port; preserve the default 3000.
+
+1. Set a stable random `SESSION_SECRET` with at least 32 bytes; generate it securely once and store it in Render's secret environment configuration. Do not print/paste it into logs or rotate it casually: sessions, result capabilities and grade proofs depend on it.
+2. Enable Firebase Admin and provide one existing supported credential mechanism: service-account JSON/base64 or an application-default credential file. Match `FIREBASE_PROJECT_ID` and `FIRESTORE_DATABASE_ID` to the existing data. Do not create a new database or migrate collections. For a named database the existing loader also reads `(default)`; both configured backends must be accessible, so verify existing deployment requirements first.
+3. Normal production requires Firestore regardless of the blank default. Remove `REQUIRE_FIRESTORE=false`. Missing credentials, unreadable collections or hydration timeout prevent listening. Configure `FIRESTORE_STARTUP_TIMEOUT_MS` for the deployment startup budget (default code 60 seconds; example environment 15 seconds).
+4. Keep `ALLOW_DEMO_AUTH=false`. Render's `RENDER_EXTERNAL_URL` supplies a trusted Socket.IO origin; list any real custom frontend origins in `TRUSTED_ORIGINS`, separated by commas. Values must be absolute URLs. Do not configure a wildcard.
+5. Preserve HTTPS secure cookies and Render's single trusted proxy hop. Existing COOKIE_SECURE/TRUST_PROXY overrides remain available; verify custom proxy deployments separately.
+6. Preserve Gemini BYOK/server keys, existing Firestore project IDs and the current allowed Flash-Lite models. Do not copy credential values into GitHub CI; CI is hermetic.
+
+## Administrator recovery
+
+Existing persisted administrators and quiz ownership are untouched. Demo authentication is not an administrator recovery mechanism in production. If no real administrator exists, have an authorized project administrator identify the intended existing Firebase UID and update only that user's existing `users/{uid}` role through the Firebase Console or approved Admin tooling. Record the authorized UID/change privately and restart for hydration if needed. This phase did not execute any such change. Verify that a real admin can sign in before rollout.
+
+## Readiness and failures
+
+`/healthz` returns a minimal status with 200 for ready/degraded optional development persistence, or 503 for unavailable required persistence. It never returns sensitive details, including when HEALTH_DETAILS is set. `/api/admin/system_health` exposes pending and failed write counts to authenticated admins. A failed production write marks readiness unavailable; a subsequent successful write can restore connectivity health, while failed-target counts remain until that target succeeds. This is lightweight write-driven health, not a periodic independent connection probe.
+
+Progress save success is returned after the coalesced checkpoint. Sandbox responses explicitly report `durable:false`. Failed save/final requests must be retried with the same session and revisions; the browser retains its local state. Final success is returned after remote acknowledgment. Do not reinterpret a timeout or transport failure as an academic zero. Shutdown stops HTTP acceptance, drains requests and flushes checkpoints/queues, exiting nonzero on failure/deadline.
+
+## Worksheet limits
+
+Defaults: 12 files, 20 MB each, 60 MB compressed total; 40 PDF pages/images per complete upload; 12 million pixels per image; 10000 pixels per dimension; 960 MB cumulative RGBA work. Images are PNG/JPEG/WebP/GIF; multipage/animated images are rejected. Two uploads and two PDF canvases are active at once; canvases are limited to six million pixels (~24 MB RGBA each). Cumulative budget bounds total accepted processing work, not simultaneous allocated memory. Limits may be tightened with the documented WORKSHEET environment variables. Exhausted upload capacity returns 429/Retry-After; job/pixel limits return 413 and invalid signatures 415. Split large worksheets before retrying.
+
+## Rollout and rollback
+
+Do not merge until the actual Render prerequisites above are confirmed; an auto-deploy could otherwise make the service unavailable. Validate credentials/read permissions and administrator access through existing authorized operational tooling without resetting data. GitHub settings are not evidence of Render configuration. Stage a controlled restart/shutdown drill separately; none was performed here.
+
+R1 changes no collection schema or document migration. Roll back application code to the prior release if necessary; preserve the same secret, project/database and credentials. Restoring older code also restores its known permissive startup/result-privacy behavior, so use rollback only as a temporary incident response. Never restore JSON over Firestore or delete collections to repair a startup failure.

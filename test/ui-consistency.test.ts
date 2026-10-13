@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
@@ -632,4 +633,17 @@ test('UI Consistency - Back-and-forth question buttons preserve guarded grading 
     !content.includes("question-jump-btn.correct") && !content.includes("question-jump-btn.incorrect"),
     'Question-number navigation must not reveal correctness in back-and-forth mode'
   );
+});
+
+test('all EJS templates compile and shared browser JavaScript parses', () => {
+  const ejs = createRequire(import.meta.url)('ejs');
+  for (const file of getEjsFiles()) {
+    assert.doesNotThrow(() => ejs.compile(fs.readFileSync(file, 'utf8'), { filename: file }), file);
+  }
+  const scripts = path.join(process.cwd(), 'public/js');
+  for (const file of fs.readdirSync(scripts).filter(name => name.endsWith('.js'))) {
+    assert.doesNotThrow(() => acorn.parse(fs.readFileSync(path.join(scripts, file), 'utf8'), {
+      ecmaVersion: 'latest', sourceType: 'module'
+    }), file);
+  }
 });

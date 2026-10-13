@@ -5,7 +5,11 @@
 process.env.NODE_ENV = 'test';
 process.env.AI_STUDIO_SANDBOX = 'true';
 process.env.FIREBASE_ADMIN_ENABLED = 'false';
-process.env.FIRESTORE_REQUIRED = 'false';
+process.env.REQUIRE_FIRESTORE = 'false';
+delete process.env.RENDER;
+delete process.env.K_SERVICE;
+delete process.env.GOOGLE_CLOUD_PROJECT;
+delete process.env.GCLOUD_PROJECT;
 process.env.GEMINI_API_KEY = '';
 process.env.API_KEY = '';
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'quizmoko-test-grade-proof-secret-32-bytes';

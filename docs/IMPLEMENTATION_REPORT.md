@@ -66,3 +66,7 @@ Date: 2026-08-06
 ## Environment limitation
 
 The complete repository `npm test` suite could not be executed in this container because the dependency installation registry returned a 404 for `zip-stream@7.0.5`, and the public registry attempt timed out. The focused AI regression suite was run using a temporary minimal `@google/genai` import stub and the stub was deleted afterward. This limitation does not indicate an application test failure, but a normal clean install should run `npm ci && npm test` in AI Studio or the deployment environment.
+
+## R1 revival phase
+
+See [R1 implementation report](R1_IMPLEMENTATION_REPORT.md), [production operations](PRODUCTION_OPERATIONS.md), and [dependency classification](DEPENDENCY_AUDIT.md).

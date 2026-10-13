@@ -1,3 +1,4 @@
+import { validateWorksheetUploads } from '../services/worksheetUploadSafety.ts';
 import { Router } from 'express';
 import multer from 'multer';
 import ExcelJS from 'exceljs';
@@ -13,6 +14,7 @@ import {
   sessionProgress,
   savePersistentData,
   syncDocToFirestore,
+  persistQuizCreation,
   getUniqueQuizTitle
 } from '../store/db.ts';
 import {
@@ -126,7 +128,7 @@ const upload = multer({
     parts: MAX_WORKSHEET_FILES + 30
   },
   fileFilter: (_req, file, callback) => {
-    if (file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/')) {
+    if (['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.mimetype)) {
       callback(null, true);
       return;
     }
@@ -174,10 +176,28 @@ function setWorksheetProgress(sessionId: unknown, progress: Record<string, any>)
   progressCleanupTimers.set(normalizedSessionId, timer);
 }
 
+let activeWorksheetUploads = 0;
 function worksheetUploadAny(req: any, res: any, next: any): void {
+  if (activeWorksheetUploads >= 2) {
+    res.setHeader('Retry-After', '10');
+    res.status(429).json({ success: false, error: 'Worksheet upload capacity reached; retry shortly.' });
+    return;
+  }
+  activeWorksheetUploads++;
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    activeWorksheetUploads--;
+    for (const file of req.files || []) delete file.buffer;
+  };
+  res.once('finish', release); res.once('close', release);
   upload.any()(req, res, (error: any) => {
     if (!error) {
-      next();
+      void validateWorksheetUploads(req.files || []).then(() => next(), validationError => {
+        for (const file of req.files || []) delete file.buffer;
+        res.status(validationError.status || 400).json({ success: false, error: validationError.message });
+      });
       return;
     }
     if (error instanceof multer.MulterError) {
@@ -816,7 +836,7 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
     });
   } catch (error) {
     if (respondWorksheetAiLimit(res, error)) return;
-    console.error('Worksheet AI work guard error:', error);
+    console.error('Worksheet AI work guard error:');
     return res.status(500).json({
       success: false,
       error: 'Worksheet solving could not be scheduled.'
@@ -916,9 +936,7 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         created_at: new Date().toISOString()
       };
 
-      quizzes.set(newQuizId, newQuiz);
-      savePersistentData();
-      await syncDocToFirestore('quizzes', newQuizId, newQuiz);
+      await persistQuizCreation(newQuiz);
 
       setWorksheetProgress(session_id, {
         message: isDraft
@@ -1175,7 +1193,7 @@ router.post('/api/export_rmxflash_excel', tokenRequired, async (req, res) => {
 
     await archive.finalize();
   } catch (err: any) {
-    console.error('Export error:', err);
+    console.error('Export error:');
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -1707,9 +1725,7 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
       created_at: new Date().toISOString()
     };
 
-    quizzes.set(newQuizId, newQuiz);
-    savePersistentData();
-    await syncDocToFirestore('quizzes', newQuizId, newQuiz);
+    await persistQuizCreation(newQuiz);
 
     setWorksheetProgress(session_id, { message: '🚀 Quiz created! Redirecting...', percentage: 100, status: 'completed', quiz_id: newQuizId });
     res.json({ success: true, quiz_id: newQuizId });

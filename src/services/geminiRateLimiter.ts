@@ -1,3 +1,4 @@
+import { requestAbortSignal, waitWithSignal } from './requestContext.ts';
 const DEFAULT_WINDOW_MS = 60_000;
 const DEFAULT_FLASH_LITE_RPM = 15;
 const DEFAULT_RPM_RESERVE = 1;
@@ -8,6 +9,7 @@ interface ModelRateBucket {
   tail: Promise<void>;
   pending: number;
   lastSeenAt: number;
+  cooldownUntil: number;
 }
 
 interface RateLimiterConfig {
@@ -77,6 +79,7 @@ function getBucket(model: string): ModelRateBucket {
   let bucket = buckets.get(model);
   if (!bucket) {
     bucket = {
+      cooldownUntil: 0,
       starts: [],
       tail: Promise.resolve(),
       pending: 0,
@@ -134,6 +137,7 @@ async function reserveModelSlot(model: string, signal?: AbortSignal): Promise<vo
   const bucket = getBucket(model);
   const queuedAt = Date.now();
 
+  if (bucket.pending >= 200) throw new GeminiRateLimitError("AI request queue is full.", 60);
   const previous = bucket.tail.catch(() => undefined);
   let releaseQueue!: () => void;
   bucket.tail = new Promise<void>(resolve => {
@@ -141,20 +145,26 @@ async function reserveModelSlot(model: string, signal?: AbortSignal): Promise<vo
   });
   bucket.pending += 1;
 
-  await previous;
   try {
+    const queueSignal = AbortSignal.timeout(config.maxQueueWaitMs);
+    try { await waitWithSignal(previous, signal ? AbortSignal.any([signal, queueSignal]) : queueSignal); }
+    catch (error) {
+      if (!signal?.aborted && queueSignal.aborted) throw new GeminiRateLimitError('AI queue deadline exceeded.', 60);
+      throw error;
+    }
     while (true) {
       if (signal?.aborted) throw abortError();
       const now = Date.now();
       pruneOldStarts(bucket, now, config.windowMs);
 
-      if (bucket.starts.length < effectiveRpm) {
+      if (now - queuedAt >= config.maxQueueWaitMs) throw new GeminiRateLimitError("AI queue deadline exceeded.", 60);
+      if (bucket.starts.length < effectiveRpm && now >= bucket.cooldownUntil) {
         bucket.starts.push(now);
         bucket.lastSeenAt = now;
         return;
       }
 
-      const nextAvailableAt = bucket.starts[0] + config.windowMs + 25;
+      const nextAvailableAt = Math.max(bucket.cooldownUntil, (bucket.starts[0] || now) + (bucket.starts.length >= effectiveRpm ? config.windowMs + 25 : 0));
       const waitMs = Math.max(25, nextAvailableAt - now);
       const elapsed = now - queuedAt;
       if (elapsed + waitMs > config.maxQueueWaitMs) {
@@ -168,7 +178,7 @@ async function reserveModelSlot(model: string, signal?: AbortSignal): Promise<vo
   } finally {
     bucket.pending = Math.max(0, bucket.pending - 1);
     bucket.lastSeenAt = Date.now();
-    releaseQueue();
+    void previous.then(releaseQueue);
     pruneIdleBuckets(Date.now());
   }
 }
@@ -185,13 +195,16 @@ function upstreamStatus(error: unknown): number | null {
 }
 
 function upstreamRetryAfterSeconds(error: unknown): number {
-  const rawHeader = (error as any)?.response?.headers?.get?.('retry-after');
+  const rawHeader = (error as any)?.response?.headers?.get?.('retry-after')
+    ?? (error as any)?.response?.headers?.['retry-after'];
   const rawValue = rawHeader
     ?? (error as any)?.retryAfterSeconds
     ?? (error as any)?.retry_after
     ?? (error as any)?.error?.details?.find?.((detail: any) => detail?.retryDelay)?.retryDelay;
   const numeric = Number(String(rawValue || '').replace(/s$/i, ''));
-  return Number.isFinite(numeric) && numeric > 0 ? Math.ceil(numeric) : 60;
+  if (Number.isFinite(numeric) && numeric > 0) return Math.ceil(numeric);
+  const date = Date.parse(String(rawValue));
+  return Number.isFinite(date) ? Math.max(1, Math.ceil((date - Date.now()) / 1000)) : 60;
 }
 
 /**
@@ -210,18 +223,33 @@ export async function generateGeminiContent<T = any>(
     throw new Error('A valid Gemini client is required.');
   }
   const model = canonicalModelName(request?.model);
-  const signal = request?.config?.abortSignal as AbortSignal | undefined;
-  await reserveModelSlot(model, signal);
+  const suppliedSignal = request?.config?.abortSignal as AbortSignal | undefined;
+  const inheritedSignal = requestAbortSignal();
+  const signals = [suppliedSignal, inheritedSignal].filter((s): s is AbortSignal => Boolean(s));
+  const queueSignal = signals.length ? AbortSignal.any(signals) : undefined;
+  await reserveModelSlot(model, queueSignal);
+  const configuredTimeout = Number(process.env.GEMINI_REQUEST_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+    ? Math.min(configuredTimeout, 180_000) : 90_000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new DOMException('Gemini request timed out', 'TimeoutError')), timeoutMs);
+  const signal = AbortSignal.any([...signals, controller.signal]);
   try {
-    return await client.models.generateContent(request) as T;
+    return await waitWithSignal(Promise.resolve(client.models.generateContent({
+      ...request, config: { ...request.config, abortSignal: signal }
+    })), signal) as T;
   } catch (error) {
     if (upstreamStatus(error) === 429) {
+      getBucket(model).cooldownUntil = Date.now() + upstreamRetryAfterSeconds(error) * 1000;
       throw new GeminiRateLimitError(
         `Gemini ${model} rejected the request because an active project quota was exceeded.`,
         upstreamRetryAfterSeconds(error)
       );
     }
+    console.warn(`[AI] Request failed (model ${model}, status ${upstreamStatus(error) || 'transport'}).`);
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -251,4 +279,9 @@ export function resetGeminiRateLimiterForTests(): void {
   if (process.env.NODE_ENV !== 'test') return;
   buckets.clear();
   testConfig = null;
+}
+
+export function isPermanentGeminiFailure(error: unknown): boolean {
+  const status = upstreamStatus(error);
+  return status !== null && status >= 400 && status < 500 && ![408, 429].includes(status);
 }

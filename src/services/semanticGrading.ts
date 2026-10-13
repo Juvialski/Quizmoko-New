@@ -1,6 +1,6 @@
 import { Type } from '@google/genai';
 import { safeParseJSON } from './gemini.ts';
-import { generateGeminiContent } from './geminiRateLimiter.ts';
+import { generateGeminiContent, isPermanentGeminiFailure, GeminiRateLimitError } from './geminiRateLimiter.ts';
 import { buildAiTaskConfig, getFlashLiteModelPair } from './aiTaskProfiles.ts';
 import { canonicalQuestionType, getCorrectAnswer, isSemanticQuestion } from './grading.ts';
 import { normalizeAiLatexText, validateLatexText } from './latex.ts';
@@ -214,7 +214,8 @@ export async function gradeSemanticQuestion(
         sawInvalidResponse = true;
         lastError = normalized.error || 'Invalid semantic grading response.';
       } catch (error) {
-        lastError = error instanceof Error ? error.message : 'Semantic grading request failed.';
+        lastError = 'Semantic grading request failed.';
+        if (isPermanentGeminiFailure(error) || error instanceof GeminiRateLimitError || (error as any)?.name === 'AbortError') break;
       }
     }
   }

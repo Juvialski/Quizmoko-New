@@ -1,6 +1,6 @@
 # R1 — Production stability and AI quality baseline
 
-Implemented against `main` at `1ac623d`. No database migration, live database operation, deployment, provider/model change, or new infrastructure.
+Implemented against `main` at `1ac623d`. No database migration, provider/model change, or new infrastructure. The subsequently authorized live verification/rollout is recorded below.
 
 ## Completed
 
@@ -27,7 +27,7 @@ Implemented against `main` at `1ac623d`. No database migration, live database op
 - Dependency classification: 28 findings before compatible lockfile updates → 11 retained (9 high, 2 moderate, 0 critical). No force upgrades. Google SDK remains 2.13.0; hosted model/profile choices unchanged.
 - GitHub exact-head CI is recorded on the PR; local evidence does not certify hosted CI or Render.
 
-## Deployment prerequisites — merge remains blocked until verified
+## Deployment prerequisites — verified during authorized browser follow-up
 
 Read `docs/PRODUCTION_OPERATIONS.md`. Before merging into an auto-deploying main branch, verify actual Render service configuration: correct Firebase project/database and credentialed Admin connectivity, stable strong SESSION_SECRET, RENDER_EXTERNAL_URL/TRUSTED_ORIGINS, demo auth off, single writable process and a recoverable administrator. GitHub repository variable/secret name listings were empty; they do not establish Render settings. No live Render configuration or Firestore connectivity was verified in this run.
 
@@ -55,3 +55,9 @@ Render logs confirmed unauthenticated web-SDK fallback despite an existing servi
 The live dashboard also raised a missing `aiDisclaimer` null-style error when a saved dismissal flag was present. Both callbacks now guard the absent banner; a DOM regression covers it. Focused configuration/UI tests and build passed. Raw secrets were never printed, saved to source, copied to other accounts, or included in screenshots; inspected secrets were re-masked. The legacy alias and missing-banner regression add two tests to the suite (141 total on the final CI head).
 
 Browser navigation to health/admin endpoints reported ERR_BLOCKED_BY_CLIENT. Browser proof of starting-main UI is not R1 deployment acceptance; retain the exact-head CI and deployment gates separately.
+
+## Final production acceptance
+
+After prerequisites were verified, PR #4 was merged using the repository's merge-commit method. CI passed on PR head `d9c74b6` and merged main `256c2e6`: **141 tests, zero failures**, clean install, build, offline baseline and audit classification. Render initially rejected the new TypeScript under its legacy `node server.ts` command. Changed only its Start Command to the documented `npm start` / tsx runtime; deployment succeeded on `256c2e6`.
+
+Live startup proves credentialed Admin Firestore hydration (234 quizzes / 250 results / 14 persisted users), and the public health API now reports minimal `ready` status. Chrome shows the fixed dashboard and public quiz start screen; no attempt was submitted. No credentials, IAM, collections or schemas were modified. Production tests involving writes, provider calls, restart failures and load remain separate future acceptance work. See [operations](PRODUCTION_OPERATIONS.md) for the actual runtime prerequisite and preserved configuration.

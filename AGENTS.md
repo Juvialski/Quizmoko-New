@@ -159,3 +159,5 @@ You are the DevOps & Package Guard for QuizMoKo. Your domain is repository confi
 - Consult `docs/PRODUCTION_OPERATIONS.md` before merge/deployment. Actual Render prerequisites and hosted CI must be proven separately from local tests.
 
 - Preserve the existing Render `FIREBASE_JSON` service-account alias; prefer FIREBASE_SERVICE_ACCOUNT_JSON when both are set. Verify real secret-field strength rather than masked display text. Optional dashboard banners must be null-guarded when a saved dismissal flag survives UI changes.
+
+- Render Start Command must be `npm start` (`tsx server.ts`), not plain `node server.ts`; strip-only TypeScript cannot execute parameter properties. Verify the provider's actual runtime command before rollout. R1 live code acceptance is merge commit 256c2e6; documentation-only acceptance commits may deliberately skip Render deployment.

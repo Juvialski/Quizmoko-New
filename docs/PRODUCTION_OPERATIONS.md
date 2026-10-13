@@ -2,7 +2,7 @@
 
 ## Required configuration
 
-Use one writable Node process (supported Node 22.13–24). Render supplies the application port; preserve the default 3000.
+Set Render's **Start Command to `npm start`**, which invokes `tsx server.ts`. Do not use plain `node server.ts`: Node's strip-only TypeScript mode does not support all syntax used by the app. Use one writable Node process (supported Node 22.13–24). Render supplies the application port; preserve the default 3000.
 
 1. Set a stable random `SESSION_SECRET` with at least 32 bytes; generate it securely once and store it in Render's secret environment configuration. Do not print/paste it into logs or rotate it casually: sessions, result capabilities and grade proofs depend on it.
 2. Enable Firebase Admin and provide one existing supported credential mechanism: service-account JSON/base64, the existing Render `FIREBASE_JSON` alias, or an application-default credential file. Match `FIREBASE_PROJECT_ID` and `FIRESTORE_DATABASE_ID` to the existing data. Do not create a new database or migrate collections. For a named database the existing loader also reads `(default)`; both configured backends must be accessible, so verify existing deployment requirements first.
@@ -34,3 +34,11 @@ R1 changes no collection schema or document migration. Roll back application cod
 ## Verified existing Render configuration
 
 The service currently auto-deploys main. Browser checks found the existing FIREBASE_JSON service account matching the configured QuizMoKo project and existing enabled Firebase SDK administrator principal. R1 recognizes that legacy variable. SESSION_SECRET is already 64 characters and passes strength validation; preserve it. No Render environment or IAM changes were made. The live deployment inspected was starting-main, not R1, and browser health/admin navigation was blocked by the client.
+
+## R1 production acceptance (2026-10-13)
+
+PR #4 merged as `256c2e6`; exact PR-head and merged-main CI passed all 141 tests plus build, clean installation, offline evaluation and audit classification. Render's first attempt failed because its existing Start Command was `node server.ts`. The authorized correction to `npm start` succeeded; the same merge commit is live. Startup confirms service-account Admin Firestore and hydration of 234 quizzes, 250 results and 14 persisted users. The removed fifteenth hot-state user was the implicit demo seed, not a deleted Firestore user.
+
+The public health API reports `ready` with only the minimal readiness response. Chrome confirms the deployed dashboard guard and existing library, plus a public quiz start screen with no registration requirement. No attempt was started/submitted, no credentials or IAM changed, and no migration or destructive data operation occurred. Existing session secret and active service-account key were retained. Production write/restart/load drills and live AI accuracy remain untested.
+
+Documentation-only acceptance updates use Render's [documented skip-deploy commit phrase](https://render.com/docs/deploys#skipping-an-auto-deploy) to avoid an unnecessary release; their source tree changes no application code.

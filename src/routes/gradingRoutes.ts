@@ -52,7 +52,8 @@ import {
 } from '../services/resultAccess.ts';
 
 const router = Router();
-router.use(optionalAuth, (req: AuthRequest, res, next) => {
+router.use(['/api/grade_individual', '/submit', '/api/submit_quiz', '/api/save_progressive_result',
+  '/api/load_progressive_result', '/api/explain', '/api/reformat_answer'], optionalAuth, (req: AuthRequest, res, next) => {
   const sessionId = req.body?.session_id;
   const quizId = req.body?.quiz_id;
   if (!sessionId || !quizId) return next();

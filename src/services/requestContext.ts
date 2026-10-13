@@ -13,7 +13,10 @@ export const requestContext: RequestHandler = (req, res, next) => {
 export function requestAbortSignal(): AbortSignal | undefined { return requests.getStore(); }
 
 export function waitWithSignal<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
-  if (signal.aborted) return Promise.reject(signal.reason || new DOMException('Cancelled', 'AbortError'));
+  if (signal.aborted) {
+    void operation.catch(() => undefined);
+    return Promise.reject(signal.reason || new DOMException('Cancelled', 'AbortError'));
+  }
   return new Promise((resolve, reject) => {
     const abort = () => reject(signal.reason || new DOMException('Cancelled', 'AbortError'));
     signal.addEventListener('abort', abort, { once: true });

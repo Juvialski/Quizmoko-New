@@ -235,6 +235,7 @@ export async function generateGeminiContent<T = any>(
   const timer = setTimeout(() => controller.abort(new DOMException('Gemini request timed out', 'TimeoutError')), timeoutMs);
   const signal = AbortSignal.any([...signals, controller.signal]);
   try {
+    if (signal.aborted) throw signal.reason || abortError();
     return await waitWithSignal(Promise.resolve(client.models.generateContent({
       ...request, config: { ...request.config, abortSignal: signal }
     })), signal) as T;

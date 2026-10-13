@@ -104,6 +104,13 @@ test('result privacy uses exact identity and capabilities; public quiz and owner
     const payload = await quiz.text(); assert.ok(!payload.includes('"answer"'));
     const denied = await fetch(`${base}/api/load_progressive_result`, { method: 'POST', headers: { ...headers(other), 'Content-Type': 'application/json' }, body: JSON.stringify({ quiz_id: quizId, session_id: 'r1_private' }) });
     assert.equal(denied.status, 403);
+    const previous = { ...process.env };
+    try {
+      process.env.NODE_ENV = 'production'; process.env.RENDER = 'true';
+      const unrelated = await fetch(`${base}/api/unrelated_route`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quiz_id: quizId, session_id: 'weak' }) });
+      assert.equal(unrelated.status, 404, 'Attempt guard must not intercept unrelated AI/worksheet routes.');
+    } finally { process.env = previous; }
     const health = await fetch(`${base}/healthz`); const healthBody = await health.text();
     assert.ok(!healthBody.includes('Directory')); assert.ok(!healthBody.includes('lastError'));
   } finally {

@@ -630,3 +630,14 @@ R4.1 live-evidence refinements: `worksheetPipeline.ts` reconciles explicitly dec
 Cross-file context transfers are retained with an explicit source-review gate even when IDs match uniquely; only same-file page continuation can avoid that source-membership confirmation.
 
 Browser task intent is hashed locally without credential fields. Same-intent idempotency tokens survive acknowledgments, Back and retries; changing inputs or explicit Start another starts a new intent. The pageshow handler restores interaction state while the server task remains authoritative.
+
+
+## R4.2 classroom run lifecycle (2026-10-21)
+
+`src/services/classroomRuns.ts` serializes teacher transitions and first admission per quiz. `POST /api/live/:quiz_id/start` creates a secure fresh run; existing pause/terminate endpoints operate on the selected `expected_run_id`, reject stale tabs and require `confirm_replace` to replace an active run. Opening Live remains read-only. Quiz definitions and published sharing links are unchanged.
+
+`live_runs/{quiz_id}` stores only the current run pointer, owner, start time, active/ended status and pause flag, through the existing ordered Admin Firestore queue. It is loaded before traffic; an unreadable collection fails readiness. Local fallback adds `data/live-runs.json`. No migration, startup seeding, provider calls or heartbeat writes are required. Admission persists one in-progress result using its existing result/session ID and optional `live_run_id` / `live_run_started_at`; historical records remain untouched. First standalone pings also establish their original standalone identity. Grading-only standalone requests retain their original persistence contract.
+
+Managed monitoring reconstructs only records with the current exact run ID, without time windows. Superseded attempts remain readable through Results and cannot join the current roster. Durable run controls survive restart; connectivity and whiteboard access remain unknown/reconfirmation state. Legacy quizzes without runs keep standalone controls and never acquire runs automatically; legacy records are never assigned to a later run.
+
+`monitor_*` remains owner/admin-only. Managed pause/end signals use `classroom_{quiz}_{server-bound-run}` rooms joined only after attempt authorization; private whiteboard rooms retain account/capability guards. Unauthenticated `join_quiz` receives no managed control state. Old-run grades and pings cannot emit current monitoring updates. The existing revision/digest/finalization locks remain authoritative, and run metadata survives final submission. Single writable process remains mandatory.

@@ -205,3 +205,12 @@ You are the DevOps & Package Guard for QuizMoKo. Your domain is repository confi
 - Explicit shared worksheet context may cross page/file seams only through a printed item declaration and unique matching source IDs. Preserve literal item text, shared-context provenance and immutable printed IDs; repeated IDs or conflicting contexts require teacher review. Cross-file context transfers also require confirmation that the files belong to the same worksheet. Never infer linkage from array positions or filename similarity.
 
 - Keep a secret-free input fingerprint and idempotency token across Back/refresh/retries for the same UI intent. Create a new token only when inputs change or the teacher explicitly selects Start another; acknowledged jobs must not clear retry identity.
+
+
+## R4.2 classroom run invariants (2026-10-21)
+- `classroomRuns.ts` owns serialized teacher transitions and first attempt admission. Only explicit authorized Start New Session creates a run. Match `expected_run_id`; replacing an active run requires `confirm_replace`. Opening Live and anonymous pings cannot reopen a classroom.
+- Persist `live_runs/{quiz_id}` through the existing acknowledged queue and hydrate before traffic. Store optional immutable live_run_id/live_run_started_at on existing result IDs, including finalization. Never reassign historical/standalone attempts, rewrite old results or write Firestore per heartbeat. Local fallback uses data/live-runs.json.
+- Managed rosters reconcile exact run IDs, never a recent-time window. Bind before provider awaits; old-run grades/pings must not emit current monitoring updates. Existing attempt revisions/digests/locks and grading failure states remain unchanged.
+- Run controls use classroom_* rooms admitted by server-bound attempts; monitor_* and quiz_session_* retain owner/account/capability authorization. Public join_quiz must not receive managed run controls. Durable pause/end survives restart; presence and whiteboard access require fresh evidence/reconfirmation. Keep one writable process.
+- Preserve standalone grading-only persistence behavior. First standalone pings may establish an in-progress attempt without run metadata so a future classroom cannot capture it. Never create attempts on progressive-load/read requests.
+- Browser acceptance must pass terminate -> new run -> new students with earlier results preserved. Whiteboard redraw tolerates absent pages during finalization/late acknowledgments.

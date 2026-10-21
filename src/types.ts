@@ -183,6 +183,9 @@ export interface Quiz {
 
 export interface QuizResult {
   id: string;
+  /** Server-owned classroom metadata; absent for historical standalone attempts. */
+  live_run_id?: string;
+  live_run_started_at?: string;
   quiz_id?: string;
   quiz_title?: string;
   session_id?: string;
@@ -231,6 +234,7 @@ export interface LiveSessionStudent {
 }
 
 export interface LiveSessionState {
+  run?: ClassroomRun;
   control_state_known?: boolean;
   paused: boolean;
   terminated: boolean;
@@ -243,4 +247,14 @@ export interface OwnedJob {
   status: 'running' | 'completed' | 'needs_attention' | 'failed' | 'interrupted';
   started_at: number; updated_at: number; completed: number; total: number;
   idempotency_key: string; quiz_id?: string; error?: string;
+}
+
+/** One durable current classroom pointer per quiz; earlier identities stay on attempts. */
+export interface ClassroomRun {
+  id: string;
+  quiz_id: string;
+  owner_uid: string;
+  started_at: string;
+  status: 'active' | 'terminated' | 'ended';
+  paused: boolean;
 }

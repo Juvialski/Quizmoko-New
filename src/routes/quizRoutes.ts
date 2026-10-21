@@ -8,6 +8,7 @@ import {
   quizzes,
   results,
   liveSessions,
+  classroomRuns,
   savePersistentData,
   syncDocToFirestore,
   deleteDocFromFirestore,
@@ -107,6 +108,7 @@ const PUBLIC_QUESTION_ANSWER_FIELDS = [
 async function deleteQuizWithResults(quizId: string): Promise<number> {
   const deletedQuiz = quizzes.get(quizId);
   const deletedLiveSession = liveSessions.get(quizId);
+  const deletedRun = classroomRuns.get(quizId);
   const resultIds = Array.from(results.entries())
     .filter(([, result]) => result.quiz_id === quizId)
     .map(([resultId]) => resultId);
@@ -117,16 +119,19 @@ async function deleteQuizWithResults(quizId: string): Promise<number> {
 
   quizzes.delete(quizId);
   liveSessions.delete(quizId);
+  classroomRuns.delete(quizId);
   for (const resultId of resultIds) results.delete(resultId);
   savePersistentData();
   try {
     await Promise.all([
       deleteDocFromFirestore('quizzes', quizId),
+      ...(deletedRun ? [deleteDocFromFirestore('live_runs',quizId)] : []),
       ...resultIds.map(resultId => deleteDocFromFirestore('results', resultId))
     ]);
   } catch (error) {
     if (deletedQuiz) quizzes.set(quizId, deletedQuiz);
     if (deletedLiveSession) liveSessions.set(quizId, deletedLiveSession);
+    if (deletedRun) classroomRuns.set(quizId,deletedRun);
     for (const [resultId, result] of deletedResults) {
       results.set(resultId, result);
     }

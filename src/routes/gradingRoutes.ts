@@ -1,4 +1,4 @@
-import { bindClassroomAttempt } from '../services/classroomRuns.ts';
+import { bindClassroomAttempt, lifecycleLock, classroomAnswerClosed } from '../services/classroomRuns.ts';
 import { monitoringRoom, emitLiveResult } from '../services/socket.ts';
 import { isAiStudioSandbox } from '../services/firebaseAdmin.ts';
 import { isProductionRuntime } from '../services/runtimeConfig.ts';
@@ -330,6 +330,66 @@ function gradeResponse(detail: GradedDetail, retryable = false) {
   };
 }
 
+function closedSession(res: any) {
+  return res.status(409).json({success:false,code:'CLASSROOM_SESSION_CLOSED',error:'This classroom session has ended. Only previously accepted work can be submitted.'});
+}
+
+function closedProgressResponse(res: any, record: QuizResult) {
+  return res.json({success:true,result_id:record.id,ignored:true,closed:true,
+    session_revision:record.session_revision,total_score:record.total_score,max_score:record.max_score,
+    accuracy_pct:record.accuracy_pct,durable:!isAiStudioSandbox()});
+}
+
+function acceptedIdentity(record: any, index: number, revision: number, answerDigest: string, snapshotDigest: string, questionDigest: string): boolean {
+  const detail = record?.graded_details?.[index];
+  return Boolean(hasOwn(record?.answers,index) && detail
+    && record.answer_revisions?.[String(index)] === revision
+    && createAnswerDigest(valueAt(record.answers,index)) === answerDigest
+    && createSnapshotDigest(snapshotsAt(record.solution_snapshots,index)) === snapshotDigest
+    && detail.answer_revision === revision && detail.answer_digest === answerDigest
+    && detail.snapshot_digest === snapshotDigest && detail.question_digest === questionDigest);
+}
+
+/** Caller holds the attempt lock; lifecycle lock covers admission only, never Gemini. */
+async function admitCanonical(quizId: string, sessionId: string, quiz: any, canonical: ReturnType<typeof canonicalAttemptInputs>, res: any) {
+  return lifecycleLock(quizId, async () => {
+    const record = results.get(`res_${sessionId}`);
+    if (!record?.live_run_id) return {closed:false};
+    const closed = classroomAnswerClosed(quizId,record);
+    if (closed) {
+      for (let i=0;i<quiz.questions.length;i++) {
+        const key=String(i);
+        const untouched = !hasOwn(record.answers,i) && canonical.answers[key] === 'No Answer'
+          && canonical.answerRevisions[key] === 0 && !snapshotsAt(canonical.snapshots,i).length;
+        if (!untouched && !acceptedIdentity(record,i,canonical.answerRevisions[key],canonical.answerDigests[key],canonical.snapshotDigests[key],createQuestionDigest(quiz.questions[i]))) {
+          closedSession(res); return null;
+        }
+      }
+    } else {
+      // One immutable snapshot records admission before a provider await. Keep
+      // completed grades for identical identities; do not enqueue per question.
+      const details = quiz.questions.map((question: any, index: number) => {
+        const key = String(index);
+        if (acceptedIdentity(record,index,canonical.answerRevisions[key],canonical.answerDigests[key],canonical.snapshotDigests[key],createQuestionDigest(question))) {
+          return record.graded_details![index];
+        }
+        return deterministicDetail({question,questionIndex:index,answer:canonical.answers[key],
+          answerRevision:canonical.answerRevisions[key],answerDigest:canonical.answerDigests[key],
+          snapshotDigest:canonical.snapshotDigests[key],snapshots:snapshotsAt(canonical.snapshots,index)});
+      });
+      const score = scoreQuizDetails(quiz.questions, details);
+      const admitted: QuizResult = {...record,answers:canonical.answers,
+        answer_revisions:canonical.answerRevisions,solution_snapshots:canonical.snapshots,
+        graded_details:details,details,total_score:score.earned_points,score:score.earned_points,
+        max_score:score.max_points,total:score.max_points,accuracy_pct:score.accuracy_pct};
+      results.set(admitted.id,admitted);
+      savePersistentData();
+      syncProgressiveDocToFirestore('results',admitted.id,admitted);
+    }
+    return {closed};
+  });
+}
+
 async function persistIndividualProgress(input: {
   quiz: any;
   quizId: string;
@@ -338,8 +398,9 @@ async function persistIndividualProgress(input: {
   userId?: string;
   detail: GradedDetail;
   snapshots: string[];
+  lockHeld?: boolean;
 }): Promise<boolean> {
-  return withAttemptLock(input.quizId, input.sessionId, async () => {
+  const persist = async () => {
     const resultId = `res_${input.sessionId}`;
     const existing = results.get(resultId) as any;
     if (existing && existing.is_in_progress !== true) return false;
@@ -404,7 +465,8 @@ async function persistIndividualProgress(input: {
     savePersistentData();
     syncProgressiveDocToFirestore('results', resultId, record);
     return true;
-  });
+  };
+  return input.lockHeld ? persist() : withAttemptLock(input.quizId, input.sessionId, persist);
 }
 
 router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_000), async (req, res) => {
@@ -498,53 +560,67 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
       error: 'This answer revision is already bound to different answer content.'
     });
   }
-  const revisionState = observeAnswerRevision({
-    quizId,
-    sessionId,
-    questionIndex,
-    answerRevision,
-    persistedRevision,
-    answerDigest,
-    snapshotDigest
-  });
-  if (revisionState.capacityExceeded) {
-    return res.status(503).json({
-      success: false,
-      grade_status: 'retryable_error',
-      retryable: true,
-      error: 'The grading revision guard is temporarily at capacity. Please retry shortly.'
+  const admission = await withAttemptLock(quizId, sessionId, () => lifecycleLock(quizId, async () => {
+    const current = results.get(resultId);
+    if (current && current.is_in_progress !== true) return res.status(409).json({success:false,error:'This attempt is already finalized.'});
+    const closed = classroomAnswerClosed(quizId, current);
+    const currentDetail = current?.graded_details?.[questionIndex];
+    if (closed) {
+      if (!acceptedIdentity(current, questionIndex, answerRevision, answerDigest, snapshotDigest, createQuestionDigest(quiz.questions[questionIndex]))) return closedSession(res);
+      return res.json(gradeResponse(currentDetail!, false));
+    }
+    const revisionState = observeAnswerRevision({
+      quizId,
+      sessionId,
+      questionIndex,
+      answerRevision,
+      persistedRevision: current?.answer_revisions?.[String(questionIndex)] ?? persistedRevision,
+      answerDigest,
+      snapshotDigest
     });
-  }
-  if (!revisionState.accepted) {
-    return res.status(409).json({
-      success: false,
-      grade_status: 'pending',
-      stale: true,
-      current_revision: revisionState.currentRevision,
-      error: 'A newer answer revision already exists.'
-    });
-  }
+    if (revisionState.capacityExceeded) {
+      return res.status(503).json({
+        success: false,
+        grade_status: 'retryable_error',
+        retryable: true,
+        error: 'The grading revision guard is temporarily at capacity. Please retry shortly.'
+      });
+    }
+    if (!revisionState.accepted) {
+      return res.status(409).json({
+        success: false,
+        grade_status: 'pending',
+        stale: true,
+        current_revision: revisionState.currentRevision,
+        error: 'A newer answer revision already exists.'
+      });
+    }
 
+    const question = quiz.questions[questionIndex];
+    const detail = deterministicDetail({
+      question,
+      questionIndex,
+      answer,
+      answerRevision,
+      answerDigest,
+      snapshotDigest,
+      snapshots
+    });
+
+    if (detailIdentityMatches(currentDetail, answerRevision, answerDigest, snapshotDigest, createQuestionDigest(question))) {
+      return res.json(gradeResponse(currentDetail!, false));
+    }
+    const saved = await persistIndividualProgress({userId:(req as AuthRequest).user?.uid,
+      quiz,quizId,sessionId,studentName:body.student_name,detail,snapshots,lockHeld:true});
+    if (!saved) return res.status(409).json({success:false,grade_status:'pending',stale:true,error:'Attempt already finalized or superseded.'});
+    return {detail};
+  }));
+  if (!admission || !('detail' in admission)) return admission;
+  let detail = admission.detail;
   const question = quiz.questions[questionIndex];
-  let detail = deterministicDetail({
-    question,
-    questionIndex,
-    answer,
-    answerRevision,
-    answerDigest,
-    snapshotDigest,
-    snapshots
-  });
   let retryable = false;
   let retryAfterSeconds: number | undefined;
-
-  if (detailIdentityMatches(persistedDetail, answerRevision, answerDigest, snapshotDigest, createQuestionDigest(question))) {
-    return res.json(gradeResponse(persistedDetail, false));
-  }
   if (detail.grade_status === 'pending') {
-    const saved = await persistIndividualProgress({userId:(req as AuthRequest).user?.uid,
-      quiz,quizId,sessionId,studentName:body.student_name,detail,snapshots});
-    if (!saved) return res.status(409).json({success:false,grade_status:'pending',stale:true,error:'Attempt already finalized or superseded.'});
     emitLiveResult(req.app.get('io'),quizId,sessionId);
     const slot = await acquireSemanticAiSlot(req);
     if (!slot) {
@@ -975,6 +1051,8 @@ router.post(
           details: revisionConflicts
         });
       }
+      const admission = await admitCanonical(quizId,sessionId,quiz,canonical,res);
+      if (!admission) return;
       observeCanonicalRevisions({
         canonical,
         existing,
@@ -1020,6 +1098,10 @@ router.post(
           });
           if (verified) {
             detail = verified;
+          } else if (admission.closed) {
+            // An accepted pending operation can finish in its original request.
+            // Finalization retries never start new provider work after closure.
+            detail = existing?.graded_details?.[index] || detail;
           } else {
             const slot = await acquireSemanticAiSlot(req);
             const outcome = slot
@@ -1221,6 +1303,12 @@ router.post(
         return res.json({ success: true, result_id: resultId, ignored: true, finalized: true });
       }
       const currentSessionRevision = parsedRevision(existing?.session_revision, -1) ?? -1;
+      if (classroomAnswerClosed(quizId,existing)) {
+        const retry = canonicalAttemptInputs(body,quiz,existing);
+        if (retry.errors.length) return res.status(409).json({success:false,error:'Progress identity mismatch.',details:retry.errors});
+        if (!await admitCanonical(quizId,sessionId,quiz,retry,res)) return;
+        return closedProgressResponse(res,existing);
+      }
       if (existing && sessionRevision <= currentSessionRevision) {
         return res.json({
           success: true,
@@ -1250,6 +1338,9 @@ router.post(
           details: revisionConflicts
         });
       }
+      const admission = await admitCanonical(quizId,sessionId,quiz,canonical,res);
+      if (!admission) return;
+      if (admission.closed) return closedProgressResponse(res,existing);
       observeCanonicalRevisions({
         canonical,
         existing,

@@ -5,7 +5,14 @@ import type { ClassroomRun, QuizResult } from '../types.ts';
 
 export const runRoom = (quizId: string, runId: string) => `classroom_${quizId}_${runId}`;
 const admitting = new Set<string>();
-const lifecycleLock = <T>(quizId: string, action: () => Promise<T>) => withAttemptLock('classroom', quizId, action);
+export const lifecycleLock = <T>(quizId: string, action: () => Promise<T>) => withAttemptLock('classroom', quizId, action);
+
+/** Called inside the lifecycle lock. Binding alone never authorizes answer edits. */
+export function classroomAnswerClosed(quizId: string, record?: QuizResult): boolean {
+  if (!record?.live_run_id) return false;
+  const run = classroomRuns.get(quizId);
+  return !run || run.id !== record.live_run_id || run.status !== 'active';
+}
 
 /** Publish controls only after persistence. Serialize admissions with transitions. */
 export async function changeClassroomRun(quizId: string, ownerUid: string, action: 'start' | 'pause' | 'end', expected?: string, replace = false) {

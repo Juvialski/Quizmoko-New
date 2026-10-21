@@ -54,3 +54,45 @@ Direct local Admin queries were unavailable: local configuration is project-only
 - The current run pointer is lightweight; previous results stay accessible through Results without an additional historical run selector.
 - Anonymous attempt IDs remain existing bearer capabilities. There is no new student account requirement.
 - No new provider/model/API architecture, worksheet extraction change, Redis or paid realtime service.
+
+
+## PR #9 review remediation (2026-10-21)
+
+### Vulnerability and server fix
+
+`bindClassroomAttempt()` correctly retained an existing attempt's immutable run binding, but callers treated binding as permission for further answers. The existing-record fast path therefore let stale clients send new answer revisions after End Session or replacement. Socket termination and current-run roster filtering did not enforce answer closure.
+
+Answer admission is now separate from identity binding. `/api/grade_individual`, `/api/save_progressive_result`, `/submit` and `/api/submit_quiz` take the attempt lock and then the short classroom lifecycle lock to check the selected attempt against the active run. Before releasing the lifecycle lock, new accepted work records canonical revision, answer/snapshot digests and question digest in the existing grading state. Bulk admission records one immutable snapshot, with no per-question Firestore request. Teacher transitions and answer acceptance therefore have a single ordered boundary. The lifecycle lock is released before Gemini or slot waits. Binding finishes before answer admission; teacher transitions do not wait on a slow grading attempt lock.
+
+New identities for ended, superseded or missing managed runs receive HTTP 409 / `CLASSROOM_SESSION_CLOSED`. No rejected request starts Gemini or replaces saved answers. Accepted in-flight individual and final-submit grading may finish after termination and stays attached to its original run; it cannot update the replacement roster. Existing revision/digest/proof and final-result guards remain authoritative. Retrieval and standalone attempts retain their contracts. Explicit owner/admin assessment endpoints retain their existing authorization; no historical bulk regrade was added.
+
+Identical closed-run retries must match actual saved answer, revision, snapshot and question identities. Individual retries return the saved graded/pending/error outcome and never start new Gemini after closure. A revision containing the same text but never accepted is rejected. Closed progressive retries acknowledge existing state without rewriting progress. Saved work may finalize through either submit route; pending semantic work stays incomplete until its already admitted grader finishes or existing teacher review resolves it. Untouched unanswered items may remain unanswered, but cannot introduce new text or snapshots. Repeated finalization returns the same immutable result ID.
+
+### Added and extended regressions
+
+Four new actual HTTP tests cover:
+
+- End and replacement: higher revisions, never-accepted same-text revisions, old reconnects and joined-but-never-answered students; reject mutations through all four endpoints, preserve answers/scores and assert unchanged mock SDK call counts. Completed retries use saved identity even after clearing process-local revision state. Both submit routes finalize accepted work idempotently; new-run students continue normally.
+- Barrier-controlled individual Gemini: pending identity recorded before End Session; closed retry, attempted edit and early finalization do not start another SDK call; release provider only afterward, retain Run A grade and leave Run B empty.
+- Eight concurrent HTTP answer/end/retry races, alternating dispatch order: saved answer/score and subsequent retry agree with the actual acceptance outcome; later revisions always fail.
+- Barrier-controlled final-submit Gemini: End Session succeeds while final grading is blocked, then accepted grading finishes and both final-submit routes reuse the same immutable result.
+
+The isolated durability regression now denies `live_runs` reads, confirms hydration rejects without changing remote results, restores read access and recovers ended/old-run state. Required startup hydration remains fail-closed: silently treating unreadable run history as empty could reopen closed classrooms. The operations guide now documents recovery without deleting data, changing secrets or enabling stale local fallback.
+
+### Validation of the remediation
+
+- Full local regression: **191 passed, 0 failed** (including R4.1 reliability/job recovery, R4.2 lifecycle/durability, actual HTTP and Engine.IO/Socket.IO authorization).
+- TypeScript and build passed.
+- All three isolated Chromium suites passed, including terminate morning -> start afternoon -> new students, old-result readability, current-only roster and background recovery. Screenshots were regenerated for validation; unchanged UI assets were not added to the fix.
+- Existing offline evaluations passed: AI corpus 136/136, R2 adversarial comparison, R3 grading comparison and local diagram expectations 17/17. No live Gemini work was used for these regression claims.
+- Exact new-head GitHub Actions status is recorded in the PR after pushing; the earlier `6029591` CI result does not certify this remediation.
+
+### Hosted access evidence and remaining merge blocker
+
+Using the user-confirmed Render workspace, current service inspection again shows QuizMoKo on main, `npm start`, one instance, automatic deployment. Read-only Render logs at 2026-10-21 10:08:46-10:08:58 UTC show service-account Admin Firestore initialization for the expected project and successful hydration of 234 quizzes, 251 results and 14 users. This is R4.1 baseline evidence.
+
+Read-only Google Cloud Console IAM inspection now establishes that the project's Firebase Admin SDK service account has the project-wide **Firebase Admin SDK Administrator Service Agent** role, plus the existing authentication/token roles. The Deny tab reports no deny policies attached to this project. Google's [role reference](https://docs.cloud.google.com/iam/docs/roles-permissions/firebase#firebase.sdkAdminServiceAgent) describes read/write Admin SDK access, including Firestore entity permissions. [Firestore server IAM documentation](https://docs.cloud.google.com/firestore/native/docs/security/iam) distinguishes read/list from entity create/update. Accordingly, this grant covers `live_runs` as well as other collections for that principal; a collection-specific client security rule is not required. No IAM/rules change is indicated by this policy evidence.
+
+**Still unverified:** this session has not independently established that the running Render credential uses that exact principal, nor issued a bounded `live_runs` query as the Render principal. Render MCP provides service/log inspection but no Firestore query, IAM evaluation or remote execution; this local process has no Admin credential or installed Google Cloud CLI. A Console-owner collection read would test a different identity, so it was not represented as service-account evidence. The grant is strong policy evidence, but it is not a direct hosted read/write test and does not by itself bind the opaque deployment credential to the inspected account.
+
+**Deployment safety is not certified; leave PR #9 open.** Before merge, an authorized operator must establish the current runtime principal without revealing secret fields, correlate its effective read/list/create/update grants across configured databases and, where available, perform a bounded read-only `live_runs` query in that runtime. No production write is necessary to inspect IAM; a read-only probe alone must not be described as a successful write. No production records, credentials, IAM, environment variables or client rules were modified. No manual Render deployment or restart was performed.

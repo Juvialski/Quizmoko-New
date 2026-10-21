@@ -8,9 +8,9 @@ test('R4.2 durable run/attempt admission, restart, no heartbeat writes and faile
   const previous={...process.env},directory=fs.mkdtempSync(path.join(os.tmpdir(),'quizmoko-r42-'));
   process.env.QUIZMOKO_DATA_DIR=directory;process.env.AI_STUDIO_SANDBOX='false';process.env.REQUIRE_FIRESTORE='true';process.env.FIREBASE_ADMIN_ENABLED='false';
   const db=await import('../src/store/db.ts');const runs=await import('../src/services/classroomRuns.ts');const live=await import('../src/services/socket.ts');
-  const remote=new Map<string,any>();let fail=false,writes=0;
+  const remote=new Map<string,any>();let fail=false,failRunRead=false,writes=0;
   function collection(prefix:string):any {return {
-    get:async()=>({docs:[...remote].filter(([key])=>key.startsWith(prefix+'/')&&!key.slice(prefix.length+1).includes('/')).map(([key,value])=>({id:key.slice(prefix.length+1),data:()=>structuredClone(value)}))}),
+    get:async()=>{if(failRunRead && prefix==='live_runs')throw Error('Synthetic live_runs permission denied');return {docs:[...remote].filter(([key])=>key.startsWith(prefix+'/')&&!key.slice(prefix.length+1).includes('/')).map(([key,value])=>({id:key.slice(prefix.length+1),data:()=>structuredClone(value)}))};},
     doc:(id:string)=>({set:async(value:any)=>{if(fail)throw Error('Synthetic persistence failure');writes++;remote.set(prefix+'/'+id,structuredClone(value));},delete:async()=>remote.delete(prefix+'/'+id),collection:(name:string)=>collection(prefix+'/'+id+'/'+name)})
   };}
   db.configurePersistenceBackendForTests({collection});
@@ -34,6 +34,15 @@ test('R4.2 durable run/attempt admission, restart, no heartbeat writes and faile
     assert.equal(live.reconcileLiveResults(quiz.id).terminated,true);
     assert.equal(runs.attemptControls(quiz.id,'sess_old')?.terminated,true);
     assert.equal(remote.has('results/res_sess_old'),true);
+    const originalResults=structuredClone([...remote].filter(([key])=>key.startsWith('results/')));
+    failRunRead=true;
+    await assert.rejects(db.loadFromFirestore(),/Classroom run history is unavailable/);
+    assert.match(db.getPersistenceStatus().lastError || '',/live_runs permission denied/);
+    assert.deepEqual([...remote].filter(([key])=>key.startsWith('results/')),originalResults);
+    failRunRead=false;assert.equal(await db.loadFromFirestore(),true);
+    assert.equal(runs.attemptControls(quiz.id,'sess_old')?.terminated,true);
+    assert.equal(live.reconcileLiveResults(quiz.id).terminated,true);
+
   }finally {
     fail=false;await db.flushPendingPersistence(2000);process.env=previous;
     const resolved=path.resolve(directory);assert.ok(resolved.startsWith(path.resolve(os.tmpdir())+path.sep)&&path.basename(resolved).startsWith('quizmoko-r42-'));fs.rmSync(resolved,{recursive:true,force:true});

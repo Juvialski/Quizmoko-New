@@ -9,6 +9,7 @@ import { createSessionToken } from '../src/middleware/auth.ts';
 import { initSocketServer,monitoringRoom,reconcileLiveResults } from '../src/services/socket.ts';
 import { configureGeminiClientForTests } from '../src/services/gemini.ts';
 import { tutorialProvider } from './r4-1-fixtures.ts';
+import { clearAttemptRevisionState } from '../src/services/resultSession.ts';
 import { changeClassroomRun } from '../src/services/classroomRuns.ts';
 const question=(id:string)=>({id,question:'Choose Alpha.',type:'multiple_choice',options:['Alpha','Beta','Gamma','Delta'],answer:'A',points:2});
 async function fixture() {
@@ -132,4 +133,116 @@ test('R4.2 standalone attempts and historical records never acquire a later run'
     assert.equal(Object.keys(reconcileLiveResults(id).sessions).length,0);assert.deepEqual(results.get(historical.id),historical);
     const readId=`sess_${randomUUID()}`;await f.post('/api/load_progressive_result',{quiz_id:id,session_id:readId});assert.equal(results.has('res_'+readId),false);
   }finally {results.delete(historical.id);results.delete('res_'+sid);classroomRuns.delete(id);liveSessions.delete(id);quizzes.delete(id);await f.close();}
+});
+
+test('R4.2 ended/replaced HTTP attempts reject every new answer path and reuse accepted grades',async()=>{
+  const f=await fixture(),id='r42_closed';
+  quizzes.set(id,{id,user_id:'r41_owner',title:'Explain',questions:[{id:'1',question:'Explain your claim.',type:'open_ended',answer:'A justified claim.',points:2}]});
+  const provider=tutorialProvider(1);configureGeminiClientForTests(()=>provider.client);
+  const sessions:string[]=[];
+  try {
+    let expected:string|undefined;
+    for(const replacement of [false,true]) {
+      const a=(await f.post(`/api/live/${id}/start`,{expected_run_id:expected,confirm_replace:true},f.token)).data.run;
+      const sid=`sess_${randomUUID()}`;sessions.push(sid);
+      const grade={quiz_id:id,session_id:sid,question_index:0,student_answer:'My claim and reason.',answer_revision:1};
+      assert.equal((await f.post('/api/grade_individual',grade)).data.grade_status,'graded');
+      const empty=`sess_${randomUUID()}`;sessions.push(empty);
+      assert.equal((await f.post('/ping',{quiz_id:id,session_id:empty})).response.status,200);
+      const saved=structuredClone(results.get('res_'+sid));const calls=provider.calls;
+      if(replacement) {
+        expected=(await f.post(`/api/live/${id}/start`,{expected_run_id:a.id,confirm_replace:true},f.token)).data.run.id;
+      }else {
+        assert.equal((await f.post(`/api/live/${id}/terminate`,{expected_run_id:a.id},f.token)).response.status,200);expected=a.id;
+      }
+      clearAttemptRevisionState(id,sid); // Retry must use saved identity, including after process guard loss.
+      assert.equal((await f.post('/ping',{quiz_id:id,session_id:sid,live_run_id:expected})).data.terminated,true);
+      const changed={quiz_id:id,session_id:sid,answers:{0:'New claim.'},answer_revisions:{0:2},session_revision:2};
+      for(const path of ['/api/save_progressive_result','/submit','/api/submit_quiz']) {
+        const rejected=await f.post(path,changed);assert.equal(rejected.response.status,409,path);assert.equal(rejected.data.code,'CLASSROOM_SESSION_CLOSED');
+      }
+      for(const edit of [{student_answer:'New claim.',answer_revision:2},{student_answer:grade.student_answer,answer_revision:2}]) {
+        const rejected=await f.post('/api/grade_individual',{...grade,...edit});assert.equal(rejected.response.status,409);assert.equal(rejected.data.code,'CLASSROOM_SESSION_CLOSED');
+      }
+      assert.equal((await f.post('/api/grade_individual',{...grade,session_id:empty})).response.status,409);
+      assert.deepEqual(results.get('res_'+empty)?.answers,{});
+      assert.deepEqual(results.get('res_'+sid),saved);assert.equal(provider.calls,calls);
+      const retry=await f.post('/api/grade_individual',grade);assert.equal(retry.data.grade_status,'graded');assert.equal(retry.data.earned_points,1);assert.equal(provider.calls,calls);
+      const finalBody={quiz_id:id,session_id:sid,answers:{0:grade.student_answer},answer_revisions:{0:1},session_revision:3};
+      assert.equal((await f.post('/api/save_progressive_result',finalBody)).response.status,200);
+      const finalized=await f.post('/api/submit_quiz',finalBody);assert.equal(finalized.response.status,200);assert.equal(finalized.data.total_score,1);
+      const immutable=structuredClone(results.get('res_'+sid));
+      assert.equal((await f.post('/submit',finalBody)).data.result_id,finalized.data.result_id);assert.deepEqual(results.get('res_'+sid),immutable);assert.equal(provider.calls,calls);
+      const restored=await f.post('/api/load_progressive_result',{quiz_id:id,session_id:sid});assert.equal(restored.response.status,200);
+      assert.equal(results.get('res_'+sid)?.live_run_id,a.id);
+      if(replacement) {
+        assert.deepEqual(Object.keys(reconcileLiveResults(id).sessions),[]);
+        const fresh=`sess_${randomUUID()}`;sessions.push(fresh);
+        assert.equal((await f.post('/api/grade_individual',{...grade,session_id:fresh})).data.grade_status,'graded');
+        assert.equal(results.get('res_'+fresh)?.live_run_id,expected);assert.deepEqual(Object.keys(reconcileLiveResults(id).sessions),[fresh]);
+      }
+    }
+  } finally {sessions.forEach(sid=>results.delete('res_'+sid));quizzes.delete(id);classroomRuns.delete(id);liveSessions.delete(id);await f.close();}
+});
+
+test('R4.2 accepted pending Gemini survives end; closed retries/finalization do not start new Gemini',{timeout:10000},async()=>{
+  const f=await fixture(),id='r42_pending_end',sid=`sess_${randomUUID()}`;
+  quizzes.set(id,{id,user_id:'r41_owner',title:'Explain',questions:[{id:'1',question:'Explain your claim.',type:'open_ended',answer:'A justified claim.',points:2}]});
+  let release!:()=>void,entered!:()=>void,calls=0;
+  const barrier=new Promise<void>(r=>release=r),started=new Promise<void>(r=>entered=r);
+  configureGeminiClientForTests(()=>({models:{generateContent:async()=>{calls++;entered();await barrier;return {text:JSON.stringify({score_fraction:0.5,feedback:'Your explanation partly addresses the question.'})};}}}) as any);
+  try {
+    const a=(await f.post(`/api/live/${id}/start`,{},f.token)).data.run;
+    const grade={quiz_id:id,session_id:sid,question_index:0,student_answer:'My claim and reason.',answer_revision:1};
+    const pending=f.post('/api/grade_individual',grade);await started;
+    assert.equal(results.get('res_'+sid)?.graded_details?.[0].grade_status,'pending');
+    assert.equal((await f.post(`/api/live/${id}/terminate`,{expected_run_id:a.id},f.token)).response.status,200);
+    const retry=await f.post('/api/grade_individual',grade);assert.equal(retry.data.grade_status,'pending');assert.equal(calls,1);
+    const finalBody={quiz_id:id,session_id:sid,answers:{0:grade.student_answer},answer_revisions:{0:1},session_revision:1};
+    assert.equal((await f.post('/submit',finalBody)).response.status,409);assert.equal(calls,1);
+    const rejected=await f.post('/api/grade_individual',{...grade,answer_revision:2});assert.equal(rejected.response.status,409);assert.equal(calls,1);
+    const b=(await f.post(`/api/live/${id}/start`,{expected_run_id:a.id},f.token)).data.run;
+    release();assert.equal((await pending).data.grade_status,'graded');assert.equal(calls,1);
+    assert.equal(results.get('res_'+sid)?.live_run_id,a.id);assert.equal(results.get('res_'+sid)?.total_score,1);assert.deepEqual(Object.keys(reconcileLiveResults(id).sessions),[]);
+    assert.equal((await f.post('/submit',finalBody)).response.status,200);assert.equal((await f.post('/api/submit_quiz',finalBody)).data.result_id,'res_'+sid);assert.equal(calls,1);assert.equal(classroomRuns.get(id)?.id,b.id);
+  } finally {release();results.delete('res_'+sid);quizzes.delete(id);classroomRuns.delete(id);liveSessions.delete(id);await f.close();}
+});
+
+test('R4.2 concurrent HTTP answer, End Session and retry respect a single admission boundary',async()=>{
+  const f=await fixture(),id='r42_race';quizzes.set(id,{id,user_id:'r41_owner',title:'Race',questions:[question('1')]});
+  const sessions:string[]=[];let expected:string|undefined;
+  try {
+    for(let round=0;round<8;round++) {
+      const a=(await f.post(`/api/live/${id}/start`,{expected_run_id:expected},f.token)).data.run;expected=a.id;
+      const sid=`sess_${randomUUID()}`;sessions.push(sid);await f.post('/ping',{quiz_id:id,session_id:sid});
+      const body={quiz_id:id,session_id:sid,question_index:0,student_answer:'Alpha',answer_revision:1};
+      const requests=[()=>f.post('/api/grade_individual',body),()=>f.post(`/api/live/${id}/terminate`,{expected_run_id:a.id},f.token),()=>f.post('/api/grade_individual',body)];
+      const order=round%2?[1,0,2]:[0,1,2];
+      const outcomes=await Promise.all(order.map(i=>requests[i]()));
+      assert.equal(outcomes[order.indexOf(1)].response.status,200);
+      const accepted=outcomes.some((r,i)=>order[i]!==1 && r.response.status===200);
+      const record=results.get('res_'+sid)!;assert.equal(record.answers?.['0'],accepted?'Alpha':undefined);assert.equal(record.total_score,accepted?2:0);
+      const retry=await f.post('/api/grade_individual',body);assert.equal(retry.response.status,accepted?200:409);
+      assert.equal((await f.post('/api/grade_individual',{...body,answer_revision:2,student_answer:'Beta'})).response.status,409);
+      assert.equal(results.get('res_'+sid)?.total_score,accepted?2:0);
+    }
+  } finally {sessions.forEach(sid=>results.delete('res_'+sid));quizzes.delete(id);classroomRuns.delete(id);liveSessions.delete(id);await f.close();}
+});
+
+test('R4.2 final-submit admission releases lifecycle lock before delayed Gemini completion',{timeout:10000},async()=>{
+  const f=await fixture(),id='r42_final_pending',sid=`sess_${randomUUID()}`;
+  quizzes.set(id,{id,user_id:'r41_owner',title:'Explain',questions:[{id:'1',question:'Explain your claim.',type:'open_ended',answer:'A justified claim.',points:2}]});
+  let release!:()=>void,entered!:()=>void,calls=0;
+  const barrier=new Promise<void>(r=>release=r),started=new Promise<void>(r=>entered=r);
+  configureGeminiClientForTests(()=>({models:{generateContent:async()=>{calls++;entered();await barrier;return {text:JSON.stringify({score_fraction:0.5,feedback:'Your explanation partly addresses the question.'})};}}}) as any);
+  try {
+    const a=(await f.post(`/api/live/${id}/start`,{},f.token)).data.run;
+    const body={quiz_id:id,session_id:sid,answers:{0:'My claim and reason.'},answer_revisions:{0:1},session_revision:1};
+    const final=f.post('/api/submit_quiz',body);await started;
+    assert.equal(results.get('res_'+sid)?.graded_details?.[0].grade_status,'pending');
+    assert.equal((await f.post(`/api/live/${id}/terminate`,{expected_run_id:a.id},f.token)).response.status,200);
+    release();assert.equal((await final).response.status,200);assert.equal(calls,1);
+    const saved=structuredClone(results.get('res_'+sid));assert.equal(saved?.live_run_id,a.id);assert.equal(saved?.total_score,1);
+    assert.equal((await f.post('/submit',body)).data.result_id,'res_'+sid);assert.deepEqual(results.get('res_'+sid),saved);assert.equal(calls,1);
+  } finally {release();results.delete('res_'+sid);quizzes.delete(id);classroomRuns.delete(id);liveSessions.delete(id);await f.close();}
 });

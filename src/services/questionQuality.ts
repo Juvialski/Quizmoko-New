@@ -83,6 +83,9 @@ export function evaluateQuestionQuality(question: any): QualityEvidence {
 export function extractionQualityIssues(question: any): QualityIssue[] {
   const text = String(question?.raw_text ?? question?.question ?? question?.statement ?? '').trim();
   const issues = checkDiagram(text).issues.filter(i=>i.code!=='diagram_render_unverified');
+  if (/\b(?:plot|sketch|draw)\b[\s\S]{0,120}\b(?:points?|graph|plane|rectangle|line plot|number\s+line|figure|segments?)\b/i.test(text) && question?.type !== 'graphing') {
+    issues.push(issue('drawing_response_required','The source requests a drawing but the extracted response type does not require one.','Review the question type and preserve every requested task.'));
+  }
   if (!text || /(?:[+\-*/=^]|\\(?:frac|dfrac|sqrt))\s*\$?\s*$/.test(text) || /\b(?:continued|see next page)\s*[.]?$/i.test(text)) issues.push(issue('missing_worksheet_content','Extracted question appears incomplete.','Compare the source page and recover only this item.'));
   const blocks = [...text.matchAll(/\$\$?([^$]+)\$\$?/g)];
   if (blocks.some(m => { const s=mathText(m[1]); return (s.match(/\(/g)||[]).length !== (s.match(/\)/g)||[]).length; })) issues.push(issue('truncated_expression','An extracted mathematical expression has unmatched parentheses.','Check the fraction, radical or continuation on the source page.'));

@@ -121,6 +121,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/teacher-workflow.js"></script>
+    <script src="/js/owned-tasks.js"></script>
 </head>
 <body class="r4-teacher r4-worksheet-answers-upload">
     <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
@@ -623,6 +624,7 @@
             formData.append('topic_hint', document.getElementById('topic_hint').value);
             formData.append('use_screenshots', document.getElementById('use_screenshots').checked);
             formData.append('session_id', sessionId);
+            if (window.worksheetRecoveryId) formData.append('recovery_id',window.worksheetRecoveryId);
 
             try {
                 const res = await fetch('/api/extract_worksheet_with_answers', { method: 'POST', body: formData });
@@ -654,7 +656,23 @@
                 }
 
                 if (data.success) {
+                    window.worksheetRecoveryId=data.recovery_id;
+                    window.worksheetIncomplete=Boolean(data.incomplete);
+                    if (data.incomplete) {
+                        const warning=document.getElementById('page-recovery-warning') || document.createElement('div');
+                        warning.id='page-recovery-warning'; warning.className='qm-owned-tasks'; warning.replaceChildren();
+                        const text=document.createElement('p'); text.textContent='Some worksheet or answer-key pages need another extraction attempt. Successful worksheet pages are retained for up to 30 minutes in this server process. Keep the original files selected.';
+                        const retry=document.createElement('button'); retry.type='button'; retry.className='btn-secondary'; retry.textContent='Retry failed pages';retry.onclick=()=>{ isExtracting=false; handleExtract(); };
+                        warning.append(text,retry);document.getElementById('extraction-preview').prepend(warning);
+                    } else document.getElementById('page-recovery-warning')?.remove();
                     extractedQuestions = data.questions;
+                    const priorWarning=document.getElementById('source-task-warning');priorWarning?.remove();
+                    if (extractedQuestions.some(q=>q.source_review_required)) {
+                        const warning=document.createElement('p');warning.id='source-task-warning';warning.className='qm-owned-tasks';
+                        warning.textContent='Some source questions need review of shared context, drawings or task requirements. Solver agreement alone does not clear this source warning.';
+                        document.getElementById('extraction-preview').prepend(warning);
+                    }
+
                     missingIndices = data.missing_indices || [];
                     goldenReference = data.golden_reference || {};
                     extractionDiagnostics = normalizeWorksheetDiagnostics(data.diagnostics);
@@ -960,6 +978,7 @@
         function updateOptionText(qIdx, optIdx, val) { extractedQuestions[qIdx].options[optIdx] = val; }
 
         async function handleGenerate() {
+            if (window.worksheetIncomplete) return alert('Retry the failed worksheet or answer-key pages before creating a quiz.');
             syncAllDomEditors();
             const model = document.getElementById('model_select').value;
             const apiKey = await getUsableKey(model, 1);
@@ -995,6 +1014,8 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        async_job:true,
+                        idempotency_key:await window.QuizMoKoTasks.key('worksheet_finalization',{questions:extractedQuestions,goldenReference,reviewApproved,model,subject:document.getElementById('subject_select').value,batchSize:document.getElementById('batch_size').value,timeLimit:document.getElementById('time_limit').value,quizMode:document.getElementById('quiz_mode').value,diagnostics:extractionDiagnostics,fragments:unresolvedFragments,topic:document.getElementById('topic_hint').value}),
                         questions: extractedQuestions,
                         create_draft: true,
                         golden_reference: goldenReference,
@@ -1012,6 +1033,7 @@
                     })
                 });
                 const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success && data.job_id) { window.QuizMoKoTasks.accepted('worksheet_finalization'); return; }
                 if (res.ok && data.success) {
                     window.location.href = `/edit/${data.quiz_id}`;
                     return;

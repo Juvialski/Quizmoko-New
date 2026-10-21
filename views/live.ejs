@@ -132,6 +132,7 @@
         </div>
     </div>
 
+    <p id="live-sync-status" role="status" style="margin:12px 0;color:var(--body)"></p>
     <!-- Original Preserved Javascript -->
     <script>
         const quizId = '<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>';
@@ -152,7 +153,7 @@
             socket.on('connect', () => {
                 console.log('[WS] Connected to server');
                 useWS = true;
-                socket.emit('join_quiz', { quiz_id: quizId });
+                socket.emit('join_quiz', { quiz_id: quizId, monitor: true });
             });
 
             socket.on('connect_error', (err) => {
@@ -161,29 +162,12 @@
             });
 
             socket.on('update_session', (payload) => {
-                console.log('[WS] Received update:', payload);
-                sessionsCache[payload.session_id] = payload.data;
-                if (payload.paused !== undefined) {
-                    isPaused = payload.paused;
-                    updatePauseBtn();
-                }
-                renderTable();
+
+                initialFetch();
             });
 
             socket.on('progressive_result_update', (payload) => {
-                const sessionId = String(payload && payload.session_id || '');
-                const session = sessionsCache[sessionId];
-                if (!session) {
-                    initialFetch();
-                    return;
-                }
-                const score = Number(payload.total_score);
-                const maxScore = Number(payload.max_score);
-                if (Number.isFinite(score)) session.score = score;
-                if (Number.isFinite(maxScore) && maxScore >= 0) session.max_score = maxScore;
-                session.last_active = Date.now();
-                if (payload.finalized === true) session.status = 'Completed';
-                renderTable();
+                initialFetch();
             });
 
             socket.on('pause_state', (data) => {
@@ -327,7 +311,11 @@
                 .catch(error => alert(error.message));
         }
 
+        let lastRender = '';
         function renderTable() {
+            const fingerprint = JSON.stringify(Object.entries(sessionsCache).map(([id,s])=>[id,{...s,last_active:undefined,ping_revision:undefined,signal:!s.last_active?'unknown':Date.now()-s.last_active>30000?'inactive':Date.now()-s.last_active>10000?'reconnecting':'online'}]));
+            if (fingerprint === lastRender) return;
+            lastRender = fingerprint;
             const tbody = document.querySelector('#live-table tbody');
             const data = sessionsCache;
 
@@ -359,15 +347,16 @@
                 let signalColor = 'var(--success)';
                 let signalLabel = 'Online';
 
-                if (statusText.includes('Completed') || statusText.includes('Finished') || statusText.includes('Terminated')) {
+                if (!info.last_active) { signalLabel='Unknown / reconnecting'; signalColor='var(--warning)'; }
+                else if (statusText.includes('Completed') || statusText.includes('Finished') || statusText.includes('Terminated')) {
                     signalLabel = 'Finished';
                     signalColor = 'var(--body)';
                 } else if (diff > 30) {
                     signalColor = 'var(--m-red)';
-                    signalLabel = 'Offline';
+                    signalLabel = 'Inactive';
                 } else if (diff > 10) {
                     signalColor = 'var(--warning)';
-                    signalLabel = 'Unstable';
+                    signalLabel = 'Reconnecting';
                 }
 
                 const signalHtml = `
@@ -440,7 +429,7 @@
                     <td style="color: var(--body); font-weight: 600;">Q ${displayedQ} of ${totalQ}</td>
                     <td style="max-width: 350px;">${detailsHtml}</td>
                     <td>${wbStatusHtml}</td>
-                    <td><span class="score-badge">${parseFloat(info.score || 0).toFixed(2)} / ${parseFloat(info.max_score || totalQ || 0).toFixed(2)} PTS</span></td>
+                    <td><span class="score-badge">${parseFloat(info.score || 0).toFixed(2)} / ${parseFloat(info.max_score || totalQ || 0).toFixed(2)} PTS</span>${info.pending_grades ? `<div>${Number(info.pending_grades)} waiting to be checked</div>` : ''}</td>
                     <td>${statusHtml}</td>
                 `;
                 const detailsElement = tr.querySelector('details');
@@ -460,22 +449,28 @@
             window.refreshQuizmokoIcons();
         }
 
+        let snapshotPending = false;
         function initialFetch() {
-            fetch('/api/live/' + quizId)
+            if (snapshotPending) return;
+            snapshotPending = true;
+            fetch('/api/live/' + quizId, {cache:'no-store',signal:AbortSignal.timeout(8000)})
             .then(async res => {
                 const response = await res.json();
                 if (!res.ok) throw new Error(response.error || 'Unable to load live sessions');
                 return response;
             })
             .then(response => {
+                document.getElementById('live-sync-status').textContent=response.control_state_known === false ? 'Live controls could not be recovered after restart. Confirm pause or resume; student activity is unknown until the next ping.' : '';
                 if(response.paused !== undefined) {
                     isPaused = response.paused;
                     updatePauseBtn();
                 }
+                document.getElementById('terminate-btn').disabled = Boolean(response.terminated);
                 sessionsCache = response.sessions || response;
                 renderTable();
             })
-            .catch(error => console.warn('[LIVE] Polling failed:', error.message));
+            .catch(error => { document.getElementById('live-sync-status').textContent='Connection interrupted. Showing the last confirmed classroom snapshot.'; })
+            .finally(() => { snapshotPending = false; });
         }
         
         initialFetch();

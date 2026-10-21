@@ -1,0 +1,58 @@
+{
+  "actual_sdk_requests": 46,
+  "by_model": {
+    "gemini-3.5-flash-lite": 35,
+    "gemini-3.1-flash-lite": 11
+  },
+  "live_429s": 0,
+  "queue_wait_total_ms": 2,
+  "ledger": [
+    {
+      "phase": "pari-live-answer-key-final",
+      "actual_requests": 2
+    },
+    {
+      "phase": "pari-live-continuation-final",
+      "actual_requests": 2
+    },
+    {
+      "phase": "pari-live-extended",
+      "actual_requests": 14
+    },
+    {
+      "phase": "pari-live-extraction",
+      "actual_requests": 3
+    },
+    {
+      "phase": "pari-live-extraction-fixed",
+      "actual_requests": 3
+    },
+    {
+      "phase": "pari-live-followup",
+      "actual_requests": 12
+    },
+    {
+      "phase": "pari-live-recovery-final",
+      "actual_requests": 2
+    },
+    {
+      "phase": "pari-live-rubric-final",
+      "actual_requests": 3
+    },
+    {
+      "phase": "pari-live-rubric-followup",
+      "actual_requests": 4
+    },
+    {
+      "phase": "pari-live-source-words-final",
+      "actual_requests": 1
+    }
+  ],
+  "local_png_decode": {
+    "count": 196,
+    "success": 196,
+    "max_image_pixels": 976155
+  },
+  "detailed_sample_content": "private local output only; omitted from repository",
+  "continuation_reconciliation": "actual captured live source replayed through corrected local reconciliation; explicit IDs/context and provenance pass"
+}

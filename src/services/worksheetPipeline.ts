@@ -770,6 +770,46 @@ function withoutWorksheetImageMarkup(value: string): string {
     .trim();
 }
 
+/** Transfer only explicitly declared, unambiguous shared text between new extraction items. */
+export function applyExplicitWorksheetContexts(questions: ReconciledWorksheetQuestion[], diagnostics: WorksheetDiagnostic[]): void {
+  const declarations=new Map<string,Map<string,ReconciledWorksheetQuestion>>();
+  for(const question of questions) {
+    const context=String(question.context_prefix || '').trim();
+    const heading=stripLatex(context).replace(/\$/g,'').replace(/\\(?:text|mathrm)\{([^{}]*)\}/g,'$1').match(/\b(?:problems?|questions?|items?)\s+(\d+[a-z]?(?:\s*(?:,|and|to|[-–—])\s*\d+[a-z]?)*)/i);
+    if(!context || !heading) continue;
+    const ids=new Set<string>();const range=heading[1].match(/^(\d+)\s*(?:to|[-–—])\s*(\d+)$/i);
+    if(range && Number(range[2])>=Number(range[1]) && Number(range[2])-Number(range[1])<=50) {
+      for(let id=Number(range[1]);id<=Number(range[2]);id++)ids.add(String(id));
+    } else for(const match of heading[1].matchAll(/\d+[a-z]?/gi))ids.add(match[0]);
+    // The origin itself must be one of the declared items. Never infer source membership by position.
+    if(![...ids].some(id=>worksheetSourceIdentifierMatchKey(id)===worksheetSourceIdentifierMatchKey(getWorksheetSourceId(question)))) continue;
+    for(const id of ids) {
+      const key=worksheetSourceIdentifierMatchKey(id);const values=declarations.get(key) || new Map();
+      values.set(context,question);declarations.set(key,values);
+    }
+  }
+  for(const [id,contexts] of declarations) {
+    const targets=questions.filter(q=>worksheetSourceIdentifierMatchKey(getWorksheetSourceId(q))===id);
+    if(!targets.length)continue;
+    const [context,origin]=contexts.entries().next().value!;
+    for(const target of targets) {
+      if(String(target.context_prefix || '').trim()===context && contexts.size===1)continue;
+      if(targets.length!==1 || contexts.size!==1 || String(target.context_prefix || '').trim()) {
+        target.source_review_required=true;
+        diagnostics.push({...diagnostic('review_required','Shared source context is ambiguous; compare the original pages before publication.',getWorksheetSourceId(target)),source_file:target.source.source_file,page_number:target.source.page_number});
+        continue;
+      }
+      const original=String(target.raw_text || target.question || '');
+      target.context_prefix=context;target.raw_text=context+'\n'+original;target.question=context+'\n'+original;
+      target.shared_context_source={...origin.source};
+      if(target.source.source_file !== origin.source.source_file) {
+        target.source_review_required=true;
+        diagnostics.push({...diagnostic('review_required','Shared text from another uploaded file was attached by explicit printed references. Confirm that the files belong to the same worksheet before publication.',getWorksheetSourceId(target)),source_file:target.source.source_file,page_number:target.source.page_number});
+      }
+    }
+  }
+}
+
 function mergeDuplicateWorksheetQuestion(
   existing: ReconciledWorksheetQuestion,
   duplicate: ReconciledWorksheetQuestion
@@ -927,6 +967,7 @@ export function reconcileWorksheetPages(pages: readonly ExtractedWorksheetPage[]
   }
 
   const mergedQuestions = mergeSubpartQuestions(questions);
+  applyExplicitWorksheetContexts(mergedQuestions, diagnostics);
 
   const textOwners = new Map<string, string>();
   for (const question of mergedQuestions) {

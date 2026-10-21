@@ -1,3 +1,4 @@
+import { monitoringRoom, emitLiveResult } from '../services/socket.ts';
 import { isAiStudioSandbox } from '../services/firebaseAdmin.ts';
 import { isProductionRuntime } from '../services/runtimeConfig.ts';
 import { Router } from 'express';
@@ -338,6 +339,7 @@ async function persistIndividualProgress(input: {
     const previousRevision = parsedRevision(existing?.answer_revisions?.[String(input.detail.question_index)], 0) ?? 0;
     if (input.detail.answer_revision < previousRevision) return false;
     const previousDetail = existing?.graded_details?.[input.detail.question_index];
+    if (detailIdentityMatches(previousDetail,input.detail.answer_revision,input.detail.answer_digest || '',input.detail.snapshot_digest || createSnapshotDigest([]),input.detail.question_digest || '')) return true;
     if (
       previousDetail
       && input.detail.answer_revision === previousRevision
@@ -527,8 +529,16 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
     snapshots
   });
   let retryable = false;
+  let retryAfterSeconds: number | undefined;
 
+  if (detailIdentityMatches(persistedDetail, answerRevision, answerDigest, snapshotDigest, createQuestionDigest(question))) {
+    return res.json(gradeResponse(persistedDetail, false));
+  }
   if (detail.grade_status === 'pending') {
+    const saved = await persistIndividualProgress({userId:(req as AuthRequest).user?.uid,
+      quiz,quizId,sessionId,studentName:body.student_name,detail,snapshots});
+    if (!saved) return res.status(409).json({success:false,grade_status:'pending',stale:true,error:'Attempt already finalized or superseded.'});
+    emitLiveResult(req.app.get('io'),quizId,sessionId);
     const slot = await acquireSemanticAiSlot(req);
     if (!slot) {
       detail = semanticDetail({
@@ -556,6 +566,7 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
           maxModelAttempts: 3
         });
         retryable = outcome.retryable;
+        retryAfterSeconds=outcome.retryAfterSeconds;
         if (!isLatestAnswerRevision({
           quizId,
           sessionId,
@@ -630,13 +641,17 @@ router.post('/api/grade_individual', publicRateLimit('grade', 600, 10 * 60 * 1_0
     });
   }
 
+  detail = (results.get(resultId)?.graded_details?.[questionIndex] || detail) as GradedDetail;
+  retryable = detail.grade_status === 'retryable_error';
+  emitLiveResult(req.app.get('io'), quizId, sessionId);
   res.setHeader('Cache-Control', 'no-store');
   const payload: any = gradeResponse(detail, retryable);
   if (detail.grade_status === 'graded' && quiz.quiz_mode !== 'back_and_forth') {
     payload.correct_answer = getCorrectAnswer(question);
   }
+  if(retryAfterSeconds && detail.grade_status === 'retryable_error') res.setHeader('Retry-After',String(retryAfterSeconds));
   const statusCode = detail.grade_status === 'retryable_error'
-    ? 503
+    ? (retryAfterSeconds ? 429 : 503)
     : (detail.grade_status === 'invalid_response' ? 502 : 200);
   return res.status(statusCode).json(payload);
 });
@@ -1157,8 +1172,9 @@ router.post(
       }
       results.set(resultId, record);
       savePersistentData();
+      emitLiveResult(req.app.get('io'), quizId, sessionId);
       const io = req.app.get('io');
-      if (io) io.to(`quiz_${quizId}`).emit('progressive_result_update', {
+      if (io) io.to(monitoringRoom(quizId)).emit('progressive_result_update', {
         result_id: resultId,
         session_id: sessionId,
         total_score: record.total_score,
@@ -1328,8 +1344,9 @@ router.post(
         savePersistentData();
         throw error;
       }
+      emitLiveResult(req.app.get('io'), quizId, sessionId);
       const io = req.app.get('io');
-      if (io) io.to(`quiz_${quizId}`).emit('progressive_result_update', {
+      if (io) io.to(monitoringRoom(quizId)).emit('progressive_result_update', {
         result_id: resultId,
         session_id: sessionId,
         total_score: record.total_score,

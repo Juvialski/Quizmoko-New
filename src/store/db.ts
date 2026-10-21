@@ -33,6 +33,7 @@ import {
 export const users = new Map<string, User>();
 export const quizzes = new Map<string, Quiz>();
 export const results = new Map<string, QuizResult>();
+export const aiJobs = new Map<string, any>();
 export const sessionProgress = new Map<string, any>();
 export const liveSessions = new Map<string, LiveSessionState>();
 
@@ -148,7 +149,7 @@ export class PersistenceUnavailableError extends Error {
   }
 }
 
-const VALID_COLLECTIONS = new Set(['quizzes', 'results', 'users']);
+const VALID_COLLECTIONS = new Set(['quizzes', 'results', 'users', 'ai_jobs']);
 const SENSITIVE_PERSISTENCE_KEYS = new Set([
   'apikey',
   'geminiapikey',
@@ -1211,6 +1212,12 @@ export async function loadFromFirestore(generation = ++firestoreLoadGeneration):
     }
   }
 
+  // Jobs contain metadata only. Fail closed if durable job history is unreadable.
+  for (const backend of backends) {
+    const loadedJobs = await loadCollection(backend, 'ai_jobs');
+    if (!loadedJobs.success) throw new PersistenceUnavailableError('AI job history is unavailable');
+    for (const entry of loadedJobs.entries) aiJobs.set(entry.id, entry.data);
+  }
   let replacedAnyCollection = false;
   if (readSuccess.quizzes) {
     const sampleIds = new Set(sampleQuizzes.map((s) => s.id));

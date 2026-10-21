@@ -822,3 +822,19 @@ svg.lucide:not(.icon-xs):not(.icon-sm):not(.icon-md):not(.icon-lg):not(.icon-xl)
 .r4-editor .header-flex select { flex: 1; min-width: 0; width: 100% !important; }
 
 .r4-library-overview { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+
+.qm-owned-tasks { margin:16px auto; padding:12px 16px; max-width:1100px; background:var(--surface, #182333); color:var(--on-dark); border:1px solid var(--hairline); border-radius:12px; font-size:14px; }
+.qm-owned-tasks > div + div { margin-top:10px; }
+.qm-owned-tasks a { color:var(--primary); text-decoration:underline; }
+.r4-recent { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.r4-recent h3 { margin:0; font-size:14px; }
+.r4-recent a { font-size:14px; max-width:100%; overflow-wrap:anywhere; }
+
+.r4-teacher .question-item { min-width:0; }
+.r4-teacher .question-item > div:first-child { flex-wrap:wrap; gap:8px; }
+.r4-teacher .question-item > div:first-child > div:first-child { flex:1 1 200px; min-width:0; flex-wrap:wrap; gap:8px; }
+.r4-teacher .question-item select { width:100% !important; min-width:0; max-width:100%; }
+@media (max-width:600px) {
+ .r4-teacher #extraction-preview .card { padding:16px; }
+ .r4-teacher #extraction-preview div[style*="grid-template-columns"] { grid-template-columns:minmax(0,1fr) !important; }
+}

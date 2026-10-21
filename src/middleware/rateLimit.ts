@@ -43,6 +43,7 @@ export function createRateLimiter(rule: RateLimitRule, prefix: string) {
     if (record.count >= rule.max) {
       const waitSeconds = Math.ceil((record.resetTime - now) / 1000);
       res.status(429);
+      res.setHeader('Retry-After',String(Math.max(1,waitSeconds)));
       
       // If the request expects JSON, return JSON, otherwise render a generic error or return text
       if (req.xhr || req.headers.accept?.includes('json') || req.path.startsWith('/api/') || req.path === '/merge') {

@@ -107,7 +107,7 @@ export function createSessionToken(user: User, expiresInMs: number): string {
   return `qms1.${encodedPayload}.${signPayload(encodedPayload)}`;
 }
 
-function verifySessionToken(token: string): User | null {
+export function verifySessionToken(token: string): User | null {
   const parts = token.split('.');
   if (parts.length !== 3 || parts[0] !== 'qms1') return null;
   if (!safeSignatureMatch(parts[2], signPayload(parts[1]))) return null;

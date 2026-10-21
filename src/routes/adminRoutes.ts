@@ -1,3 +1,6 @@
+import { getStructuredOutputFailureCount } from '../services/gemini.ts';
+import { getGeminiReliabilitySnapshot, getGeminiRateLimitSnapshot } from '../services/geminiRateLimiter.ts';
+import { jobDiagnostics } from '../services/ownedJobs.ts';
 import { Router } from 'express';
 import { adminRequired, tokenRequired } from '../middleware/auth.ts';
 import {
@@ -25,6 +28,9 @@ router.get('/api/admin/system_health', adminRequired, (_req, res) => {
   res.json({
     success: true,
     persistence: getPersistenceStatus(),
+    jobs: jobDiagnostics(),
+    gemini: {structured_output_parse_failures:getStructuredOutputFailureCount(),queues:getGeminiRateLimitSnapshot(),reliability:getGeminiReliabilitySnapshot()},
+    pending_grades: [...results.values()].filter(r=>r.is_in_progress===true).reduce((sum,r)=>sum+(Array.isArray(r.graded_details)?r.graded_details:[]).filter((d:any)=>d && d.grade_status !== 'graded').length,0),
     counts: {
       quizzes: quizzes.size,
       results: results.size,
@@ -103,11 +109,11 @@ router.get('/api/usage/sync_history', adminRequired, (req, res) => {
   res.json({ success: true });
 });
 
-router.get('/api/progress/:session_id', (req, res) => {
-  const data = sessionProgress.get(req.params.session_id) || {
-    message: 'Processing...',
-    percentage: 10,
-    status: 'processing'
+router.get('/api/progress/:session_id', tokenRequired, (req: any, res) => {
+  const data = sessionProgress.get(`${req.user.uid}\0${req.params.session_id}`) || {
+    message: 'Task state is unavailable or interrupted. Check Your AI tasks and any saved draft.',
+    percentage: 0,
+    status: 'unknown'
   };
   res.json(data);
 });

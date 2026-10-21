@@ -231,7 +231,16 @@ export interface LiveSessionStudent {
 }
 
 export interface LiveSessionState {
+  control_state_known?: boolean;
   paused: boolean;
   terminated: boolean;
   sessions: Record<string, LiveSessionStudent>;
+}
+
+export type JobTask = 'generation' | 'worksheet_solving' | 'worksheet_finalization';
+export interface OwnedJob {
+  id: string; owner_uid: string; task: JobTask; label: string;
+  status: 'running' | 'completed' | 'needs_attention' | 'failed' | 'interrupted';
+  started_at: number; updated_at: number; completed: number; total: number;
+  idempotency_key: string; quiz_id?: string; error?: string;
 }

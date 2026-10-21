@@ -6,7 +6,8 @@ const DEFAULT_MAX_QUEUE_WAIT_MS = 180_000;
 
 interface ModelRateBucket {
   starts: number[];
-  tail: Promise<void>;
+  waiters: Array<{interactive:boolean; queuedAt:number; quotaKey:string}>;
+  interactiveBurst: number;
   pending: number;
   lastSeenAt: number;
   cooldownUntil: number;
@@ -32,6 +33,18 @@ export class GeminiRateLimitError extends Error {
 }
 
 const buckets = new Map<string, ModelRateBucket>();
+const clientQuotaKeys = new WeakMap<object,string>();
+const keyWindows = new Map<string,{starts:number[]; cooldownUntil:number; lastSeenAt:number}>();
+export function setGeminiQuotaIdentity(client: object, digest: string) { clientQuotaKeys.set(client,digest); }
+function keyWindow(key: string) {
+  const now=Date.now();
+  for (const [id,value] of keyWindows) if (value.lastSeenAt < now-15*60_000 && value.cooldownUntil < now) keyWindows.delete(id);
+  if (!keyWindows.has(key)) {
+    if (keyWindows.size >= 2000) throw new GeminiRateLimitError('AI quota accounting is busy.',60);
+    keyWindows.set(key,{starts:[],cooldownUntil:0,lastSeenAt:now});
+  }
+  const value=keyWindows.get(key)!; value.lastSeenAt=now; return value;
+}
 let testConfig: Partial<RateLimiterConfig> | null = null;
 
 function boundedInt(value: unknown, fallback: number, minimum: number, maximum: number): number {
@@ -81,7 +94,8 @@ function getBucket(model: string): ModelRateBucket {
     bucket = {
       cooldownUntil: 0,
       starts: [],
-      tail: Promise.resolve(),
+      waiters: [],
+      interactiveBurst: 0,
       pending: 0,
       lastSeenAt: Date.now()
     };
@@ -131,55 +145,37 @@ function delay(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-async function reserveModelSlot(model: string, signal?: AbortSignal): Promise<void> {
+async function reserveModelSlot(model: string, signal?: AbortSignal, interactive = false, quotaKey = 'unregistered'): Promise<number> {
   const config = limiterConfig();
   const effectiveRpm = Math.max(1, config.rpm - config.reserve);
   const bucket = getBucket(model);
   const queuedAt = Date.now();
-
-  if (bucket.pending >= 200) throw new GeminiRateLimitError("AI request queue is full.", 60);
-  const previous = bucket.tail.catch(() => undefined);
-  let releaseQueue!: () => void;
-  bucket.tail = new Promise<void>(resolve => {
-    releaseQueue = resolve;
-  });
-  bucket.pending += 1;
-
+  const budget = interactive ? Math.min(8_000, config.maxQueueWaitMs) : config.maxQueueWaitMs;
+  if (bucket.pending >= 200) throw new GeminiRateLimitError('AI request queue is full.',60);
+  const account=keyWindow(quotaKey);
+  const waiter = {interactive, queuedAt, quotaKey};
+  bucket.waiters.push(waiter); bucket.pending++;
   try {
-    const queueSignal = AbortSignal.timeout(config.maxQueueWaitMs);
-    try { await waitWithSignal(previous, signal ? AbortSignal.any([signal, queueSignal]) : queueSignal); }
-    catch (error) {
-      if (!signal?.aborted && queueSignal.aborted) throw new GeminiRateLimitError('AI queue deadline exceeded.', 60);
-      throw error;
-    }
     while (true) {
-      if (signal?.aborted) throw abortError();
-      const now = Date.now();
-      pruneOldStarts(bucket, now, config.windowMs);
-
-      if (now - queuedAt >= config.maxQueueWaitMs) throw new GeminiRateLimitError("AI queue deadline exceeded.", 60);
-      if (bucket.starts.length < effectiveRpm && now >= bucket.cooldownUntil) {
-        bucket.starts.push(now);
-        bucket.lastSeenAt = now;
-        return;
+      if (signal?.aborted) throw signal.reason || abortError();
+      const now = Date.now(); pruneOldStarts(bucket,now,config.windowMs);
+      const ready = bucket.waiters.filter(w=>keyWindow(w.quotaKey).cooldownUntil <= now);
+      const background = ready.find(w=>!w.interactive);
+      const urgent = ready.find(w=>w.interactive);
+      // Three interactive starts at most before the oldest waiting background request.
+      const selected = urgent && (!background || bucket.interactiveBurst < 3) ? urgent : background || urgent;
+      if (selected === waiter && bucket.starts.length < effectiveRpm && now >= bucket.cooldownUntil) {
+        bucket.starts.push(now); bucket.lastSeenAt=now;
+        account.starts=account.starts.filter(t=>t>now-config.windowMs); account.starts.push(now);
+        bucket.interactiveBurst = interactive ? bucket.interactiveBurst+1 : 0;
+        return now-queuedAt;
       }
-
-      const nextAvailableAt = Math.max(bucket.cooldownUntil, (bucket.starts[0] || now) + (bucket.starts.length >= effectiveRpm ? config.windowMs + 25 : 0));
-      const waitMs = Math.max(25, nextAvailableAt - now);
-      const elapsed = now - queuedAt;
-      if (elapsed + waitMs > config.maxQueueWaitMs) {
-        throw new GeminiRateLimitError(
-          `Gemini ${model} is at its configured ${config.rpm} requests-per-minute limit. Try again shortly.`,
-          waitMs / 1_000
-        );
-      }
-      await delay(waitMs, signal);
+      const available = Math.max(account.cooldownUntil,bucket.cooldownUntil, bucket.starts.length >= effectiveRpm ? bucket.starts[0]+config.windowMs+25 : now);
+      if (now-queuedAt >= budget || available-queuedAt > budget) throw new GeminiRateLimitError('Gemini reached its request limit. You can retry later.', Math.max(1,(available-now)/1000));
+      await delay(Math.min(100, Math.max(25,available-now)),signal);
     }
   } finally {
-    bucket.pending = Math.max(0, bucket.pending - 1);
-    bucket.lastSeenAt = Date.now();
-    void previous.then(releaseQueue);
-    pruneIdleBuckets(Date.now());
+    bucket.waiters = bucket.waiters.filter(w=>w!==waiter); bucket.pending--; pruneIdleBuckets(Date.now());
   }
 }
 
@@ -227,21 +223,35 @@ export async function generateGeminiContent<T = any>(
   const inheritedSignal = requestAbortSignal();
   const signals = [suppliedSignal, inheritedSignal].filter((s): s is AbortSignal => Boolean(s));
   const queueSignal = signals.length ? AbortSignal.any(signals) : undefined;
-  await reserveModelSlot(model, queueSignal);
+  const task = String(request?.config?._quizmokoTask || 'other');
+  const interactive = task === 'semantic_grading';
+  const metric = reliabilityMetric(model, task);
+  const quotaKey = `${clientQuotaKeys.get(client) || 'unregistered'}:${model}`;
+  metric.requests++;
+  try { metric.queue_wait_ms += await reserveModelSlot(model, queueSignal, interactive, quotaKey); }
+  catch (error) { metric.queue_rejected++; throw error; }
   const configuredTimeout = Number(process.env.GEMINI_REQUEST_TIMEOUT_MS);
-  const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+  const transportTimeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0
     ? Math.min(configuredTimeout, 180_000) : 90_000;
+  const timeoutMs = interactive ? Math.min(20_000, transportTimeoutMs) : transportTimeoutMs;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new DOMException('Gemini request timed out', 'TimeoutError')), timeoutMs);
   const signal = AbortSignal.any([...signals, controller.signal]);
+  const providerStart = Date.now();
+  const { _quizmokoTask: ignoredTask, ...providerConfig } = request.config || {};
   try {
     if (signal.aborted) throw signal.reason || abortError();
-    return await waitWithSignal(Promise.resolve(client.models.generateContent({
-      ...request, config: { ...request.config, abortSignal: signal }
+    metric.provider_requests=(metric.provider_requests || 0)+1;
+    const response = await waitWithSignal(Promise.resolve(client.models.generateContent({
+      ...request, config: { ...providerConfig, abortSignal: signal }
     })), signal) as T;
+    if ((response as any)?.candidates?.some((c:any)=>c.finishReason==='MAX_TOKENS')) metric.truncated_output=(metric.truncated_output || 0)+1;
+    return response;
   } catch (error) {
+    const category = geminiFailureCategory(error);
+    metric[category] = (metric[category] || 0)+1;
     if (upstreamStatus(error) === 429) {
-      getBucket(model).cooldownUntil = Date.now() + upstreamRetryAfterSeconds(error) * 1000;
+      keyWindow(quotaKey).cooldownUntil = Date.now() + upstreamRetryAfterSeconds(error) * 1000;
       throw new GeminiRateLimitError(
         `Gemini ${model} rejected the request because an active project quota was exceeded.`,
         upstreamRetryAfterSeconds(error)
@@ -250,6 +260,7 @@ export async function generateGeminiContent<T = any>(
     console.warn(`[AI] Request failed (model ${model}, status ${upstreamStatus(error) || 'transport'}).`);
     throw error;
   } finally {
+    metric.provider_ms += Date.now()-providerStart;
     clearTimeout(timer);
   }
 }
@@ -279,10 +290,43 @@ export function configureGeminiRateLimiterForTests(config: Partial<RateLimiterCo
 export function resetGeminiRateLimiterForTests(): void {
   if (process.env.NODE_ENV !== 'test') return;
   buckets.clear();
+  keyWindows.clear();
   testConfig = null;
 }
 
 export function isPermanentGeminiFailure(error: unknown): boolean {
   const status = upstreamStatus(error);
   return status !== null && status >= 400 && status < 500 && ![408, 429].includes(status);
+}
+
+const reliability = new Map<string, Record<string,number>>();
+function reliabilityMetric(model: string, task: string) {
+  const safeModel = ['gemini-3.5-flash-lite','gemini-3.1-flash-lite'].includes(model) ? model : 'other';
+  const safeTask = ['document_extraction','answer_key_extraction','question_drafting','question_solving','question_adjudication','latex_polish','semantic_grading','student_explanation'].includes(task) ? task : 'other';
+  const key = `${safeModel}:${safeTask}`;
+  if (!reliability.has(key)) reliability.set(key,{requests:0,queue_wait_ms:0,provider_ms:0,queue_rejected:0});
+  return reliability.get(key)!;
+}
+export function geminiFailureCategory(error: any): string {
+  const status = upstreamStatus(error);
+  if (status === 429) return 'rate_limit';
+  if (error?.name === 'TimeoutError' || status === 408) return 'timeout';
+  if (error?.name === 'AbortError') return 'cancelled';
+  if (status === 401 || status === 403) return 'authentication';
+  if (status === 400 || status === 404) return 'configuration_or_request';
+  if (status && status >= 500) return 'provider_outage';
+  return 'transport_or_response';
+}
+export function getGeminiReliabilitySnapshot() { return Object.fromEntries([...reliability].map(([k,v])=>[k,{...v}])); }
+export function recordGeminiOutcome(model: string, task: string, outcome: 'validation_failure' | 'retry' | 'verified' | 'review_required' | 'processed_units', count=1) {
+  const metric=reliabilityMetric(model,task);
+  metric[outcome]=(metric[outcome] || 0)+Math.max(0,Math.min(1000,count));
+}
+export function safeAiErrorMessage(error: any): string {
+  const category=geminiFailureCategory(error);
+  if (error instanceof GeminiRateLimitError || category==='rate_limit') return 'Gemini reached its request limit. You can retry later.';
+  if (category==='authentication') return 'AI credentials need attention. Your saved work is retained.';
+  if (category==='configuration_or_request') return 'Gemini could not accept this request. Check the AI settings before retrying.';
+  if (category==='timeout' || category==='cancelled') return 'AI processing was interrupted. Open any saved draft before retrying.';
+  return 'AI could not finish safely. Your saved work is retained. You can retry later.';
 }

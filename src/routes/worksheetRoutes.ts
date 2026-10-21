@@ -1,3 +1,8 @@
+import { aiJobs } from '../store/db.ts';
+import { withAttemptLock } from '../services/resultSession.ts';
+import { worksheetRecovery, rememberWorksheetPage } from '../services/worksheetPageRecovery.ts';
+import { serializeJobRequest, startOwnedJob, existingJob, checkpointJob, type OwnedJob } from '../services/ownedJobs.ts';
+import { withRequestAbortSignal, requestAbortSignal } from '../services/requestContext.ts';
 import { validateWorksheetUploads } from '../services/worksheetUploadSafety.ts';
 import { Router } from 'express';
 import multer from 'multer';
@@ -24,16 +29,19 @@ import {
   sortQuestionsByIndex
 } from '../services/pdf.ts';
 import {
+  extractedWorksheetLabel,
   findMissingPlainNumericWorksheetSourceIds,
   worksheetSourceIdentifiersEqual
 } from '../services/worksheetSourceOrder.ts';
 import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
 import {
+  safeAiErrorMessage,
+  recordGeminiOutcome,
   generateGeminiContent,
   GeminiRateLimitError
 } from '../services/geminiRateLimiter.ts';
 import { normalizeAiLatexText, normalizeMathQuestionText, normalizeQuestionLayoutText, stripDuplicatedChoiceBlock, stripRedundantOptionPrefix, validateLatexText } from '../services/latex.ts';
-import { buildAiTaskConfig } from '../services/aiTaskProfiles.ts';
+import { buildAiTaskConfig, WORKSHEET_PAGE_MAX_OUTPUT_TOKENS } from '../services/aiTaskProfiles.ts';
 import {
   applyGoldenAnswers,
   getWorksheetSourceId,
@@ -51,7 +59,7 @@ import {
   solveWorksheetQuestionsInBatches,
   WORKSHEET_JOB_TIMEOUT_MS
 } from '../services/worksheetSolver.ts';
-import { detectPrintedSourceIds } from '../services/questionQuality.ts';
+import { detectPrintedSourceIds, extractionQualityIssues } from '../services/questionQuality.ts';
 import {
   acquireAiWork,
   AiWorkLimitError,
@@ -155,6 +163,7 @@ const SESSION_PROGRESS_TTL_MS = 15 * 60 * 1000;
 const progressCleanupTimers = new Map<string, NodeJS.Timeout>();
 
 function canManageQuiz(user: any, quiz: any): boolean {
+  if (quiz?.background_job_id && aiJobs.get(quiz.background_job_id)?.status === 'running') return false;
   if (!user || !quiz) return false;
   if (user.role === 'admin') return true;
   if (quiz.user_id && quiz.user_id === user.uid) return true;
@@ -163,6 +172,7 @@ function canManageQuiz(user: any, quiz: any): boolean {
 
 function setWorksheetProgress(sessionId: unknown, progress: Record<string, any>): void {
   const normalizedSessionId = String(sessionId || '').trim() || 'worksheet';
+  if (!sessionProgress.has(normalizedSessionId) && sessionProgress.size >= 2000) throw new AiWorkLimitError('AI_CONCURRENCY_EXCEEDED','Worksheet progress capacity is busy. Retry later.',60);
   const previousTimer = progressCleanupTimers.get(normalizedSessionId);
   if (previousTimer) clearTimeout(previousTimer);
 
@@ -387,7 +397,8 @@ function validateExtractedQuestions(
     const rawText = verbatimText
       ? [contextPrefix, verbatimText].filter(Boolean).join('\n')
       : legacyRawText;
-    const originalIndex = String(item.original_index ?? '').trim();
+    const sourceLabel = extractedWorksheetLabel(item.original_index);
+    const originalIndex = sourceLabel.original_index;
     const type = String(item.type || '').trim();
     const isChoiceFragment = !rawText && options.length >= 2;
     if ((!isChoiceFragment && (!rawText || !originalIndex)) || !ALLOWED_QUESTION_TYPES.has(type) || !Array.isArray(item.options)) {
@@ -400,9 +411,11 @@ function validateExtractedQuestions(
       raw_text: rawText,
       verbatim_text: verbatimText || legacyRawText,
       context_prefix: contextPrefix,
+      ...sourceLabel,
       original_index: originalIndex,
       type,
       options,
+      source_review_required: extractionQualityIssues({...item,raw_text:rawText}).some(issue=>issue.code==='drawing_response_required'),
       bounding_box: validateBoundingBox(item.bounding_box),
       ...(extractionIssues.length > 0 ? { extraction_issues: extractionIssues } : {})
     };
@@ -644,8 +657,9 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
     model_name = 'gemini-3.5-flash-lite',
     topic_hint = '',
     subject = 'General',
-    session_id = 'ws_1'
+    session_id: requestedSessionId = 'ws_1'
   } = req.body;
+  const session_id = `${req.user!.uid}\0${requestedSessionId}`;
 
   const files = (req.files as Express.Multer.File[]) || [];
   const wsFiles = getFilesByField(files, ['files', 'worksheet_files']);
@@ -671,6 +685,9 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
     setWorksheetProgress(session_id, { message: '📄 Processing uploaded worksheet files...', percentage: 20, status: 'processing' });
     let questions: any[] = [];
     const extractedPages: ExtractedWorksheetPage[] = [];
+    const failedPages: any[] = [];
+    const recovery = worksheetRecovery(req.user!.uid, wsFiles, req.body.recovery_id);
+    let recoverable = true;
 
     {
       const selectedModel = getRealModelName(model_name);
@@ -687,6 +704,10 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
       for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
         const file = wsFiles[fileIdx];
         await forEachUploadedFilePage(file, async page => {
+            const pageKey = `${fileIdx}:${page.pageNumber}`;
+            const saved = recovery.pages.get(pageKey);
+            if (saved) { extractedPages.push(structuredClone(saved)); return; }
+            try {
             setWorksheetProgress(session_id, {
               message: `🤖 Analyzing worksheet file ${fileIdx + 1} of ${totalFiles}, page ${page.pageNumber} of ${page.pageCount}...`,
               percentage: Math.round(30 + ((fileIdx + page.pageIndex / page.pageCount) / totalFiles) * 50),
@@ -706,7 +727,7 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
               config: buildAiTaskConfig('document_extraction', {
                 responseMimeType: 'application/json',
                 responseSchema: extractionSchema,
-                maxOutputTokens: 8192
+                maxOutputTokens: WORKSHEET_PAGE_MAX_OUTPUT_TOKENS
               }) as any
             });
 
@@ -728,14 +749,22 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
                 }
               }
             }
-            extractedPages.push({
+            const extractedPage: ExtractedWorksheetPage = {
               source_file: file.originalname || `worksheet_${fileIdx + 1}`,
               page_number: page.pageNumber,
               file_order: fileIdx,
               questions: parsed,
               detected_source_ids:page.detectedSourceIds,
               source_text:page.sourceText
-            });
+            };
+            recordGeminiOutcome(selectedModel,'document_extraction','processed_units');
+            extractedPages.push(extractedPage);
+            recoverable = rememberWorksheetPage(recovery,pageKey,extractedPage) && recoverable;
+            } catch (error: any) {
+              if (requestAbortSignal()?.aborted) throw error;
+              failedPages.push({source_file:file.originalname,page_number:page.pageNumber,file_order:fileIdx,
+                error:'Some worksheet pages need another extraction attempt.'});
+            }
         });
       }
     }
@@ -743,7 +772,7 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
     const reconciliation = reconcileExtractedPageResults(extractedPages);
     questions = reconciliation.questions;
 
-    if (questions.length === 0) {
+    if (questions.length === 0 && failedPages.length === 0) {
       const message = 'Gemini did not find any worksheet questions. Check that the upload is readable and contains numbered questions, then try again.';
       setWorksheetProgress(session_id, { message: `Error: ${message}`, percentage: 100, status: 'error' });
       return res.status(422).json({ success: false, error: message });
@@ -751,21 +780,29 @@ router.post('/api/extract_worksheet', tokenRequired, worksheetUploadAny, async (
 
     const missingIndices = findMissingPlainNumericWorksheetSourceIds(questions);
 
-    setWorksheetProgress(session_id, { message: '✅ Worksheet extraction complete!', percentage: 100, status: 'completed' });
+    setWorksheetProgress(session_id, { message: failedPages.length ? 'Some worksheet pages need another extraction attempt.' : '✅ Worksheet extraction complete!', percentage: 100, status: 'completed' });
     res.json({
       success: true,
       questions,
+      incomplete: failedPages.length > 0,
+      failed_pages: failedPages,
+      recovery_id: recoverable ? recovery.id : null,
+      recovery_warning: 'Extraction recovery lasts up to 30 minutes in this server process. Keep the original files; a restart requires upload again.',
       missing_indices: missingIndices,
       diagnostics: reconciliation.diagnostics,
       unresolved_fragments: reconciliation.unresolvedFragments
     });
   } catch (err: any) {
-    setWorksheetProgress(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
-    res.status(502).json({ success: false, error: `Worksheet extraction failed: ${err.message}` });
+    setWorksheetProgress(session_id, { message: `❌ Error: ${safeAiErrorMessage(err)}`, percentage: 100, status: 'error' });
+    res.status(err.status || 502).json({ success: false, error: 'Worksheet extraction could not finish. Your source files are unchanged; retry the affected pages.' });
   }
 });
 
-router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res) => {
+router.post('/api/solve_worksheet', tokenRequired, serializeJobRequest('worksheet_solving', async (req: AuthRequest, res) => {
+  if (req.body?.async_job === true) {
+    const prior = existingJob(req, 'worksheet_solving');
+    if (prior) return res.status(202).json({success:true,job:prior,job_id:prior.id});
+  }
   const {
     questions = [],
     batch_size = 3,
@@ -776,8 +813,9 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
     topic = 'Worksheet Quiz',
     require_solution = false,
     model_name = 'gemini-3.5-flash-lite',
-    session_id = 'solve_1'
+    session_id: requestedSessionId = 'solve_1'
   } = req.body;
+  const session_id = `${req.user!.uid}\0${requestedSessionId}`;
 
   if (!Array.isArray(questions) || questions.length === 0) {
     return res.status(400).json({ success: false, error: 'Provide at least one extracted worksheet question to solve.' });
@@ -851,9 +889,7 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
 
   setWorksheetProgress(session_id, { message: '⚡ Preparing to solve worksheet questions...', percentage: 10, status: 'processing' });
 
-  res.status(202).json({ success: true, status: 'accepted' });
-
-  void (async () => {
+  const run = async (job?: OwnedJob): Promise<any> => {
     try {
       const totalQuestions = questions.length;
       const finalQuestions: any[] = [];
@@ -867,6 +903,7 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
       });
 
       const batchSize = batchNum;
+      const retainedBatches = new Map<number, any>();
       const consensusResults = await solveWorksheetQuestionsInBatches({
         ai,
         questions,
@@ -883,7 +920,20 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
             status: 'processing'
           });
         },
-        onBatchComplete: progress => {
+        onBatchComplete: async (progress, batchResults) => {
+          if (job) {
+            batchResults.forEach((result,index)=>retainedBatches.set(progress.batch_start+index,
+              preserveWorksheetSourceIdentity(questions[progress.batch_start+index],result.question)));
+            await withAttemptLock('job-checkpoint',job.id,async()=>{
+              if (requestAbortSignal()?.aborted) throw new DOMException('Cancelled','AbortError');
+              const partial:any = {id:job.quiz_id || `quiz_job_${job.id}`, user_id:req.user!.uid,
+                title:String(topic || 'Worksheet Quiz'),subject:String(subject),is_draft:true,
+                background_job_id:job.id,background_job_complete:false,created_at:new Date().toISOString(),
+                worksheet_source:{extracted_questions:worksheetSourceSnapshot(questions)},
+                questions:[...retainedBatches].sort(([a],[b])=>a-b).map(([,q])=>q)};
+              await persistQuizCreation(partial); await checkpointJob(job,partial,retainedBatches.size);
+            });
+          }
           setWorksheetProgress(session_id, {
             message: `✅ Processed ${progress.completed}/${totalQuestions} questions.`,
             percentage: Math.round(15 + (progress.completed / totalQuestions) * 75),
@@ -893,6 +943,10 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
       });
       for (let index = 0; index < consensusResults.length; index++) {
         const result = consensusResults[index];
+        if (questions[index]?.source_review_required) {
+          result.publishable=false;
+          result.question={...result.question,verification:{answer_source:'manual',verification_status:'review_required',reason:'Review the source extraction diagnostics and all task requirements before publication.'}};
+        }
         if (!result.publishable) {
           reviewRequiredIds.push(getWorksheetSourceId(questions[index]) || String(index + 1));
           reviewDiagnostics.push(...result.diagnostics);
@@ -922,7 +976,7 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         : finalQuestions;
       const isDraft = reviewRequiredIds.length > 0 || !publication.valid;
       const uniqueTitle = getUniqueQuizTitle(topic || 'Worksheet Quiz');
-      const newQuizId = `quiz_${Date.now()}`;
+      const newQuizId = job?.quiz_id || `quiz_${Date.now()}_${crypto.randomUUID()}`;
       const newQuiz: any = {
         id: newQuizId,
         user_id: req.user ? req.user.uid : 'teacher_test',
@@ -942,6 +996,8 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         created_at: new Date().toISOString()
       };
 
+      if (requestAbortSignal()?.aborted) throw new DOMException('Cancelled','AbortError');
+      if (job) { newQuiz.background_job_id = job.id; newQuiz.background_job_complete = true; newQuiz.is_draft = true; }
       await persistQuizCreation(newQuiz);
 
       setWorksheetProgress(session_id, {
@@ -953,24 +1009,32 @@ router.post('/api/solve_worksheet', tokenRequired, async (req: AuthRequest, res)
         quiz_id: newQuizId,
         ...(isDraft ? { review_required: true, review_required_ids: reviewRequiredIds } : {})
       });
+      if (job) return newQuiz.id;
     } catch (err: any) {
       setWorksheetProgress(session_id, {
-        message: `❌ Error: ${err.message}`,
+        message: `❌ Error: ${safeAiErrorMessage(err)}`,
         percentage: 100,
         status: 'error',
-        error: err.message,
+        error: safeAiErrorMessage(err),
         ...(err instanceof WorksheetReviewRequiredError
           ? { review_required: true, diagnostics: err.diagnostics }
           : {})
       });
+      if (job) throw err;
     } finally {
-      aiLease.release();
+      if (!job) aiLease.release();
     }
-  })();
-});
+  };
+  if (req.body?.async_job === true) return startOwnedJob(req,res,'worksheet_solving',aiLease,run);
+  res.status(202).json({ success: true, status: 'accepted' });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), WORKSHEET_JOB_TIMEOUT_MS);
+  void withRequestAbortSignal(controller.signal, () => run().finally(() => clearTimeout(timer)));
+}));
 
 router.post('/api/extract_rmxflash', tokenRequired, worksheetUploadAny, async (req: AuthRequest, res) => {
-  const { api_key, model_name = 'gemini-3.5-flash-lite', session_id = 'rmx_1' } = req.body;
+  const { api_key, model_name = 'gemini-3.5-flash-lite', session_id: requestedSessionId = 'rmx_1' } = req.body;
+  const session_id = `${req.user!.uid}\0${requestedSessionId}`;
   const files = (req.files as Express.Multer.File[]) || [];
 
   const wsFiles = getFilesByField(files, ['worksheet_files', 'files']);
@@ -1123,8 +1187,8 @@ Use the printed question number as question_number and the correct choice letter
       diagnostics: pipelineDiagnostics
     });
   } catch (err: any) {
-    setWorksheetProgress(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
-    res.status(502).json({ success: false, error: `RMX extraction failed: ${err.message}` });
+    setWorksheetProgress(session_id, { message: `❌ Error: ${safeAiErrorMessage(err)}`, percentage: 100, status: 'error' });
+    res.status(502).json({ success: false, error: `RMX extraction failed: ${safeAiErrorMessage(err)}` });
   }
 });
 
@@ -1205,7 +1269,8 @@ router.post('/api/export_rmxflash_excel', tokenRequired, async (req, res) => {
 });
 
 router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploadAny, async (req: AuthRequest, res) => {
-  const { session_id = 'sess_ans_1', topic_hint = '', subject = 'General', api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
+  const { session_id: requestedSessionId = 'sess_ans_1', topic_hint = '', subject = 'General', api_key, model_name = 'gemini-3.5-flash-lite' } = req.body;
+  const session_id = `${req.user!.uid}\0${requestedSessionId}`;
   const files = (req.files as Express.Multer.File[]) || [];
 
   const wsFiles = getFilesByField(files, ['files', 'worksheet_files']);
@@ -1233,6 +1298,9 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
     let questions: any[] = [];
     let goldenReference: Record<string, string> = {};
     const extractedPages: ExtractedWorksheetPage[] = [];
+    const failedPages: any[] = [];
+    const recovery=worksheetRecovery(req.user!.uid,[...wsFiles,...ansFiles],req.body.recovery_id);
+    let recoverable=true;
     const pipelineDiagnostics: WorksheetDiagnostic[] = [];
     let unresolvedFragments: unknown[] = [];
 
@@ -1250,6 +1318,10 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
       const totalFiles = wsFiles.length;
       for (let fileIdx = 0; fileIdx < totalFiles; fileIdx++) {
         await forEachUploadedFilePage(wsFiles[fileIdx], async page => {
+            const pageKey=`${fileIdx}:${page.pageNumber}`;
+            const saved=recovery.pages.get(pageKey);
+            if (saved) { extractedPages.push(structuredClone(saved)); return; }
+            try {
             setWorksheetProgress(session_id, {
               message: `🤖 Extracting worksheet file ${fileIdx + 1} of ${totalFiles}, page ${page.pageNumber} of ${page.pageCount}...`,
               percentage: Math.round(30 + ((fileIdx + page.pageIndex / page.pageCount) / totalFiles) * 40),
@@ -1269,7 +1341,7 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
               config: buildAiTaskConfig('document_extraction', {
                 responseMimeType: 'application/json',
                 responseSchema: extractionSchema,
-                maxOutputTokens: 8192
+                maxOutputTokens: WORKSHEET_PAGE_MAX_OUTPUT_TOKENS
               }) as any
             });
 
@@ -1291,14 +1363,21 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
                 }
               }
             }
-            extractedPages.push({
+            const extractedPage: ExtractedWorksheetPage = {
               source_file: wsFiles[fileIdx].originalname || `worksheet_${fileIdx + 1}`,
               page_number: page.pageNumber,
               file_order: fileIdx,
               questions: parsed,
               detected_source_ids:page.detectedSourceIds,
               source_text:page.sourceText
-            });
+            };
+            recordGeminiOutcome(selectedModel,'document_extraction','processed_units');
+            extractedPages.push(extractedPage);
+            recoverable=rememberWorksheetPage(recovery,pageKey,extractedPage) && recoverable;
+            } catch(error) {
+              if (requestAbortSignal()?.aborted) throw error;
+              failedPages.push({source_file:wsFiles[fileIdx].originalname,page_number:page.pageNumber,error:'Page needs another extraction attempt.'});
+            }
         });
       }
 
@@ -1308,6 +1387,7 @@ router.post('/api/extract_worksheet_with_answers', tokenRequired, worksheetUploa
       unresolvedFragments = reconciliation.unresolvedFragments;
 
       if (ansFiles.length > 0) {
+        try {
         setWorksheetProgress(session_id, { message: '🔑 Extracting Golden Answer Key from answer files...', percentage: 70, status: 'processing' });
         let ansPrompt = `Extract the Golden Answer Key / Master Answers from these answer key files.
 Return ONLY a JSON array in this exact shape:
@@ -1337,10 +1417,14 @@ Use the printed question number as question_number and the correct choice letter
         );
         goldenReference = indexedKey.record;
         pipelineDiagnostics.push(...indexedKey.diagnostics);
+        } catch(error) {
+          if (requestAbortSignal()?.aborted) throw error;
+          failedPages.push({source_file:'Answer key',page_number:0,error:'Answer key needs another extraction attempt.'});
+        }
       }
     }
 
-    if (questions.length === 0) {
+    if (questions.length === 0 && failedPages.length === 0) {
       const message = 'Gemini did not find any worksheet questions. Check that the worksheet upload is readable, then try again.';
       setWorksheetProgress(session_id, { message: `Error: ${message}`, percentage: 100, status: 'error' });
       return res.status(422).json({ success: false, error: message });
@@ -1371,14 +1455,17 @@ Use the printed question number as question_number and the correct choice letter
     res.json({
       success: true,
       questions,
+      incomplete:failedPages.length > 0,
+      failed_pages:failedPages,
+      recovery_id:recoverable ? recovery.id : null,
       golden_reference: goldenReference,
       missing_indices: missingIndices,
-      diagnostics: pipelineDiagnostics,
+      diagnostics: [...pipelineDiagnostics,...failedPages.map(page=>({code:'review_required',severity:'error',message:page.error,source_file:page.source_file,page_number:page.page_number}))],
       unresolved_fragments: unresolvedFragments
     });
   } catch (err: any) {
-    setWorksheetProgress(session_id, { message: `❌ Error: ${err.message}`, percentage: 100, status: 'error' });
-    res.status(502).json({ success: false, error: `Worksheet and answer-key extraction failed: ${err.message}` });
+    setWorksheetProgress(session_id, { message: `❌ Error: ${safeAiErrorMessage(err)}`, percentage: 100, status: 'error' });
+    res.status(502).json({ success: false, error: `Worksheet and answer-key extraction failed: ${safeAiErrorMessage(err)}` });
   }
 });
 
@@ -1520,11 +1607,15 @@ router.post('/api/recover_questions', tokenRequired, worksheetUploadAny, async (
     const stillMissing = missingIds.filter(sourceId => !recoveredIds.has(sourceId));
     res.json({ success: true, recovered, missing_numbers_remaining: stillMissing });
   } catch (err: any) {
-    res.status(502).json({ success: false, error: `Question recovery failed: ${err.message}` });
+    res.status(502).json({ success: false, error: `Question recovery failed: ${safeAiErrorMessage(err)}` });
   }
 });
 
-router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: AuthRequest, res) => {
+router.post('/api/generate_quiz_from_extracted', tokenRequired, serializeJobRequest('worksheet_finalization', async (req: AuthRequest, res) => {
+  if (req.body?.async_job === true) {
+    const prior = existingJob(req, 'worksheet_finalization');
+    if (prior) return res.status(202).json({success:true,job:prior,job_id:prior.id});
+  }
   const {
     questions = [],
     golden_reference = {},
@@ -1539,8 +1630,9 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
     unresolved_fragments = [],
     model_name = 'gemini-3.5-flash-lite',
     api_key,
-    session_id = 'gen_1'
+    session_id: requestedSessionId = 'gen_1'
   } = req.body;
+  const session_id = `${req.user!.uid}\0${requestedSessionId}`;
 
   const explicitlyApproved = allow_review_required === true || allow_review_required === 'true';
   const carriedDiagnostics = sanitizeCarriedWorksheetDiagnostics(worksheet_diagnostics);
@@ -1616,13 +1708,15 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
     const isQuestionExplicitlyApproved = (question: unknown): boolean =>
       explicitlyApproved && explicitlyApprovedQuestionIds.has(getWorksheetSourceId(question));
     let finalQuestions = sourceQuestions.map(question => ({ ...question }));
+    if (!ai && finalQuestions.some((question:any)=>!String(question?.answer ?? '').trim())) {
+      return res.status(400).json({success:false,error:'Provide answers or configure a teacher AI key before starting finalization.'});
+    }
 
+    aiLease = acquireAiWork({userId:req.user!.uid,cost:questions.length * 3,
+      byok:typeof api_key === 'string' && api_key.trim().length > 0});
+    const run = async (job?: OwnedJob): Promise<any> => {
+    try {
     if (ai) {
-        aiLease = acquireAiWork({
-          userId: req.user?.uid || '',
-          cost: questions.length * 3,
-          byok: typeof api_key === 'string' && api_key.trim().length > 0
-        });
 
         setWorksheetProgress(session_id, {
           message: '🤖 Initializing Solve and Check Engine...',
@@ -1634,6 +1728,7 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
         finalQuestions = [];
 
         const batchSize = Math.min(10, Math.max(1, parseInt(batch_size) || 3));
+        const retainedBatches = new Map<number, any>();
         const consensusResults = await solveWorksheetQuestionsInBatches({
           ai,
           questions: sourceQuestions,
@@ -1650,7 +1745,20 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
               status: 'processing'
             });
           },
-          onBatchComplete: progress => {
+          onBatchComplete: async (progress,batchResults) => {
+            if (job) {
+              batchResults.forEach((result,index)=>retainedBatches.set(progress.batch_start+index,
+                preserveWorksheetSourceIdentity(sourceQuestions[progress.batch_start+index],result.question)));
+              await withAttemptLock('job-checkpoint',job.id,async()=>{
+                if (requestAbortSignal()?.aborted) throw new DOMException('Cancelled','AbortError');
+                const partial:any={id:job.quiz_id || `quiz_job_${job.id}`,user_id:req.user!.uid,
+                  title:String(topic),subject:String(subject),is_draft:true,
+                  background_job_id:job.id,background_job_complete:false,created_at:new Date().toISOString(),
+                  worksheet_source:{extracted_questions:worksheetSourceSnapshot(sourceQuestions)},
+                  questions:[...retainedBatches].sort(([a],[b])=>a-b).map(([,q])=>q)};
+                await persistQuizCreation(partial); await checkpointJob(job,partial,retainedBatches.size);
+              });
+            }
             setWorksheetProgress(session_id, {
               message: `✅ Verified ${progress.completed}/${totalQs} questions.`,
               percentage: Math.round(20 + (progress.completed / totalQs) * 75),
@@ -1660,7 +1768,7 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
         });
         for (let index = 0; index < consensusResults.length; index++) {
           const result = consensusResults[index];
-          if (!result.publishable && !isQuestionExplicitlyApproved(sourceQuestions[index])) {
+          if ((!result.publishable || sourceQuestions[index]?.source_review_required) && !isQuestionExplicitlyApproved(sourceQuestions[index])) {
             throw new WorksheetReviewRequiredError(
               `Question ${getWorksheetSourceId(sourceQuestions[index]) || index + 1} requires teacher review.`,
               result.diagnostics
@@ -1712,7 +1820,7 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
     }
 
     const uniqueTitle = getUniqueQuizTitle(topic || 'Extracted Worksheet Quiz');
-    const newQuizId = `quiz_${Date.now()}`;
+    const newQuizId = job?.quiz_id || `quiz_${Date.now()}_${crypto.randomUUID()}`;
     const newQuiz: any = {
       id: newQuizId,
       user_id: req.user ? req.user.uid : 'teacher_test',
@@ -1734,34 +1842,47 @@ router.post('/api/generate_quiz_from_extracted', tokenRequired, async (req: Auth
       created_at: new Date().toISOString()
     };
 
+    if (requestAbortSignal()?.aborted) throw new DOMException('Cancelled','AbortError');
+    if (job) { newQuiz.background_job_id=job.id; newQuiz.background_job_complete=true; newQuiz.is_draft=true; }
     await persistQuizCreation(newQuiz);
+    if (job) return newQuiz.id;
 
     setWorksheetProgress(session_id, { message: '🚀 Quiz created! Redirecting...', percentage: 100, status: 'completed', quiz_id: newQuizId });
     res.json({ success: true, quiz_id: newQuizId });
   } catch (err: any) {
     setWorksheetProgress(session_id, {
-      message: `❌ Error: ${err.message}`,
+      message: `❌ Error: ${safeAiErrorMessage(err)}`,
       percentage: 100,
       status: 'error',
       ...(err instanceof WorksheetReviewRequiredError
         ? { review_required: true, diagnostics: err.diagnostics }
         : {})
     });
+    if (job) throw err;
     if (respondWorksheetAiLimit(res, err)) return;
     if (err instanceof WorksheetReviewRequiredError) {
       return res.status(422).json({
         success: false,
-        error: err.message,
+        error: safeAiErrorMessage(err),
         review_required: true,
         diagnostics: err.diagnostics,
         unresolved_fragments: carriedUnresolvedFragments
       });
     }
-    res.status(502).json({ success: false, error: `Quiz finalization failed: ${err.message}` });
+    res.status(502).json({ success: false, error: `Quiz finalization failed: ${safeAiErrorMessage(err)}` });
   } finally {
+    if (!job) aiLease?.release();
+    }
+    };
+    if (req.body?.async_job === true) return await startOwnedJob(req,res,'worksheet_finalization',aiLease,run);
+    return await run();
+  } catch (err: any) {
     aiLease?.release();
+    if (respondWorksheetAiLimit(res, err)) return;
+    if (err instanceof WorksheetReviewRequiredError) return res.status(422).json({success:false,error:safeAiErrorMessage(err),review_required:true,diagnostics:err.diagnostics,unresolved_fragments:carriedUnresolvedFragments});
+    return res.status(err.status || 422).json({success:false,error:'Worksheet finalization needs attention. Check the extraction and review diagnostics.'});
   }
-});
+}));
 
 router.get('/worksheet_answers', tokenRequired, (req: AuthRequest, res) => {
   res.render('worksheet_answers_upload', {

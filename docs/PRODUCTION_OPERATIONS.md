@@ -42,3 +42,14 @@ PR #4 merged as `256c2e6`; exact PR-head and merged-main CI passed all 141 tests
 The public health API reports `ready` with only the minimal readiness response. Chrome confirms the deployed dashboard guard and existing library, plus a public quiz start screen with no registration requirement. No attempt was started/submitted, no credentials or IAM changed, and no migration or destructive data operation occurred. Existing session secret and active service-account key were retained. Production write/restart/load drills and live AI accuracy remain untested.
 
 Documentation-only acceptance updates use Render's [documented skip-deploy commit phrase](https://render.com/docs/deploys#skipping-an-auto-deploy) to avoid an unnecessary release; their source tree changes no application code.
+
+
+## R4.1 recovery boundary
+
+Use the existing single writable server and stable secret. No production migration, key retrieval, rules deployment, Redis or manual Render deploy is part of this release. The server now reads/writes `ai_jobs` through its existing Admin identity; verify that collection access in staging before rollout. Missing job-history reads fail startup rather than permit duplicate provider work. The normal catch-all browser rules already deny direct collection access.
+
+Owned generation, worksheet solving and finalization survive browser navigation after their accepted 202 response. Retry an uncertain acknowledgment with the same idempotency key. Seven-day bounded job metadata and acknowledged private quiz batch checkpoints survive a process restart; in-flight tasks become Interrupted, with any saved partial draft available for deliberate review. BYOK credentials and input upload bytes are never recovered automatically. Active partial drafts reject edits to prevent worker overwrite.
+
+Worksheet extraction/retry caches last up to 30 idle minutes in the current process, at most 20 caches/24 MiB. Re-upload the identical originals to retry failed pages; keep successful extracted work in the open review page. Extraction and its raw upload do not survive restart; a request abandoned before its response may not yield a recovery handle. RMX uses its retained extraction path. The complete textbook PDF may exceed existing per-file/page limits; upload bounded page images or split PDFs.
+
+Recent durable attempt totals restore teacher monitoring; transient presence, pause/terminate and whiteboard signals are process-local and are unknown after restart. Reconfirm controls, then allow student pings to restore presence. No ping-level Firestore writes were added. Rollback preserves the stable secret and Firestore data, including the new metadata collection; never reset results or bulk-regrade history. Old code restores the prior socket privacy defect, so treat rollback as an incident response with classroom monitoring disabled until a safe release is available.

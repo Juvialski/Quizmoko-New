@@ -12,7 +12,7 @@
     "check": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "npm run check",
-    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts test/ui-consistency.test.ts test/ai-quality.test.ts test/r1-reliability.test.ts test/r1-durability.test.ts test/r1-ai-baseline.test.ts test/r2-quality.test.ts test/r3-quality.test.ts test/r4-workflow.test.ts test/r4-1-reliability.test.ts test/r4-1-job-durability.test.ts",
+    "test": "npm run check && node --require ./test/tsx-bootstrap.cjs --import tsx --test test/quiz-flows.test.ts test/persistence-ordering.test.ts test/firestore-required-startup.test.ts test/pdf-service.test.ts test/ui-consistency.test.ts test/ai-quality.test.ts test/r1-reliability.test.ts test/r1-durability.test.ts test/r1-ai-baseline.test.ts test/r2-quality.test.ts test/r3-quality.test.ts test/r4-workflow.test.ts test/r4-1-reliability.test.ts test/r4-1-job-durability.test.ts test/r4-2-lifecycle.test.ts test/r4-2-durability.test.ts",
     "build": "npm run check && npm run typecheck",
     "start": "tsx server.ts",
     "eval:ai": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-ai-quality.ts --offline",
@@ -21,7 +21,7 @@
     "eval:r3:grading": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-r3-grading.ts",
     "eval:r3:diagrams": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-r3-diagrams.ts",
     "eval:grading:live": "tsx scripts/evaluate-r3-grading.ts --live",
-    "test:ui": "node scripts/test-r4-browser.mjs && node scripts/test-r4-1-browser.mjs"
+    "test:ui": "node scripts/test-r4-browser.mjs && node scripts/test-r4-1-browser.mjs && node scripts/test-r4-2-browser.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

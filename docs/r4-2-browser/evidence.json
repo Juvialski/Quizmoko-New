@@ -1,0 +1,27 @@
+{
+  "mode": "isolated Chromium; actual routes, PDF decoding, browser scripts and Socket.IO; mocked Gemini only",
+  "scenarios": [
+    {
+      "name": "Terminate morning run, start afternoon run, two new students answer and only afternoon roster appears",
+      "pass": true
+    },
+    {
+      "name": "Morning grades remain readable; old-run ping cannot join afternoon roster",
+      "pass": true
+    },
+    {
+      "name": "Refresh/reconnect retains run, attempt and answer without duplicate rows; pause/resume reaches current students",
+      "pass": true
+    },
+    {
+      "name": "Explicit replacement of active afternoon run starts third empty session; desktop/mobile layout fits",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "screenshots": [
+    "live-desktop.png",
+    "live-mobile.png"
+  ],
+  "pass": true
+}

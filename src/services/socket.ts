@@ -1,8 +1,9 @@
+import { bindClassroomAttempt, attemptControls, runRoom } from './classroomRuns.ts';
 import { verifySessionToken, SESSION_COOKIE_NAME, isDemoAuthEnabled } from '../middleware/auth.ts';
 import { users } from '../store/db.ts';
 import { isProductionRuntime, trustedSocketOrigins } from './runtimeConfig.ts';
 import { Server as SocketIOServer } from 'socket.io';
-import { getOrCreateLiveState, quizzes, results, liveSessions } from '../store/db.ts';
+import { getOrCreateLiveState, quizzes, results, liveSessions, classroomRuns } from '../store/db.ts';
 
 const LIVE_ID_PATTERN = /^[A-Za-z0-9_-]{1,160}$/;
 const RESERVED_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
@@ -45,11 +46,12 @@ export function reconcileLiveResults(quizId: string) {
   const recovered = !liveSessions.has(quizId);
   const state = getOrCreateLiveState(quizId);
   for (const record of results.values()) {
+    if (state.run && record.live_run_id !== state.run.id) continue;
+    if (!state.run && record.live_run_id) continue;
     if (record.quiz_id !== quizId || !record.session_id || !isValidLiveRecordId(record.session_id)) continue;
     if (!state.sessions[record.session_id] && Object.keys(state.sessions).length >= MAX_LIVE_SESSIONS_PER_QUIZ) break;
-    const recordedAt = Date.parse(record.submitted_at || record.created_at || '');
-    if (!state.sessions[record.session_id] && Number.isFinite(recordedAt) && recordedAt < Date.now()-24*60*60*1000) continue;
-    if (recovered) state.control_state_known=false;
+    if (!state.run && !state.sessions[record.session_id] && record.is_in_progress !== true) continue;
+    if (recovered) state.control_state_known=Boolean(state.run);
     const prior = state.sessions[record.session_id];
     const details = record.graded_details || record.details || [];
     const answered = Object.keys(record.answers || {}).length;
@@ -60,6 +62,7 @@ export function reconcileLiveResults(quizId: string) {
       total_questions: quizzes.get(quizId)?.questions.length || 0,
       max_score: record.max_score ?? record.total ?? 0, score: record.total_score ?? record.score ?? 0,
       status: record.is_in_progress !== true ? 'Completed' : pending ? 'Waiting to be checked' : 'Active',
+      whiteboard_state_known:Boolean(prior?.whiteboard_state_known),
       last_active: prior?.last_active || 0, whiteboard_disabled: prior?.whiteboard_disabled || false,
       }, prior || {}, {
       // Persisted grades/finalization always win over ping claims.
@@ -87,6 +90,11 @@ export function updateLiveSession(quizId: string, payload: any) {
   }
 
   pruneInactiveLiveSessions();
+  const controls=attemptControls(quizId,sessionId);
+  const current=classroomRuns.get(quizId);
+  if(current && results.get(`res_${sessionId}`)?.live_run_id !== current.id) {
+    return {liveState:{...getOrCreateLiveState(quizId), ...controls},sessionId,session:{whiteboard_disabled:false},error:null,oldRun:true};
+  }
   const liveState = reconcileLiveResults(quizId);
   const requestedStatus = String(payload?.status || '').trim().slice(0, 64);
 
@@ -198,7 +206,8 @@ export function initSocketServer(server: any) {
         socket.join(monitoringRoom(quiz_id));
       }
       const liveState = getOrCreateLiveState(quiz_id);
-      socket.emit('pause_state', { paused: liveState.paused, terminated: liveState.terminated });
+      // Managed classroom controls are delivered after authorized attempt binding.
+      if(!liveState.run || payload.monitor === true) socket.emit('pause_state', { paused: liveState.paused, terminated: liveState.terminated });
     });
 
     socket.on('leave_quiz', (payload: any = {}) => {
@@ -210,7 +219,7 @@ export function initSocketServer(server: any) {
       }
     });
 
-    socket.on('ping', (payload: any = {}) => {
+    socket.on('ping', async (payload: any = {}) => {
       const quiz_id = String(payload.quiz_id || '').trim();
       const session_id = String(payload.session_id || '').trim();
       if (!isValidLiveRecordId(quiz_id) || !quizzes.has(quiz_id)) {
@@ -225,6 +234,8 @@ export function initSocketServer(server: any) {
       if (!canUseLiveAttempt(quiz_id, session_id, socketUser(socket))) {
         socket.emit('ping_ack', { success: false, error: 'Attempt access denied' }); return;
       }
+      try {await bindClassroomAttempt(quiz_id,session_id,socketUser(socket),payload.student_name,true);}
+      catch(error:any) {socket.emit('ping_ack',{success:false,error:error.message});return;}
       const updated = updateLiveSession(quiz_id, payload);
       if (!updated.session || !updated.liveState) {
         socket.emit('ping_ack', {
@@ -236,8 +247,10 @@ export function initSocketServer(server: any) {
         return;
       }
       socket.join(`quiz_session_${quiz_id}_${updated.sessionId}`);
+      const binding=results.get(`res_${session_id}`)?.live_run_id;
+      if(binding) socket.join(runRoom(quiz_id,binding));
 
-      io.to(monitoringRoom(quiz_id)).emit('update_session', {
+      if(!updated.oldRun) io.to(monitoringRoom(quiz_id)).emit('update_session', {
         session_id: updated.sessionId,
         data: updated.session,
         paused: updated.liveState.paused,

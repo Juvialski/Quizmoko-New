@@ -83,7 +83,7 @@ export interface SolveWorksheetBatchesInput {
   concurrency?: number;
   retryReviewRequired?: boolean;
   onBatchStart?: (progress: WorksheetBatchProgress) => void;
-  onBatchComplete?: (progress: WorksheetBatchProgress, results: readonly WorksheetConsensusResult[]) => void;
+  onBatchComplete?: (progress: WorksheetBatchProgress, results: readonly WorksheetConsensusResult[]) => void | Promise<void>;
 }
 
 interface PreparedVisionText {
@@ -522,7 +522,7 @@ export async function solveWorksheetQuestionsInBatches(
         outputs[batch.start + offset] = result;
       });
       completed += results.length;
-      input.onBatchComplete?.({ ...progress, completed }, results);
+      await input.onBatchComplete?.({ ...progress, completed }, results);
     }
   };
 

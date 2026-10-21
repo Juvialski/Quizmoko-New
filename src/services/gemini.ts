@@ -1,4 +1,11 @@
+import { createHash } from 'node:crypto';
+import { setGeminiQuotaIdentity } from './geminiRateLimiter.ts';
 import { GoogleGenAI } from '@google/genai';
+
+let testClientFactory: (() => any) | undefined;
+export function configureGeminiClientForTests(factory?: () => any) {
+  if (process.env.NODE_ENV === 'test') testClientFactory = factory;
+}
 
 export function sanitizeApiKey(rawKey: string | undefined | null): string | null {
   if (!rawKey || typeof rawKey !== 'string') return null;
@@ -23,15 +30,19 @@ export function getGeminiClient(customApiKey?: string) {
 
   const apiKey = validCustomKey || validEnvGeminiKey || validEnvApiKey;
   if (!apiKey) return null;
+  if (process.env.NODE_ENV === 'test' && testClientFactory) return testClientFactory();
 
-  return new GoogleGenAI({
+  const client = new GoogleGenAI({
     apiKey,
     httpOptions: {
+      retryOptions: { attempts: 1 },
       headers: {
         'User-Agent': 'aistudio-build'
       }
     }
   });
+  setGeminiQuotaIdentity(client,createHash('sha256').update(apiKey).digest('hex'));
+  return client;
 }
 
 export function getRealModelName(modelName?: string): string {
@@ -128,6 +139,8 @@ export function sanitizeParsedJSON(data: any): any {
   return data;
 }
 
+let structuredParseFailures=0;
+export function getStructuredOutputFailureCount() { return structuredParseFailures; }
 export function safeParseJSON(rawText: string): any {
   if (!rawText || typeof rawText !== 'string') return null;
 
@@ -162,6 +175,7 @@ export function safeParseJSON(rawText: string): any {
       const parsed = JSON.parse(cleaned);
       return sanitizeParsedJSON(parsed);
     } catch (e2) {
+      structuredParseFailures=Math.min(Number.MAX_SAFE_INTEGER,structuredParseFailures+1);
       console.warn('[AI] Structured output could not be parsed; content omitted.');
       return null;
     }

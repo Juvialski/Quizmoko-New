@@ -146,12 +146,12 @@ if (results && results.length > 0) {
     results.forEach(r => {
         totalScore += r.score || 0;
         totalQuestions += r.total || 0;
-        if (r.completion_note !== 'Left without finishing') completedCount++;
+        if (r.is_in_progress !== true && r.completion_note !== 'Left without finishing') completedCount++;
         totalActiveTime += r.time_active_seconds || 0;
         
         if (r.details) {
             r.details.forEach((item, idx) => {
-                if (item && !item.is_correct) {
+                if (item && (!item.grade_status || item.grade_status === 'graded') && !item.is_correct) {
                     qMisses[idx] = (qMisses[idx] || 0) + 1;
                 }
             });

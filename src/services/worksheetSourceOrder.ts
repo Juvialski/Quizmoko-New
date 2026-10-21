@@ -14,6 +14,12 @@ interface NaturalSourceKey {
 }
 
 const SOURCE_PREFIX_PATTERN = /^(?:(?:question|q)\s*[:#.-]?\s*|#\s*)/i;
+/** Only at initial extraction: a margin star is decoration, never a printed main ID. */
+export function extractedWorksheetLabel(value: unknown): { original_index: string; extracted_label?: string } {
+  const raw=String(value ?? '').trim();
+  const marked=raw.match(/^[*★☆]\s*(\d+[a-z]?(?:\([a-z]+\))?)$/i);
+  return marked ? {original_index:marked[1],extracted_label:raw} : {original_index:raw};
+}
 const SUFFIX_COLLATOR = new Intl.Collator('en', {
   numeric: true,
   sensitivity: 'base'

@@ -23,9 +23,10 @@ function isEscaped(text: string, index: number): boolean {
 }
 
 function normalizeMathBody(body: string): string {
-  let normalized = body
-    .replace(/\\text\{\$([^{}]*)\}/g, '\\text{\\$$1}')
-    .replace(/\\text\{\\?\$([^{}]*)\}/g, '\\text{\\$$1}');
+  // A replacement string interprets $$ as a literal dollar and loses the
+  // capture ($52 became $1). A callback preserves the exact source amount.
+  let normalized = body.replace(/\\text\{\\?\$([^{}]*)\}/g,
+    (_match, amount: string) => `\\text{\\$${amount}}`);
 
   // A percent sign starts a TeX comment unless escaped. Escape only inside math.
   normalized = normalized.replace(/(^|[^\\])%/g, '$1\\%');

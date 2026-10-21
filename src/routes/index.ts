@@ -1,5 +1,6 @@
 import { requestContext } from '../services/requestContext.ts';
 import type { Express } from 'express';
+import jobRoutes from './jobRoutes.ts';
 import adminRoutes from './adminRoutes.ts';
 import aiRoutes from './aiRoutes.ts';
 import authRoutes from './authRoutes.ts';
@@ -12,6 +13,7 @@ import worksheetRoutes from './worksheetRoutes.ts';
 
 const appRouters = [
   healthRoutes,
+  jobRoutes,
   authRoutes,
   quizRoutes,
   liveRoutes,

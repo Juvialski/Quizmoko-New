@@ -1,3 +1,4 @@
+import { aiJobs } from '../store/db.ts';
 import { createHash } from 'node:crypto';
 import { Router, type NextFunction, type Response } from 'express';
 import { tokenRequired } from '../middleware/auth.ts';
@@ -78,6 +79,7 @@ const PUBLIC_QUIZ_ANSWER_FIELDS = [
   'worksheet_source',
   'worksheet_validation',
   'verification_summary',
+  'background_job_id', 'background_job_complete', 'extracted_label', 'source_review_required', 'shared_context_source',
   'qa_metadata'
 ];
 const PUBLIC_QUESTION_ANSWER_FIELDS = [
@@ -135,6 +137,7 @@ async function deleteQuizWithResults(quizId: string): Promise<number> {
 }
 
 function canManageQuiz(user: any, quiz: any): boolean {
+  if (quiz?.background_job_id && aiJobs.get(quiz.background_job_id)?.status === 'running') return false;
   if (!user || !quiz) return false;
   if (user.role === 'admin') return true;
   if (quiz.user_id && quiz.user_id === user.uid) return true;

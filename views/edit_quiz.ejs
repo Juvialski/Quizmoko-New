@@ -1916,7 +1916,7 @@
                     rubricLabel.textContent = 'TEACHER RUBRIC (OPTIONAL JSON; EXPLICIT WEIGHTS SUM TO 1)';
                     const rubricInput = document.createElement('textarea');
                     rubricInput.value = q.grading_rubric ? JSON.stringify(q.grading_rubric, null, 2) : '';
-                    rubricInput.placeholder = '{"version":1,"criteria":[{"id":"method","description":"Valid transformation","weight":0.6},{"id":"answer","description":"Correct final answer","weight":0.4}]}';
+                    rubricInput.placeholder = '{"version":1,"criteria":[{"id":"step_1","description":"Specify the first required step and what earns full credit","weight":0.3},{"id":"step_2","description":"Specify the next independently scored step","weight":0.3},{"id":"answer","description":"Correct final answer and required units","weight":0.4}]}';
                     rubricInput.onchange = () => {
                         try {
                             if (!rubricInput.value.trim()) delete q.grading_rubric;
@@ -1926,7 +1926,8 @@
                         } catch { rubricInput.setCustomValidity('Enter valid rubric JSON.'); rubricInput.reportValidity(); }
                     };
                     const assessment = document.createElement('details'); assessment.className='r4-details';
-                    const assessmentSummary = document.createElement('summary'); assessmentSummary.textContent='Advanced grading'; assessment.append(assessmentSummary,rubricLabel,rubricInput); leftCol.appendChild(assessment);
+                    const rubricHelp = document.createElement('p'); rubricHelp.className='r4-muted'; rubricHelp.textContent='Define exactly which steps earn each weight and how partial credit applies. Keep method and final-answer criteria separate.';
+                    const assessmentSummary = document.createElement('summary'); assessmentSummary.textContent='Advanced grading'; assessment.append(assessmentSummary,rubricLabel,rubricHelp,rubricInput); leftCol.appendChild(assessment);
                     const contractLabel = document.createElement('label');
                     const contractInput = document.createElement('input'); contractInput.type = 'checkbox';
                     contractInput.checked = q.response_contract?.mode === 'final_answer';

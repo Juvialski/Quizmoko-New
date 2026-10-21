@@ -1,3 +1,5 @@
+import { verifySessionToken, SESSION_COOKIE_NAME, isDemoAuthEnabled } from '../middleware/auth.ts';
+import { users } from '../store/db.ts';
 import { isProductionRuntime, trustedSocketOrigins } from './runtimeConfig.ts';
 import { Server as SocketIOServer } from 'socket.io';
 import { getOrCreateLiveState, quizzes, results, liveSessions } from '../store/db.ts';
@@ -17,6 +19,64 @@ export function isValidLiveRecordId(value: any): value is string {
     && !RESERVED_OBJECT_KEYS.has(value);
 }
 
+export const monitoringRoom = (quizId: string) => `monitor_${quizId}`;
+export function canMonitorQuiz(user: any, quiz: any): boolean {
+  return Boolean(user && quiz && (user.role === 'admin' || (user.role === 'teacher' && quiz.user_id === user.uid)));
+}
+export function socketUser(socket: any) {
+  const cookies = String(socket.handshake.headers.cookie || '').split(';').map(v => v.trim());
+  const cookie = cookies.find(v => v.startsWith(SESSION_COOKIE_NAME + '='))?.slice(SESSION_COOKIE_NAME.length + 1);
+  let token = String(socket.handshake.headers.authorization || '').replace(/^Bearer\s+/i, '') || cookie || '';
+  try { token = decodeURIComponent(token); } catch { return null; }
+  if (token.startsWith('qms1.')) return verifySessionToken(token);
+  if (isDemoAuthEnabled() && token.startsWith('user_')) return users.get(token.slice(5)) || null;
+  return null;
+}
+export function canUseLiveAttempt(quizId: string, sessionId: string, user: any): boolean {
+  const quiz = quizzes.get(quizId);
+  if (!quiz || (quiz.is_draft && !canMonitorQuiz(user, quiz))) return false;
+  const record = results.get(`res_${sessionId}`);
+  if (record && record.quiz_id !== quizId) return false;
+  if (record?.user_id) return record.user_id === user?.uid;
+  // Anonymous IDs are private bearer capabilities, identical to the grading API.
+  return !isProductionRuntime() || /^sess_(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12})$/i.test(sessionId);
+}
+export function reconcileLiveResults(quizId: string) {
+  const recovered = !liveSessions.has(quizId);
+  const state = getOrCreateLiveState(quizId);
+  for (const record of results.values()) {
+    if (record.quiz_id !== quizId || !record.session_id || !isValidLiveRecordId(record.session_id)) continue;
+    if (!state.sessions[record.session_id] && Object.keys(state.sessions).length >= MAX_LIVE_SESSIONS_PER_QUIZ) break;
+    const recordedAt = Date.parse(record.submitted_at || record.created_at || '');
+    if (!state.sessions[record.session_id] && Number.isFinite(recordedAt) && recordedAt < Date.now()-24*60*60*1000) continue;
+    if (recovered) state.control_state_known=false;
+    const prior = state.sessions[record.session_id];
+    const details = record.graded_details || record.details || [];
+    const answered = Object.keys(record.answers || {}).length;
+    const pending = details.filter((d: any) => d && d.grade_status !== 'graded').length;
+    state.sessions[record.session_id] = Object.assign({
+      name: record.student_name || 'Student', student_name: record.student_name || 'Student',
+      current_q: prior?.current_q || Math.max(1, answered), current_question: prior?.current_q || Math.max(1, answered),
+      total_questions: quizzes.get(quizId)?.questions.length || 0,
+      max_score: record.max_score ?? record.total ?? 0, score: record.total_score ?? record.score ?? 0,
+      status: record.is_in_progress !== true ? 'Completed' : pending ? 'Waiting to be checked' : 'Active',
+      last_active: prior?.last_active || 0, whiteboard_disabled: prior?.whiteboard_disabled || false,
+      }, prior || {}, {
+      // Persisted grades/finalization always win over ping claims.
+      ...{score: record.total_score ?? record.score ?? 0, pending_grades: pending,
+        failed_grades: details.filter((d: any) => d && ['retryable_error','invalid_response'].includes(d.grade_status)).length,
+        status: record.is_in_progress !== true ? 'Completed' : pending ? 'Waiting to be checked' : 'Active'}
+    });
+  }
+  return state;
+}
+export function emitLiveResult(io: any, quizId: string, sessionId: string) {
+  const state = reconcileLiveResults(quizId);
+  if (io && state.sessions[sessionId]) io.to(monitoringRoom(quizId)).emit('update_session', {
+    session_id: sessionId, data: state.sessions[sessionId], paused: state.paused, terminated: state.terminated
+  });
+}
+
 export function updateLiveSession(quizId: string, payload: any) {
   const sessionId = String(payload?.session_id || '').trim();
   if (!isValidLiveRecordId(quizId) || !quizzes.has(quizId)) {
@@ -27,15 +87,8 @@ export function updateLiveSession(quizId: string, payload: any) {
   }
 
   pruneInactiveLiveSessions();
-  const liveState = getOrCreateLiveState(quizId);
+  const liveState = reconcileLiveResults(quizId);
   const requestedStatus = String(payload?.status || '').trim().slice(0, 64);
-  if (liveState.terminated && requestedStatus.toLowerCase() === 'started'
-    && results.get(`res_${sessionId}`)?.is_in_progress !== false) {
-    // A fresh attempt after a terminated run starts a new live lifecycle.
-    liveState.terminated = false;
-    liveState.paused = false;
-    liveState.sessions = {};
-  }
 
   const isNewSession = !Object.prototype.hasOwnProperty.call(liveState.sessions, sessionId);
   if (isNewSession && Object.keys(liveState.sessions).length >= MAX_LIVE_SESSIONS_PER_QUIZ) {
@@ -68,6 +121,12 @@ export function updateLiveSession(quizId: string, payload: any) {
     tab_switch_count: 0
   };
 
+  const pingRevision = Number(payload?.ping_revision);
+  if (Number.isFinite(pingRevision) && pingRevision < Number(existing.ping_revision || 0)) {
+    return {liveState,sessionId,session:existing,error:null};
+  }
+  if (Number.isFinite(pingRevision)) existing.ping_revision=pingRevision;
+
   const rawTabSwitches = Number(payload?.tab_switch_count ?? payload?.tab_switches);
   if (Number.isFinite(rawTabSwitches) && rawTabSwitches >= 0) {
     existing.tab_switch_count = Math.max(existing.tab_switch_count || 0, Math.floor(rawTabSwitches));
@@ -97,7 +156,7 @@ export function updateLiveSession(quizId: string, payload: any) {
       authoritativeScore ?? 0
     )
   );
-  existing.status = progressiveResult?.is_in_progress === false ? 'Completed' : requestedStatus || existing.status || 'Active';
+  existing.status = progressiveResult && progressiveResult.is_in_progress !== true ? 'Completed' : existing.pending_grades ? 'Waiting to be checked' : 'Active';
   existing.last_active = Date.now();
   existing.whiteboard_disabled = Boolean(existing.whiteboard_disabled);
 
@@ -123,7 +182,7 @@ export function initSocketServer(server: any) {
 
     socket.on('join_quiz', (payload: any = {}) => {
       const quiz_id = String(payload.quiz_id || '').trim();
-      if (!isValidLiveRecordId(quiz_id) || !quizzes.has(quiz_id)) {
+      if (!isValidLiveRecordId(quiz_id) || !quizzes.has(quiz_id) || (quizzes.get(quiz_id)?.is_draft && !canMonitorQuiz(socketUser(socket), quizzes.get(quiz_id)))) {
         socket.emit('live_error', { code: 'QUIZ_NOT_FOUND', error: 'Quiz not found' });
         return;
       }
@@ -131,6 +190,13 @@ export function initSocketServer(server: any) {
       currentRoom = `quiz_${quiz_id}`;
       socket.join(currentRoom);
 
+      if (payload.monitor === true) {
+        if (!canMonitorQuiz(socketUser(socket), quizzes.get(quiz_id))) {
+          socket.emit('live_error', { code: 'FORBIDDEN', error: 'Teacher monitoring access denied' });
+          return;
+        }
+        socket.join(monitoringRoom(quiz_id));
+      }
       const liveState = getOrCreateLiveState(quiz_id);
       socket.emit('pause_state', { paused: liveState.paused, terminated: liveState.terminated });
     });
@@ -139,6 +205,7 @@ export function initSocketServer(server: any) {
       const quiz_id = String(payload.quiz_id || '').trim();
       if (isValidLiveRecordId(quiz_id)) {
         socket.leave(`quiz_${quiz_id}`);
+        socket.leave(monitoringRoom(quiz_id));
         if (currentRoom === `quiz_${quiz_id}`) currentRoom = null;
       }
     });
@@ -155,6 +222,9 @@ export function initSocketServer(server: any) {
         return;
       }
 
+      if (!canUseLiveAttempt(quiz_id, session_id, socketUser(socket))) {
+        socket.emit('ping_ack', { success: false, error: 'Attempt access denied' }); return;
+      }
       const updated = updateLiveSession(quiz_id, payload);
       if (!updated.session || !updated.liveState) {
         socket.emit('ping_ack', {
@@ -167,7 +237,7 @@ export function initSocketServer(server: any) {
       }
       socket.join(`quiz_session_${quiz_id}_${updated.sessionId}`);
 
-      io.to(`quiz_${quiz_id}`).emit('update_session', {
+      io.to(monitoringRoom(quiz_id)).emit('update_session', {
         session_id: updated.sessionId,
         data: updated.session,
         paused: updated.liveState.paused,

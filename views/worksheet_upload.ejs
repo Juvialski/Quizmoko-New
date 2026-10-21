@@ -95,6 +95,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/teacher-workflow.js"></script>
+    <script src="/js/owned-tasks.js"></script>
 </head>
 <body class="r4-teacher r4-worksheet-upload">
     <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
@@ -467,6 +468,7 @@
         }
 
         function updateFileList() {
+            window.worksheetRecoveryId=undefined; window.worksheetIncomplete=false;
             fileListContainer.innerHTML = '';
 
             // Show files from the input
@@ -585,6 +587,7 @@
             formData.append('subject', document.getElementById('subject_input').value);
             formData.append('use_screenshots', document.getElementById('use_screenshots').checked);
             formData.append('session_id', sessionId);
+            if (window.worksheetRecoveryId) formData.append('recovery_id',window.worksheetRecoveryId);
 
             try {
                 const res = await fetch('/api/extract_worksheet', { method: 'POST', body: formData });
@@ -596,7 +599,23 @@
                     progressText.innerHTML = '<i data-lucide="check-circle" class="icon-sm"></i> Extraction Complete!';
                     window.refreshQuizmokoIcons?.();
 
+                    window.worksheetRecoveryId=data.recovery_id;
+                    window.worksheetIncomplete=Boolean(data.incomplete);
+                    if (data.incomplete) {
+                        const warning=document.getElementById('page-recovery-warning') || document.createElement('div');
+                        warning.id='page-recovery-warning'; warning.className='qm-owned-tasks'; warning.replaceChildren();
+                        const text=document.createElement('p'); text.textContent='Some worksheet pages need another extraction attempt. Successful pages are retained. Keep these files selected; recovery expires after 30 minutes or a server restart.';
+                        const retry=document.createElement('button');retry.type='button';retry.className='btn-secondary';retry.textContent='Retry failed pages';
+                        retry.onclick=()=>{ isExtracting=false; handleExtract(); }; warning.append(text,retry);document.getElementById('extraction-preview').prepend(warning);
+                    } else document.getElementById('page-recovery-warning')?.remove();
                     extractedQuestions = data.questions;
+                    const priorWarning=document.getElementById('source-task-warning');priorWarning?.remove();
+                    if (extractedQuestions.some(q=>q.source_review_required)) {
+                        const warning=document.createElement('p');warning.id='source-task-warning';warning.className='qm-owned-tasks';
+                        warning.textContent='Some source questions need review of shared context, drawings or task requirements. Solver agreement alone does not clear this source warning.';
+                        document.getElementById('extraction-preview').prepend(warning);
+                    }
+
                     missingIndices = data.missing_indices || [];
                     renderPreview();
 
@@ -895,6 +914,7 @@
 
         let isSolving = false;
         async function handleSolve() {
+            if (window.worksheetIncomplete) return alert('Retry the failed worksheet pages before checking answers.');
             if (isSolving) return;
             syncAllDomEditors();
             const batchSize = parseInt(document.getElementById('batch_size').value);
@@ -981,6 +1001,8 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        async_job: true,
+                        idempotency_key: await window.QuizMoKoTasks.key('worksheet_solving',{questions:extractedQuestions,batchSize,topic:topicHint,subject,timeLimit,requireSolution,model:document.getElementById('model_select').value,quizMode:document.getElementById('quiz_mode').value}),
                         questions: extractedQuestions,
                         create_draft: true,
                         batch_size: batchSize,
@@ -1000,7 +1022,13 @@
                     throw new Error(errData.error || 'Failed to start solving');
                 }
 
-                // We don't clear the interval here; we wait for the polling to detect completion
+                const accepted = await res.json();
+                if (accepted.job_id) {
+                    clearInterval(pollInterval); overlay.style.display='none'; isSolving=false;
+                    solveBtn.disabled=false; solveBtn.textContent='Check answers & create draft';
+                    window.QuizMoKoTasks.accepted('worksheet_solving');
+                }
+                // Legacy servers retain the progress polling contract.
             } catch (error) {
                 clearInterval(pollInterval);
                 alert('Solving failed: ' + error.message);

@@ -263,6 +263,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/teacher-workflow.js"></script>
+    <script src="/js/owned-tasks.js"></script>
 </head>
 <body class="r4-teacher r4-dashboard">
 
@@ -1382,12 +1383,23 @@
             // asynchronous key selection and validation have completed.
             const payload = Object.fromEntries(new FormData(form));
             payload.create_draft = true;
+            payload.async_job = true;
+            payload.idempotency_key = await window.QuizMoKoTasks.key('generation',payload);
             try {
                 const response = await fetch('/api/generate_ai', {method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
                 const data = await response.json().catch(() => null);
                 if (!response.ok || !data?.success) {
                     const wait = response.headers.get('Retry-After');
                     throw new Error(response.status === 429 ? `AI is busy. ${wait ? 'Try again in ' + wait + ' seconds.' : 'Wait a minute before trying again.'}` : (data?.error || 'Could not finish generation. Your settings are retained. Check My Quizzes before retrying.'));
+                }
+                if (data.job_id) {
+                    window.QuizMoKoTasks.accepted('generation');
+                    document.getElementById('generator-feedback').textContent=data.job?.status==='running' ? 'Generating Quiz. You can continue working and open the draft from Your AI tasks.' : ['completed','needs_attention'].includes(data.job?.status) ? 'This task is already finished. Open its draft from Your AI tasks, or choose Start another.' : 'This task needs attention. Open any saved draft or choose Start another after correcting its inputs.';
+                    document.getElementById('loading-overlay').style.display='none';
+                    btn.disabled=false; form.style.opacity=''; form.style.pointerEvents='';
+                    btn.textContent='Generate Quiz';
+                    generationBusy=false;
+                    return false;
                 }
                 window.location.href = data.redirect || '/edit/' + encodeURIComponent(data.quiz_id);
             } catch (error) { throw error; }
@@ -1598,6 +1610,7 @@
         }
 
         window.addEventListener('pageshow', (event) => {
+            generationBusy = false;
             // Restore blank quiz buttons and AI generator form if page is loaded from cache (like browser Back button)
             isCreatingBlank = false;
             isMerging = false;

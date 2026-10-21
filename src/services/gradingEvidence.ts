@@ -53,6 +53,13 @@ export function rubricGradeIssues(payload: any, rubric: GradingRubric): string[]
     if (!row || seen.has(row.id) || rows.filter((r:any)=>r?.id===criterion.id).length !== 1
       || typeof row.score_fraction !== 'number' || !Number.isFinite(row.score_fraction)
       || row.score_fraction < 0 || row.score_fraction > 1 || typeof row.evidence !== 'string' || !row.evidence.trim()) return ['Invalid or unsupported rubric evidence.'];
+    // A generic label supplies no partial-credit anchors. Live evaluation showed
+    // two defensible allocations for the same correct first step. Preserve the
+    // answer for teacher review rather than silently selecting either allocation.
+    if (row.score_fraction > 0 && row.score_fraction < 1
+      && /^(?:valid|correct|appropriate|sound)\s+(?:equation\s+)?(?:method|reasoning|work|steps|transformation)\.?$/i.test(criterion.description.trim())) {
+      return [`Partial credit for criterion "${criterion.id}" needs explicit step criteria or teacher review.`];
+    }
     seen.add(row.id); weighted += criterion.weight * row.score_fraction;
   }
   return Math.abs(weighted - payload.score_fraction) > 0.0001 ? ['Score contradicts the teacher-weighted rubric.'] : [];

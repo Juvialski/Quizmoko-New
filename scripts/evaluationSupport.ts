@@ -14,7 +14,8 @@ export function boundedEvaluationClient(client: any, maximumRequests = 60, deadl
     if(requests>=maximumRequests){controller.abort();throw new GeminiRateLimitError('Evaluation request budget exhausted.',60);}
     requests++;models[request.model]=(models[request.model]||0)+1;
     if(String(JSON.stringify(request.contents)||'').includes('blind adjudicator'))adjudications++;
-    try{return await client.models.generateContent({...request,config:{...request.config,abortSignal:signal,
+    const transportSignal=request.config?.abortSignal ? AbortSignal.any([signal,request.config.abortSignal]) : signal;
+    try{return await client.models.generateContent({...request,config:{...request.config,abortSignal:transportSignal,
       httpOptions:{...request.config?.httpOptions,retryOptions:{attempts:1}}}});}
     catch(error){failures++;if(Number((error as any)?.status)===429)controller.abort();throw error;}
   }}};

@@ -809,6 +809,7 @@
                 console.log('[WS] Connected to server');
                 useWS = true;
                 socket.emit('join_quiz', { quiz_id: quizId });
+                if (quizStartTime) sendPing('Active');
             });
 
             socket.on('connect_error', (err) => {
@@ -818,6 +819,7 @@
 
             socket.on('pause_state', (data) => {
                 applyPauseState(data.paused);
+                if (data.terminated && quizStartTime && !isSubmitting) submitQuiz('terminated');
             });
 
             socket.on('ping_ack', (data) => {
@@ -1683,6 +1685,7 @@
                 current_q: (parseInt(currentIndex) || 0) + 1,
                 score: parseFloat(totalScore) || 0,
                 status: s,
+                ping_revision: Date.now(),
                 tab_switch_count: tabSwitchCount,
                 time_remaining: Math.max(0, parseInt(timeRemaining) || 0)
             };

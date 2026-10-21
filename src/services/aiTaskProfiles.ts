@@ -1,5 +1,6 @@
 export const PRIMARY_FLASH_LITE_MODEL = 'gemini-3.5-flash-lite';
 export const PEER_FLASH_LITE_MODEL = 'gemini-3.1-flash-lite';
+export const WORKSHEET_PAGE_MAX_OUTPUT_TOKENS = 16_384;
 
 export type AiTaskName =
   | 'document_extraction'
@@ -23,7 +24,7 @@ export interface AiTaskProfile {
 const PROFILES: Record<AiTaskName, AiTaskProfile> = {
   document_extraction: {
     task: 'document_extraction',
-    promptVersion: 'document-extraction-v3',
+    promptVersion: 'document-extraction-v4',
     thinkingLevel: 'high',
     maxOutputTokens: 32_768
   },
@@ -59,7 +60,7 @@ const PROFILES: Record<AiTaskName, AiTaskProfile> = {
   },
   semantic_grading: {
     task: 'semantic_grading',
-    promptVersion: 'semantic-grading-v5',
+    promptVersion: 'semantic-grading-v6',
     thinkingLevel: 'high',
     maxOutputTokens: 4_096
   },
@@ -86,6 +87,7 @@ export function buildAiTaskConfig(
 ): Record<string, unknown> {
   const profile = getAiTaskProfile(task);
   return {
+    _quizmokoTask: task,
     thinkingConfig: {
       thinkingLevel: profile.thinkingLevel
     },

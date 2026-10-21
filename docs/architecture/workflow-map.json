@@ -27,6 +27,10 @@
     "deployment_boundary": "one writable process until attempt/revision/rate/live coordination is distributed"
   },
   "routes": {
+    "jobRoutes": {
+      "file": "src/routes/jobRoutes.ts",
+      "endpoints": ["GET /api/tasks", "GET /api/tasks/:id"]
+    },
     "healthRoutes": {
       "file": "src/routes/healthRoutes.ts",
       "endpoints": ["GET /healthz"]
@@ -202,5 +206,35 @@
     "creation": "Blank quizzes start as drafts; generator/worksheet create_draft opt-in keeps new interface work private without changing legacy API defaults.",
     "library": "Status and review counts derived from hydrated quizzes; existing timestamp helper prefers modification time; no new database reads",
     "browser_tests": "npm run test:ui starts port 3000 in test sandbox with synthetic records and mocked AI/extraction; isolated headless Chromium; optional R4_EXTERNAL_UI=1 tests actual MathJax/CDN assets."
+  },
+  "r4_1_tutorial_reliability": {
+    "report": "docs/R4_1_TUTORIAL_READINESS_REPORT.md",
+    "jobs": {
+      "service": "src/services/ownedJobs.ts",
+      "metadata_store": "ai_jobs (Admin Firestore only)",
+      "retention": "7 days; 2000 accepted records",
+      "private_output": "existing quiz drafts; completed-batch checkpoints",
+      "navigation": "owned status and result survive navigation; same-intent retry key retained until inputs change or explicit Start another",
+      "restart": "metadata/acknowledged partial drafts survive; unfinished jobs interrupted, no automatic BYOK resume"
+    },
+    "extraction_recovery": {
+      "service": "src/services/worksheetPageRecovery.ts",
+      "limits": "20 recoveries, 24 MiB, 30 minutes idle",
+      "identity": "authenticated owner plus source-byte fingerprint",
+      "restart": "not retained; re-upload originals"
+    },
+    "live": {
+      "public_room": "quiz_* controls only",
+      "teacher_room": "monitor_* owner teacher/admin",
+      "student_room": "quiz_session_* account/capability guard",
+      "authority": "nonoverlapping authenticated HTTP snapshots of canonical results; pending grade notifications; unknown transient presence/control recovery"
+    },
+    "scheduler": "conservative shared per-model rolling cap, opaque per-key accounting/cooldowns, bounded semantic priority with background fairness, SDK retries disabled",
+    "diagnostics": "bounded model/task counts, timings and safe failure categories; admin jobs/pending grades/persistence",
+    "currency": "callback normalization preserves source amounts through repeated math display passes",
+    "testing": "synthetic isolated Chromium and real PDF decoding; opt-in private bounded live extraction kept separate from model accuracy and production acceptance",
+    "shared_context": "Explicit printed reference IDs plus unique targets only; retain literal stem, context origin and source IDs; ambiguity requires review; cross-file transfers require teacher source-membership confirmation",
+    "rubric_policy": "User selected explicit step criteria; ambiguous fractional allocations under generic method labels remain pending",
+    "live_evidence": "46 actual SDK calls, both allowed models; private source/credential data excluded from repository; bounded extraction/generation/solving/grading/cancellation/answer-key checks, with limitations reported"
   }
 }

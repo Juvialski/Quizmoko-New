@@ -1,17 +1,12 @@
 import { Router } from 'express';
-import { tokenRequired } from '../middleware/auth.ts';
+import { tokenRequired, optionalAuth } from '../middleware/auth.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
 import { quizzes, getOrCreateLiveState } from '../store/db.ts';
-import { isValidLiveRecordId, updateLiveSession } from '../services/socket.ts';
+import { isValidLiveRecordId, updateLiveSession, canMonitorQuiz, monitoringRoom, canUseLiveAttempt, reconcileLiveResults } from '../services/socket.ts';
 
 const router = Router();
 
-function canManageQuiz(user: any, quiz: any): boolean {
-  if (!user || !quiz) return false;
-  if (user.role === 'admin') return true;
-  if (quiz.user_id && quiz.user_id === user.uid) return true;
-  return !quiz.user_id && user.uid === 'teacher_test';
-}
+const canManageQuiz = canMonitorQuiz;
 
 router.get(['/live/:quiz_id', '/live'], tokenRequired, (req: AuthRequest, res) => {
   const requestedQuizId = String(req.params.quiz_id || req.query.quiz_id || '').trim();
@@ -39,9 +34,10 @@ router.get('/api/live/:quiz_id', tokenRequired, (req: AuthRequest, res) => {
   if (!canManageQuiz(req.user, quiz)) {
     return res.status(403).json({ success: false, error: 'You do not have access to this quiz' });
   }
-  const liveState = getOrCreateLiveState(quizId);
+  const liveState = reconcileLiveResults(quizId);
   res.json({
     success: true,
+    control_state_known: liveState.control_state_known !== false,
     paused: liveState.paused,
     terminated: liveState.terminated,
     sessions: liveState.sessions
@@ -59,6 +55,7 @@ router.post('/api/live/:quiz_id/toggle_pause', tokenRequired, (req: AuthRequest,
   }
   const liveState = getOrCreateLiveState(quizId);
   liveState.paused = !liveState.paused;
+  liveState.control_state_known = true;
 
   const io = req.app.get('io');
   if (io) io.to(`quiz_${quizId}`).emit('pause_state', { paused: liveState.paused });
@@ -76,6 +73,7 @@ router.post('/api/live/:quiz_id/terminate', tokenRequired, (req: AuthRequest, re
   }
   const liveState = getOrCreateLiveState(quizId);
   liveState.terminated = true;
+  liveState.control_state_known = true;
   liveState.paused = false;
 
   const io = req.app.get('io');
@@ -110,7 +108,7 @@ router.post('/api/live/:quiz_id/whiteboard/:sid/toggle', tokenRequired, (req: Au
   res.json({ success: true, sessions: liveState.sessions });
 });
 
-router.post('/ping', (req, res) => {
+router.post('/ping', optionalAuth, (req: AuthRequest, res) => {
   const { quiz_id, session_id } = req.body || {};
 
   if (quiz_id && session_id) {
@@ -123,6 +121,7 @@ router.post('/ping', (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid session_id' });
     }
 
+    if (!canUseLiveAttempt(normalizedQuizId, normalizedSessionId, req.user)) return res.status(403).json({ success: false, error: 'Attempt access denied' });
     const updated = updateLiveSession(normalizedQuizId, req.body);
     if (!updated.session || !updated.liveState) {
       const status = updated.error === 'session_limit' ? 429 : 400;
@@ -136,7 +135,7 @@ router.post('/ping', (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
-      io.to(`quiz_${normalizedQuizId}`).emit('update_session', {
+      io.to(monitoringRoom(normalizedQuizId)).emit('update_session', {
         session_id: updated.sessionId,
         data: updated.session,
         paused: updated.liveState.paused,

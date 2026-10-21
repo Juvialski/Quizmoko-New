@@ -1,3 +1,6 @@
+import { aiJobs } from '../store/db.ts';
+import { serializeJobRequest, startOwnedJob, existingJob, checkpointJob, type OwnedJob } from '../services/ownedJobs.ts';
+import { requestAbortSignal } from '../services/requestContext.ts';
 import { createHash } from 'node:crypto';
 import { Router } from 'express';
 import sharp from 'sharp';
@@ -16,6 +19,8 @@ import {
 } from '../store/db.ts';
 import { getGeminiClient, getRealModelName, safeParseJSON } from '../services/gemini.ts';
 import {
+  safeAiErrorMessage,
+  recordGeminiOutcome,
   generateGeminiContent,
   GeminiRateLimitError
 } from '../services/geminiRateLimiter.ts';
@@ -95,6 +100,7 @@ function respondAiWorkLimit(res: any, error: unknown): boolean {
 }
 
 function canManageQuiz(user: any, quiz: any): boolean {
+  if (quiz?.background_job_id && aiJobs.get(quiz.background_job_id)?.status === 'running') return false;
   if (!user || !quiz) return false;
   if (user.role === 'admin') return true;
   if (quiz.user_id && quiz.user_id === user.uid) return true;
@@ -544,7 +550,17 @@ router.get('/api/ollama_tags', tokenRequired, async (req: AuthRequest, res) => {
   }
 });
 
-router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimiter, async (req: AuthRequest, res) => {
+router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, serializeJobRequest('generation', async (req: AuthRequest, res) => {
+  if (req.body?.async_job === true) {
+    const prior = existingJob(req, 'generation');
+    if (prior) return res.status(202).json({success:true,job:prior,job_id:prior.id});
+  }
+  const allowed = await new Promise<boolean>(resolve => {
+    const finished = () => resolve(false);
+    res.once('finish',finished);
+    generateAiLimiter(req,res,()=>{res.off('finish',finished);resolve(true);});
+  });
+  if (!allowed) return;
   const wantsJson = req.path.startsWith('/api/') || (req.get('accept') || '').includes('application/json');
   const fail = (status: number, message: string) => {
     if (wantsJson) return res.status(status).json({ success: false, error: message });
@@ -668,6 +684,7 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
     return fail(500, 'AI generation could not be scheduled.');
   }
 
+  const run = async (job?: OwnedJob): Promise<any> => {
   try {
     const generatedQuestions: any[] = [];
     const tikzVisualPlan = buildTikzVisualPlan(totalQuestions, imagesCount, subject, cleanTopic);
@@ -785,6 +802,17 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
           contextLabel: 'new quiz generation'
         });
         generatedQuestions.push(...verified.questions);
+        for (const q of verified.questions) recordGeminiOutcome(getRealModelName(model),'question_solving',q.verification?.verification_status === 'verified' ? 'verified' : 'review_required');
+        recordGeminiOutcome(getRealModelName(model),'question_drafting','processed_units',verified.questions.length);
+      }
+      if (requestAbortSignal()?.aborted) throw new DOMException('Cancelled', 'AbortError');
+      if (job) {
+        const partial = {id: job.quiz_id || `quiz_job_${job.id}`, user_id:req.user!.uid,
+          title:cleanTopic,subject,questions:[...generatedQuestions],is_draft:true,
+          background_job_id:job.id, background_job_complete:false,
+          created_at:new Date().toISOString(), time_limit:timeLimit, quiz_mode:String(quiz_mode || 'back_and_forth')};
+        await persistQuizCreation(partial);
+        await checkpointJob(job, partial, generatedQuestions.length);
       }
     }
 
@@ -810,9 +838,10 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
       .map(question => String(question.id || ''))
       .filter(Boolean);
 
-    const quizId = `quiz_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const quizId = job?.quiz_id || `quiz_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const quiz = {
       id: quizId,
+      ...(job ? {background_job_id:job.id,background_job_complete:true} : {}),
       user_id: req.user?.uid || 'teacher_test',
       title: getUniqueQuizTitle(cleanTopic),
       subject,
@@ -826,7 +855,7 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
       created_at: new Date().toISOString(),
       model_name: model,
       question_style: String(question_style || 'Mixed'),
-      is_draft: req.body?.create_draft === true || req.body?.create_draft === 'true' || reviewRequiredIds.length > 0,
+      is_draft: Boolean(job) || req.body?.create_draft === true || req.body?.create_draft === 'true' || reviewRequiredIds.length > 0,
       review_required_ids: reviewRequiredIds,
       verification_summary: {
         verified: generatedQuestions.length - reviewRequiredIds.length,
@@ -835,7 +864,9 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
       questions: generatedQuestions
     };
 
+    if (requestAbortSignal()?.aborted) throw new DOMException('Cancelled', 'AbortError');
     await persistQuizCreation(quiz);
+    if (job) return quizId;
 
     if (wantsJson) {
       return res.status(201).json({
@@ -850,14 +881,16 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, generateAiLimit
     return res.redirect(`/edit/${quizId}`);
   } catch (err: any) {
     console.error('Generate quiz error:');
-    const message = err?.name === 'AbortError'
-      ? 'The AI request timed out. Try a smaller batch size.'
-      : (err?.message || 'Unknown AI generation error');
+    const message = safeAiErrorMessage(err);
+    if (job) throw err;
     return fail(err?.status || 502, message);
   } finally {
-    aiLease.release();
+    if (!job) aiLease.release();
   }
-});
+  };
+  if (req.body?.async_job === true) { req.body.num_items = totalQuestions; return startOwnedJob(req, res, 'generation', aiLease, run); }
+  return run();
+}));
 
 router.post('/api/generate_question', tokenRequired, async (req: AuthRequest, res) => {
   const {

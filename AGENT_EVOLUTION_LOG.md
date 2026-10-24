@@ -145,3 +145,5 @@ R4.1 live follow-up: bounded authorized real Gemini checks covered both allowed 
 
 ## 2026-10-25 — Worksheet progress and continuous editor hotfix
 Owned-task worksheet progress remains inline and survives Back/refresh, including finalization and draft actions. Continuous editor cards retain source labels and local keystroke updates. Choice selectors canonicalize legacy keys before edits and safely remap removal. Incomplete explicit draft saves stay private and review-required; publication retains canonical validation. Subsequent edits invalidate batch approvals. No provider/model or classroom-run changes.
+
+Hotfix release CI detected new body-parser/undici advisories. Updated only compatible lockfile patches (1.20.9/7.30.1), retaining the fail-closed classifier and direct dependency ranges.

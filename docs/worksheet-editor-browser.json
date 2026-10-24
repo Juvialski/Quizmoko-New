@@ -1,0 +1,11 @@
+{
+  "mode": "isolated synthetic fixtures; actual app routes and owned jobs; mocked Gemini",
+  "checks": [
+    "single actual job; inline progress; Back/refresh restoration; completion action; synthetic finalization and exact failure display",
+    "30 visible source-labelled cards; four edited choices; selected C; durable-contract save; refresh; explicit approval; publication",
+    "incomplete draft retained privately; approval and server publication reject blank option with printed question number",
+    "choice text retains selection and card DOM; multi-select removal/shuffle preserve identity; later edit invalidates batch approval; review filter"
+  ],
+  "errors": [],
+  "pass": true
+}

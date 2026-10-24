@@ -236,5 +236,13 @@
     "shared_context": "Explicit printed reference IDs plus unique targets only; retain literal stem, context origin and source IDs; ambiguity requires review; cross-file transfers require teacher source-membership confirmation",
     "rubric_policy": "User selected explicit step criteria; ambiguous fractional allocations under generic method labels remain pending",
     "live_evidence": "46 actual SDK calls, both allowed models; private source/credential data excluded from repository; bounded extraction/generation/solving/grading/cancellation/answer-key checks, with limitations reported"
+  },
+  "worksheet_editor_hotfix": {
+    "date": "2026-10-25",
+    "worksheet": "Inline owner task counts/finalization/errors/Open Draft; disabled through running; session job restored on Back/refresh; existing idempotency",
+    "editor": "All cards visible; navigator scrolls; optional review filter; local keystroke updates; choice selectors canonicalize legacy answers and remap removal",
+    "save": "Explicit save/draft may retain incomplete question content privately as review_required; publish and legacy paths retain canonical validation, optimistic concurrency and acknowledged persistence",
+    "approval": "Any correctness edit invalidates prior single/batch approval; valid explicit approval restores verification",
+    "compatibility": "No new routes/stores/providers or classroom-run changes"
   }
 }

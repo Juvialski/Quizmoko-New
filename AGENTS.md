@@ -205,3 +205,9 @@ You are the DevOps & Package Guard for QuizMoKo. Your domain is repository confi
 - Explicit shared worksheet context may cross page/file seams only through a printed item declaration and unique matching source IDs. Preserve literal item text, shared-context provenance and immutable printed IDs; repeated IDs or conflicting contexts require teacher review. Cross-file context transfers also require confirmation that the files belong to the same worksheet. Never infer linkage from array positions or filename similarity.
 
 - Keep a secret-free input fingerprint and idempotency token across Back/refresh/retries for the same UI intent. Create a new token only when inputs change or the teacher explicitly selects Start another; acknowledged jobs must not clear retry identity.
+
+## Worksheet/editor hotfix invariants (2026-10-25)
+- Worksheet solve controls follow owner-scoped task status through completion; acknowledgment is not completion. Restore the tracked job on refresh/Back, retain its idempotency key, and display actual completed/total plus finalization. Keep the progress/action visible even without retained extraction DOM.
+- The editor displays all question cards by default; navigation scrolls and Needs Review optionally filters. Per-keystroke updates must stay local to the changed card.
+- Explicit save/draft intents may retain incomplete question objects as private review-required drafts. Canonical validation remains mandatory for publication and legacy updates; await persistence and retain optimistic concurrency checks.
+- Choice selectors use canonical positional answer letters, resolving legacy text/aliases before mutation. Removal remaps surviving selections and clears removed selections. Any later correctness edit invalidates even batch approval; explicit valid approval is required again.

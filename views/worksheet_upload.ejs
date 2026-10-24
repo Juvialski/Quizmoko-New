@@ -229,6 +229,7 @@
                             <label for="require_solution" style="margin: 0; cursor: pointer; font-size: 15px; color: var(--on-dark);"><i data-lucide="edit-3" class="icon-sm"></i> Require Solution for All Questions</label>
                         </div>
 
+                        <section id="worksheet-solve-progress" class="qm-owned-tasks" role="status" aria-live="polite" hidden></section>
                         <button onclick="handleSolve()" class="btn btn-primary btn-block" id="solve-btn"><i data-lucide="sparkles" class="icon-sm"></i> CHECK ANSWERS & CREATE DRAFT</button>
                     </div>
                 </div>
@@ -913,18 +914,38 @@
         }
 
         let isSolving = false;
+        let trackedSolveId=sessionStorage.getItem('qm-worksheet-job');
+        function showSolveStatus(text) {
+            document.getElementById('extraction-preview').style.display='block';document.getElementById('empty-preview').style.display='none';
+            const area=document.getElementById('worksheet-solve-progress');area.hidden=false;area.textContent=text;
+        }
+        window.addEventListener('qm-tasks-updated',event=>{
+            const jobs=event.detail.filter(j=>j.task==='worksheet_solving');
+            const job=jobs.find(j=>j.id===trackedSolveId) || jobs.find(j=>j.status==='running') || jobs[0];
+            if(!job)return;
+            trackedSolveId=job.id;sessionStorage.setItem('qm-worksheet-job',job.id);
+            isSolving=job.status==='running';
+            const button=document.getElementById('solve-btn');button.disabled=isSolving;
+            button.textContent=isSolving?'Checking answers…':'Check answers & create draft';
+            showSolveStatus(isSolving?(job.total && job.completed>=job.total?'Finalizing draft...':`Checking answers — ${job.completed}/${job.total}`):(job.error || 'Draft ready for review.'));
+            if(!isSolving && job.quiz_id){const link=document.createElement('a');link.className='btn btn-primary';link.href='/edit/'+encodeURIComponent(job.quiz_id);link.textContent='Open Draft';document.getElementById('worksheet-solve-progress').append(link);}
+            if(!isSolving){const again=document.createElement('button');again.type='button';again.className='btn btn-secondary';again.textContent='Start another';again.onclick=()=>{sessionStorage.removeItem('qm-task-worksheet_solving');sessionStorage.removeItem('qm-worksheet-job');trackedSolveId=null;again.disabled=true;again.textContent='Ready for a new worksheet';};document.getElementById('worksheet-solve-progress').append(again);}
+        });
         async function handleSolve() {
             if (window.worksheetIncomplete) return alert('Retry the failed worksheet pages before checking answers.');
             if (isSolving) return;
+            isSolving=true;document.getElementById('solve-btn').disabled=true;showSolveStatus('Starting answer checks…');
             syncAllDomEditors();
             const batchSize = parseInt(document.getElementById('batch_size').value);
             const model = document.getElementById('model_select').value;
             const isLocal = model.startsWith('ollama:');
 
             const estimatedRequests = Math.ceil(extractedQuestions.length / batchSize);
-            const apiKey = isLocal ? null : await getUsableKey(model, estimatedRequests);
+            let apiKey;
+            try {apiKey=isLocal?null:await getUsableKey(model,estimatedRequests);}
+            catch(error){isSolving=false;document.getElementById('solve-btn').disabled=false;showSolveStatus('Could not start answer checks: '+error.message);return;}
 
-            if (!isLocal && !apiKey) return alert(`No API keys with enough remaining quota (${estimatedRequests} calls needed) found today.`);
+            if (!isLocal && !apiKey) {isSolving=false;document.getElementById('solve-btn').disabled=false;showSolveStatus(`No API keys with enough remaining quota (${estimatedRequests} calls needed) found today.`);return;}
 
             isSolving = true;
             const solveBtn = document.getElementById('solve-btn');
@@ -941,7 +962,7 @@
             const sessionId = 'solve_' + Math.random().toString(36).substring(2, 15);
             progressText.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> Solving & Generating Quiz...';
             window.refreshQuizmokoIcons?.();
-            overlay.style.display = 'flex';
+            showSolveStatus('Checking answers — 0/'+extractedQuestions.length);
             progressBar.style.width = '0%';
 
             const startTime = Date.now();
@@ -1024,14 +1045,14 @@
 
                 const accepted = await res.json();
                 if (accepted.job_id) {
-                    clearInterval(pollInterval); overlay.style.display='none'; isSolving=false;
-                    solveBtn.disabled=false; solveBtn.textContent='Check answers & create draft';
-                    window.QuizMoKoTasks.accepted('worksheet_solving');
+                    clearInterval(pollInterval); overlay.style.display='none';
+                    trackedSolveId=accepted.job_id;sessionStorage.setItem('qm-worksheet-job',trackedSolveId);
+                    window.QuizMoKoTasks.accepted('worksheet_solving',accepted.job);
                 }
                 // Legacy servers retain the progress polling contract.
             } catch (error) {
                 clearInterval(pollInterval);
-                alert('Solving failed: ' + error.message);
+                showSolveStatus('Solving failed: ' + error.message);
                 overlay.style.display = 'none';
                 isSolving = false;
                 if (solveBtn) {
@@ -1043,21 +1064,10 @@
         }
 
         window.addEventListener('pageshow', () => {
-            isExtracting = false;
-            isSolving = false;
-            const extractBtn = document.getElementById('extract-btn');
-            if (extractBtn) {
-                extractBtn.disabled = false;
-                extractBtn.innerHTML = '<i data-lucide="search" class="icon-sm"></i> EXTRACT QUESTIONS';
-            }
-            const solveBtn = document.getElementById('solve-btn');
-            if (solveBtn) {
-                solveBtn.disabled = false;
-                solveBtn.innerHTML = '<i data-lucide="sparkles" class="icon-sm"></i> CHECK ANSWERS & CREATE DRAFT';
-            }
-            const overlay = document.getElementById('loading-overlay');
-            if (overlay) overlay.style.display = 'none';
-            window.refreshQuizmokoIcons();
+            isExtracting=false;
+            const button=document.getElementById('extract-btn');if(button)button.disabled=false;
+            if(trackedSolveId){isSolving=true;document.getElementById('solve-btn').disabled=true;showSolveStatus('Restoring answer-check progress…');}
+            window.QuizMoKoTasks.refresh();
         });
 
         // Use event delegation for question editing

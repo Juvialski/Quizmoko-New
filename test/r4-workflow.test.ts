@@ -63,3 +63,26 @@ test('teacher preview removes source scripts, event handlers and unsafe image UR
   assert.match(dom.window.document.querySelector('main')!.textContent!,/Safe \$1\+1\$ text/);
   dom.window.close();
 });
+
+
+test('incomplete teacher edits save privately and cannot bypass publication validation', async () => {
+  const app=express();app.use(express.json());app.use(quizRoutes);
+  const server=app.listen(0);await new Promise<void>(r=>server.once('listening',r));
+  const base=`http://127.0.0.1:${(server.address() as any).port}`,id='hotfix_draft';
+  const original={id:'stable',original_index:'7b',question:'Choose Alpha.',type:'multiple_choice',options:['Alpha','Beta','Gamma','Delta'],answer:'A',points:1,verification:{verification_status:'verified'}};
+  quizzes.set(id,{id,user_id:'hotfix_owner',title:'Disposable draft',time_limit:30,questions:[original]});
+  const update=(body:any)=>fetch(base+'/update/'+id,{method:'POST',headers:{authorization:'Bearer user_hotfix_owner','Content-Type':'application/json'},body:JSON.stringify(body)});
+  try {
+    const incomplete={...original,options:['','Beta','Gamma','Delta'],answer:''};
+    assert.equal((await update({questions:[incomplete],save_intent:'save',allow_review_required:true,expected_revision:0})).status,200);
+    assert.equal(quizzes.get(id).is_draft,true);assert.equal(quizzes.get(id).questions[0].options[0],'');
+    assert.equal((await fetch(base+'/quiz/'+id)).status,409);
+    const rejected=await update({questions:[{...incomplete,verification:{verification_status:'verified',teacher_approved:true}}],save_intent:'publish'});
+    assert.equal(rejected.status,400);assert.match((await rejected.json()).error,/Question 7b/);
+    const duplicate={...original,options:['Alpha','Alpha','Gamma','Delta']};
+    assert.equal((await update({questions:[duplicate],save_intent:'draft',allow_review_required:true})).status,200);
+    assert.equal((await update({questions:[duplicate],save_intent:'publish'})).status,400);
+    assert.equal((await update({questions:[original],save_intent:'publish'})).status,200);
+    assert.equal(quizzes.get(id).is_draft,false);
+  } finally {quizzes.delete(id);await new Promise<void>(r=>server.close(()=>r()));}
+});

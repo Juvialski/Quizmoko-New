@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import { aiJobs, quizzes, syncDocToFirestore, deleteDocFromFirestore } from '../store/db.ts';
 import { withRequestAbortSignal, waitWithSignal } from './requestContext.ts';
 import type { AiWorkLease } from './aiWorkGuard.ts';
+import { safeAiErrorMessage } from './geminiRateLimiter.ts';
 import { withAttemptLock } from './resultSession.ts';
 
 import type { JobTask, OwnedJob } from '../types.ts';
@@ -82,9 +83,9 @@ export async function startOwnedJob(req: AuthRequest, res: Response, task: JobTa
       const quiz = quizzes.get(job.quiz_id);
       job.status = quiz?.review_required_ids?.length ? 'needs_attention' : 'completed';
       job.completed = quiz?.questions.length || job.completed;
-    } catch {
+    } catch (error) {
       job.status = controller.signal.aborted ? 'interrupted' : 'failed';
-      job.error = 'AI could not finish safely. Open any saved draft; your completed work is retained. You can retry later.';
+      job.error = safeAiErrorMessage(error);
     } finally {
       clearTimeout(timer); lease.release(); active.delete(job.id); job.updated_at = Date.now();
       try { await persist(job); } catch { console.warn('[Jobs] Status persistence unavailable'); }

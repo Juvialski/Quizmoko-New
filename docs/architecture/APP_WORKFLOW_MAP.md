@@ -630,3 +630,8 @@ R4.1 live-evidence refinements: `worksheetPipeline.ts` reconciles explicitly dec
 Cross-file context transfers are retained with an explicit source-review gate even when IDs match uniquely; only same-file page continuation can avoid that source-membership confirmation.
 
 Browser task intent is hashed locally without credential fields. Same-intent idempotency tokens survive acknowledgments, Back and retries; changing inputs or explicit Start another starts a new intent. The pageshow handler restores interaction state while the server task remains authoritative.
+
+## Worksheet/editor hotfix (2026-10-25)
+The existing worksheet view subscribes to owner-scoped `/api/tasks` updates from `owned-tasks.js`, tracks its job in session storage, keeps the solve action disabled while running, and exposes actual counts, finalization, safe failure messages and Open Draft inline. Acknowledgment retains job identity and idempotency. Refresh/Back restores the progress surface even without extracted question DOM.
+
+The existing quiz editor renders all cards; its navigator scrolls and optional Needs Review filters. Choice selectors resolve legacy answer formats into canonical letters before text changes/removal and invalidate all prior approvals after correctness edits. Existing serialized `/update/:quiz_id` accepts unfinished content for explicit save/draft intents only, marking invalid content review-required and private. Publish/legacy validation, revision/version conflicts, owner access and acknowledged persistence remain unchanged. No new stores, routes, providers or public answer fields were added.

@@ -723,30 +723,13 @@
                 ? { ...question.verification }
                 : {};
 
-            // Once the teacher has used Approve All, ordinary teacher edits are trusted.
-            // Do not resurrect the per-question approval button on every keystroke.
-            // Only Resolve/Re-solve is allowed to request a fresh individual approval.
-            if (hasBatchApprovalLock(question) && !isResolveApprovalPending(question)) {
-                question.verification = {
-                    ...existingVerification,
-                    verification_status: 'verified',
-                    teacher_approved: true,
-                    teacher_batch_approved: true,
-                    teacher_approval_method: 'batch',
-                    approval_required_after_resolve: false,
-                    teacher_edit_after_batch_approval_at: new Date().toISOString()
-                };
-                markQuestionChanged(index);
-                refreshQuestionApprovalControl(index);
-                updateApproveAllButtonState();
-                return;
-            }
-
             question.verification = {
                 ...existingVerification,
                 answer_source: existingVerification.answer_source || 'manual',
                 verification_status: 'review_required',
                 teacher_approved: false,
+                teacher_batch_approved: false,
+                teacher_approval_method: undefined,
                 reason,
                 changed_at: new Date().toISOString()
             };
@@ -833,8 +816,24 @@
             return { valid: true, letter: String.fromCharCode(65 + matches[0]) };
         }
 
+        function selectedChoiceLetters(q) {
+            const current=q.correct_answer ?? q.correctAnswer ?? q.correct_answer_letter ?? q.correctAnswerLetter ?? q.answer;
+            let values=Array.isArray(current)?current:[current];
+            if(q.type==='multiple_choice_multi' && !Array.isArray(current)) {
+                try {const parsed=JSON.parse(current);if(Array.isArray(parsed))values=parsed;} catch {}
+                if(values.length===1 && !mapApprovalChoiceToLetter(q.options,values[0]).valid) values=String(current || '').split(/[,;|\s]+/).filter(Boolean);
+            }
+            return values.map(v=>mapApprovalChoiceToLetter(q.options,v)).filter(v=>v.valid).map(v=>v.letter);
+        }
+        function canonicalizeChoiceSelection(q) {
+            if(!['multiple_choice','multiple_choice_multi'].includes(q.type))return;
+            const letters=selectedChoiceLetters(q);q.answer=q.type==='multiple_choice_multi'?letters:(letters[0] || '');
+            delete q.correct_answer_letter;delete q.correctAnswerLetter;delete q.correct_answer;delete q.correctAnswer;
+        }
+
         function validateQuestionAnswerForApproval(question) {
             if (!question || typeof question !== 'object') return { valid: false, reason: 'Question data is missing.' };
+            if (!String(question.question || '').trim()) return {valid:false,reason:'Question text is blank.'};
             if (isApprovalPlaceholderAnswer(question.answer)) return { valid: false, reason: 'Answer is empty or still contains a placeholder.' };
 
             const options = Array.isArray(question.options) ? question.options.map(option => String(option ?? '').trim()) : [];
@@ -1705,7 +1704,9 @@
             document.querySelectorAll('.r4-save,#bottom-save').forEach(el => el.textContent = draft ? 'Save Draft' : 'Save Changes');
             document.getElementById('publish-button').hidden = !draft;
             document.getElementById('share-button').hidden = draft;
-            document.getElementById('publish-blockers').textContent = count ? `${count} questions need review before publishing. Use Needs review to find them.` : draft ? 'Save your draft, preview it, then publish when ready. Students cannot open this draft.' : 'Students can open the saved published quiz.';
+            const blockers=document.getElementById('publish-blockers');blockers.replaceChildren();
+            reviewQuestions().forEach(({q,i})=>{const link=document.createElement('a');link.href='#question-block-'+i;link.textContent='Question '+worksheetQuestionLabel(i)+': '+(q.verification.reason || 'Approve the current answer')+' ';link.onclick=()=>{document.getElementById('question-filter').value='all';refreshQuestionNavigation();};blockers.append(link);});
+            if(!count)blockers.textContent=draft?'Students cannot open this draft. Publish when ready.':'Students can open the saved published quiz.';
             document.getElementById('share-link').value = draft ? '' : location.origin + '/quiz/' + encodeURIComponent(quizData.id);
         }
         function refreshQuestionNavigation() {
@@ -1718,13 +1719,13 @@
                 const button = document.createElement('button'); button.type = 'button'; button.className = 'btn btn-secondary';
                 button.textContent = worksheetQuestionLabel(i); button.setAttribute('aria-label','Question '+worksheetQuestionLabel(i));
                 button.setAttribute('aria-current',i===selectedQuestion?'true':'false');
-                button.onclick = () => { selectedQuestion=i; refreshQuestionNavigation(); document.getElementById(`question-block-${i}`)?.scrollIntoView({block:'start'}); };
+                button.onclick = () => { selectedQuestion=i; refreshQuestionNavigation(); document.getElementById(`question-block-${i}`)?.scrollIntoView({block:'start',behavior:'smooth'}); };
                 jumps.appendChild(button);
             });
             if (!indices.length) jumps.textContent = reviewOnly ? 'All questions reviewed.' : 'Add your first question.';
             quizData.questions.forEach((q,i) => {
                 const block = document.getElementById(`question-block-${i}`);
-                if (block) { block.hidden = i !== selectedQuestion; if (!block.hidden) window.QuizMoKoMath?.typeset(block); }
+                if (block) { block.hidden = !indices.includes(i); }
             });
             updatePublicationState();
         }
@@ -1887,7 +1888,9 @@
                         optInput.value = opt;
                         optInput.style.margin = '0';
                         optInput.oninput = (e) => {
+                            canonicalizeChoiceSelection(q);
                             quizData.questions[qIndex].options[optIndex] = e.target.value;
+                            const choiceLabel=block.querySelector('[data-answer-choice="'+optIndex+'"]');if(choiceLabel)choiceLabel.lastChild.textContent=String.fromCharCode(65+optIndex)+' — '+e.target.value;
                             markQuestionNeedsReview(qIndex, 'An answer choice changed after verification. Confirm the current answer or run Re-solve.');
                             updatePreview(qIndex, block.querySelector('.live-preview'));
                         };
@@ -1945,8 +1948,8 @@
                 ansLabel.style.justifyContent = 'space-between';
                 ansLabel.style.alignItems = 'center';
 
-                let ansLabelText = q.type === 'identification' ? 'CORRECT ANSWER (EXACT VALUE)' : 'CORRECT ANSWER LETTER';
-                if (q.type === 'multiple_choice_multi') ansLabelText = 'CORRECT ANSWER LETTERS (E.G. A, C)';
+                let ansLabelText = q.type === 'identification' ? 'CORRECT ANSWER (EXACT VALUE)' : 'CORRECT ANSWER';
+                if (q.type === 'multiple_choice_multi') ansLabelText = 'CORRECT ANSWERS (SELECT ALL THAT APPLY)';
 
                 ansLabel.innerHTML = `
                     <span>${ansLabelText}</span>
@@ -1978,6 +1981,25 @@
                     markQuestionNeedsReview(qIndex, 'The answer changed and is pending explicit teacher approval.');
                     updatePreview(qIndex, block.querySelector('.live-preview'));
                 };
+                if(['multiple_choice','multiple_choice_multi'].includes(q.type)) {
+                    ansInput.hidden=true;
+                    const selected=selectedChoiceLetters(q), choices=document.createElement('fieldset');choices.setAttribute('aria-label','Correct answer selection');
+                    q.options.forEach((option,i)=>{
+                        const letter=String.fromCharCode(65+i),row=document.createElement('label'),control=document.createElement('input');
+                        row.dataset.answerChoice=i;control.type=q.type==='multiple_choice_multi'?'checkbox':'radio';control.name='correct-'+qIndex;control.value=letter;control.checked=selected.includes(letter);control.setAttribute('aria-label','Correct choice '+letter);
+                        row.style.cssText='display:flex;align-items:center;gap:8px;min-height:44px;';row.style.fontWeight=control.checked?'800':'400';row.style.background=control.checked?'var(--surface-soft)':'';
+                        control.onchange=()=>{
+                            const letters=[...choices.querySelectorAll('input:checked')].map(el=>el.value);q.answer=q.type==='multiple_choice_multi'?letters:(letters[0] || '');
+                            delete q.correct_answer_letter;delete q.correctAnswerLetter;delete q.correct_answer;delete q.correctAnswer;
+                            ansInput.value=Array.isArray(q.answer)?q.answer.join(', '):q.answer;
+                            choices.querySelectorAll('label').forEach(el=>{const checked=el.querySelector('input').checked;el.style.fontWeight=checked?'800':'400';el.style.background=checked?'var(--surface-soft)':'';});
+                            markQuestionNeedsReview(qIndex,'Correct answer selected. Check the question and choices, then Approve Answer.');updatePreview(qIndex,block.querySelector('.live-preview'));
+                        };
+                        row.append(control,document.createTextNode(letter+' — '+option));choices.append(row);
+                    });
+                    if(!selected.length){const warning=document.createElement('p');warning.textContent='Previous answer is missing or ambiguous. Select the correct choice before approval.';choices.append(warning);}
+                    leftCol.append(choices);
+                }
                 leftCol.appendChild(ansInput);
                 
                 const explanationDetails=document.createElement('details');explanationDetails.className='r4-details';
@@ -2044,7 +2066,7 @@
             const q = quizData.questions[qIndex];
             if (!Array.isArray(q.options)) q.options = [];
             const letter = String.fromCharCode(65 + q.options.length);
-            q.options.push(`${letter}) New Choice`);
+            canonicalizeChoiceSelection(q);q.options.push('New Choice');
             markQuestionNeedsReview(qIndex, 'An answer choice was added after verification. Confirm the current answer or run Re-solve.');
             renderQuestions();
         }
@@ -2052,16 +2074,12 @@
         function removeOption(qIndex, optIndex) {
             const q = quizData.questions[qIndex];
             if (q.options.length <= 2) return alert('Must have at least 2 options.');
-            q.options.splice(optIndex, 1);
-
-            // Re-normalize letters
-            q.options = q.options.map((opt, i) => {
-                const letter = String.fromCharCode(65 + i);
-                const clean = opt.replace(/^[A-Z][\)\.]\s*/, '');
-                return `${letter}) ${clean}`;
-            });
-
-            markQuestionNeedsReview(qIndex, 'An answer choice was removed after verification. Confirm the current answer or run Re-solve.');
+            canonicalizeChoiceSelection(q);
+            const selected=selectedChoiceLetters(q).map(v=>v.charCodeAt(0)-65);
+            q.options.splice(optIndex,1);
+            const remaining=selected.filter(i=>i!==optIndex).map(i=>String.fromCharCode(65+i-(i>optIndex?1:0)));
+            q.answer=q.type==='multiple_choice_multi'?remaining:(remaining[0] || '');
+            markQuestionNeedsReview(qIndex, selected.includes(optIndex)?'A previously correct choice was removed. Select and approve the intended remaining answers.':'An answer choice was removed. Confirm the current answer before approval.');
             renderQuestions();
         }
 
@@ -2075,40 +2093,17 @@
         }
 
         function shuffleChoices() {
-            if (!confirm('Shuffle choices for all Multiple Choice questions? (T/F and ID will be unaffected)')) return;
-
-            quizData.questions.forEach((q) => {
-                if (q.type === 'multiple_choice' && q.options && q.options.length > 1) {
-                    const originalAnswerText = getCorrectAnswerText(q);
-
-                    const plainOptions = q.options.map(opt => {
-                        const match = opt.match(/^[A-Z][\)\.]\s*(.*)/i);
-                        return match ? match[1].trim() : opt.trim();
-                    });
-
-                    for (let i = plainOptions.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [plainOptions[i], plainOptions[j]] = [plainOptions[j], plainOptions[i]];
-                    }
-
-                    let newAnswerLetter = 'A';
-                    q.options = plainOptions.map((text, idx) => {
-                        const letter = String.fromCharCode(65 + idx);
-                        if (text === originalAnswerText) newAnswerLetter = letter;
-                        return `${letter}) ${text}`;
-                    });
-                    q.answer = newAnswerLetter;
-                    const previousVerification = q.verification && typeof q.verification === 'object' ? { ...q.verification } : {};
-                    q.verification = {
-                        ...previousVerification,
-                        answer_source: 'manual',
-                        verification_status: 'verified',
-                        teacher_approved: hasBatchApprovalLock(q) || previousVerification.teacher_approved === true,
-                        teacher_batch_approved: hasBatchApprovalLock(q),
-                        approval_required_after_resolve: false,
-                        reason: 'Teacher-approved choice shuffle preserved the matching answer text.'
-                    };
-                }
+            if (!confirm('Shuffle choices for all choice questions? Review the answers before publishing.')) return;
+            quizData.questions.forEach((q,index)=>{
+                if(!['multiple_choice','multiple_choice_multi'].includes(q.type) || !q.options?.length)return;
+                canonicalizeChoiceSelection(q);
+                const selected=new Set(selectedChoiceLetters(q).map(letter=>letter.charCodeAt(0)-65));
+                const order=q.options.map((text,position)=>({text,position}));
+                for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+                q.options=order.map(({text})=>text.replace(/^[A-Z][).]\s*/i,''));
+                const letters=order.flatMap(({position},i)=>selected.has(position)?[String.fromCharCode(65+i)]:[]);
+                q.answer=q.type==='multiple_choice_multi'?letters:(letters[0] || '');
+                markQuestionNeedsReview(index,'Choices reordered. Correct selections were preserved; confirm them before approval.');
             });
             renderQuestions();
         }
@@ -2768,10 +2763,10 @@
                 }
             });
 
-            if (invalidQuestions.length > 0 && singleIndex === null) {
+            if (intent === 'publish' && invalidQuestions.length > 0 && singleIndex === null) {
                 const proceed = confirm(`<i data-lucide="alert-triangle" class="icon-sm"></i>️ WARNING: Questions ${invalidQuestions.join(', ')} appear to have empty text or answers.\n\nStudents will not be able to be graded properly on these.\n\nSave anyway?`);
                 if (!proceed) return false;
-            } else if (invalidQuestions.length > 0 && singleIndex !== null) {
+            } else if (intent === 'publish' && invalidQuestions.length > 0 && singleIndex !== null) {
                 alert(`Cannot save: Question ${worksheetQuestionLabel(singleIndex)} has empty text or answer.`);
                 return false;
             }

@@ -13,3 +13,9 @@ Compatible lockfile updates include proxy-addr 2.0.7 → 2.0.8, Engine.IO 6.6.9 
 Reviewed advisory IDs are fixed in `scripts/classify-dependency-audit.mjs`; new direct advisories, unknown packages and critical findings fail CI classification. Registry failure/malformed reports also fail. This classification is bounded exposure analysis, not an assertion that vulnerable dependencies are safe in every use.
 
 References: [gRPC auth-context](https://github.com/advisories/GHSA-m9gg-hp2v-232j), [gRPC status disclosure](https://github.com/advisories/GHSA-f596-whhp-79r4), [braces recursion](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), [UUID buffer bounds](https://github.com/advisories/GHSA-w5hq-g745-h8pq), [proxy-addr fix](https://github.com/advisories/GHSA-jqcg-44mw-7w3h), [PDF.js fix](https://github.com/advisories/GHSA-hq66-cqwq-w95j).
+
+## 2026-10-25 hotfix release gate
+
+The worksheet/editor PR's exact-head CI detected newly published advisories in locked `body-parser` 1.20.8 and development-only `undici` 7.30.0. Targeted compatible updates lock 1.20.9 and 7.30.1 respectively; only these two package records changed. Direct dependency ranges, Firebase, Gemini SDK and the advisory classifier are unchanged. The updated local audit passes the existing classifier; retained findings remain the previously reviewed Firebase/gRPC and ExcelJS/UUID chains.
+
+Patched version evidence: [body-parser advisory](https://github.com/advisories/GHSA-27r3-jxmh-p828), [undici advisory](https://github.com/advisories/GHSA-xjj6-f33q-929c). Full regression/browser/build and exact-head CI are rerun for this lockfile.

@@ -43,7 +43,7 @@ try {
   assert.equal(await page.evaluate(()=>document.activeElement.id),'blank-quiz-title');
   evidence.keyboard={modalFocusTrapped:true};await page.locator('#createBlankModal').getByRole('button',{name:'Create Quiz',exact:true}).click();
   await page.waitForURL('**/edit/**'); await page.getByRole('button',{name:'Add Question',exact:true}).click();
-  await page.locator('.question-block:visible textarea[aria-label="Question text"]').fill('Choose Alpha.');
+  await page.locator('.question-block:visible textarea[aria-label="Question text"]').last().fill('Choose Alpha.');
   await page.locator('.r4-save').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='Saved');
   assert.equal(await page.locator('#publication-status').textContent(),'Draft');
   let saves=0;page.on('request',r=>{if(r.url().includes('/update/'))saves++;});await page.locator('.r4-save').click();assert.equal(saves,0);
@@ -74,7 +74,7 @@ try {
   let requests=0;page.on('request',r=>{if(r.url().endsWith('/api/generate_ai'))requests++;});
   await page.locator('#generate-btn').dblclick();await page.waitForURL('**/edit/r4_ai');assert.equal(requests,1);evidence.afterGenerationRequestCount=requests;
   await page.locator('#question-filter').selectOption('review');assert.equal(await page.locator('.question-block:visible').count(),1);
-  await page.locator('.question-block:visible textarea[aria-label="Question text"]').fill('Choose the correct word Alpha.');
+  await page.locator('.question-block:visible textarea[aria-label="Question text"]').first().fill('Choose the correct word Alpha.');
   await page.locator('#approval-control-0 button').click();await page.locator('.r4-save').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='Saved');
   await page.locator('#publish-button').click();await page.waitForFunction(()=>document.getElementById('publication-status').textContent==='Published');
   await page.locator('#share-button').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent.includes('copied'));assert.match(await page.locator('#save-status').textContent(),/copied/);
@@ -100,7 +100,7 @@ try {
   for(const [screen,path] of [['dashboard','/'],['generator','/'],['editor','/edit/r4_draft'],['worksheet','/worksheet'],['worksheet-key','/worksheet_answers'],['results','/results/r4_published'],['feedback','/solutions/r4_result']]) {
     await go(path);if(screen==='generator')await page.getByRole('button',{name:'Generate with AI',exact:true}).click();
     for(const width of [360,768,1366,1920])for(const theme of ['dark','light'])await layout(screen,width,theme);
-    if(screen==='editor'){await layout(screen,360,'light');await screenshot('editor-mobile-light');await page.locator('.question-block:visible textarea[aria-label="Question text"]').fill('Mobile question edit.');await page.locator('.r4-save').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='Saved');}
+    if(screen==='editor'){await layout(screen,360,'light');await screenshot('editor-mobile-light');await page.locator('.question-block:visible textarea[aria-label="Question text"]').first().fill('Mobile question edit.');await page.locator('.r4-save').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='Saved');}
     if(screen==='dashboard'){await layout(screen,360,'dark');await screenshot('dashboard-mobile-dark');}
     if(screen==='worksheet'){await layout(screen,360,'light');await screenshot('worksheet-mobile-light');}
   }

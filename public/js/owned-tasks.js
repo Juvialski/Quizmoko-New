@@ -1,5 +1,6 @@
 (function () {
   let area, pending = false;
+  let latestJobs=[];
   async function key(task, intent) {
     const name = 'qm-task-' + task;
     const safe = JSON.stringify(intent || {}, (field,value)=>/api.?key|token|authorization|credential|password|secret/i.test(field)?undefined:value);
@@ -20,9 +21,12 @@
       if (!response.ok) return;
       const { jobs } = await response.json();
       if (!Array.isArray(jobs)) return;
+      latestJobs=jobs;window.dispatchEvent(new CustomEvent('qm-tasks-updated',{detail:jobs}));
       area.replaceChildren();
       area.hidden = jobs.length === 0;
-      for (const job of jobs.slice(0,5)) {
+      const listed=jobs.filter(job=>!(document.getElementById('worksheet-solve-progress') && job.task==='worksheet_solving'));
+      area.hidden=listed.length===0;
+      for (const job of listed.slice(0,5)) {
         const row = document.createElement('div');
         const label = document.createElement('span');
         label.textContent = `${job.label}: ${job.status.replaceAll('_',' ')}${job.total ? ` (${job.completed}/${job.total})` : ''}. `;
@@ -43,7 +47,7 @@
     } catch { /* Retain the last known task list during connectivity loss. */ }
     finally { pending=false; }
   }
-  window.QuizMoKoTasks = { key, accepted(task) { refresh(); }, refresh };
+  window.QuizMoKoTasks = { key, accepted(task, job) { if(job){latestJobs=[job,...latestJobs.filter(j=>j.id!==job.id)];window.dispatchEvent(new CustomEvent('qm-tasks-updated',{detail:latestJobs}));} refresh(); }, refresh };
   document.addEventListener('DOMContentLoaded',()=>{
     area=document.createElement('section'); area.className='qm-owned-tasks'; area.hidden=true;
     area.setAttribute('aria-label','Your AI tasks'); area.setAttribute('aria-live','polite');

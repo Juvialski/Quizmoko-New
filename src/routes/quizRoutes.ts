@@ -175,7 +175,8 @@ function validateQuizUpdate(body: any): { valid: boolean; error?: string; value?
   }
 
   const value = sanitizeQuiz(body);
-  const allowReviewRequired = body.allow_review_required === true;
+  const draftCompatible = ['save', 'draft'].includes(body.save_intent);
+  const allowReviewRequired = draftCompatible || body.allow_review_required === true;
   delete value.allow_review_required;
   delete value.save_intent;
   delete value.expected_revision;
@@ -225,24 +226,30 @@ function validateQuizUpdate(body: any): { valid: boolean; error?: string; value?
       return { valid: false, error: 'questions cannot contain more than 2000 items' };
     }
     const normalizedQuestions: any[] = [];
+    const questionErrors: string[] = [];
     for (let index = 0; index < value.questions.length; index += 1) {
       const normalized = normalizeQuestionForStorage(value.questions[index]);
+      if (!normalized.valid && draftCompatible) {
+        const raw=value.questions[index];
+        if(!raw || typeof raw !== 'object' || Array.isArray(raw))return {valid:false,error:`Question ${index + 1}: expected a question object`};
+        normalizedQuestions.push({...raw,verification:{...raw.verification,verification_status:'review_required',teacher_approved:false,teacher_batch_approved:false,teacher_approval_method:'',reason:normalized.errors.map(error=>error.message).join(' ')}});
+        continue;
+      }
       if (!normalized.valid) {
         const message = normalized.errors.map(error => error.message).join(' ');
-        return { valid: false, error: `questions[${index}] is invalid: ${message}` };
+        questionErrors.push(`Question ${value.questions[index]?.source?.original_index ?? value.questions[index]?.original_index ?? index + 1}: ${message}`);
+        continue;
       }
       if (
         normalized.question.verification?.verification_status
         && normalized.question.verification.verification_status !== 'verified'
         && !allowReviewRequired
       ) {
-        return {
-          valid: false,
-          error: `questions[${index}] is not verified and requires teacher review before this quiz can be published`
-        };
+        questionErrors.push(`Question ${value.questions[index]?.source?.original_index ?? value.questions[index]?.original_index ?? index + 1}: ${normalized.question.verification.reason || 'Approve the current question and answer before publishing.'}`);
       }
       normalizedQuestions.push(normalized.question);
     }
+    if (questionErrors.length) return {valid:false,error:questionErrors.join('\n')};
     value.questions = normalizedQuestions;
   }
 
@@ -445,7 +452,7 @@ router.post(['/update/:quiz_id', '/api/quiz/:quiz_id/update'], tokenRequired, as
   });
   const remainingReviewIds = quizReviewRequiredIds(updated);
   if (intent === 'publish' && (!updated.questions?.length || remainingReviewIds.length)) {
-    return res.status(409).json({ success: false, error: 'Review all questions before publishing.' });
+    return res.status(409).json({ success: false, error: !updated.questions?.length ? 'Add at least one question before publishing.' : `Approve answers for Questions ${remainingReviewIds.join(', ')} before publishing.` });
   }
   updated.is_draft = remainingReviewIds.length > 0 || intent === 'draft' || (intent === 'save' && existing.is_draft === true);
   updated.edit_revision = (storedQuiz.edit_revision || 0) + 1;

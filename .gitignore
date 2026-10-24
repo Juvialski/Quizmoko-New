@@ -36,3 +36,4 @@ Thumbs.db
 
 # Agent-generated artifacts
 *.artifact.md
+.local/

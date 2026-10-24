@@ -207,6 +207,7 @@ You are the DevOps & Package Guard for QuizMoKo. Your domain is repository confi
 - Keep a secret-free input fingerprint and idempotency token across Back/refresh/retries for the same UI intent. Create a new token only when inputs change or the teacher explicitly selects Start another; acknowledged jobs must not clear retry identity.
 
 ## Worksheet/editor hotfix invariants (2026-10-25)
+- UI quota badges must show unavailable when provider accounting is absent. Never infer remaining provider quota from hardcoded per-key limits or empty legacy usage statistics.
 - Worksheet solve controls follow owner-scoped task status through completion; acknowledgment is not completion. Restore the tracked job on refresh/Back, retain its idempotency key, and display actual completed/total plus finalization. Keep the progress/action visible even without retained extraction DOM.
 - The editor displays all question cards by default; navigation scrolls and Needs Review optionally filters. Per-keystroke updates must stay local to the changed card.
 - Explicit save/draft intents may retain incomplete question objects as private review-required drafts. Canonical validation remains mandatory for publication and legacy updates; await persistence and retain optimistic concurrency checks.

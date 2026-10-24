@@ -147,3 +147,6 @@ R4.1 live follow-up: bounded authorized real Gemini checks covered both allowed 
 Owned-task worksheet progress remains inline and survives Back/refresh, including finalization and draft actions. Continuous editor cards retain source labels and local keystroke updates. Choice selectors canonicalize legacy keys before edits and safely remap removal. Incomplete explicit draft saves stay private and review-required; publication retains canonical validation. Subsequent edits invalidate batch approvals. No provider/model or classroom-run changes.
 
 Hotfix release CI detected new body-parser/undici advisories. Updated only compatible lockfile patches (1.20.9/7.30.1), retaining the fail-closed classifier and direct dependency ranges.
+## 2026-10-25 — UI audit
+- Reproduced false diagram-review/dirty state from offscreen lazy image timeouts; verification behavior retained pending review.
+- Quota badges now state unavailable instead of inventing remaining provider allowance; mobile RMX header wraps with admin controls. Synthetic browser inventory/layout regression added; private production evidence stays in ignored `.local/`.

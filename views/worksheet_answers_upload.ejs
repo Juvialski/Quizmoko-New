@@ -203,7 +203,7 @@
                                         <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
                                     </select>
                                     <div id="api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px; border: 1px solid var(--hairline); font-weight: 700; white-space: nowrap; font-size: 10px; text-align: center; text-transform: uppercase; border-radius: var(--radius-sm);">
-                                        Loading...
+                                        Quota unavailable
                                     </div>
                                 </div>
                             </div>
@@ -347,25 +347,13 @@
 
         async function updateCounterUI() {
             let model = document.getElementById('model_select').value;
-            const today = new Date().toISOString().split('T')[0];
-            const modelStats = (GLOBAL_DAILY_STATS[today] && GLOBAL_DAILY_STATS[today][model]) || {};
-            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
-            if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
-
-            let totalUsed = 0, totalLimit = 0;
-            const baseLimit = API_LIMITS[model] || 20;
-
-            for (const key of keys) {
-                const kid = await getHash(key);
-                totalUsed += modelStats[kid] || 0;
-                totalLimit += baseLimit;
-            }
-            if (keys.length === 0) totalLimit = baseLimit;
-            let remaining = Math.max(0, totalLimit - totalUsed);
-            let badge = document.getElementById('api-counter-badge');
+            // Provider quota is unavailable; the legacy usage endpoint returns no accounting.
+            const badge = document.getElementById('api-counter-badge');
             if (badge) {
-                badge.innerHTML = `⏳ <b>${remaining} / ${totalLimit}</b>`;
-                badge.style.color = remaining <= 0 ? 'var(--m-red)' : 'var(--m-blue-light)';
+                badge.textContent = model.startsWith('ollama:') ? 'Local model' : 'Quota unavailable';
+                badge.title = 'Provider quota is not tracked here. Requests may be queued or rate limited.';
+                badge.style.color = 'var(--body)';
+                badge.style.borderColor = 'var(--hairline)';
             }
         }
 

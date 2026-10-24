@@ -42,6 +42,10 @@
         .meta-row { display: flex; gap: 16px; margin-bottom: 12px; }
         .meta-item { font-size: 11px; color: var(--body); font-weight: 700; text-transform: uppercase; }
         .meta-item b { color: var(--on-dark); }
+        @media (max-width: 600px) {
+            .top-header-bar { flex-wrap: wrap; gap: 16px; }
+            .header-nav-actions { flex-wrap: wrap; }
+        }
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/css/quizmoko-ui.css">
     <script src="/js/quizmoko-theme.js"></script>
     <script src="/js/math-display.js"></script>
+    <script src="/js/diagram-preview.js"></script>
     
     <script>
       window.MathJax = {
@@ -832,6 +833,7 @@
         }
 
         function validateQuestionAnswerForApproval(question) {
+            if (hasPreviewFailure(question)) return {valid:false,reason:'A diagram could not be decoded. Repair or replace its source before approval.'};
             if (!question || typeof question !== 'object') return { valid: false, reason: 'Question data is missing.' };
             if (!String(question.question || '').trim()) return {valid:false,reason:'Question text is blank.'};
             if (isApprovalPlaceholderAnswer(question.answer)) return { valid: false, reason: 'Answer is empty or still contains a placeholder.' };
@@ -1235,8 +1237,16 @@
             return sanitizeDisplayHtml(formatted);
         }
 
+        const previewSessions = new Map();
+        const previewFailures = new Map();
+        function hasPreviewFailure(question) { return [...(previewFailures.get(question) || [])].some(image => image.isConnected); }
         function updatePreview(qIndex, previewBox) {
+            previewSessions.get(previewBox)?.();
+            let active=true;
+            const disposers=[];
+            previewSessions.set(previewBox,()=>{active=false;disposers.forEach(dispose=>dispose());previewSessions.delete(previewBox);});
             const q = quizData.questions[qIndex];
+            previewFailures.delete(q);
             const processedQuestion = processTikzToImageJS(q.question, q.tikz_width);
             
             let html = formatText(processedQuestion) + '<div style="margin-top: 20px;">';
@@ -1262,12 +1272,10 @@
                 const original = q.question;
                 fetch('/api/diagram_preview', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:original}),signal:AbortSignal.timeout(8000)})
                     .then(r => r.json()).then(data => {
-                        if (quizData.questions[qIndex]?.question !== original || !previewBox.isConnected) return;
+                        if (!active || quizData.questions[qIndex] !== q || q.question !== original || !previewBox.isConnected) return;
                         if (data.success && /^data:image\/png;base64,[a-z0-9+/=]+$/i.test(data.image)) {
                             const image = previewBox.querySelector('img');
                             if (image) image.src = data.image;
-                            q.diagram_evidence = data.evidence;
-                            q.tikz_source = original;
                             if (data.image.length <= 500000) {
                                 if (structuredDiagramPreviews.size >= 10) structuredDiagramPreviews.delete(structuredDiagramPreviews.keys().next().value);
                                 structuredDiagramPreviews.set(original, data.image);
@@ -1280,21 +1288,18 @@
                         }
                     }).catch(() => { /* Kroki preview and explicit visual review remain available. */ });
             }
-            if (hasTikzBlock(q.question) || q.qa_metadata?.local_evidence || q.worksheet_qa?.local_evidence) {
+            {
                 previewBox.querySelectorAll('img').forEach(image => {
-                    const reportFailure = () => {
-                        markQuestionNeedsReview(qIndex, 'Diagram rendering failed. Repair or restore the diagram before approving.');
-                        const notice = document.createElement('div');
-                        notice.textContent = 'Diagram rendering failed. Check the source, retry the preview, and run Re-solve.';
-                        notice.style.color = 'var(--m-red)';
-                        image.after(notice);
-                    };
-                    image.addEventListener('error', reportFailure, { once: true });
-                    image.addEventListener('load', () => { if (image.naturalWidth < 2 || image.naturalHeight < 2 || image.naturalWidth > 10000 || image.naturalHeight > 10000) reportFailure(); }, {once:true});
-                    const timeout = setTimeout(() => { if (image.isConnected && !image.complete) reportFailure(); }, 10000);
-                    image.addEventListener('load', () => clearTimeout(timeout), {once:true});
-                    image.addEventListener('error', () => clearTimeout(timeout), {once:true});
-                    if (image.complete && image.naturalWidth === 0) reportFailure();
+                    const notice = document.createElement('p');
+                    notice.className='diagram-render-notice';notice.setAttribute('role','status');notice.hidden=true;
+                    image.after(notice);
+                    disposers.push(window.QuizMoKoDiagramPreview.watch(image,(state,message)=>{
+                        if(!active || quizData.questions[qIndex]!==q || !previewBox.isConnected)return;
+                        const failures=previewFailures.get(q) || new Set();
+                        if(state==='failed')failures.add(image);else failures.delete(image);
+                        previewFailures.set(q,failures);
+                        notice.textContent=message;notice.hidden=!message;
+                    }));
                 });
             }
             renderMath(previewBox);
@@ -1755,6 +1760,7 @@
             catch { window.prompt('Copy your published quiz link',link); }
         }
         function renderQuestions() {
+            [...previewSessions.values()].forEach(dispose=>dispose());previewFailures.clear();
             container.innerHTML = '';
             if(quizData.questions.length === 0) { container.innerHTML = '<p>Add a question to start your draft.</p>'; refreshQuestionNavigation(); return; }
             
@@ -2740,6 +2746,9 @@
 
         async function saveQuiz(redirect = false, btn = null, singleIndex = null, intent = 'save') {
             if (saveBusy) return false;
+            if (intent === 'publish' && quizData.questions.some(hasPreviewFailure)) {
+                alert('A diagram could not be decoded. Repair or replace its source before publishing.');return false;
+            }
             if (intent !== 'publish' && editorSnapshot() === savedSnapshot) return true;
             // --- NEW: PRE-FLIGHT VALIDATION ---
             let invalidQuestions = [];

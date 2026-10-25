@@ -1,5 +1,11 @@
 # QuizMoKo Full Application Workflow Map
 
+### 25 October 2026 UI reliability update
+
+`public/js/diagram-preview.js` owns transient waiting/loading/decoded/failed image state for editor previews. It disposes obsolete callbacks and never modifies question approval, source evidence or saved state. Known current decode failures block explicit editor approval/publication; canonical server validation remains authoritative. Structured render responses populate only the transient preview cache.
+
+Existing `/api/tasks` and `/api/tasks/:id` responses derive optional `quiz_state` from a quiz still owned by the job owner (`draft`, `published`, or null when unavailable). This response-only field is not job metadata or a new store. Task UI reconciles saved publication, deduplicates terminal notices and retains idempotency/recovery. Placeholder API usage totals/history controls are removed; quota is explicitly unavailable. Screen paper scaling resets for print. No provider, grading, persistence, session or authorization architecture changed.
+
 > **Canonical current-state architecture map**
 >
 > Baseline: `main` at `cedfb9bbef32c3400b0576b1f843451b448bfcef` (2026-09-03), immediately after PR #1 was merged.

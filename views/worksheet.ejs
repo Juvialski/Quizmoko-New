@@ -137,7 +137,19 @@
         .slider::-webkit-slider-thumb:hover { background: var(--m-blue-light); }
 
         /* --- PRINT STYLES --- */
+        @media screen {
+            #worksheet-content { zoom: var(--worksheet-preview-scale, 1); background: white; color: #111; padding: 32px; box-sizing: border-box; margin: 0 auto; }
+        }
+        @media screen and (max-width: 600px) {
+            .controls { padding: 16px; }
+            .controls-header { flex-wrap: wrap; gap: 12px; }
+            .button-group { grid-template-columns: 1fr; }
+            .style-controls { padding: 12px; gap: 12px; }
+            .control-group { min-width: 0; flex: 1 1 100%; flex-wrap: wrap; }
+            .control-select { min-width: 0; }
+        }
         @media print {
+            #worksheet-content { zoom: 1 !important; }
             .no-print { display: none !important; }
             
             body { 
@@ -315,7 +327,15 @@
             
             const container = document.getElementById('worksheet-content');
             container.style.width = cssWidthPx;
+            updatePreviewScale();
         }
+        function updatePreviewScale() {
+            const paper=document.getElementById('worksheet-content');
+            const style=getComputedStyle(document.body);
+            const available=document.documentElement.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
+            paper.style.setProperty('--worksheet-preview-scale',Math.min(1,available/paper.offsetWidth));
+        }
+        window.addEventListener('resize',updatePreviewScale);
         
         window.addEventListener('DOMContentLoaded', updatePageLayout);
 

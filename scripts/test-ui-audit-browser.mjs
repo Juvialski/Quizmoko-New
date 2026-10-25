@@ -46,6 +46,7 @@ try {
     for(const [width,theme] of [[1366,'dark'],[390,'light']]) {
       await page.setViewportSize({width,height:900});
       await page.evaluate(theme=>{if(document.documentElement.dataset.theme!==theme)window.toggleTheme?.();},theme);
+      if(name==='print') await page.waitForFunction(()=>document.documentElement.scrollWidth<=innerWidth+1);
       const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
       if(name==='rmx') assert.equal(overflow,false,'RMX header must fit mobile with admin controls');
       evidence.layouts.push({page:name,width,theme,overflow});

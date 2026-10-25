@@ -5,7 +5,7 @@ import { initSocketServer } from '../src/services/socket.ts';
 import ejs from 'ejs';
 import { execFileSync } from 'node:child_process';
 import { registerRoutes } from '../src/routes/index.ts';
-import { quizzes, results, users } from '../src/store/db.ts';
+import { quizzes, results, users, aiJobs } from '../src/store/db.ts';
 const app = express(); app.set('view engine','ejs'); app.use(express.json()); app.use(express.urlencoded({extended:true})); app.use(express.static('public'));
 quizzes.clear();results.clear();users.clear();
 users.set('teacher_test',{uid:'teacher_test',name:'Synthetic Teacher',email:'teacher@example.invalid',role:'admin'});
@@ -16,6 +16,21 @@ function fixture(id: string, title: string, review=false) {
   const quiz = {id,user_id:'teacher_test',title,subject:'English',folder:'Unit 1',time_limit:200,quiz_mode:'back_and_forth',is_draft:review,created_at:'2026-10-13T00:00:00Z',questions:[fixtureQuestion('7b',review),fixtureQuestion('8')]}; quizzes.set(id,quiz); return quiz;
 }
 fixture('r4_published','Published language quiz'); fixture('r4_draft','Draft needing attention',true);
+if (process.env.FINAL_UI_FIXTURES === '1') {
+  const {default:sharp}=await import('sharp');
+  const png=await sharp(Buffer.from('<svg width="48" height="48"><rect width="48" height="48" fill="white"/><path d="M0 48L48 0" stroke="black"/></svg>')).png().toBuffer();
+  const diagram=`<div class="resizable-image-wrapper"><div class="image-content-box"><img src="data:image/png;base64,${png.toString('base64')}" alt="Source Diagram"></div></div>`;
+  const long=fixture('reliable_diagrams','Thirty published worksheet questions');
+  long.questions=Array.from({length:30},(_,i)=>({...fixtureQuestion(String(i+1)+'b'),question:'Choose Alpha. '+diagram,worksheet_qa:{local_evidence:{version:1}}})) as any;
+  for(const [id,source] of [['broken','https://kroki.io/tikz/svg/broken'],['corrupt','data:image/png;base64,aW52YWxpZA=='],['slow','https://kroki.io/tikz/svg/slow']]) {
+    const q=fixture('image_'+id,id+' image');q.questions=[{...fixtureQuestion('7b'),question:`Choose Alpha. <img src="${source}" alt="Source Diagram">`,worksheet_qa:{local_evidence:{version:1}}}] as any;
+  }
+  const now=Date.now();
+  const job={owner_uid:'teacher_test',task:'generation',label:'Generating Quiz',status:'needs_attention',started_at:now,updated_at:now,completed:30,total:30,idempotency_key:'synthetic-historical-key',quiz_id:long.id};
+  aiJobs.set('historical',{...job,id:'historical'} as any);
+  aiJobs.set('historical-duplicate',{...job,id:'historical-duplicate',started_at:now-1} as any);
+  aiJobs.set('failed',{...job,id:'failed',quiz_id:undefined,status:'failed',error:'Synthetic provider unavailable',started_at:now-2} as any);
+}
 results.set('r4_result',{id:'r4_result',quiz_id:'r4_published',student_name:'Synthetic Student',score:1,total:2,created_at:'2026-10-13T00:01:00Z',finalized:true,details:[{...fixtureQuestion(),question:'Choose the word Alpha. $1 + 1 = 2$.',user_answer:'Beta',correct_answer:'Alpha',score_fraction:0,is_correct:false,grade_status:'graded',ai_feedback:'Choose Alpha next time.'}]});
 app.get('/__baseline',(_req,res)=>res.send(ejs.render(execFileSync('git',['show','045765a:views/index.ejs'],{encoding:'utf8'}),{grouped_quizzes:{English:[quizzes.get('r4_published')]},all_subjects:['General','English'],all_folders:['Unit 1'],is_admin:false,is_rmx_authorized:true,user:users.get('teacher_test')})));
 app.get('/api/ai/config',(_req,res)=>res.json({gemini_configured:true,ollama_configured:false}));

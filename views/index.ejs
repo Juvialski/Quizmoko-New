@@ -505,41 +505,11 @@
 
             </div>
 
-<details class="r4-details"><summary>AI settings and usage</summary>            <!-- API USAGE DASHBOARD (Isolated) -->
+<details class="r4-details"><summary>AI availability</summary>
             <div class="card index-dashboard-card" id="api-usage-card" style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 12px; margin-bottom: 15px;">
-                    <h3 style="margin:0; font-size: 16px; text-transform: none;"><i data-lucide="bar-chart-2" class="icon-sm"></i> API Usage Tracker</h3>
-                    <button onclick="syncUsageHistory()" class="btn-secondary" style="font-size: 10px; padding: 4px 8px;" id="sync-history-btn"><i data-lucide="refresh-cw" class="icon-sm"></i> Sync History</button>
-                </div>
-
-                <div id="usage-summary" style="font-size: 13px; color: var(--body); line-height: 1.6;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span>Today's Total Calls:</span>
-                        <b id="today-total-calls" style="color: var(--on-dark);">0</b>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>All-Time AI Calls:</span>
-                        <b id="all-time-calls" style="color: var(--on-dark);">0</b>
-                    </div>
-                </div>
-
-                <div id="usage-details" style="display: none; margin-top: 15px; border-top: 1px solid var(--hairline); padding-top: 15px;">
-                    <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-                        <thead>
-                            <tr style="color: var(--body); text-align: left; border-bottom: 1px solid var(--hairline);">
-                                <th style="padding: 8px 0; font-weight: 600;">Date</th>
-                                <th style="padding: 8px 0; font-weight: 600;">Model</th>
-                                <th style="padding: 8px 0; text-align: center; font-weight: 600;">Calls</th>
-                                <th style="padding: 8px 0; text-align: center; font-weight: 600;">Limit</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usage-table-body">
-                            <!-- Rows injected by JS -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <button onclick="toggleUsageDetails()" id="usage-toggle-btn" class="btn-secondary" style="width: 100%; margin-top: 15px; font-size: 11px; padding: 10px;"><i data-lucide="trending-down" class="icon-sm"></i> Show Detailed Breakdown</button>
+                <h3>Quota Unavailable</h3>
+                <p>Accurate provider quota and historical usage are unavailable here. Application task progress shows work completed, not Gemini credits or remaining requests. Requests may be queued or rate limited.</p>
+                <p>Use AI Settings to manage your existing key, or Advanced Options to select a model.</p>
             </div>
 </details>
         </div>
@@ -1091,95 +1061,7 @@
             return hashHex.substring(0, 8);
         }
 
-        async function fetchUsageStats() {
-            try {
-                const res = await fetch('/api/usage/stats');
-                const data = await res.json();
-                if (data.success) {
-                    GLOBAL_DAILY_STATS = data.daily_stats;
-                    updateUsageDashboard();
-                    updateCounterUI();
-                }
-            } catch (e) {
-                console.error('Failed to fetch usage stats:', e);
-            }
-        }
-
-        async function updateUsageDashboard() {
-            let todayTotal = 0;
-            let allTimeTotal = 0;
-            const tableBody = document.getElementById('usage-table-body');
-            if (!tableBody) return;
-            tableBody.innerHTML = '';
-
-            const today = new Date().toISOString().split('T')[0];
-
-            // Sort dates descending
-            const sortedDates = Object.keys(GLOBAL_DAILY_STATS).sort().reverse();
-
-            for (const date of sortedDates) {
-                const models = GLOBAL_DAILY_STATS[date];
-                for (const model in models) {
-                    const keys = models[model];
-                    let modelCount = 0;
-                    for (const kid in keys) {
-                        modelCount += keys[kid];
-                    }
-
-                    if (date === today) todayTotal += modelCount;
-                    allTimeTotal += modelCount;
-
-                    const row = document.createElement('tr');
-                    row.style.borderBottom = '1px solid var(--hairline)';
-                    row.innerHTML = `
-                        <td style="padding: 10px 0; color: var(--body);">${date}</td>
-                        <td style="padding: 10px 0; color: var(--on-dark);">${model}</td>
-                        <td style="padding: 10px 0; text-align: center;">${modelCount}</td>
-                        <td style="padding: 10px 0; text-align: center; color: var(--body);">${API_LIMITS[model] || '∞'}</td>
-                    `;
-                    tableBody.appendChild(row);
-                }
-            }
-
-            document.getElementById('today-total-calls').innerText = todayTotal;
-            document.getElementById('all-time-calls').innerText = allTimeTotal;
-        }
-
-        function toggleUsageDetails() {
-            const details = document.getElementById('usage-details');
-            const btn = document.getElementById('usage-toggle-btn');
-            if (details.style.display === 'none') {
-                details.style.display = 'block';
-                btn.innerHTML = '<i data-lucide="trending-up" class="icon-sm"></i> Hide Detailed Breakdown';
-            } else {
-                details.style.display = 'none';
-                btn.innerHTML = '<i data-lucide="trending-down" class="icon-sm"></i> Show Detailed Breakdown';
-            }
-            window.refreshQuizmokoIcons?.();
-        }
-
-        async function syncUsageHistory() {
-            const btn = document.getElementById('sync-history-btn');
-            const originalText = btn.innerText;
-            btn.innerText = '⏳ Syncing...';
-            btn.disabled = true;
-
-            try {
-                const res = await fetch('/api/usage/sync_history');
-                const data = await res.json();
-                if (data.success) {
-                    alert('Historical usage synced successfully!');
-                    await fetchUsageStats();
-                } else {
-                    alert('Sync failed: ' + data.error);
-                }
-            } catch (e) {
-                alert('Sync error: ' + e);
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        }
+        function fetchUsageStats() { updateCounterUI(); }
 
         async function updateCounterUI() {
             let model = document.getElementById('model_select').value;

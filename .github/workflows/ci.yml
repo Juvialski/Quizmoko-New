@@ -49,3 +49,4 @@ jobs:
             audit.json
             docs/r4-browser/
             docs/r4-1-browser/
+            .local/final-ui/

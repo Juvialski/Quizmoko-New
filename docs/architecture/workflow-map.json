@@ -244,5 +244,11 @@
     "save": "Explicit save/draft may retain incomplete question content privately as review_required; publish and legacy paths retain canonical validation, optimistic concurrency and acknowledged persistence",
     "approval": "Any correctness edit invalidates prior single/batch approval; valid explicit approval restores verification",
     "compatibility": "No new routes/stores/providers or classroom-run changes"
+  },
+  "ui_reliability_2026_10_25": {
+    "preview": "public/js/diagram-preview.js: transient lazy waiting, active loading, decoded and failed states; disposed callbacks; no question/approval mutation; current decode failures guard explicit editor approval/publication",
+    "tasks": "Existing owned task endpoints derive response-only owner-checked quiz_state (draft/published/null); history, persistence and idempotency unchanged; terminal UI deduplication",
+    "usage": "Unsupported totals and Sync History UI removed; quota unavailable; provider/key selection and limits unchanged",
+    "paper": "Screen-only zoom with print reset preserves @page dimensions"
   }
 }

@@ -21,7 +21,7 @@
     "eval:r3:grading": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-r3-grading.ts",
     "eval:r3:diagrams": "node --require ./test/tsx-bootstrap.cjs --import tsx scripts/evaluate-r3-diagrams.ts",
     "eval:grading:live": "tsx scripts/evaluate-r3-grading.ts --live",
-    "test:ui": "node scripts/test-r4-browser.mjs && node scripts/test-r4-1-browser.mjs && node scripts/test-worksheet-editor-browser.mjs && node scripts/test-ui-audit-browser.mjs"
+    "test:ui": "node scripts/test-r4-browser.mjs && node scripts/test-r4-1-browser.mjs && node scripts/test-worksheet-editor-browser.mjs && node scripts/test-ui-audit-browser.mjs && node scripts/test-final-ui-browser.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",

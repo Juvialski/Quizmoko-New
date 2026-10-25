@@ -150,3 +150,7 @@ Hotfix release CI detected new body-parser/undici advisories. Updated only compa
 ## 2026-10-25 — UI audit
 - Reproduced false diagram-review/dirty state from offscreen lazy image timeouts; verification behavior retained pending review.
 - Quota badges now state unavailable instead of inventing remaining provider allowance; mobile RMX header wraps with admin controls. Synthetic browser inventory/layout regression added; private production evidence stays in ignored `.local/`.
+
+## 2026-10-25 — Final UI reliability
+- Preview image lifecycle is transient and disposed per render; lazy waiting and slow loading never invalidate academic approval. Current decode failures warn and guard explicit approval/publication, without dirtying saved quizzes.
+- Existing task endpoints derive owner-checked current quiz publication for presentation; terminal history and idempotency remain intact. Removed placeholder usage totals/sync UI, compacted editor tools and added screen-only paper scaling with print reset.

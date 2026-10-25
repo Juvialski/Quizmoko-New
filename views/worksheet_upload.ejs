@@ -899,8 +899,9 @@
             isSolving=job.status==='running';
             const button=document.getElementById('solve-btn');button.disabled=isSolving;
             button.textContent=isSolving?'Checking answers…':'Check answers & create draft';
-            showSolveStatus(isSolving?(job.total && job.completed>=job.total?'Finalizing draft...':`Checking answers — ${job.completed}/${job.total}`):(job.error || 'Draft ready for review.'));
-            if(!isSolving && job.quiz_id){const link=document.createElement('a');link.className='btn btn-primary';link.href='/edit/'+encodeURIComponent(job.quiz_id);link.textContent='Open Draft';document.getElementById('worksheet-solve-progress').append(link);}
+            const published=!isSolving && job.quiz_state==='published';
+            showSolveStatus(isSolving?(job.total && job.completed>=job.total?'Finalizing draft...':`Checking answers — ${job.completed}/${job.total}`):(published?'Saved quiz is Published.':job.error || 'Draft ready for review.'));
+            if(!isSolving && job.quiz_id && job.quiz_state!==null){const link=document.createElement('a');link.className='btn btn-primary';link.href='/edit/'+encodeURIComponent(job.quiz_id);link.textContent=published?'Open Quiz':'Open Draft';document.getElementById('worksheet-solve-progress').append(link);}
             if(!isSolving){const again=document.createElement('button');again.type='button';again.className='btn btn-secondary';again.textContent='Start another';again.onclick=()=>{sessionStorage.removeItem('qm-task-worksheet_solving');sessionStorage.removeItem('qm-worksheet-job');trackedSolveId=null;again.disabled=true;again.textContent='Ready for a new worksheet';};document.getElementById('worksheet-solve-progress').append(again);}
         });
         async function handleSolve() {

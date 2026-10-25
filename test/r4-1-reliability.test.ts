@@ -22,6 +22,23 @@ import { normalizeAiLatexText, normalizeMathQuestionText } from '../src/services
 
 const question = (id: string) => ({id,question:'Choose Alpha.',type:'multiple_choice',options:['Alpha','Beta','Gamma','Delta'],answer:'A',points:2});
 const pause = (ms:number) => new Promise(resolve=>setTimeout(resolve,ms));
+test('task presentation follows saved quiz state without rewriting history or leaking other owners',async()=>{
+  const f=await fixture();const now=Date.now();
+  const quiz:any={id:'task-state-quiz',user_id:'r41_owner',title:'Saved work',is_draft:true,questions:[{...question('1'),verification:{verification_status:'review_required'}}]};
+  quizzes.set(quiz.id,quiz);
+  const job:any={id:'task-state-job',owner_uid:'r41_owner',task:'generation',label:'Generating Quiz',status:'needs_attention',started_at:now,updated_at:now,completed:1,total:1,idempotency_key:'test-task-state',quiz_id:quiz.id};
+  aiJobs.set(job.id,job);
+  const read=async()=> (await (await fetch(f.base+'/api/tasks/'+job.id,{headers:{authorization:'Bearer '+f.token}})).json()).job;
+  try {
+    assert.equal((await read()).quiz_state,'draft');
+    quiz.is_draft=false;quiz.questions[0].verification.verification_status='verified';
+    assert.equal((await read()).quiz_state,'published');assert.equal(job.status,'needs_attention');assert.equal(job.quiz_state,undefined);
+    quiz.user_id='another_owner';assert.equal((await read()).quiz_state,null);
+    const listed=await(await fetch(f.base+'/api/tasks',{headers:{authorization:'Bearer '+f.token}})).json();
+    assert.equal(listed.jobs.find((j:any)=>j.id===job.id).quiz_state,null);
+    assert.equal((await fetch(f.base+'/api/tasks/'+job.id,{headers:{authorization:'Bearer user_other'}})).status,404);
+  }finally{aiJobs.delete(job.id);quizzes.delete(quiz.id);await f.close();}
+});
 async function fixture() {
   const app=express(); app.set('view engine','ejs'); app.use(express.json({limit:'30mb'}));
   registerRoutes(app);

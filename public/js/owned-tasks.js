@@ -24,24 +24,33 @@
       latestJobs=jobs;window.dispatchEvent(new CustomEvent('qm-tasks-updated',{detail:jobs}));
       area.replaceChildren();
       area.hidden = jobs.length === 0;
-      const listed=jobs.filter(job=>!(document.getElementById('worksheet-solve-progress') && job.task==='worksheet_solving'));
+      const seen=new Set();
+      const listed=jobs.filter(job=>{
+        if(document.getElementById('worksheet-solve-progress') && job.task==='worksheet_solving')return false;
+        const identity=job.status==='running'?job.id:(job.quiz_id || job.id);
+        if(seen.has(identity))return false;seen.add(identity);return true;
+      });
       area.hidden=listed.length===0;
       for (const job of listed.slice(0,5)) {
         const row = document.createElement('div');
         const label = document.createElement('span');
-        label.textContent = `${job.label}: ${job.status.replaceAll('_',' ')}${job.total ? ` (${job.completed}/${job.total})` : ''}. `;
+        const published=job.status!=='running' && job.quiz_state==='published';
+        label.textContent = published ? `${job.label}: finished. Saved quiz is Published. ` : `${job.label}: ${job.status==='needs_attention'?'finished with review items':job.status.replaceAll('_',' ')}${job.total ? ` (${job.completed}/${job.total})` : ''}. `;
         row.append(label);
-        if (job.quiz_id && job.status !== 'running') {
+        if (job.quiz_id && job.quiz_state !== null && job.status !== 'running') {
           const link = document.createElement('a');
           link.href = '/edit/' + encodeURIComponent(job.quiz_id);
-          link.textContent = job.status === 'running' ? 'Open saved partial draft' : 'Open draft';
+          link.textContent = published ? 'Open quiz' : 'Open draft';
           row.append(link);
         }
         if (['completed','needs_attention','failed','interrupted'].includes(job.status)) {
           const again=document.createElement('button');again.type='button';again.className='btn-secondary';again.textContent='Start another';
           again.onclick=()=>{sessionStorage.removeItem('qm-task-'+job.task);again.textContent='Ready for a new task';again.disabled=true;};row.append(again);
         }
-        if (job.error) { const message = document.createElement('p'); message.textContent=job.error; row.append(message); }
+        if (job.error && !published) { const message = document.createElement('p'); message.textContent=job.error; row.append(message); }
+        if (['failed','interrupted'].includes(job.status) && !published) {
+          const retry=document.createElement('a');retry.href=job.task==='generation'?'/#ai-generator-card':'/worksheet';retry.textContent='Review inputs & retry';row.append(retry);
+        }
         area.append(row);
       }
     } catch { /* Retain the last known task list during connectivity loss. */ }

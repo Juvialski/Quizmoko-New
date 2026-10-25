@@ -393,7 +393,7 @@
                     <optgroup id="ollama-model-group" label="Server-configured Local Models (Ollama)" disabled hidden></optgroup>
                 </select>
                 <div id="api-counter-badge" style="background: var(--surface-soft); color: var(--on-dark); padding: 8px 12px; border-radius: var(--radius-sm); font-weight: 700; font-size: 11px; text-align: center; text-transform: uppercase;">
-                    Loading...
+                    Quota unavailable
                 </div>
             </div>
 
@@ -1189,42 +1189,13 @@
                 model = 'gemini-3.5-flash-lite';
             }
 
-            const today = new Date().toISOString().split('T')[0];
-            const modelStats = (GLOBAL_DAILY_STATS[today] && GLOBAL_DAILY_STATS[today][model]) || {};
-
-            const keys = getStoredGeminiKeys();
-            if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
-
-            let totalUsed = 0;
-            let totalLimit = 0;
-            let isLocal = model.startsWith('ollama:');
-            const baseLimit = API_LIMITS[model] || 20;
-
-            if (isLocal) {
-                totalLimit = '∞';
-                totalUsed = 0;
-            } else {
-                for (const key of keys) {
-                    const kid = await getHash(key);
-                    totalUsed += modelStats[kid] || 0;
-                    totalLimit += baseLimit;
-                }
-                if (keys.length === 0) totalLimit = baseLimit; // Default view
-            }
-
-            let remaining = isLocal ? '∞' : Math.max(0, totalLimit - totalUsed);
-
-            let badge = document.getElementById('api-counter-badge');
+            // Provider quota is unavailable; the legacy usage endpoint returns no accounting.
+            const badge = document.getElementById('api-counter-badge');
             if (badge) {
-                badge.innerHTML = `⏳ <b>${remaining} / ${totalLimit}</b><br>Requests Left`;
-
-                if (!isLocal && remaining <= 0) {
-                    badge.style.color = 'var(--m-red)';
-                    badge.style.borderColor = 'var(--m-red)';
-                } else {
-                    badge.style.color = 'var(--m-blue-light)';
-                    badge.style.borderColor = 'var(--hairline)';
-                }
+                badge.textContent = model.startsWith('ollama:') ? 'Local model' : 'Quota unavailable';
+                badge.title = 'Provider quota is not tracked here. Requests may be queued or rate limited.';
+                badge.style.color = 'var(--body)';
+                badge.style.borderColor = 'var(--hairline)';
             }
         }
 

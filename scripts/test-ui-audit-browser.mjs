@@ -18,7 +18,7 @@ try {
   await context.addInitScript(()=>localStorage.setItem('tour_completed','true'));
   const page=await context.newPage();page.on('pageerror',e=>evidence.errors.push(e.message));page.on('requestfailed',r=>evidence.failedRequests.push({url:r.url(),error:r.failure()?.errorText}));
   await page.route('**/api/usage/stats',r=>r.fulfill({status:403,json:{error:'Synthetic teacher cannot access admin usage'}}));
-  page.on('dialog',d=>d.dismiss());
+  page.on('dialog',d=>d.type()==='beforeunload'?d.accept():d.dismiss());
   const go=async path=>{const r=await page.goto('http://127.0.0.1:3000'+path);assert.ok(r.status()<400,path);};
   await go('/');await page.getByRole('button',{name:'Generate with AI',exact:true}).click();await page.locator('#generator-advanced').evaluate(e=>e.open=true);
   assert.equal(await page.locator('#api-counter-badge').textContent(),'Quota unavailable');

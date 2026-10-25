@@ -27,6 +27,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:ui
+      - run: npm run test:studio
       - run: npm run eval:ai -- --output=ai-baseline.json
       - run: npm run eval:r2 -- --output=r2-comparison.json
       - run: npm run eval:r3:grading -- --output=r3-grading.json
@@ -50,3 +51,4 @@ jobs:
             docs/r4-browser/
             docs/r4-1-browser/
             .local/final-ui/
+            docs/ui-redesign-2026-10-25/browser-evidence.json

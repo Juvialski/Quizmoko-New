@@ -1,5 +1,11 @@
 # QuizMoKo Full Application Workflow Map
 
+### 25 October 2026 unified UI redesign
+
+The three legacy worksheet entry URLs now initialize one Worksheet Studio presentation through `public/js/worksheet-studio.js`. Its initial extraction document stays in place; other modes are lazily loaded into retained same-origin frames with accessible tabs. Each mode keeps its own files, edits, crop tools, metadata and export behavior. No input is implicitly transferred between modes. Existing extraction, independent checking, recovery and draft creation endpoints remain unchanged. Cross-page completion from a retained frame opens the destination in the top workspace. `public/css/ui-redesign.css` supplies shared full-width desktop styling and responsive light/dark layouts across dashboard, generator, editor, student, monitor and results. Mode switching does not reload documents; page exit warns after input changes. This introduces no backend feature, schema or store.
+
+`public/js/owned-tasks.js` displays completed history in a compact disclosure below the teacher header and opens newly running work automatically. The RMX ZIP export uses the installed Archiver 8 named constructor; its endpoint and workbook contents are unchanged.
+
 ### 25 October 2026 UI reliability update
 
 `public/js/diagram-preview.js` owns transient waiting/loading/decoded/failed image state for editor previews. It disposes obsolete callbacks and never modifies question approval, source evidence or saved state. Known current decode failures block explicit editor approval/publication; canonical server validation remains authoritative. Structured render responses populate only the transient preview cache.

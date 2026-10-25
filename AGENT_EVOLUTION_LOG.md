@@ -154,3 +154,10 @@ Hotfix release CI detected new body-parser/undici advisories. Updated only compa
 ## 2026-10-25 — Final UI reliability
 - Preview image lifecycle is transient and disposed per render; lazy waiting and slow loading never invalidate academic approval. Current decode failures warn and guard explicit approval/publication, without dirtying saved quizzes.
 - Existing task endpoints derive owner-checked current quiz publication for presentation; terminal history and idempotency remain intact. Removed placeholder usage totals/sync UI, compacted editor tools and added screen-only paper scaling with print reset.
+## 2026-10-25 — Unified Worksheet Studio presentation
+
+Shared accessible mode tabs retain files and edits in existing independent mode documents, without changing extraction APIs, grading, keys or schemas. Legacy worksheet URLs remain direct entry points. Full-width desktop presentation uses shared theme tokens; mobile stacks. RMX extraction now locks its submit button and cleans polling on failures. Synthetic before/after evidence lives in `docs/ui-redesign-2026-10-25/`; production remains read-only and PR requires visual review before merge.
+
+Owner feedback requires using the PC screen width and a compact top section. Finished tasks default to a collapsed disclosure; running tasks open automatically and retain terminal links/errors. RMX ZIP export uses Archiver 8's named `ZipArchive` constructor, preserving the existing workbook format.
+
+Expandable settings/tools now share native keyboard-accessible disclosure panels. Avoid geometry transitions on responsive buttons: padding animation caused temporary mobile overflow during breakpoint changes. Screenshot captures must wait for theme color transitions before evaluating dark mode. CI runs the isolated Studio browser journey.

@@ -1,4 +1,14 @@
 {
+  "unified_ui_2026_10_25": {
+    "script": "public/js/worksheet-studio.js",
+    "styles": "public/css/ui-redesign.css",
+    "modes": ["/worksheet", "/worksheet_answers", "/rmxflash"],
+    "retention": "Initial document stays in place; other mode documents lazily mounted in retained same-origin frames; tab switches preserve files and edits",
+    "boundaries": "Existing APIs, providers, schemas, crops, exports and recovery; completion navigates top workspace",
+    "layout": "Full-width desktop; stacked responsive mobile; shared light/dark tokens",
+    "disclosures": "Native details/summary for settings and question tools; finished task history collapsed, new active work opens automatically",
+    "rmx_export": "Existing endpoint/workbook preserved; Archiver 8 named ZipArchive constructor"
+  },
   "schema_version": 1,
   "project": "QuizMoKo",
   "repository": "Juvialski/Quizmoko-New",

@@ -1,6 +1,7 @@
 (function () {
   let area, pending = false;
   let latestJobs=[];
+  let taskList, taskSummary, taskDisclosure, hadRunning=false;
   async function key(task, intent) {
     const name = 'qm-task-' + task;
     const safe = JSON.stringify(intent || {}, (field,value)=>/api.?key|token|authorization|credential|password|secret/i.test(field)?undefined:value);
@@ -22,7 +23,7 @@
       const { jobs } = await response.json();
       if (!Array.isArray(jobs)) return;
       latestJobs=jobs;window.dispatchEvent(new CustomEvent('qm-tasks-updated',{detail:jobs}));
-      area.replaceChildren();
+      taskList.replaceChildren();
       area.hidden = jobs.length === 0;
       const seen=new Set();
       const listed=jobs.filter(job=>{
@@ -31,6 +32,10 @@
         if(seen.has(identity))return false;seen.add(identity);return true;
       });
       area.hidden=listed.length===0;
+      const running=listed.filter(job=>job.status==='running').length;
+      taskSummary.textContent=running ? `${running} task${running===1?'':'s'} in progress` : `${listed.length} recent task${listed.length===1?'':'s'}`;
+      if(running && !hadRunning)taskDisclosure.open=true;
+      hadRunning=running>0;
       for (const job of listed.slice(0,5)) {
         const row = document.createElement('div');
         const label = document.createElement('span');
@@ -51,7 +56,7 @@
         if (['failed','interrupted'].includes(job.status) && !published) {
           const retry=document.createElement('a');retry.href=job.task==='generation'?'/#ai-generator-card':'/worksheet';retry.textContent='Review inputs & retry';row.append(retry);
         }
-        area.append(row);
+        taskList.append(row);
       }
     } catch { /* Retain the last known task list during connectivity loss. */ }
     finally { pending=false; }
@@ -60,7 +65,11 @@
   document.addEventListener('DOMContentLoaded',()=>{
     area=document.createElement('section'); area.className='qm-owned-tasks'; area.hidden=true;
     area.setAttribute('aria-label','Your AI tasks'); area.setAttribute('aria-live','polite');
-    document.body.prepend(area); refresh(); setInterval(refresh,3000);
+    taskDisclosure=document.createElement('details');taskSummary=document.createElement('summary');taskList=document.createElement('div');taskList.className='qm-task-list';
+    taskDisclosure.append(taskSummary,taskList);area.append(taskDisclosure);
+    const header=document.querySelector('.top-header-bar');
+    if(header)header.after(area);else document.body.prepend(area);
+    refresh(); setInterval(refresh,3000);
   });
   window.addEventListener('pageshow',refresh);
 })();

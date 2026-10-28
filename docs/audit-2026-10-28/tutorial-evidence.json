@@ -1,0 +1,55 @@
+{
+  "mode": "isolated Chromium; actual routes, PDF decoding, browser scripts and Socket.IO; mocked Gemini only",
+  "scenarios": [
+    {
+      "name": "Four students join and answer concurrently; authoritative teacher scores",
+      "pass": true,
+      "observed_ms": 169
+    },
+    {
+      "name": "Mocked Gemini grading delay/outage alongside owned generation",
+      "pass": true,
+      "graded": 3,
+      "retryable": 1
+    },
+    {
+      "name": "Preview, Back and refresh recover the same completed generation job and draft link",
+      "pass": true
+    },
+    {
+      "name": "Student offline/reconnect/refresh retains attempt and answer; pause/resume reconciles",
+      "pass": true
+    },
+    {
+      "name": "Final submission updates teacher completion without ghost active attempt",
+      "pass": true
+    },
+    {
+      "name": "Real three-page PDF: one mocked page failure, targeted retry, exact 7a/7b/8",
+      "pass": true,
+      "page_requests": [
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "name": "Worksheet solving and finalization jobs survive navigation and open drafts preserving 7b",
+      "pass": true
+    },
+    {
+      "name": "Desktop/mobile dashboard, live, worksheet, answer-key page and editor",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "screenshots": [
+    "dashboard-desktop.png",
+    "dashboard-mobile.png",
+    "live-desktop.png",
+    "live-mobile.png",
+    "worksheet-desktop.png",
+    "worksheet-mobile.png"
+  ],
+  "pass": true
+}

@@ -92,7 +92,7 @@ try {
   assert.match(await page.locator('.question-block:visible').textContent(),/7b/);assert.equal(await page.locator('#publication-status').textContent(),'Draft');
   evidence.journeys.push({name:'Mock worksheet extraction, edit source, check and create draft with 7b retained',pass:true});
   await go('/');await page.locator('#searchInput').fill('Newer saved title');assert.equal(await page.locator('.quiz-item:visible').count(),1);await page.locator('.quiz-item:visible').getByRole('link',{name:'Edit',exact:true}).click();
-  await page.locator('#quiz-title').fill('Library edited quiz');await page.locator('.r4-save').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='Saved');await page.getByRole('link',{name:'Back',exact:true}).click();
+  await page.locator('#quiz-title').fill('Library edited quiz');await page.locator('.r4-save').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='Saved');await page.getByRole('navigation',{name:'Workspace'}).getByRole('link',{name:'Quizzes',exact:true}).click();
   evidence.journeys.push({name:'Library search, edit, save and return',pass:true});
   await go('/results/r4_published');await page.getByRole('button',{name:'View feedback',exact:false}).click();assert.match(await page.textContent('body'),/Synthetic Student/);
   await go('/solutions/r4_result');assert.match(await page.textContent('body'),/Choose Alpha next time/);

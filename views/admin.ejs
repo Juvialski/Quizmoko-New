@@ -19,13 +19,10 @@
         .btn-unblock { background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
         .btn-unblock:hover { background: var(--success); color: #fff; }
     </style>
-</head>
+<link rel="stylesheet" href="/css/ui-redesign.css"><script defer src="/js/workspace-ui.js"></script></head>
 <body>
+    <%- include('partials/workspace-header', {active:''}) %>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <a href="/" class="back-link">← Back to Dashboard</a>
-            <button type="button" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to light theme" class="btn btn-secondary btn-sm" title="Toggle Theme"><i data-lucide="moon" class="icon-sm"></i> <span>Theme</span></button>
-        </div>
         <div class="card" style="margin-bottom: 20px;">
             <h1 style="display: flex; align-items: center; gap: 8px;"><i data-lucide="shield" class="icon-md"></i> Admin Dashboard</h1>
             <p style="color: var(--body); margin-bottom: 0;">Manage registered users and monitor application usage.</p>

@@ -87,6 +87,8 @@ test('UI Consistency - Theme files inclusion', () => {
     const relativeName = path.relative(process.cwd(), filePath);
     const content = fs.readFileSync(filePath, 'utf-8');
 
+    // Composed fragments inherit these resources from their owning page.
+    if (!/<html\b/i.test(content)) continue;
     // Every EJS page must include our primary UI stylesheet
     assert.ok(
       content.includes('quizmoko-ui.css') || content.includes('/css/quizmoko-ui.css'),

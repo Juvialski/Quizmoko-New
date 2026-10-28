@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "30 published source-labelled diagrams: wait 11s offscreen, scroll/decode every question, no metadata or dirty changes, reload clean",
+    "Broken and corrupt images show one transient warning, do not dirty/approve questions and block explicit publication",
+    "12-second active image load stays loading (not failed), eventually decodes, quiz stays saved",
+    "Detached/obsolete render callbacks cannot dirty or warn on replacement preview",
+    "Historical flagged published job reconciles to current quiz; duplicates suppressed; failures show errors and deliberate retry; fake usage controls absent",
+    "390px paper preview fits screen; print zoom resets to 1 and paper @page dimensions remain unchanged"
+  ],
+  "errors": [],
+  "mode": "Synthetic local data; actual app scripts/routes; mocked provider/external assets",
+  "pass": true
+}

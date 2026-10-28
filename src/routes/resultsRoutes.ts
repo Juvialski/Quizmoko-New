@@ -603,7 +603,8 @@ router.get('/results/:id', optionalAuth, (req: AuthRequest, res) => {
       results: [formatted],
       result: formatted,
       title: formatted.quiz_title,
-      quiz_id: formatted.quiz_id
+      quiz_id: formatted.quiz_id,
+      teacher_workspace: canManageQuiz(req.user, quizzes.get(formatted.quiz_id))
     });
   }
 
@@ -627,10 +628,11 @@ router.get('/results/:id', optionalAuth, (req: AuthRequest, res) => {
         results: formattedResults,
         result: formattedResults[0],
         title: quiz.title,
-        quiz_id: id
+        quiz_id: id,
+        teacher_workspace: isTeacherOrAdmin
       });
     } else if (isTeacherOrAdmin || req.user) {
-      return res.render('results', { results: [], result: null, title: quiz.title, quiz_id: id });
+      return res.render('results', { results: [], result: null, title: quiz.title, quiz_id: id, teacher_workspace:isTeacherOrAdmin });
     } else {
       return res.status(403).send('You do not have access to this quiz');
     }

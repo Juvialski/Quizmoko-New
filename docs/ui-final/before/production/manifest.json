@@ -1,0 +1,125 @@
+{
+  "mode": "Chrome Al production read-only inspection. Requested viewport and returned image dimensions are recorded separately. Exact 1440/390 comparisons use sibling synthetic PNGs.",
+  "captures": [
+    {
+      "file": "answer-key-1440-dark-native-386x891.jpg",
+      "requestedViewport": 1440,
+      "imageWidth": 386,
+      "imageHeight": 891
+    },
+    {
+      "file": "answer-key-390-dark-native-375x865.jpg",
+      "requestedViewport": 390,
+      "imageWidth": 375,
+      "imageHeight": 865
+    },
+    {
+      "file": "dashboard-1440-dark-native-1425x891.jpg",
+      "requestedViewport": 1440,
+      "imageWidth": 1425,
+      "imageHeight": 891
+    },
+    {
+      "file": "dashboard-390-dark-native-375x865.jpg",
+      "requestedViewport": 390,
+      "imageWidth": 375,
+      "imageHeight": 865
+    },
+    {
+      "file": "editor-1440-dark-native-1425x891.jpg",
+      "requestedViewport": 1440,
+      "imageWidth": 1425,
+      "imageHeight": 891
+    },
+    {
+      "file": "editor-390-dark-native-375x865.jpg",
+      "requestedViewport": 390,
+      "imageWidth": 375,
+      "imageHeight": 865
+    },
+    {
+      "file": "generator-1440-dark-native-1425x891.jpg",
+      "requestedViewport": 1440,
+      "imageWidth": 1425,
+      "imageHeight": 891
+    },
+    {
+      "file": "generator-390-dark-native-375x865.jpg",
+      "requestedViewport": 390,
+      "imageWidth": 375,
+      "imageHeight": 865
+    },
+    {
+      "file": "live-1440-dark-native-390x900.jpg",
+      "requestedViewport": 1440,
+      "imageWidth": 390,
+      "imageHeight": 900
+    },
+    {
+      "file": "live-390-dark-native-390x900.jpg",
+      "requestedViewport": 390,
+      "imageWidth": 390,
+      "imageHeight": 900
+    },
+    {
+      "file": "preview-1440-dark-native-1440x900.jpg",
+      "requestedViewport": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 900
+    },
+    {
+      "file": "preview-390-dark-native-375x865.jpg",
+      "requestedViewport": 390,
+      "imageWidth": 375,
+      "imageHeight": 865
+    },
+    {
+      "file": "results-1440-dark-native-390x900.jpg",
+      "requestedViewport": 1440,
+      "imageWidth": 390,
+      "imageHeight": 900
+    },
+    {
+      "file": "results-390-dark-native-390x900.jpg",
+      "requestedViewport": 390,
+      "imageWidth": 390,
+      "imageHeight": 900
+    },
+    {
+      "file": "rmx-1440-dark-native-386x891.jpg",
+      "requestedViewport": 1440,
+      "imageWidth": 386,
+      "imageHeight": 891
+    },
+    {
+      "file": "rmx-390-dark-native-375x865.jpg",
+      "requestedViewport": 390,
+      "imageWidth": 375,
+      "imageHeight": 865
+    },
+    {
+      "file": "student-1440-dark-native-1440x900.jpg",
+      "requestedViewport": 1440,
+      "imageWidth": 1440,
+      "imageHeight": 900
+    },
+    {
+      "file": "student-390-dark-native-390x900.jpg",
+      "requestedViewport": 390,
+      "imageWidth": 390,
+      "imageHeight": 900
+    },
+    {
+      "file": "worksheet-1440-dark-native-1425x891.jpg",
+      "requestedViewport": 1440,
+      "imageWidth": 1425,
+      "imageHeight": 891
+    },
+    {
+      "file": "worksheet-390-dark-native-375x865.jpg",
+      "requestedViewport": 390,
+      "imageWidth": 375,
+      "imageHeight": 865
+    }
+  ]
+}

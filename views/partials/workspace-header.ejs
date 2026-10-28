@@ -1,0 +1,15 @@
+<header class="qm-app-header top-header-bar">
+  <a class="qm-brand" href="/" aria-label="QuizMoKo home"><span class="qm-brand-mark" aria-hidden="true">Q</span><span>QuizMoKo<small>Teacher workspace</small></span></a>
+  <nav class="qm-main-nav" aria-label="Workspace">
+    <a href="/" <%- active === 'quizzes' ? 'aria-current="page"' : '' %>>Quizzes</a>
+    <a href="/#create" <%- active === 'create' ? 'aria-current="page"' : '' %>>Create</a>
+    <% if (typeof quizId === 'string' && quizId) { %>
+      <a href="/edit/<%= encodeURIComponent(quizId) %>" <%- active === 'edit' ? 'aria-current="page"' : '' %>>Editor</a>
+      <a href="/live/<%= encodeURIComponent(quizId) %>" <%- active === 'live' ? 'aria-current="page"' : '' %>>Live</a>
+      <a href="/results/<%= encodeURIComponent(quizId) %>" <%- active === 'results' ? 'aria-current="page"' : '' %>>Results</a>
+    <% } %>
+  </nav>
+  <div class="qm-header-actions">
+    <button type="button" onclick="toggleTheme()" data-theme-toggle class="btn btn-ghost btn-icon" aria-label="Switch to light theme" title="Change theme"><span aria-hidden="true">◐</span></button>
+  </div>
+</header>

@@ -33,7 +33,7 @@
     const observer = new MutationObserver(() => labelControls());
     observer.observe(document.body,{childList:true,subtree:true});
     let previousFocus = null;
-    const visibleModal = () => [...document.querySelectorAll('.modal-overlay')].find(el => getComputedStyle(el).display !== 'none');
+    const visibleModal = () => [...document.querySelectorAll('.modal-overlay,#cropper-modal')].find(el => el.getClientRects().length && getComputedStyle(el).display !== 'none');
     new MutationObserver(() => {
       const modal = visibleModal();
       if (modal && modal.dataset.r4Active !== 'true') {

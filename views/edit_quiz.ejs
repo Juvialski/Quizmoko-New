@@ -212,19 +212,11 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/teacher-workflow.js"></script>
-<link rel="stylesheet" href="/css/ui-redesign.css"></head>
+<link rel="stylesheet" href="/css/ui-redesign.css"><script defer src="/js/workspace-ui.js"></script></head>
 <body class="r4-teacher r4-editor">
+    <%- include('partials/workspace-header', {active:'edit',quizId:quiz.id}) %>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <a href="/" class="back-link" style="margin-bottom: 0;"><i data-lucide="arrow-left" class="icon-sm"></i> Back</a>
-                <% if (quiz.golden_reference || quiz.worksheet_source) { %>
-                <button class="btn" onclick="toggleGoldenSidebar()" style="background: var(--warning); color: black; border: none; font-size: 11px; padding: 6px 12px;"><i data-lucide="shield" class="icon-sm"></i> Reference</button>
-                <% } %>
-            </div>
-            <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
-        </div>
-        
+        <h1 class="editor-title">Quiz editor<small>Review questions, check answers, then publish when you are ready.</small></h1>
         <div class="r4-editor-bar">
           <span id="publication-status" class="r4-status"></span>
           <span id="save-status" role="status" aria-live="polite">Saved</span>
@@ -240,6 +232,9 @@
                 <h2 style="margin: 0;"><i data-lucide="edit-2" class="icon-sm"></i> Quiz details</h2>
                 
                 <details class="r4-more"><summary>More quiz tools</summary><div class="r4-menu">
+                    <% if (quiz.golden_reference || quiz.worksheet_source) { %>
+                    <button type="button" class="btn btn-secondary" onclick="toggleGoldenSidebar()">Reference</button>
+                    <% } %>
 
                     <button type="button" class="btn btn-secondary" onclick="openImportModal()" style="background: var(--primary); color: white; border: none; font-size: 13px;"><i data-lucide="download" class="icon-sm"></i> Import Qs</button>
                     <button type="button" class="btn btn-secondary" onclick="shuffleQuestions()" style="font-size: 13px;"><i data-lucide="shuffle" class="icon-sm"></i> Shuffle Qs</button>
@@ -282,8 +277,8 @@
           <label>Questions<select id="question-filter" onchange="refreshQuestionNavigation()"><option value="all">All questions</option><option value="review">Needs review</option></select></label>
           <span id="review-count" role="status"></span>
           <div id="question-jumps" class="r4-jumps"></div>
+          <button class="btn btn-secondary navigator-add" onclick="addManualQuestion()">Add Question</button>
         </nav>
-        <button class="btn btn-secondary" onclick="addManualQuestion()">Add Question</button>
         <div id="questions-container"></div>
         
         <button id="add-q-btn" class="btn btn-save" onclick="addAIQuestion()" style="background-color: transparent; border: 1px dashed var(--body); color: var(--body-strong);"><i data-lucide="plus-circle" class="icon-sm"></i> Generate Question</button>
@@ -1803,7 +1798,7 @@
                             ${positionLabel}
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
-                            <label style="margin: 0; font-size: 11px; color: var(--on-dark); font-weight: 700;">TYPE:</label>
+                            <label style="margin:0">Type</label>
                             <select onchange="reprocessQuestionType(${qIndex}, this.value)" style="width: auto; padding: 4px 12px; font-size: 11px; margin: 0; background: var(--canvas); color: var(--on-dark); border: 1px solid var(--primary); border-radius: 4px; font-weight: 700; cursor: pointer;">
                                 <option value="multiple_choice" ${q.type === 'multiple_choice' ? 'selected' : ''}>Multiple Choice</option>
                                 <option value="multiple_choice_multi" ${q.type === 'multiple_choice_multi' ? 'selected' : ''}>Multiple Choice (Multi-Answers)</option>
@@ -1813,20 +1808,26 @@
                                 <option value="graphing" ${q.type === 'graphing' ? 'selected' : ''}>Graphing</option>
                             </select>
                         </div>
+                        <label class="question-points">Points <input type="number" min="0.01" step="any" aria-label="Question points" value="${Number(q.points) || 1}" oninput="quizData.questions[${qIndex}].points=Number(this.value);markQuestionChanged(${qIndex});" style="width:80px;margin:0"></label>
                     </div>
-                    <details class="r4-more"><summary>Question tools</summary><div class="header-buttons r4-menu">
+                    <div class="question-order-actions" aria-label="Question order">
+                        <button type="button" class="btn btn-secondary" onclick="moveQuestion(${qIndex}, -1)" ${qIndex === 0 ? 'disabled' : ''} aria-label="Move question ${qIndex + 1} up">↑ <span>Move up</span></button>
+                        <button type="button" class="btn btn-secondary" onclick="moveQuestion(${qIndex}, 1)" ${qIndex === quizData.questions.length - 1 ? 'disabled' : ''} aria-label="Move question ${qIndex + 1} down">↓ <span>Move down</span></button>
+                        <button type="button" class="btn btn-secondary" onclick="duplicateQuestion(${qIndex})">Duplicate</button>
+                        <button type="button" class="btn btn-secondary" onclick="removeQuestion(${qIndex})">Delete</button>
+                    </div>
+                    <details class="r4-more"><summary>More question tools</summary><div class="header-buttons r4-menu">
                         <button id="save-btn-${qIndex}" class="btn" onclick="saveQuiz(false, this, ${qIndex})" style="background: var(--success); color: white; border: none; font-size: 11px; padding: 6px 12px; display: none;"><i data-lucide="save" class="icon-sm"></i> Save</button>
                         <button class="btn btn-secondary" onclick="resolveQuestionSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--success); color: var(--success); background: transparent;"><i data-lucide="lightbulb" class="icon-sm"></i> Re-solve</button>
                         <button class="btn btn-secondary" onclick="manualPolishSingle(${qIndex}, this)" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--primary); color: var(--primary); background: transparent;"><i data-lucide="sparkles" class="icon-sm"></i> Polish</button>
                         <button id="regen-btn-${qIndex}" class="btn btn-regen" onclick="regenerateQuestion(${qIndex})"><i data-lucide="refresh-cw" class="icon-sm"></i> Regenerate</button>
-                        <button class="btn btn-danger" onclick="removeQuestion(${qIndex})"><i data-lucide="trash-2" class="icon-sm"></i> Remove</button>
                     </div></details>`;
                 block.appendChild(header);
                 const teacherStatus = window.QuizMoKoTeacher.status(q);
                 const statusLine = document.createElement('p'); statusLine.className='r4-feedback r4-question-status';
                 statusLine.textContent = teacherStatus.label + ' · ' + teacherStatus.reason;
                 block.appendChild(statusLine);
-                if (teacherStatus.label !== 'Verified') {
+                if (teacherStatus.label !== 'Verified' && teacherStatus.action !== 'Edit Question') {
                     const nextAction=document.createElement('button');nextAction.type='button';nextAction.className='btn btn-secondary';nextAction.textContent=teacherStatus.action;
                     nextAction.onclick=()=>{const target=teacherStatus.action==='Preview Diagram'?block.querySelector('.live-preview'):block.querySelector('textarea');if(target){if(!target.matches('input,textarea,select,button,a'))target.tabIndex=-1;target.focus();target.scrollIntoView({block:'center'});}};
                     block.appendChild(nextAction);
@@ -1843,9 +1844,9 @@
                 qTextLabel.style.justifyContent = 'space-between';
                 qTextLabel.style.alignItems = 'center';
                 qTextLabel.innerHTML = `
-                    <span>QUESTION TEXT</span>
+                    <span>Question</span>
                     <div style="display: flex; gap: 8px;">
-                        <button class="btn" onclick="triggerImageUpload(${qIndex})" style="background: var(--surface-elevated); font-size: 10px; padding: 4px 8px; border: 1px solid var(--hairline);"><i data-lucide="image" class="icon-sm"></i>️ ATTACH IMAGE</button>
+                        <button class="btn" onclick="triggerImageUpload(${qIndex})" style="background: var(--surface-elevated); font-size: 10px; padding: 4px 8px; border: 1px solid var(--hairline);"><i data-lucide="image" class="icon-sm"></i>️ Attach image</button>
                         ${extractedData.imagePart ? `
                             <button class="btn" onclick="openCropRefiner(${qIndex})" style="background: var(--surface-elevated); color: var(--warning); border: 1px solid var(--warning); font-size: 10px; padding: 4px 8px;"><i data-lucide="scissors" class="icon-sm"></i>️ RECROP</button>
                             <button class="btn" onclick="removeAttachedImage(${qIndex})" style="background: var(--m-red); color: white; font-size: 10px; padding: 4px 8px; border: none;"><i data-lucide="trash-2" class="icon-sm"></i>️ Remove</button>
@@ -1868,21 +1869,23 @@
                 optsLabel.style.justifyContent = 'space-between';
                 optsLabel.style.alignItems = 'center';
 
-                let optsLabelText = 'OPTIONS (A), B), C), D))';
+                const hasChoiceFields = ['multiple_choice','multiple_choice_multi','true_false'].includes(q.type);
+                let optsLabelText = 'Answer choices';
                 if (q.type === 'identification') optsLabelText = 'NO OPTIONS (IDENTIFICATION)';
                 else if (q.type === 'multiple_choice_multi') optsLabelText = 'OPTIONS (SELECT ALL THAT APPLY)';
 
                 optsLabel.innerHTML = `
                     <span>${optsLabelText}</span>
-                    ${q.type !== 'identification' && q.type !== 'true_false' ? `<button class="btn" onclick="addOption(${qIndex})" style="background: var(--surface-soft); color: var(--primary); font-size: 10px; padding: 4px 8px; border: 1px solid var(--primary); font-weight: 800;"><i data-lucide="plus-circle" class="icon-sm"></i> ADD CHOICE</button>` : ''}
+                    ${['multiple_choice','multiple_choice_multi'].includes(q.type) ? `<button class="btn" onclick="addOption(${qIndex})" style="background: var(--surface-soft); color: var(--primary); font-size: 10px; padding: 4px 8px; border: 1px solid var(--primary); font-weight: 800;"><i data-lucide="plus-circle" class="icon-sm"></i> Add choice</button>` : ''}
                 `;
-                leftCol.appendChild(optsLabel);
+                if (hasChoiceFields) leftCol.appendChild(optsLabel);
 
                 const optsContainer = document.createElement('div');
                 optsContainer.className = 'options-container';
                 if (q.type !== 'identification' && q.options) {
                     q.options.forEach((opt, optIndex) => {
                         const optWrapper = document.createElement('div');
+                        optWrapper.dataset.letter = String.fromCharCode(65+optIndex);
                         optWrapper.style.display = 'flex';
                         optWrapper.style.gap = '8px';
                         optWrapper.style.alignItems = 'center';
@@ -1896,7 +1899,7 @@
                         optInput.oninput = (e) => {
                             canonicalizeChoiceSelection(q);
                             quizData.questions[qIndex].options[optIndex] = e.target.value;
-                            const choiceLabel=block.querySelector('[data-answer-choice="'+optIndex+'"]');if(choiceLabel)choiceLabel.lastChild.textContent=String.fromCharCode(65+optIndex)+' — '+e.target.value;
+                            const choiceLabel=block.querySelector('[data-answer-choice="'+optIndex+'"]');if(choiceLabel)choiceLabel.title=e.target.value;
                             markQuestionNeedsReview(qIndex, 'An answer choice changed after verification. Confirm the current answer or run Re-solve.');
                             updatePreview(qIndex, block.querySelector('.live-preview'));
                         };
@@ -1919,7 +1922,7 @@
                 } else if (q.type === 'identification') {
                     optsContainer.innerHTML = '<p style="font-size: 12px; color: var(--body);">Student will see a text box to type their answer.</p>';
                 }
-                leftCol.appendChild(optsContainer);
+                if (hasChoiceFields) leftCol.appendChild(optsContainer);
                 if (q.type === 'open_ended' || q.type === 'graphing') {
                     const rubricLabel = document.createElement('label');
                     rubricLabel.textContent = 'TEACHER RUBRIC (OPTIONAL JSON; EXPLICIT WEIGHTS SUM TO 1)';
@@ -1954,8 +1957,8 @@
                 ansLabel.style.justifyContent = 'space-between';
                 ansLabel.style.alignItems = 'center';
 
-                let ansLabelText = q.type === 'identification' ? 'CORRECT ANSWER (EXACT VALUE)' : 'CORRECT ANSWER';
-                if (q.type === 'multiple_choice_multi') ansLabelText = 'CORRECT ANSWERS (SELECT ALL THAT APPLY)';
+                let ansLabelText = q.type === 'identification' ? 'Correct answer (exact value)' : 'Correct answer';
+                if (q.type === 'multiple_choice_multi') ansLabelText = 'Correct answers (select all that apply)';
 
                 ansLabel.innerHTML = `
                     <span>${ansLabelText}</span>
@@ -2001,16 +2004,16 @@
                             choices.querySelectorAll('label').forEach(el=>{const checked=el.querySelector('input').checked;el.style.fontWeight=checked?'800':'400';el.style.background=checked?'var(--surface-soft)':'';});
                             markQuestionNeedsReview(qIndex,'Correct answer selected. Check the question and choices, then Approve Answer.');updatePreview(qIndex,block.querySelector('.live-preview'));
                         };
-                        row.append(control,document.createTextNode(letter+' — '+option));choices.append(row);
+                        row.title=option;row.append(control,document.createTextNode(letter));choices.append(row);
                     });
                     if(!selected.length){const warning=document.createElement('p');warning.textContent='Previous answer is missing or ambiguous. Select the correct choice before approval.';choices.append(warning);}
                     leftCol.append(choices);
                 }
                 leftCol.appendChild(ansInput);
                 
-                const explanationDetails=document.createElement('details');explanationDetails.className='r4-details';
-                const explanationSummary=document.createElement('summary');explanationSummary.textContent='Explanation or solution';
-                const explanationInput=document.createElement('textarea');explanationInput.value=q.solution || '';explanationInput.setAttribute('aria-label','Explanation or solution');
+                const explanationDetails=document.createElement('div');explanationDetails.className='solution-editor';
+                const explanationSummary=document.createElement('label');explanationSummary.className='solution-edit-label';explanationSummary.textContent='Explanation or solution';
+                const explanationInput=document.createElement('textarea');explanationInput.className='solution-edit-input';explanationInput.id='solution-'+qIndex;explanationSummary.htmlFor=explanationInput.id;explanationInput.value=q.solution || '';explanationInput.setAttribute('aria-label','Explanation or solution');
                 explanationInput.oninput=()=>{q.solution=explanationInput.value;markQuestionNeedsReview(qIndex,'The explanation changed. Review it before approval.');};
                 explanationDetails.append(explanationSummary,explanationInput);leftCol.appendChild(explanationDetails);
                 const rightCol = document.createElement('div');
@@ -2018,7 +2021,7 @@
                 previewLabel.style.display = 'flex';
                 previewLabel.style.justifyContent = 'space-between';
                 previewLabel.style.alignItems = 'center';
-                previewLabel.innerHTML = `<span><i data-lucide="eye" class="icon-sm"></i> LIVE PREVIEW</span>`;
+                previewLabel.innerHTML = `<span><i data-lucide="eye" class="icon-sm"></i> Student preview</span>`;
                 rightCol.appendChild(previewLabel);
 
                 const questionHasTikz = hasTikzBlock(q.question);
@@ -2066,6 +2069,28 @@
 
         function removeQuestion(index) {
             if(confirm('Are you sure you want to remove this question?')) { quizData.questions.splice(index, 1); renderQuestions(); }
+        }
+
+        function moveQuestion(index, direction) {
+            const target = index + direction;
+            if (target < 0 || target >= quizData.questions.length) return;
+            [quizData.questions[index], quizData.questions[target]] = [quizData.questions[target], quizData.questions[index]];
+            selectedQuestion = target;
+            renderQuestions();
+            document.getElementById(`question-block-${target}`)?.scrollIntoView({block:'start'});
+            document.querySelector(`#question-block-${target} .question-order-actions button:not(:disabled)`)?.focus({preventScroll:true});
+        }
+
+        function duplicateQuestion(index) {
+            const copy = structuredClone(quizData.questions[index]);
+            copy.id = crypto.randomUUID();
+            // Printed worksheet metadata stays immutable; canonical item identity is new.
+            copy.verification = {...copy.verification,teacher_approved:false,teacher_batch_approved:false,verification_status:'review_required', reason:'Review the duplicated question and answer before publishing.'};
+            quizData.questions.splice(index + 1, 0, copy);
+            selectedQuestion = index + 1;
+            renderQuestions();
+            document.getElementById(`question-block-${index + 1}`)?.scrollIntoView({block:'start'});
+            document.querySelector(`#question-block-${index + 1} textarea`)?.focus({preventScroll:true});
         }
 
         function addOption(qIndex) {

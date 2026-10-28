@@ -1,5 +1,15 @@
 # QuizMoKo Full Application Workflow Map
 
+### 28 October 2026 cohesive tutoring workspace
+
+Teacher pages compose `views/partials/workspace-header.ejs`, shared tokens/components in `public/css/ui-redesign.css`, and presentation helpers in `public/js/workspace-ui.js`. The dashboard presents three creation inputs (manual, topic generation, worksheet) and keeps the quiz library immediately below. Generation still uses its original form/controller; retry deep links reveal and focus that form. Quiz-context navigation links the saved editor, live monitor and results. Dashboard rendering derives active-classroom links from existing owned quiz/run records; result rendering selects teacher navigation only for a quiz manager. These are view locals, not new APIs or stored fields.
+
+The continuous editor adds direct duplicate/reorder controls, inline points and always-visible solution editing. A duplicated item gets a unique canonical ID, retains immutable source metadata, and returns to review-required status. Existing canonical publication validation and revision-checked saves remain authoritative. Mobile results and live roster rows use labelled vertical layouts; the student whiteboard follows the full-width question on narrow screens. No grading, authentication, provider, schema or persistence boundary changes.
+
+Worksheet Studio retains the existing independent mode documents, now sized to their content to avoid nested page scrolling. A single shared header, synchronized theme, explicit mode descriptions and current-work progress unify their presentation. Empty uploads use a compact column; review expands when there are actual questions or a recovered job. Legacy mode routes and all crop/export/recovery controllers remain in place. The RMX tab follows the already-rendered authorization-aware mode navigation.
+
+Visual evidence and limitations: [`../ui-final/README.md`](../ui-final/README.md). Exact before/after comparisons use the same synthetic math class, the PR #15 baseline, and real MathJax/fonts/icons. Browser tests use isolated records and mocked providers; they do not establish live Gemini accuracy or deployed acceptance.
+
 ### 25 October 2026 unified UI redesign
 
 The three legacy worksheet entry URLs now initialize one Worksheet Studio presentation through `public/js/worksheet-studio.js`. Its initial extraction document stays in place; other modes are lazily loaded into retained same-origin frames with accessible tabs. Each mode keeps its own files, edits, crop tools, metadata and export behavior. No input is implicitly transferred between modes. Existing extraction, independent checking, recovery and draft creation endpoints remain unchanged. Cross-page completion from a retained frame opens the destination in the top workspace. `public/css/ui-redesign.css` supplies shared full-width desktop styling and responsive light/dark layouts across dashboard, generator, editor, student, monitor and results. Mode switching does not reload documents; page exit warns after input changes. This introduces no backend feature, schema or store.

@@ -264,10 +264,11 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/teacher-workflow.js"></script>
     <script src="/js/owned-tasks.js"></script>
-<link rel="stylesheet" href="/css/ui-redesign.css"></head>
+<link rel="stylesheet" href="/css/ui-redesign.css"><script defer src="/js/workspace-ui.js"></script></head>
 <body class="r4-teacher r4-dashboard">
+    <%- include('partials/workspace-header', {active:'quizzes'}) %>
 
-    <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
+    <div data-legacy-header class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
         <div>
             <h1 style="margin: 0; color: var(--body-strong); font-weight: 700; font-size: 36px; letter-spacing: -0.5px;" id="dashboard-header">
                 <i data-lucide="rocket" class="icon-md" style="margin-right:6px;"></i> QuizMoKo <span style="font-size:16px; color:var(--body); font-weight:400; letter-spacing: 0; vertical-align: middle;">Teacher</span>
@@ -284,17 +285,21 @@
         </div>
     </div>
 
-    <section class="r4-home" aria-labelledby="today-title">
-        <h2 id="today-title">Teacher dashboard</h2>
+    <section id="create" class="r4-home" aria-labelledby="today-title">
+        <div class="home-heading"><div><p class="home-eyebrow">TEACHER WORKSPACE</p><h2 id="today-title">Your quizzes</h2><p>Prepare a quiz, teach live, and review results in one place.</p></div></div>
+        <% if (typeof active_sessions !== 'undefined' && active_sessions.length) { %>
+        <nav class="active-classrooms" aria-label="Active classrooms">
+          <% for (const run of active_sessions) { %><a href="/live/<%= encodeURIComponent(run.id) %>"><span class="classroom-dot" aria-hidden="true"></span><strong><%= run.paused ? 'Paused classroom' : 'Active classroom' %></strong><span><%= run.title %></span><b aria-hidden="true">→</b></a><% } %>
+        </nav>
+        <% } %>
+        <h3 class="home-section-title">Create a quiz</h3>
         <div class="r4-actions">
-            <button class="btn btn-primary" onclick="document.getElementById('ai-generator-card').hidden=false;document.getElementById('topic-input').focus()">Generate with AI</button>
-            <a class="btn btn-secondary" href="/worksheet">Worksheet to Quiz</a>
-            <a class="btn btn-secondary" href="#saved-quizzes-card">My Quizzes</a>
-            <button class="btn btn-secondary" onclick="document.getElementById('library-status').value='published';filterQuizzes();document.getElementById('saved-quizzes-card').scrollIntoView();document.getElementById('library-results-hint').hidden=false">Results</button>
+            <button class="create-option" aria-label="Generate with AI" data-open-generator aria-controls="ai-generator-card" aria-expanded="false"><span class="create-icon" aria-hidden="true">✧</span><span><strong>Generate with AI</strong><small>Start with a topic. Review every answer.</small></span></button>
+            <a class="create-option" aria-label="Worksheet to Quiz" href="/worksheet"><span class="create-icon" aria-hidden="true">▤</span><span><strong>Worksheet to Quiz</strong><small>Bring a PDF, images, or an answer key.</small></span></a>
+            <button class="create-option" aria-label="Create Quiz" onclick="openCreateBlankModal()"><span class="create-icon" aria-hidden="true">＋</span><span><strong>Create Quiz</strong><small>Write your own questions from scratch.</small></span></button>
         </div>
         <p id="library-results-hint" class="r4-muted" hidden>Choose Results beside a published quiz in My Quizzes.</p>
         <div class="r4-library-overview">
-          <button class="btn btn-secondary" onclick="openCreateBlankModal()">Create Quiz</button>
           <button class="btn btn-secondary" onclick="document.getElementById('library-status').value='draft';filterQuizzes();document.getElementById('saved-quizzes-card').scrollIntoView()"><%= typeof draft_count !== 'undefined' ? draft_count : 0 %> drafts · Review and finish</button>
           <button class="btn btn-secondary" onclick="document.getElementById('library-status').value='published';filterQuizzes();document.getElementById('saved-quizzes-card').scrollIntoView()"><%= typeof published_count !== 'undefined' ? published_count : 0 %> published · Share and see results</button>
         </div>
@@ -335,9 +340,8 @@
                 </button>
             <div class="card index-dashboard-card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 16px; margin-bottom: 20px;">
-                    <h3 style="margin:0; font-size: 18px; text-transform: none;">
-                        <i data-lucide="sparkles" class="icon-sm"></i> Quick Create
-                    </h3>
+                    <h3 style="margin:0; font-size: 18px; text-transform: none;">Generate with AI</h3>
+                    <button type="button" class="btn-secondary" data-close-generator>Close</button>
 
                 </div>
 
@@ -519,7 +523,6 @@
         <div class="card" id="saved-quizzes-card" style="background: transparent; border: none; padding: 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h2 style="font-size: 28px; margin: 0;">My Quizzes</h2>
-                <button onclick="openCreateBlankModal()" class="btn-primary" style="width: auto; margin: 0; padding: 10px 20px; font-size: 14px;"><i data-lucide="plus-circle" class="icon-sm"></i> New Blank Quiz</button>
             </div>
 
             <div class="r4-library-filters">
@@ -564,9 +567,9 @@
     </div>
 
     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-        <a href="/preview/<%= encodeURIComponent(sq.id) %>" class="primary-action-btn">Preview</a>
+        <% if (!sq.is_draft) { %><a href="/live/<%= encodeURIComponent(sq.id) %>" class="primary-action-btn">Run live</a><% } %>
         <% if (!sq.is_draft) { %><button class="btn btn-secondary" onclick="copyLink('<%= sq.id %>')">Share</button><% } %>
-        <a href="/results/<%= encodeURIComponent(sq.id) %>" class="primary-action-btn">Results</a>
+        <% if (!sq.is_draft) { %><a href="/results/<%= encodeURIComponent(sq.id) %>" class="primary-action-btn">Results</a><% } %>
         <a href="/edit/<%= typeof sq.id !== 'undefined' ? sq.id : '' %>" class="primary-action-btn" style="background: var(--surface-soft); color: var(--on-dark);"><i data-lucide="edit-3" class="icon-sm"></i> Edit</a>
 
         <div class="quiz-actions-menu">
@@ -574,6 +577,7 @@
                 <span>More</span>
             </button>
             <div class="quiz-actions-dropdown" id="dropdown-<%= typeof sq.id !== 'undefined' ? sq.id : '' %>">
+                <a href="/preview/<%= encodeURIComponent(sq.id) %>">Preview</a>
                 <% if (!sq.is_draft) { %><button type="button" onclick="copyLink('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"><i data-lucide="copy" class="icon-sm"></i> Copy Link</button><% } %>
                 <button type="button" onclick="duplicateQuiz('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>')"><i data-lucide="copy-plus" class="icon-sm"></i> Duplicate</button>
                 <button type="button" onclick="openMoveModal('<%= typeof sq.id !== 'undefined' ? sq.id : '' %>', '<%= typeof sq.subject !== 'undefined' ? sq.subject : '' %>')"><i data-lucide="folder-output" class="icon-sm"></i> Move</button>
@@ -1014,9 +1018,9 @@
             if (!driver) return;
 
             const steps = [
-                { popover: { title: 'Welcome to QuizMoKo!', description: 'Let’s take a quick tour to show you how to generate awesome quizzes in seconds.' } },
-                { element: '#ai-generator-card', popover: { title: 'AI Generator', description: 'Configure your topic, difficulty, and AI models here to generate your quiz.' } },
-                { element: '#subject-folder-group', popover: { title: 'Organize', description: 'Assign your quiz to a folder or subject so it’s easy to find later.' } },
+                { popover: { title: 'Welcome to QuizMoKo', description: 'Create a quiz, review the questions, publish, teach live, and check results.' } },
+                { element: '#create', popover: { title: 'Choose your starting point', description: 'Write questions yourself, generate a topic draft, or import a worksheet. Every path leads to the same editor.' } },
+                { element: '#saved-quizzes-card', popover: { title: 'Your quiz library', description: 'Find recent quizzes, finish a draft, run a live classroom, or open saved results.' } },
                 { element: '#api-key-btn', popover: { title: 'Settings', description: 'You can always update your API Key right here.' } }
             ];
 
@@ -1026,7 +1030,7 @@
             }
 
             if (isTeacher) {
-                steps.push({ element: '#saved-quizzes-card', popover: { title: 'Your Library', description: 'All your generated quizzes will be saved here safely.' } });
+                // The library is already introduced above.
                 steps.push({ element: '#search-merge-bar', popover: { title: 'Merge Tool', description: 'Select multiple quizzes and merge them into a single big worksheet!' } });
             }
 

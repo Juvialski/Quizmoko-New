@@ -376,6 +376,9 @@ router.get('/', tokenRequired, (req: AuthRequest, res) => {
     recent_quizzes: userQuizzes.slice(0, 5),
     draft_count: userQuizzes.filter(q => q.is_draft).length,
     published_count: userQuizzes.filter(q => !q.is_draft).length,
+    active_sessions: userQuizzes.filter(q => !q.is_draft && classroomRuns.get(q.id)?.status === 'active').map(q => ({
+      id:q.id,title:q.title,paused:classroomRuns.get(q.id)!.paused
+    })),
     all_subjects: Array.from(new Set(allSubjects)).sort(),
     all_folders: allFolders,
     is_admin: user.role === 'admin',

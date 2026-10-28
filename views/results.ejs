@@ -112,15 +112,14 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/teacher-workflow.js"></script>
-<link rel="stylesheet" href="/css/ui-redesign.css"></head>
+<link rel="stylesheet" href="/css/ui-redesign.css"><script defer src="/js/workspace-ui.js"></script></head>
 <body class="r4-teacher r4-results">
+    <% if (typeof teacher_workspace !== 'undefined' && teacher_workspace) { %>
+    <%- include('partials/workspace-header', {active:'results',quizId:typeof quiz_id !== 'undefined' ? quiz_id : ''}) %>
+    <% } else { %>
+    <header class="qm-app-header top-header-bar"><span class="qm-brand"><span class="qm-brand-mark" aria-hidden="true">Q</span><span>QuizMoKo<small>Your results</small></span></span><div class="qm-header-actions"><button type="button" onclick="toggleTheme()" data-theme-toggle class="btn btn-secondary btn-icon" aria-label="Switch to light theme">◐</button></div></header>
+    <% } %>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <a href="/" class="back-link">← BACK TO DASHBOARD</a>
-            <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
-        </div>
-
-        
 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
     <div>
         <h1 style="margin: 0; font-size: 28px; display: inline-flex; align-items: center; gap: 8px;"><i data-lucide="bar-chart-2" class="icon-xl"></i> Results: <%= typeof title !== 'undefined' ? title : '' %></h1>
@@ -174,7 +173,7 @@ if (results && results.length > 0) {
 }
 %>
 
-<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+<div class="results-summary">
     <div class="results-card" style="padding: 20px; box-shadow: var(--shadow); border: 1px solid var(--hairline); text-align:center;">
         <div style="font-size: 12px; font-weight: 700; color: var(--body); text-transform: uppercase;">Class Avg</div>
         <div style="font-size: 32px; font-weight: 800; color: var(--primary);"><%= classAvg %>%</div>
@@ -250,7 +249,7 @@ if (results && results.length > 0) {
                         <td>
                             <div style="display: flex; flex-direction: column; gap: 4px;">
                                 <span class="score-badge"><%= typeof r.score !== 'undefined' ? r.score : 0 %> / <%= typeof r.total !== 'undefined' ? r.total : 0 %></span>
-                                <span style="font-size: 11px; font-weight: 700; color: var(--primary);"><i data-lucide="target" class="icon-sm"></i> <%= typeof r.accuracy_pct !== 'undefined' ? r.accuracy_pct : 0 %>% Accuracy</span>
+                                <span style="font-size: 11px; font-weight: 700; color: var(--primary);"><i data-lucide="target" class="icon-sm"></i> <%= Number(r.accuracy_pct || 0).toLocaleString(undefined,{maximumFractionDigits:1}) %>% Accuracy</span>
                                 <span style="font-size: 10px; color: var(--body); font-weight: 600; margin-top: 2px;">
                                     <% 
                                       let incorrect_indices = [];
@@ -293,7 +292,7 @@ if (results && results.length > 0) {
                                 })();
                             </script>
                         </td>
-                        <td style="color: var(--body); font-size: 14px;"><%= typeof r.timestamp !== 'undefined' ? r.timestamp : '' %></td>
+                        <td style="color: var(--body); font-size: 14px;"><time data-local-date datetime="<%= r.timestamp || '' %>"><%= r.timestamp || '' %></time></td>
                         <td>
                             <% if (r.details) { %>
                                 <button class="toggle-btn" onclick="toggleDetails('<%= typeof r.id !== 'undefined' ? r.id : '' %>')"><i data-lucide="search" class="icon-sm"></i> View feedback</button>

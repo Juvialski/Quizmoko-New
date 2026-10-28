@@ -16,11 +16,11 @@ try {
   const go=async path=>{const response=await page.goto('http://127.0.0.1:3000'+path);assert.equal(response.status(),200,path);};
   await go('/#ai-generator-card');assert.ok(await page.locator('#topic-input').isVisible());
   await page.waitForFunction(()=>document.activeElement.id==='topic-input');
-  await page.getByRole('button',{name:'Close',exact:true}).click();
+  await page.getByRole('link',{name:'Back to quizzes',exact:true}).click();
   assert.equal(await page.locator('[data-open-generator]').getAttribute('aria-expanded'),'false');
   await page.getByRole('button',{name:'Generate with AI',exact:true}).click();
   assert.equal(await page.locator('[data-open-generator]').getAttribute('aria-expanded'),'true');
-  evidence.checks.push('Create action reveals and focuses original generator; close restores focus; task-retry deep link opens generator');
+  evidence.checks.push('Create action opens and focuses the original generator in the dedicated workspace; library return restores focus; task-retry deep link opens generator');
   await go('/edit/r4_draft');
   const original=await page.evaluate(()=>structuredClone(quizData.questions[0]));
   await page.locator('#question-block-0').getByRole('button',{name:'Duplicate',exact:true}).click();
@@ -51,7 +51,7 @@ try {
   await page.getByRole('searchbox',{name:'Search student submissions'}).fill('Nobody');
   assert.equal(await page.locator('tr[id^="row-"]:visible').count(),0);
   evidence.checks.push('Mobile results actions fit without horizontal scrolling; feedback expands; submission search filters real rows');
-  await go('/worksheet');await page.getByRole('tab',{name:'Worksheet + Answer Key',exact:true}).click();
+  await go('/worksheet');await page.getByRole('tab',{name:'With answer key',exact:true}).click();
   const key=page.frameLocator('#studio-panel-1');await key.locator('#worksheet-input').waitFor({state:'attached'});
   await key.locator('body').evaluate(el=>el.style.minHeight='3000px');
   await page.waitForFunction(()=>document.getElementById('studio-panel-1').getBoundingClientRect().height>=3000);

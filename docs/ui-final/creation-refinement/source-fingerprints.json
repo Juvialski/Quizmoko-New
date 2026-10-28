@@ -1,0 +1,45 @@
+{
+  "baseline": "209fcdbc18a8d8d834c55d6b48d77e8474b6d6bf",
+  "files": [
+    {
+      "path": "views/index.ejs",
+      "sha256": "33dc421469c8ca093aad8befce40da6c1934ee40c6c6563c3de9994ace8a978d"
+    },
+    {
+      "path": "views/partials/create-heading.ejs",
+      "sha256": "bc6145cc2933c4c5c052ddb9b5c056737d5c208d8aed0ed4df2b5568a5e64732"
+    },
+    {
+      "path": "views/partials/create-navigation.ejs",
+      "sha256": "117d4e55898a12a4445c5e001c89ec4685d6c6c0b2aa19c66eb0750525bdde22"
+    },
+    {
+      "path": "views/worksheet_upload.ejs",
+      "sha256": "20085ae1d6f3417a28daff59174619d6d16d43f89ccf56f0ccfb53b183565d86"
+    },
+    {
+      "path": "views/worksheet_answers_upload.ejs",
+      "sha256": "ed06e946c8830e0ace9fb128a261fc4138272bb17783764854557d4b636d55ab"
+    },
+    {
+      "path": "views/rmxflash_upload.ejs",
+      "sha256": "f6c4c2b90b27989cc1587db086790475924b77baf852bee5a39cf1d5a1822f99"
+    },
+    {
+      "path": "public/js/workspace-ui.js",
+      "sha256": "2ac55bbbd49842677ed734f72a601bf94b15c6460707c4566939b11fbb60492b"
+    },
+    {
+      "path": "public/js/worksheet-studio.js",
+      "sha256": "b341503e859c419fb57d9073d9e8e80bf6d00db05461212830d4e5a6831afb1a"
+    },
+    {
+      "path": "public/css/ui-redesign.css",
+      "sha256": "2213606405a3866a587c28f4c76dfea43ff1e2ff68bfb9371fc3a3758a146f31"
+    },
+    {
+      "path": "scripts/test-create-workspace-browser.mjs",
+      "sha256": "f542c3ea725a5986cd5abb5bf6686c12a5d041ffc2dcac5b0b70d2cf33d2fd69"
+    }
+  ]
+}

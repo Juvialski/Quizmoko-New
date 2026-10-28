@@ -38,10 +38,11 @@ try {
   evidence.before.panelsOpenedForQuestionTypeAndDifficulty=2;
   await go('/');await page.getByRole('button',{name:'Create Quiz',exact:true}).click();
   await page.locator('#blank-quiz-title').fill('Manual browser draft');
-  assert.equal(await page.locator('#createBlankModal').getAttribute('role'),'dialog');
-  await page.locator('#createBlankModal').getByRole('button',{name:'Cancel',exact:true}).focus();await page.keyboard.press('Tab');
-  assert.equal(await page.evaluate(()=>document.activeElement.id),'blank-quiz-title');
-  evidence.keyboard={modalFocusTrapped:true};await page.locator('#createBlankModal').getByRole('button',{name:'Create Quiz',exact:true}).click();
+  assert.equal(await page.locator('#createBlankModal').getAttribute('aria-modal'),null);
+  assert.equal(await page.locator('#createBlankModal').evaluate(el=>el.closest('#create')!==null),true);
+  await page.getByRole('link',{name:'Generate with AI',exact:true}).focus();
+  assert.equal(await page.getByRole('link',{name:'Generate with AI',exact:true}).evaluate(el=>el===document.activeElement),true);
+  evidence.keyboard={inlineManualCreation:true,methodNavigationReachable:true};await page.locator('#createBlankModal').getByRole('button',{name:'Create Quiz',exact:true}).click();
   await page.waitForURL('**/edit/**'); await page.getByRole('button',{name:'Add Question',exact:true}).click();
   await page.locator('.question-block:visible textarea[aria-label="Question text"]').last().fill('Choose Alpha.');
   await page.locator('.r4-save').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='Saved');

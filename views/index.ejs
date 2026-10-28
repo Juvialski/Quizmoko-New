@@ -285,7 +285,7 @@
         </div>
     </div>
 
-    <section id="create" class="r4-home" aria-labelledby="today-title">
+    <section id="quiz-library-intro" class="r4-home" aria-labelledby="today-title">
         <div class="home-heading"><div><p class="home-eyebrow">TEACHER WORKSPACE</p><h2 id="today-title">Your quizzes</h2><p>Prepare a quiz, teach live, and review results in one place.</p></div></div>
         <% if (typeof active_sessions !== 'undefined' && active_sessions.length) { %>
         <nav class="active-classrooms" aria-label="Active classrooms">
@@ -295,7 +295,7 @@
         <h3 class="home-section-title">Create a quiz</h3>
         <div class="r4-actions">
             <button class="create-option" aria-label="Generate with AI" data-open-generator aria-controls="ai-generator-card" aria-expanded="false"><span class="create-icon" aria-hidden="true">✧</span><span><strong>Generate with AI</strong><small>Start with a topic. Review every answer.</small></span></button>
-            <a class="create-option" aria-label="Worksheet to Quiz" href="/worksheet"><span class="create-icon" aria-hidden="true">▤</span><span><strong>Worksheet to Quiz</strong><small>Bring a PDF, images, or an answer key.</small></span></a>
+            <a class="create-option" aria-label="Worksheet to Quiz" href="/#create/worksheet"><span class="create-icon" aria-hidden="true">▤</span><span><strong>Worksheet to Quiz</strong><small>Bring a PDF, images, or an answer key.</small></span></a>
             <button class="create-option" aria-label="Create Quiz" onclick="openCreateBlankModal()"><span class="create-icon" aria-hidden="true">＋</span><span><strong>Create Quiz</strong><small>Write your own questions from scratch.</small></span></button>
         </div>
         <p id="library-results-hint" class="r4-muted" hidden>Choose Results beside a published quiz in My Quizzes.</p>
@@ -310,6 +310,11 @@
           <% } %>
         </nav>
     </section>
+    <main id="create" class="create-workspace" aria-labelledby="create-title" hidden>
+      <header class="create-heading"><div><h1 id="create-title">Create Quiz</h1><p>Choose a starting point, then review and finish in the editor.</p></div><a href="/" class="btn-secondary" data-return-library>Back to quizzes</a></header>
+      <%- include('partials/create-navigation', {method:'ai'}) %>
+      <div id="create-panels"></div>
+    </main>
     <!-- Layout logic: Center form for students, grid for teachers -->
     <div class="dashboard-container teacher-view">
 
@@ -341,7 +346,6 @@
             <div class="card index-dashboard-card" style="border-top-left-radius: 0; border-top-right-radius: 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--hairline); padding-bottom: 16px; margin-bottom: 20px;">
                     <h3 style="margin:0; font-size: 18px; text-transform: none;">Generate with AI</h3>
-                    <button type="button" class="btn-secondary" data-close-generator>Close</button>
 
                 </div>
 
@@ -667,15 +671,16 @@
     </div>
 
     <!-- CREATE BLANK MODAL -->
-    <div id="createBlankModal" class="modal-overlay">
-        <div class="modal-card">
-            <h2 style="margin-bottom: 16px; font-size: 24px;"><i data-lucide="plus-circle" class="icon-sm"></i> New Blank Quiz</h2>
+    <section id="createBlankModal" class="create-panel manual-create" aria-labelledby="manual-create-title" hidden>
+        <div class="manual-create-content">
+            <h2 id="manual-create-title">Write your own quiz</h2>
+            <p class="r4-muted">Name your draft. Add questions, answers and solutions in the editor.</p>
 
 
-            <label>Quiz Title</label>
+            <label for="blank-quiz-title">Quiz Title</label>
             <input type="text" id="blank-quiz-title" placeholder="e.g. My Custom Test">
 
-            <label>Subject / Folder</label>
+            <label for="blank-quiz-subject">Subject / Folder</label>
             <select id="blank-quiz-subject" onchange="toggleCustomBlankSubject(this)">
                 <% for (let s of (all_subjects || [])) { %>
                     <option value="<%= typeof s !== 'undefined' ? s : '' %>" <% if (s == 'General') { %>selected<% } %>><%= typeof s !== 'undefined' ? s : '' %></option>
@@ -689,7 +694,7 @@
                 <button onclick="closeCreateBlankModal()" class="btn-secondary" style="flex: 1;">Cancel</button>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- MOVE QUIZ MODAL -->
     <div id="moveModal" class="modal-overlay">
@@ -1019,7 +1024,7 @@
 
             const steps = [
                 { popover: { title: 'Welcome to QuizMoKo', description: 'Create a quiz, review the questions, publish, teach live, and check results.' } },
-                { element: '#create', popover: { title: 'Choose your starting point', description: 'Write questions yourself, generate a topic draft, or import a worksheet. Every path leads to the same editor.' } },
+                { element: '.r4-actions', popover: { title: 'Choose your starting point', description: 'Write questions yourself, generate a topic draft, or import a worksheet. Every path leads to the same editor.' } },
                 { element: '#saved-quizzes-card', popover: { title: 'Your quiz library', description: 'Find recent quizzes, finish a draft, run a live classroom, or open saved results.' } },
                 { element: '#api-key-btn', popover: { title: 'Settings', description: 'You can always update your API Key right here.' } }
             ];
@@ -1451,10 +1456,10 @@
 
         // --- CREATE BLANK MODAL LOGIC ---
         function openCreateBlankModal() {
-            document.getElementById('createBlankModal').style.display = 'flex';
+            window.quizCreateWorkspace.select('manual', true);
         }
         function closeCreateBlankModal() {
-            document.getElementById('createBlankModal').style.display = 'none';
+            window.quizCreateWorkspace.library();
         }
         function toggleCustomBlankSubject(select) {
             document.getElementById('blank-quiz-custom-subject').style.display = (select.value === '__custom__') ? 'block' : 'none';

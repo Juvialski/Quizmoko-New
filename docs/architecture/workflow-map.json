@@ -3,10 +3,10 @@
     "header": "views/partials/workspace-header.ejs",
     "presentation": "public/js/workspace-ui.js",
     "design_system": "public/css/ui-redesign.css",
-    "layout": "1440px readable teacher workspace; compact empty uploads; full-width mobile questions and labelled roster/result rows",
-    "creation": "Manual, topic generation and worksheet inputs lead into existing continuous editor and canonical publication",
+    "layout": "1440px readable teacher workspace; desktop file inputs beside extraction options/actions; full-width mobile questions and labelled roster/result rows",
+    "creation": "Dedicated /#create/{ai,manual,worksheet} surface with shared method navigation; original AI/manual forms and lazily mounted content-sized worksheet document retain inputs across method switches, in-page library returns and browser history; compatible standalone worksheet URLs",
     "editor": "Inline points/solutions, direct reorder/duplicate/delete; duplicate canonical ID is new, source metadata is immutable and verification requires review",
-    "studio": "Retained same-origin documents size to content; themes and current-work progress synchronize; legacy routes/inputs/controllers remain",
+    "studio": "Questions, With answer key and RMX export keep separate files/edits in retained same-origin documents; inactive panels hidden; themes/current-work progress synchronize; nested crop overlays use visible top-level viewport; legacy routes and controllers remain",
     "boundaries": "Only active-classroom and result-navigation view locals added; no backend APIs, auth, providers, schema, grading or persistent stores changed",
     "review": "docs/ui-final/README.md",
     "browser_test": "scripts/test-ui-final-workflow.mjs"

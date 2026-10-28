@@ -1,9 +1,9 @@
 /* One workspace, retained mode documents. Provider and persistence code stays in its existing mode. */
 document.addEventListener('DOMContentLoaded', () => {
   const modes = [
-    {path:'/worksheet', label:'Worksheet Only', description:'Extract the questions, review them, then check answers and create a draft.'},
-    {path:'/worksheet_answers', label:'Worksheet + Answer Key', description:'Match your worksheet to a supplied answer key, then review and create a draft.'},
-    {path:'/rmxflash', label:'RMX Flash', description:'Prepare a contest worksheet for RMX spreadsheet export. This option does not create a quiz.'}
+    {path:'/worksheet', label:'Questions', description:'Extract questions, check answers, then review your draft in the editor.'},
+    {path:'/worksheet_answers', label:'With answer key', description:'Match questions to your reference key, check answers, then review your draft.'},
+    {path:'/rmxflash', label:'RMX export', description:'Prepare questions for an RMX spreadsheet export.'}
   ].filter(mode=>mode.path!=='/rmxflash' || document.querySelector('.mode-tabs a[href="/rmxflash"]'));
   const initial = location.pathname === '/worksheet_upload' ? 0 : modes.findIndex(m => m.path === location.pathname);
   if (initial < 0) return;
@@ -24,12 +24,16 @@ document.addEventListener('DOMContentLoaded', () => {
     updateLayout();
   }
   const embedded = window.parent !== window;
-  if (embedded) { document.body.classList.add('studio-embedded'); return; }
+  if (embedded) {
+    document.body.classList.add('studio-embedded');
+    if (!window.frameElement?.hasAttribute('data-create-worksheet')) return;
+    document.body.classList.add('create-embedded');
+  }
   const content = document.querySelector('.dashboard-container');
   if (!content) return;
   const workspace = document.createElement('section');
   workspace.className = 'studio-workspace';
-  workspace.innerHTML = `<header class="studio-heading"><div><h1>Create from a worksheet</h1><p id="studio-description"></p></div><a class="btn-secondary" href="/">Back to quizzes</a></header><div class="studio-tabs" role="tablist" aria-label="Worksheet mode"></div><p class="studio-retention">Each option keeps its own files and edits while this page is open.</p><ol class="studio-steps" aria-label="Worksheet progress"><li>Upload</li><li>Extract</li><li>Review</li><li>Check answers</li><li>Create draft</li></ol><p id="studio-status" role="status" aria-live="polite"></p>`;
+  workspace.innerHTML = `<div class="studio-options"><div class="studio-tabs" role="tablist" aria-label="Worksheet mode"></div></div><p id="studio-description"></p><p class="studio-retention">Files and edits stay separate for each option.</p><ol class="studio-steps" aria-label="Worksheet progress"><li>Upload</li><li>Extract</li><li>Review</li><li>Check answers</li><li>Create draft</li></ol><p id="studio-status" role="status" aria-live="polite"></p>`;
   content.before(workspace);
   content.id ||= 'studio-original-panel';
   content.setAttribute('role','tabpanel');
@@ -58,12 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const checking = doc.getElementById('solve-btn')?.disabled && visible(task);
       const draftReady = visible(task) && task.querySelector('a[href^="/edit/"]');
       const hasFiles = [...doc.querySelectorAll('input[type=file]')].some(el => el.files.length);
-      const step = draftReady && (review || hasFiles) ? 4 : checking ? 3 : processing ? (review ? 3 : 1) : review ? 2 : hasFiles ? 1 : 0;
+      const isRmx = modes[active].path === '/rmxflash';
+      const step = isRmx ? (review ? 3 : processing || hasFiles ? 1 : 0) : draftReady && (review || hasFiles) ? 4 : checking ? 3 : processing ? (review ? 3 : 1) : review ? 2 : hasFiles ? 1 : 0;
       workspace.querySelectorAll('.studio-steps li').forEach((el,i) => {
         el.classList.toggle('complete',i<step);el.classList.toggle('current',i===step);
         if(i===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');
       });
-      const text = checking ? 'Checking answers. Progress appears below.' : draftReady && (review || hasFiles) ? 'Draft ready. Open it from the task below.' : processing ? (doc.getElementById('progress-text')?.textContent || 'Processing your files…') : review ? 'Review the questions below, then check answers or export your RMX file.' : hasFiles ? 'Files ready. Select Extract to continue.' : 'Upload files to begin.';
+      const text = isRmx && review ? 'Review the questions below, then export your RMX spreadsheet.' : checking ? 'Checking answers. Progress appears below.' : draftReady && (review || hasFiles) ? 'Draft ready. Open it from the task below.' : processing ? (doc.getElementById('progress-text')?.textContent || 'Processing your files…') : review ? 'Review the questions below before creating a draft.' : hasFiles ? 'Files ready. Select Extract to continue.' : '';
       const status = workspace.querySelector('#studio-status');
       if(status.textContent !== text)status.textContent=text;
     };
@@ -94,8 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const viewport = () => {
           if (frame.hidden || !frame.contentDocument) return;
           const rect=frame.getBoundingClientRect();
-          const start=Math.max(0,-rect.top);
-          const height=Math.min(rect.height-start,innerHeight-Math.max(0,rect.top));
+          let top=rect.top, owner=window;
+          while(owner!==owner.parent) {top+=owner.frameElement.getBoundingClientRect().top;owner=owner.parent;}
+          const start=Math.max(0,-top);
+          const height=Math.min(rect.height-start,owner.innerHeight-Math.max(0,top));
           if(height<=0)return;
           const style=frame.contentDocument.documentElement.style;
           style.setProperty('--studio-modal-top',`${start}px`);
@@ -106,7 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
         frame.studioResize = resize;
         window.addEventListener('scroll',viewport,{passive:true});
         window.addEventListener('resize',viewport);
-        window.addEventListener('pagehide', () => {resizeObserver.disconnect();window.removeEventListener('scroll',viewport);window.removeEventListener('resize',viewport);}, {once:true});
+        if(window!==window.top)window.top.addEventListener('scroll',viewport,{passive:true});
+        window.addEventListener('pagehide', () => {resizeObserver.disconnect();window.removeEventListener('scroll',viewport);window.removeEventListener('resize',viewport);if(window!==window.top)window.top.removeEventListener('scroll',viewport);}, {once:true});
         resize();
       });
       workspace.after(frame);panels.set(index,frame);
@@ -114,7 +122,10 @@ document.addEventListener('DOMContentLoaded', () => {
     for(const [key,panel] of panels) { panel.hidden=key!==index;panel.setAttribute('aria-labelledby',`studio-tab-${key}`); }
     [...tabs.children].forEach((tab,i)=>{tab.setAttribute('aria-selected',String(i===index));tab.tabIndex=i===index?0:-1;});
     workspace.querySelector('#studio-description').textContent=modes[index].description;
-    workspace.querySelector('.studio-steps li:last-child').textContent=index===2?'Export':'Create draft';
+    const isRmx=modes[index].path==='/rmxflash';
+    const steps=workspace.querySelectorAll('.studio-steps li');
+    steps[3].textContent=isRmx?'Export':'Check answers';
+    steps[4].hidden=isRmx;
     syncTheme(panels.get(index));panels.get(index).studioResize?.();panels.get(index).studioUpdate?.();
     if(focus)tabs.children[index].focus();
   }

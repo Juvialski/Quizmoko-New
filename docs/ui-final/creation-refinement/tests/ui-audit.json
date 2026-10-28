@@ -1,0 +1,3767 @@
+{
+  "mode": "Local synthetic records; mocked AI and external assets; actual app routes/scripts",
+  "checks": [
+    "Dashboard quota stays unknown for both hosted models without browser keys",
+    "Two synthetic keys and a denied usage endpoint never fabricate provider quota",
+    "Search empty state and draft filter exercised",
+    "worksheet: truthful quota for both hosted models",
+    "answer-key: truthful quota for both hosted models"
+  ],
+  "inventory": [
+    {
+      "page": "dashboard",
+      "controls": [
+        {
+          "tag": "A",
+          "label": "QuizMoKo home",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Create",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "AI Settings",
+          "id": "api-key-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "️ Admin Panel",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Logout",
+          "id": "logout-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Switch to light theme",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "0 recent tasks",
+          "id": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Generate with AI",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Worksheet to Quiz",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Create Quiz",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "1 drafts · Review and finish",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "1 published · Share and see results",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Published language quiz · Published",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Draft needing attention · Draft",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Back to quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Generate with AI",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Write manually",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "From a worksheet",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Generate with AI",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Worksheet",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Answer key",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "RMXFLASH",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Jump to Library / Folders",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "",
+          "type": "hidden",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "hidden_api_key",
+          "type": "hidden",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "hidden_ollama_url",
+          "type": "hidden",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Quiz Topic",
+          "id": "topic-input",
+          "type": "text",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Subject / Folder",
+          "id": "",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Enter folder name",
+          "id": "",
+          "type": "text",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "quick-count",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Question type",
+          "id": "test_type_select",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "BalancedEasyAverageHard",
+          "id": "quick-difficulty",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "Advanced Options",
+          "id": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Local AI settings",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "model name",
+          "id": "model_select",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Question Style",
+          "id": "",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "-",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "mc count",
+          "id": "mc_count",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "+",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "-",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "tf count",
+          "id": "tf_count",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "+",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "-",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "id count",
+          "id": "id_count",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "+",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "-",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "oe count",
+          "id": "oe_count",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "+",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "-",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "gr count",
+          "id": "gr_count",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "+",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Time(s)",
+          "id": "",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Diagrams",
+          "id": "",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Batch",
+          "id": "",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Quiz Mode",
+          "id": "",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Easy",
+          "id": "",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Avg",
+          "id": "",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Hard",
+          "id": "",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Generate Quiz",
+          "id": "generate-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Cancel Generation",
+          "id": "cancel-generate-btn",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "AI availability",
+          "id": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "e.g. My Custom Test",
+          "id": "blank-quiz-title",
+          "type": "text",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Biology\n                \n                    English\n                \n                    General\n  ",
+          "id": "blank-quiz-subject",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Enter folder name",
+          "id": "blank-quiz-custom-subject",
+          "type": "text",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Create Quiz",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Cancel",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "All quizzesDrafts requiring attentionPublished",
+          "id": "library-status",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "All subjectsBiologyEnglishGeneralHistoryMathScience",
+          "id": "library-subject",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "All foldersUnit 1",
+          "id": "library-folder",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Search quizzes...",
+          "id": "searchInput",
+          "type": "search",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Merge Mode",
+          "id": "mergeModeBtn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Run live",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Share",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Results",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Edit",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "More",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Preview",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Copy Link",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Duplicate",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Move",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Results",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Export",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Live classroom",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Delete",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Edit",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "More",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Preview",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Duplicate",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Move",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Results",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Export",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Live classroom",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Delete",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Confirm Merge",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Cancel",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "GET FREE KEY ON GOOGLE AI STUDIO ↗",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Primary API Key",
+          "id": "modal_api_key_input",
+          "type": "password",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Secondary Key 1 (Backup)",
+          "id": "modal_api_key_2",
+          "type": "password",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Secondary Key 2 (Backup)",
+          "id": "modal_api_key_3",
+          "type": "password",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Save Settings",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Cancel",
+          "id": "modal-cancel-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Refresh Configured Models",
+          "id": "btn-scan-ollama",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Close",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "move-quiz-id",
+          "type": "hidden",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Select Destination Folder",
+          "id": "move-quiz-subject",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Enter folder name",
+          "id": "move-quiz-custom-subject",
+          "type": "text",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Move Quiz",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Cancel",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "editor",
+      "controls": [
+        {
+          "tag": "A",
+          "label": "QuizMoKo home",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Create",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Editor",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Live",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Results",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Switch to dark theme",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Preview",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Save Draft",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Publish Quiz",
+          "id": "publish-button",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Share Quiz",
+          "id": "share-button",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Question 7b: Approve the current answer",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Published student link",
+          "id": "share-link",
+          "type": "text",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "More quiz tools",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Import Qs",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Shuffle Qs",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Shuffle Choices",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Polish Math",
+          "id": "manual-polish-btn",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Re-Check",
+          "id": "recheck-ans-btn",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Approve All Answers",
+          "id": "approve-all-ans-btn",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Discard",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Export",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "quiz-title",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "Quiz settings",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "quiz-time",
+          "type": "number",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Sequential (Standard)\n                        Back-and-Forth (Unified Timer)",
+          "id": "quiz-mode",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "require-solution",
+          "type": "checkbox",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "SHOW / HIDE",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "All questionsNeeds review",
+          "id": "question-filter",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Question 7b",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Question 8",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Add Question",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Type",
+          "id": "",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Question points",
+          "id": "",
+          "type": "number",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Move question 1 up",
+          "id": "",
+          "type": "button",
+          "disabled": true,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Move question 1 down",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Duplicate",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Delete",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "More question tools",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Save",
+          "id": "save-btn-0",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Re-solve",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Polish",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Regenerate",
+          "id": "regen-btn-0",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "️ Attach image",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "TEXTAREA",
+          "label": "Question text",
+          "id": "",
+          "type": "textarea",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Add choice",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Choice A",
+          "id": "",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Remove choice A",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Choice B",
+          "id": "",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Remove choice B",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Choice C",
+          "id": "",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Remove choice C",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Choice D",
+          "id": "",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Remove choice D",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "✓ APPROVE ANSWER",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "🪄 RE-FORMAT",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "Review details",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Correct choice A",
+          "id": "",
+          "type": "radio",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Correct choice B",
+          "id": "",
+          "type": "radio",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Correct choice C",
+          "id": "",
+          "type": "radio",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Correct choice D",
+          "id": "",
+          "type": "radio",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "TEXTAREA",
+          "label": "Correct answer",
+          "id": "ans-input-0",
+          "type": "textarea",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "TEXTAREA",
+          "label": "Explanation or solution",
+          "id": "solution-0",
+          "type": "textarea",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Type",
+          "id": "",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Question points",
+          "id": "",
+          "type": "number",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Move question 2 up",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Move question 2 down",
+          "id": "",
+          "type": "button",
+          "disabled": true,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Duplicate",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Delete",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "More question tools",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Save",
+          "id": "save-btn-1",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Re-solve",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Polish",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Regenerate",
+          "id": "regen-btn-1",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "️ Attach image",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "TEXTAREA",
+          "label": "Question text",
+          "id": "",
+          "type": "textarea",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Add choice",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Choice A",
+          "id": "",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Remove choice A",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Choice B",
+          "id": "",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Remove choice B",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Choice C",
+          "id": "",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Remove choice C",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Choice D",
+          "id": "",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Remove choice D",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "✓ APPROVE ANSWER",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "🪄 RE-FORMAT",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Correct choice A",
+          "id": "",
+          "type": "radio",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Correct choice B",
+          "id": "",
+          "type": "radio",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Correct choice C",
+          "id": "",
+          "type": "radio",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Correct choice D",
+          "id": "",
+          "type": "radio",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "TEXTAREA",
+          "label": "Correct answer",
+          "id": "ans-input-1",
+          "type": "textarea",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "TEXTAREA",
+          "label": "Explanation or solution",
+          "id": "solution-1",
+          "type": "textarea",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Generate Question",
+          "id": "add-q-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Save Draft",
+          "id": "bottom-save",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Export",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "×",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Search quizzes...",
+          "id": "transfer-search",
+          "type": "text",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Confirm Transfer",
+          "id": "confirm-transfer-btn",
+          "type": "submit",
+          "disabled": true,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Cancel",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "×",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Search quizzes...",
+          "id": "import-search",
+          "type": "text",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Done",
+          "id": "import-modal-close-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Select All",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Confirm Import",
+          "id": "confirm-bulk-import-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Back",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Save Crop",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Cancel",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "worksheet",
+      "controls": [
+        {
+          "tag": "A",
+          "label": "QuizMoKo home",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Create",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Admin Panel",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Logout",
+          "id": "logout-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Switch to dark theme",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "0 recent tasks",
+          "id": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Back to quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Generate with AI",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Write manually",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "From a worksheet",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Questions",
+          "id": "studio-tab-0",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "With answer key",
+          "id": "studio-tab-1",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "RMX export",
+          "id": "studio-tab-2",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "AI GEN",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "WORKSHEET",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "ANSWERS",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "RMXFLASH",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "file-input",
+          "type": "file",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "Extraction options",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "use_screenshots",
+          "type": "checkbox",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "model_select",
+          "id": "model_select",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Topic / Hint",
+          "id": "topic_hint",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Subject Type (Optimization)",
+          "id": "subject_input",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Extract questions",
+          "id": "extract-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Targeted Recovery",
+          "id": "retry-recovery-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Solve Batch Size",
+          "id": "batch_size",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Sec/Question",
+          "id": "time_limit",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Quiz Mode",
+          "id": "quiz_mode",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "require_solution",
+          "type": "checkbox",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "CHECK ANSWERS & CREATE DRAFT",
+          "id": "solve-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Save Crop",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Cancel",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "answer-key",
+      "controls": [
+        {
+          "tag": "A",
+          "label": "QuizMoKo home",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Create",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Admin Panel",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Logout",
+          "id": "logout-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Switch to dark theme",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "0 recent tasks",
+          "id": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Back to quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Generate with AI",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Write manually",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "From a worksheet",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Questions",
+          "id": "studio-tab-0",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "With answer key",
+          "id": "studio-tab-1",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "RMX export",
+          "id": "studio-tab-2",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "AI GEN",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "WORKSHEET",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "ANSWERS",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "RMXFLASH",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "worksheet-input",
+          "type": "file",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "answer-input",
+          "type": "file",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "Extraction options",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "use_screenshots",
+          "type": "checkbox",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "model_select",
+          "id": "model_select",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Topic / Hint",
+          "id": "topic_hint",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Extract and match",
+          "id": "extract-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "allow-review-required",
+          "type": "checkbox",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Targeted Recovery",
+          "id": "retry-recovery-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Subject Folder",
+          "id": "subject_select",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Solve Batch Size",
+          "id": "batch_size",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Seconds Per Question",
+          "id": "time_limit",
+          "type": "number",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Quiz Mode",
+          "id": "quiz_mode",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "CREATE QUIZ",
+          "id": "generate-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Save Crop",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Cancel",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "rmx",
+      "controls": [
+        {
+          "tag": "A",
+          "label": "QuizMoKo home",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Create",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Admin Panel",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Logout",
+          "id": "logout-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Switch to dark theme",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Back to quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Generate with AI",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Write manually",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "From a worksheet",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Questions",
+          "id": "studio-tab-0",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "With answer key",
+          "id": "studio-tab-1",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "RMX export",
+          "id": "studio-tab-2",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "AI GEN",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "WORKSHEET",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "ANSWERS",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "RMXFLASH",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "ws-input",
+          "type": "file",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "ans-input",
+          "type": "file",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "Extraction options",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "use_screenshots",
+          "type": "checkbox",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Gemini 3.5 Flash Lite\n                            Gemini 3.1 Flash Lite",
+          "id": "model_select",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "Export details",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Year (e.g., 2024)",
+          "id": "year",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Test Name",
+          "id": "test_name",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Contest",
+          "id": "contest",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Extract for export",
+          "id": "extract-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Export to Excel",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Save Crop",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Cancel",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "student",
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "label": "Switch to dark theme",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "Display",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Align",
+          "id": "center-toggle",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Decrease question font size",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Increase question font size",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Show Whiteboard",
+          "id": "btn-toggle-whiteboard",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "End Quiz",
+          "id": "btn-end-early",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Your full name",
+          "id": "student-name",
+          "type": "text",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Start Quiz",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "RETRY GRADING",
+          "id": "btn-retry-grading",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "CONTINUE TO NEXT QUESTION ️",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "CONFIRM ANSWER",
+          "id": "btn-confirm",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "⬅️ PREVIOUS",
+          "id": "btn-prev",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "NEXT / CONFIRM",
+          "id": "btn-next",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Question Navigator (2)",
+          "id": "question-jump-toggle",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "VIEW & DOWNLOAD SOLUTIONS",
+          "id": "pdf-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Back to question",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "️ Draw",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Eraser",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Line",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "⬜ Rect",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "⭕ Circle",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "文本 Text",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "⬛ Grid: Off",
+          "id": "wb-grid-toggle",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "️ Clear",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "2px4px8px12px",
+          "id": "wb-size",
+          "type": "select-one",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "wb-color",
+          "type": "color",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "TEXTAREA",
+          "label": "",
+          "id": "wb-text-input",
+          "type": "textarea",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "◀",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "▶",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "+ NEW PAGE",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "live",
+      "controls": [
+        {
+          "tag": "A",
+          "label": "QuizMoKo home",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Create",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Editor",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Live",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Results",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Switch to dark theme",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Preview questions",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Start New Session",
+          "id": "start-run-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Pause Timers",
+          "id": "pause-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "End Session",
+          "id": "terminate-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "results",
+      "controls": [
+        {
+          "tag": "A",
+          "label": "QuizMoKo home",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Create",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Editor",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Live",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Results",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Switch to dark theme",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "DELETE",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Search student submissions",
+          "id": "",
+          "type": "search",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "select all checkbox",
+          "id": "select-all-checkbox",
+          "type": "checkbox",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "Question field 3",
+          "id": "",
+          "type": "checkbox",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "View feedback",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Solutions",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Share",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "AI Tutor Explanation",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": false,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "solutions",
+      "controls": [
+        {
+          "tag": "A",
+          "label": "Back to results",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "Display options",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "height-slider",
+          "type": "range",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Save as PDF",
+          "id": "main-pdf-btn",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Switch to dark theme",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Refresh saved feedback",
+          "id": "force-sync-btn",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SUMMARY",
+          "label": "Assessment tools",
+          "id": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "RE-CHECK",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "CORRECT GRADE",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "preview",
+      "controls": [
+        {
+          "tag": "A",
+          "label": "Back to editor",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "print",
+      "controls": [
+        {
+          "tag": "BUTTON",
+          "label": "Switch to dark theme",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "️ PRINT / SAVE AS PDF",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "TOGGLE LAYOUT",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "SAVE AS WORD",
+          "id": "",
+          "type": "submit",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Short (8.5 x 11')\n                    Long (8.5 x 13')\n                    Legal (8.5 x 14')\n       ",
+          "id": "paperSize",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Portrait\n                    Landscape",
+          "id": "paperOrientation",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Times New Roman\n                    Arial\n                    Georgia\n                    Courier Ne",
+          "id": "fontStyle",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "SELECT",
+          "label": "Small (13px)\n                    Medium (16px)\n                    Large (19px)\n                    ",
+          "id": "fontSize",
+          "type": "select-one",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "INPUT",
+          "label": "",
+          "id": "colSlider",
+          "type": "range",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    },
+    {
+      "page": "admin",
+      "controls": [
+        {
+          "tag": "A",
+          "label": "QuizMoKo home",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Quizzes",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Create",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Switch to dark theme",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "A",
+          "label": "Download Database Backup (.json)",
+          "id": "",
+          "type": "",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        },
+        {
+          "tag": "BUTTON",
+          "label": "Block User",
+          "id": "",
+          "type": "button",
+          "disabled": false,
+          "visible": true,
+          "status": "Inventoried; see report for exercised subsets"
+        }
+      ]
+    }
+  ],
+  "layouts": [
+    {
+      "page": "dashboard",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "dashboard",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "editor",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "editor",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "worksheet",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "worksheet",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "answer-key",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "answer-key",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "rmx",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "rmx",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "student",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "student",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "live",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "live",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "results",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "results",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "solutions",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "solutions",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "preview",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "preview",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "print",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "print",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    },
+    {
+      "page": "admin",
+      "width": 1366,
+      "theme": "dark",
+      "overflow": false
+    },
+    {
+      "page": "admin",
+      "width": 390,
+      "theme": "light",
+      "overflow": false
+    }
+  ],
+  "errors": [],
+  "failedRequests": []
+}

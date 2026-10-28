@@ -20,7 +20,7 @@
 }
 body {line-height:1.55; font-family:var(--font-sans); color:var(--body-strong); font-size:15px; padding:24px 32px!important;}
 body:has(.qm-app-header) {padding:0 32px 40px!important;}
-body>.container,body>.dashboard-container,body>.r4-home,body>.studio-workspace {width:100%; max-width:1440px; margin-left:auto; margin-right:auto;}
+body>.container,body>.dashboard-container,body>.r4-home,body>.studio-workspace,body>.create-workspace,body>.create-route-heading {width:100%; max-width:1440px; margin-left:auto; margin-right:auto;}
 body>.container {padding:0;}
 h1,h2,h3 {letter-spacing:-.025em!important; text-transform:none!important;}
 h1 {font-size:28px;} h2 {font-size:22px;} h3 {font-size:17px;}
@@ -83,8 +83,7 @@ button:disabled,input:disabled,select:disabled {opacity:.5; cursor:not-allowed!i
 .r4-recent h3 {font-size:12px; margin:0; color:var(--body);}
 .r4-recent a {font-size:12px; color:var(--body-strong); max-width:230px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;}
 .r4-recent a:nth-of-type(n+4) {display:none;}
-.r4-dashboard .dashboard-container.teacher-view {display:grid!important; grid-template-columns:minmax(400px,.9fr) minmax(0,1.1fr); gap:24px!important; align-items:start;}
-.r4-dashboard .dashboard-container.teacher-view:has(#ai-generator-card[hidden]) {grid-template-columns:minmax(0,1fr);}
+.r4-dashboard .dashboard-container.teacher-view {display:grid!important; grid-template-columns:minmax(0,1fr); gap:24px!important; align-items:start;}
 .r4-dashboard #ai-generator-card {width:100%; max-width:none; position:static; align-self:start!important; scroll-margin-top:20px;}
 .r4-dashboard #ai-generator-card .mode-tabs,.r4-dashboard #ai-generator-card .mobile-only {display:none!important;}
 .r4-dashboard .index-dashboard-card {padding:24px!important; border-radius:14px!important;}
@@ -177,7 +176,7 @@ button:disabled,input:disabled,select:disabled {opacity:.5; cursor:not-allowed!i
 #studio-status {margin:10px 0 20px; font-size:12px; color:var(--body); min-height:18px;}
 .studio-mode .mode-tabs,.studio-mode .r4-steps,.studio-mode .m-stripe {display:none!important;}
 .studio-mode .dashboard-container {display:grid!important; grid-template-columns:minmax(290px,.65fr) minmax(0,1.35fr)!important; gap:24px!important; align-items:start;}
-.studio-mode .dashboard-container:not(.has-review) {grid-template-columns:minmax(0,760px)!important; justify-content:start;}
+.studio-mode .dashboard-container:not(.has-review) {grid-template-columns:minmax(0,1fr)!important;}
 .studio-mode .sticky-col {position:static!important; min-width:0; width:100%;}
 .studio-mode .worksheet-panel {padding:24px!important; box-shadow:none; border-radius:12px;}
 .studio-mode .worksheet-panel>h1 {font-size:18px!important; margin:0 0 18px!important;}
@@ -457,6 +456,65 @@ body.qm-student {padding:0!important;width:100%;height:100dvh;overflow:hidden;}
 
 .studio-mode .dashboard-container.has-review:has(#upload-card[style*='display: none']) {grid-template-columns:minmax(0,1fr)!important;}
 .studio-mode .sticky-col:has(#upload-card[style*='display: none']) {display:none;}
+
+/* Creation is one page surface; retained forms keep their own inputs and handlers. */
+.create-heading {display:flex; align-items:center; justify-content:space-between; gap:20px; margin:0 0 20px;}
+.create-heading h1 {margin:0 0 5px; font-size:28px;}
+.create-heading p {margin:0; color:var(--body); font-size:14px;}
+.create-navigation {display:flex; gap:24px; border-bottom:1px solid var(--hairline); margin-bottom:24px;}
+.create-navigation a {display:flex; align-items:center; min-height:48px; padding:10px 4px; border-bottom:3px solid transparent; color:var(--body); font-size:14px; font-weight:600; text-decoration:none;}
+.create-navigation a[aria-current=page] {color:var(--accent-text); border-bottom-color:var(--primary);}
+.create-navigation a:hover {color:var(--accent-text);}
+.create-workspace #ai-generator-card {max-width:1040px; margin:0 auto;}
+.r4-dashboard .dashboard-container.teacher-view[hidden] {display:none!important;}
+.create-workspace .index-dashboard-card {padding:28px!important;}
+.create-workspace #ai-generator-card>details {margin-top:16px;}
+.manual-create {width:100%; max-width:1040px; box-sizing:border-box; margin:0 auto; padding:28px; border:1px solid var(--hairline); border-radius:14px; background:var(--surface-card);}
+.manual-create-content {max-width:680px; margin:0 auto;}
+.manual-create-content h2 {margin:0 0 8px;}
+.manual-create-content>p {margin:0 0 24px; font-size:14px;}
+.create-worksheet-frame {display:block; width:100%; height:0; border:0; background:var(--canvas);}
+.studio-embedded>.create-route-heading {display:none;}
+body.create-embedded {min-height:0!important;}
+.studio-options {display:flex; align-items:center; gap:24px; margin-bottom:12px;}
+#studio-description {margin:12px 0 0; color:var(--body); font-size:14px;}
+.studio-retention {margin:6px 0 20px; font-size:12px;}
+.studio-steps {margin-bottom:20px;}
+#studio-status:empty {display:none;}
+.studio-mode .dashboard-container[hidden] {display:none!important;}
+.studio-mode .worksheet-panel>h1 {display:none;}
+.studio-mode #worksheet-form,.studio-mode #rmx-form {display:grid; grid-template-columns:minmax(0,1.35fr) minmax(280px,.85fr); gap:32px; align-items:start;}
+.worksheet-source-files,.worksheet-extract-actions {min-width:0;}
+.studio-mode .upload-grid.worksheet-source-files,.worksheet-source-pair {display:grid; grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:16px;}
+.studio-mode .upload-grid.worksheet-source-files>div {margin-top:0!important;}
+.worksheet-extract-actions {border-left:1px solid var(--hairline); padding-left:28px;}
+.worksheet-next {font-size:13px; color:var(--body); margin:0 0 16px; line-height:1.6;}
+.studio-mode .worksheet-source-files label {margin-top:0;}
+.studio-mode .worksheet-source-files .dropzone {min-height:156px!important;}
+.studio-mode .worksheet-source-files:has(#file-input) .dropzone {min-height:212px!important;}
+.studio-mode .worksheet-extract-actions .r4-details {margin-bottom:12px;}
+.studio-mode .dashboard-container.has-review #worksheet-form,.studio-mode .dashboard-container.has-review #rmx-form {grid-template-columns:minmax(0,1fr); gap:20px;}
+.studio-mode .dashboard-container.has-review .worksheet-extract-actions {border-left:0; padding-left:0;}
+.studio-mode .dashboard-container.has-review .worksheet-source-files {grid-template-columns:minmax(0,1fr)!important;}
+@media (max-width:900px) {
+  .studio-mode #worksheet-form,.studio-mode #rmx-form {grid-template-columns:minmax(0,1fr); gap:20px;}
+  .worksheet-extract-actions {border-left:0; padding-left:0; border-top:1px solid var(--hairline); padding-top:20px;}
+  .studio-options {align-items:flex-start; flex-direction:column; gap:12px;}
+}
+@media (max-width:600px) {
+  .create-heading {align-items:flex-start; flex-direction:column; gap:12px; margin-bottom:12px;}
+  .create-heading h1 {font-size:25px;}
+  .create-heading p {font-size:13px;}
+  .create-heading>a {display:none;}
+  .create-navigation {gap:10px; margin-bottom:20px;}
+  .create-navigation a {flex:1; justify-content:center; padding:8px 0; font-size:12px; text-align:center;}
+  .create-workspace .index-dashboard-card,.manual-create {padding:18px!important;}
+  .studio-retention {font-size:11px; margin-bottom:16px;}
+  .studio-mode .worksheet-source-files .dropzone,.studio-mode .worksheet-source-files:has(#file-input) .dropzone {min-height:132px!important;}
+  .studio-mode .upload-grid.worksheet-source-files,.worksheet-source-pair {grid-template-columns:minmax(0,1fr)!important;}
+  .create-workspace #acc-basic>div:first-child {grid-template-columns:minmax(0,1fr)!important; gap:16px!important;}
+  .create-workspace .r4-quick-grid>div:last-child {grid-column:1 / -1;}
+}
 
 /* Template indentation must not become blank space in result feedback. */
 .r4-results .review-block {white-space:normal;}

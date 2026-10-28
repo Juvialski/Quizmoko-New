@@ -140,6 +140,7 @@
         </div>
     </div>
 
+    <%- include('partials/create-heading') %>
     <div class="dashboard-container teacher-view">
         <div class="sticky-col">
             <div class="mode-tabs">
@@ -170,9 +171,9 @@
                     <p style="color: var(--body); margin-bottom: 32px;">Extract questions and answers from your files. Your answer key is retained and checked independently; disagreements require your review.</p>
 
                     <form id="worksheet-form" onsubmit="handleExtract(event)">
-                        <div class="upload-grid" style="grid-template-columns: 1fr;">
+                        <div class="upload-grid worksheet-source-files" style="grid-template-columns: 1fr;">
                             <div>
-                                <label for="worksheet-input">1. Worksheet Files (Questions)</label>
+                                <label for="worksheet-input">Worksheet files</label>
                                 <div class="dropzone" id="worksheet-dropzone" style="min-height: 100px; padding: 20px;">
                                     <div style="font-size: 30px; margin-bottom: 8px;"><i data-lucide="file-text" class="icon-sm"></i></div>
                                     <div style="font-weight: 700; font-size: 13px;">Upload Questions</div>
@@ -181,7 +182,7 @@
                                 </div>
                             </div>
                             <div style="margin-top: 16px;">
-                                <label for="answer-input">2. Answer Key Files (Optional)</label>
+                                <label for="answer-input">Answer key files (optional)</label>
                                 <div class="dropzone" id="answer-dropzone" style="min-height: 100px; padding: 20px;">
                                     <div style="font-size: 30px; margin-bottom: 8px;"><i data-lucide="key" class="icon-sm"></i></div>
                                     <div style="font-weight: 700; font-size: 13px;">Upload Answer Key</div>
@@ -191,6 +192,8 @@
                             </div>
                         </div>
 
+                      <div class="worksheet-extract-actions">
+                        <p class="worksheet-next">Your key is kept as the reference and checked independently. Review any disagreements before creating a draft.</p>
 <details class="r4-details"><summary>Extraction options</summary>                        <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr; gap: 16px;">
                             <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline);">
                                 <input type="checkbox" id="use_screenshots" style="width: 18px; height: 18px; cursor: pointer;">
@@ -214,7 +217,8 @@
                             </div>
                         </div>
 
-</details>                        <button type="submit" class="btn btn-primary btn-block" id="extract-btn" style="margin-top: 16px;"><i data-lucide="search" class="icon-sm"></i> EXTRACT & MATCH</button>
+</details>                        <button type="submit" class="btn btn-primary btn-block" id="extract-btn" style="margin-top: 16px;"><i data-lucide="search" class="icon-sm"></i> Extract and match</button>
+                      </div>
                     </form>
                 </div>
             </div>

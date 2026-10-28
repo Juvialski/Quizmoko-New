@@ -45,7 +45,9 @@ export async function cropImageBoundingBox(fileBuffer: Buffer, bbox: any): Promi
     const width = meta.width || 1000;
     const height = meta.height || 1000;
 
-    const padX = Math.min(80, Math.max(30, Math.round(boxW * 0.15 + 35)));
+    // Model boxes often follow the geometry outline, leaving dimension labels
+    // just outside it. Keep bounded lateral context rather than clipping them.
+    const padX = Math.min(160, Math.max(50, Math.round(boxW * 0.30 + 50)));
     const padY = Math.min(80, Math.max(30, Math.round(boxH * 0.15 + 35)));
 
     y1 = Math.max(0, y1 - padY);

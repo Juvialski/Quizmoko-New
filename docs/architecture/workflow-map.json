@@ -5,6 +5,9 @@
     "math": "Complete bare numeric fraction/currency choices acquire outer delimiters before standalone number wrapping; bare text commands fail validation",
     "pdf_coverage": "PDF.js hasEOL preserves same-line choice rows instead of interpreting each text run as a new source ID",
     "mobile": "Editor save, attach/add-choice and remove-choice targets at least 44px",
+    "browser_credentials": "public/js/ai-key-selection.js supplies optional BYOK for all worksheet modes; server resolves missing keys and real quota",
+    "finalization_retry": "views/quiz.ejs latches failed automatic termination submissions; existing explicit retry or restored page may restart accepted-work finalization",
+    "diagram_crops": "Bounded lateral margins preserve external dimension labels; decoded images and correct keys do not certify complete diagrams",
     "boundaries": "No new production routes, stores, providers, authentication, recovery or grading changes",
     "report": "docs/R5_TUTORIAL_RELIABILITY_REPORT.md"
   },

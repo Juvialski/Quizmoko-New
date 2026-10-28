@@ -49,7 +49,7 @@
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="/css/ui-redesign.css"><script src="/js/worksheet-studio.js" defer></script><script defer src="/js/workspace-ui.js"></script></head>
+<script src="/js/ai-key-selection.js"></script><link rel="stylesheet" href="/css/ui-redesign.css"><script src="/js/worksheet-studio.js" defer></script><script defer src="/js/workspace-ui.js"></script></head>
 <body>
     <%- include('partials/workspace-header', {active:'create'}) %>
     <div data-legacy-header class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
@@ -198,8 +198,7 @@
             const wsFiles = document.getElementById('ws-input').files;
             if (wsFiles.length === 0) return alert('Please upload worksheet files.');
 
-            const apiKey = localStorage.getItem('gemini_api_key');
-            if (!apiKey) return alert('API Key missing. Set it on the Dashboard.');
+            const apiKey = window.QuizMoKoAiKeys.browserKey();
 
             extractButton.disabled = true;
             extractButton.setAttribute('aria-busy', 'true');

@@ -39,6 +39,17 @@ users.clear(); quizzes.clear(); results.clear(); aiJobs.clear();
 const teacher:any = {uid:'r5_teacher',role:'teacher',name:'R5 Synthetic Teacher',email:'r5@example.invalid'};
 users.set(teacher.uid,teacher);
 for(let i=1;i<=3;i++)users.set(`r5_student_${i}`,{uid:`r5_student_${i}`,role:'student',name:`R5 Student ${i}`,email:`r5student${i}@example.invalid`});
+if (process.argv.includes('--restore')) {
+  const snapshot=JSON.parse(await fs.readFile('.local/r5/final-state.json','utf8'));
+  for(const quiz of snapshot.quizzes || []) {
+    if(quiz.user_id !== teacher.uid)throw Error('Only synthetic R5 records may be restored.');
+    quizzes.set(quiz.id,quiz);
+  }
+  for(const result of snapshot.results || []) {
+    if(!quizzes.has(result.quiz_id))throw Error('Unknown synthetic quiz.');
+    results.set(result.id,result);
+  }
+}
 const app=express();app.set('view engine','ejs');app.use(cookieParser());app.use(express.json({limit:'30mb'}));app.use(express.urlencoded({extended:true}));app.use(express.static('public'));
 app.get('/__r5/login/:identity',(req,res)=>{
   const user=users.get(req.params.identity==='teacher'?'r5_teacher':`r5_student_${req.params.identity}`);

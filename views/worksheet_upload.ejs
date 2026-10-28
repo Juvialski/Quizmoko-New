@@ -96,6 +96,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/teacher-workflow.js"></script>
     <script src="/js/owned-tasks.js"></script>
+    <script src="/js/ai-key-selection.js"></script>
 <link rel="stylesheet" href="/css/ui-redesign.css"><script src="/js/worksheet-studio.js" defer></script><script defer src="/js/workspace-ui.js"></script></head>
 <body class="r4-teacher r4-worksheet-upload">
     <%- include('partials/workspace-header', {active:'create'}) %>
@@ -281,36 +282,7 @@
         const progressBar = document.getElementById('progress-bar');
         const progressText = document.getElementById('progress-text');
 
-        // --- RATE LIMIT TRACKER LOGIC ---
-        const API_LIMITS = {
-            'gemini-3.5-flash-lite': 500,
-            'gemini-3.1-flash-lite': 500
-        };
-
-        let GLOBAL_DAILY_STATS = {};
-
-        async function getHash(text) {
-            if (!text) return 'default';
-            const msgUint8 = new TextEncoder().encode(text);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            return hashHex.substring(0, 8);
-        }
-
-        async function fetchUsageStats() {
-            try {
-                const res = await fetch('/api/usage/stats');
-                const data = await res.json();
-                if (data.success) {
-                    GLOBAL_DAILY_STATS = data.daily_stats;
-                    updateCounterUI();
-                }
-            } catch (e) {
-                console.error('Failed to fetch usage stats:', e);
-            }
-        }
-
+        // Provider availability; real quota and credential fallback belong to the server.
         async function updateCounterUI() {
             let model = document.getElementById('model_select').value;
             // Provider quota is unavailable; the legacy usage endpoint returns no accounting.
@@ -323,23 +295,11 @@
             }
         }
 
-        async function getUsableKey(model, needed = 1) {
-            const keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
-            if (keys.length === 0 && localStorage.getItem('gemini_api_key')) keys.push(localStorage.getItem('gemini_api_key'));
-
-            const today = new Date().toISOString().split('T')[0];
-            const modelStats = (GLOBAL_DAILY_STATS[today] && GLOBAL_DAILY_STATS[today][model]) || {};
-            const baseLimit = API_LIMITS[model] || 20;
-
-            for (const key of keys) {
-                const kid = await getHash(key);
-                const used = modelStats[kid] || 0;
-                if (used + needed <= baseLimit) return key;
-            }
-            return keys[0] || null;
+        async function getUsableKey() {
+            return window.QuizMoKoAiKeys.browserKey();
         }
 
-        window.addEventListener('DOMContentLoaded', fetchUsageStats);
+        window.addEventListener('DOMContentLoaded', updateCounterUI);
 
         let extractedQuestions = [];
         let missingIndices = [];
@@ -517,7 +477,6 @@
             const isLocal = model.startsWith('ollama:');
             const apiKey = isLocal ? null : await getUsableKey(model, 1);
 
-            if (!isLocal && !apiKey) return alert('No API keys with remaining quota found today. Please add more keys or wait for reset.');
 
             isExtracting = true;
             const extractBtn = document.getElementById('extract-btn');
@@ -561,7 +520,7 @@
             for (let file of fileInput.files) formData.append('files', file);
             for (let file of pastedFiles) formData.append('files', file);
 
-            formData.append('api_key', apiKey);
+            formData.append('api_key', apiKey || '');
             formData.append('model_name', document.getElementById('model_select').value);
             formData.append('topic_hint', document.getElementById('topic_hint').value);
             formData.append('subject', document.getElementById('subject_input').value);
@@ -645,7 +604,6 @@
         async function handleTargetedRetry() {
             const model = document.getElementById('model_select').value;
             const apiKey = await getUsableKey(model, 2);
-            if (!apiKey) return alert('No API key available.');
 
             progressText.innerHTML = `<i data-lucide="search" class="icon-sm"></i> Recovering questions ${missingIndices.join(', ')}...`;
             window.refreshQuizmokoIcons?.();
@@ -925,7 +883,6 @@
             try {apiKey=isLocal?null:await getUsableKey(model,estimatedRequests);}
             catch(error){isSolving=false;document.getElementById('solve-btn').disabled=false;showSolveStatus('Could not start answer checks: '+error.message);return;}
 
-            if (!isLocal && !apiKey) {isSolving=false;document.getElementById('solve-btn').disabled=false;showSolveStatus(`No API keys with enough remaining quota (${estimatedRequests} calls needed) found today.`);return;}
 
             isSolving = true;
             const solveBtn = document.getElementById('solve-btn');

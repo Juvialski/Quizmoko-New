@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import sharp from 'sharp';
 import { cropImageBoundingBox, sortQuestionsByIndex } from '../src/services/pdf.ts';
 import { findMissingPlainNumericWorksheetSourceIds } from '../src/services/worksheetSourceOrder.ts';
 
@@ -102,4 +103,16 @@ test('source sorting recognizes canonical Roman numerals without rewriting them'
 test('invalid crop boxes fail without invoking image processing', async () => {
   assert.equal(await cropImageBoundingBox(Buffer.alloc(0), []), null);
   assert.equal(await cropImageBoundingBox(Buffer.alloc(0), [0, 0, 1200, 1200]), null);
+});
+
+test('diagram cropping retains lateral dimension labels outside the model outline', async () => {
+  // Real R5 PDF box [230,210,390,530] excluded its left-side 6 cm label.
+  const page=await sharp(Buffer.from('<svg width="1000" height="1000"><rect width="1000" height="1000" fill="white"/><rect x="81" y="300" width="35" height="18" fill="blue"/><path d="M218 380L520 380L218 240Z" stroke="black" fill="none"/></svg>')).png().toBuffer();
+  const cropped=await cropImageBoundingBox(page,[230,210,390,530]);assert.ok(cropped);
+  const decoded=sharp(Buffer.from(cropped.split(',')[1],'base64'));
+  const {data,info}=await decoded.removeAlpha().raw().toBuffer({resolveWithObject:true});
+  let labelPixels=0;
+  for(let i=0;i<data.length;i+=info.channels)if(data[i]<10 && data[i+1]<10 && data[i+2]>245)labelPixels++;
+  assert.equal(labelPixels,35*18,'the complete external dimension label survives');
+  assert.ok(info.width<1000,'the crop remains bounded rather than silently becoming a full page');
 });

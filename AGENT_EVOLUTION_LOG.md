@@ -177,3 +177,7 @@ Shared teacher navigation and light/dark design tokens connect creation, continu
 ## 2026-10-28 — R5 input reliability
 
 Live synthetic generation/extraction reproduced mismatched normalized choice answers, broken bare fraction/currency choices and PDF text-run coverage false positives. Normalize matching consistently, wrap complete numeric math choices before their numbers, reject bare text commands, preserve PDF.js line endings and retain the central drafting allowance. Mobile editor action targets are at least 44px. Nine actual Gemini calls, sixteen independently checked items and 196 passing regressions are distinct from incomplete Codex browser activation/screenshot acceptance and untested production durability. No redesign or production data changes. See docs/R5_TUTORIAL_RELIABILITY_REPORT.md.
+
+## 2026-10-28 — R5 real-browser continuation
+
+Remove false browser quota/key gates in all worksheet modes; shared optional BYOK selection lets the server resolve its existing credentials and quota. Latch failed automatic finalization so end/ping events cannot create a retry storm; retain explicit retry, original identity and saved answers. Preserve outside dimension labels with bounded lateral crop context. Live Codex-browser checks completed edit/save/publish, worksheet close/reopen recovery and classroom end/new-run/results; native confirmation popups require window handling when the browser dialog API misses them. Seventeen bounded Gemini calls, targeted regressions and saved browser screenshots remain separate from production durability acceptance.

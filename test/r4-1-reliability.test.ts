@@ -19,6 +19,10 @@ import { generateGeminiContent, configureGeminiRateLimiterForTests, resetGeminiR
 import { ownedJobs } from '../src/services/ownedJobs.ts';
 import { syntheticPdf, tutorialProvider } from './r4-1-fixtures.ts';
 import { normalizeAiLatexText, normalizeMathQuestionText } from '../src/services/latex.ts';
+import ExcelJS from 'exceljs';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const unzipper = require('unzipper');
 
 const question = (id: string) => ({id,question:'Choose Alpha.',type:'multiple_choice',options:['Alpha','Beta','Gamma','Delta'],answer:'A',points:2});
 const pause = (ms:number) => new Promise(resolve=>setTimeout(resolve,ms));
@@ -55,6 +59,26 @@ async function fixture() {
   };
   return {app,io,base,token,post,async close(){configureGeminiClientForTests();io.close();server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));}};
 }
+test('RMX export returns a readable ZIP with the worksheet choices and answer', async () => {
+  const f = await fixture();
+  try {
+    const response = await fetch(f.base + '/api/export_rmxflash_excel', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', authorization: 'Bearer ' + f.token },
+      body: JSON.stringify({ year: '2026', test_name: 'Math', questions: [{ original_index: '7b', statement: 'What is 3 + 4?', choices: ['6', '7', '8', '9'], answer: 'B' }] })
+    });
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type') || '', /application\/zip/);
+    const zip = await unzipper.Open.buffer(Buffer.from(await response.arrayBuffer()));
+    const file = zip.files.find((entry: any) => entry.path.endsWith('.xlsx'));
+    assert.ok(file);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(await file.buffer());
+    const row = workbook.getWorksheet('Questions')!.getRow(2);
+    assert.equal(row.getCell(2).value, '7b');
+    assert.equal(row.getCell(5).value, '7');
+    assert.equal(row.getCell(9).value, 'B');
+  } finally { await f.close(); }
+});
 // Exercise actual Engine.IO/Socket.IO over HTTP polling without another client dependency.
 async function socketClient(base:string,token?:string) {
   const headers=token?{authorization:'Bearer '+token}:{};

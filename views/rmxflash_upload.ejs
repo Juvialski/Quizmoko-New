@@ -49,7 +49,7 @@
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-</head>
+<link rel="stylesheet" href="/css/ui-redesign.css"><script src="/js/worksheet-studio.js" defer></script></head>
 <body>
     <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
         <div>
@@ -107,21 +107,27 @@
                         </div>
                         <div id="ans-list" style="margin-bottom: 16px; font-size: 11px;"></div>
 
+                        <details class="r4-details"><summary>Extraction options</summary>
                         <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline); margin-bottom: 16px;">
                             <input type="checkbox" id="use_screenshots" style="width: 18px; height: 18px; cursor: pointer;">
                             <label for="use_screenshots" style="margin: 0; cursor: pointer; text-transform: none; font-size: 13px; color: var(--on-dark);"><i data-lucide="camera" class="icon-sm"></i> Capture Diagrams</label>
                         </div>
 
-                        <label>Model</label>
+                        <label for="model_select">Model</label>
                         <select id="model_select">
                             <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite</option>
                             <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
                         </select>
+                        </details>
 
-                        <label>Metadata</label>
+                        <details class="r4-details"><summary>Export details</summary>
+                        <label for="year">Year</label>
                         <input type="text" id="year" placeholder="Year (e.g., 2024)">
+                        <label for="test_name">Test name</label>
                         <input type="text" id="test_name" placeholder="Test Name">
+                        <label for="contest">Contest</label>
                         <input type="text" id="contest" placeholder="Contest">
+                        </details>
 
                         <button type="submit" class="btn btn-primary btn-block" id="extract-btn"><i data-lucide="search" class="icon-sm"></i> EXTRACT & PROCESS</button>
                     </form>
@@ -176,11 +182,16 @@
 
         async function handleExtract(e) {
             e.preventDefault();
+            const extractButton = document.getElementById('extract-btn');
+            if (extractButton.disabled) return;
             const wsFiles = document.getElementById('ws-input').files;
             if (wsFiles.length === 0) return alert('Please upload worksheet files.');
 
             const apiKey = localStorage.getItem('gemini_api_key');
             if (!apiKey) return alert('API Key missing. Set it on the Dashboard.');
+
+            extractButton.disabled = true;
+            extractButton.setAttribute('aria-busy', 'true');
 
             const sessionId = 'rmx_' + Math.random().toString(36).substring(7);
             document.getElementById('progress-overlay').style.display = 'flex';
@@ -219,6 +230,9 @@
             } catch (err) {
                 alert('Request failed');
             } finally {
+                clearInterval(poll);
+                extractButton.disabled = false;
+                extractButton.removeAttribute('aria-busy');
                 document.getElementById('progress-overlay').style.display = 'none';
             }
         }

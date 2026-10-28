@@ -4,9 +4,18 @@ import { createServer } from 'node:http';
 import { initSocketServer } from '../src/services/socket.ts';
 import ejs from 'ejs';
 import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 import { registerRoutes } from '../src/routes/index.ts';
 import { quizzes, results, users, aiJobs } from '../src/store/db.ts';
 const app = express(); app.set('view engine','ejs'); app.use(express.json()); app.use(express.urlencoded({extended:true})); app.use(express.static('public'));
+// Same synthetic data, exact pre-redesign templates for reproducible visual review.
+if (process.env.UI_CAPTURE_BASELINE === '1') app.engine('ejs', (file, options, callback) => {
+  try {
+    const relative = path.relative(process.cwd(), file).replaceAll('\\', '/');
+    const source = execFileSync('git', ['show', `494b656:${relative}`], {encoding:'utf8'});
+    callback(null, ejs.render(source, options, {filename:file}));
+  } catch (error) { callback(error as Error); }
+});
 quizzes.clear();results.clear();users.clear();
 users.set('teacher_test',{uid:'teacher_test',name:'Synthetic Teacher',email:'teacher@example.invalid',role:'admin'});
 export function fixtureQuestion(id='7b', review=false) {
@@ -45,6 +54,10 @@ app.post('/api/solve_worksheet',(req,res)=>{
   app.locals.worksheetId=quiz.id; res.json({success:true});
 });
 app.get('/api/progress/:id',(_req,res)=>res.json({status:'completed',percentage:100,quiz_id:app.locals.worksheetId,message:'Draft ready for review'}));
+if (process.env.UI_REDESIGN_CAPTURE === '1') {
+  aiJobs.clear();
+  for (const id of ['image_broken','image_corrupt','image_slow']) quizzes.delete(id);
+}
 registerRoutes(app);
 app.use((error: any,_req: any,res: any,_next: any)=>res.status(500).json({error:error.message}));
 const server=createServer(app);const io=initSocketServer(server);server.listen(3000,'127.0.0.1',()=>console.log('R4 synthetic server ready'));

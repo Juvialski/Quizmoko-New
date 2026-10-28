@@ -1,5 +1,11 @@
 # QuizMoKo Full Application Workflow Map
 
+### 25 October 2026 unified UI redesign
+
+The three legacy worksheet entry URLs now initialize one Worksheet Studio presentation through `public/js/worksheet-studio.js`. Its initial extraction document stays in place; other modes are lazily loaded into retained same-origin frames with accessible tabs. Each mode keeps its own files, edits, crop tools, metadata and export behavior. No input is implicitly transferred between modes. Existing extraction, independent checking, recovery and draft creation endpoints remain unchanged. Cross-page completion from a retained frame opens the destination in the top workspace. `public/css/ui-redesign.css` supplies shared full-width desktop styling and responsive light/dark layouts across dashboard, generator, editor, student, monitor and results. Mode switching does not reload documents; page exit warns after input changes. This introduces no backend feature, schema or store.
+
+`public/js/owned-tasks.js` displays completed history in a compact disclosure below the teacher header and opens newly running work automatically. The RMX ZIP export uses the installed Archiver 8 named constructor; its endpoint and workbook contents are unchanged.
+
 ### 25 October 2026 UI reliability update
 
 `public/js/diagram-preview.js` owns transient waiting/loading/decoded/failed image state for editor previews. It disposes obsolete callbacks and never modifies question approval, source evidence or saved state. Known current decode failures block explicit editor approval/publication; canonical server validation remains authoritative. Structured render responses populate only the transient preview cache.
@@ -641,3 +647,21 @@ Browser task intent is hashed locally without credential fields. Same-intent ide
 The existing worksheet view subscribes to owner-scoped `/api/tasks` updates from `owned-tasks.js`, tracks its job in session storage, keeps the solve action disabled while running, and exposes actual counts, finalization, safe failure messages and Open Draft inline. Acknowledgment retains job identity and idempotency. Refresh/Back restores the progress surface even without extracted question DOM.
 
 The existing quiz editor renders all cards; its navigator scrolls and optional Needs Review filters. Choice selectors resolve legacy answer formats into canonical letters before text changes/removal and invalidate all prior approvals after correctness edits. Existing serialized `/update/:quiz_id` accepts unfinished content for explicit save/draft intents only, marking invalid content review-required and private. Publish/legacy validation, revision/version conflicts, owner access and acknowledged persistence remain unchanged. No new stores, routes, providers or public answer fields were added.
+
+## R4.2 classroom run lifecycle (2026-10-21)
+
+`src/services/classroomRuns.ts` serializes teacher transitions and first admission per quiz. `POST /api/live/:quiz_id/start` creates a secure fresh run; existing pause/terminate endpoints operate on the selected `expected_run_id`, reject stale tabs and require `confirm_replace` to replace an active run. Opening Live remains read-only. Quiz definitions and published sharing links are unchanged.
+
+`live_runs/{quiz_id}` stores only the current run pointer, owner, start time, active/ended status and pause flag, through the existing ordered Admin Firestore queue. It is loaded before traffic; an unreadable collection fails readiness. Local fallback adds `data/live-runs.json`. No migration, startup seeding, provider calls or heartbeat writes are required. Admission persists one in-progress result using its existing result/session ID and optional `live_run_id` / `live_run_started_at`; historical records remain untouched. First standalone pings also establish their original standalone identity. Grading-only standalone requests retain their original persistence contract.
+
+Managed monitoring reconstructs only records with the current exact run ID, without time windows. Superseded attempts remain readable through Results and cannot join the current roster. Durable run controls survive restart; connectivity and whiteboard access remain unknown/reconfirmation state. Legacy quizzes without runs keep standalone controls and never acquire runs automatically; legacy records are never assigned to a later run.
+
+`monitor_*` remains owner/admin-only. Managed pause/end signals use `classroom_{quiz}_{server-bound-run}` rooms joined only after attempt authorization; private whiteboard rooms retain account/capability guards. Unauthenticated `join_quiz` receives no managed control state. Old-run grades and pings cannot emit current monitoring updates. The existing revision/digest/finalization locks remain authoritative, and run metadata survives final submission. Single writable process remains mandatory.
+
+### R4.2 answer-admission boundary
+
+Attempt binding is identity-only; an existing binding does not authorize an answer edit. `/api/grade_individual`, `/api/save_progressive_result`, `/submit` and `/api/submit_quiz` serialize acceptance with run transitions under the classroom lifecycle lock. Handlers hold the attempt lock first for this short phase, validate canonical revision/answer/snapshot/question identities, and record accepted state before releasing the lifecycle lock. Gemini runs outside that lifecycle lock. Initial binding completes before answer admission; no teacher transition waits for Gemini.
+
+Ended or superseded managed runs reject new identities with HTTP 409 / `CLASSROOM_SESSION_CLOSED`. Accepted pending grading completes only in its original run. Identical individual retries return saved outcome without new post-closure provider calls; closed progressive retries only acknowledge existing state. Saved-work finalization retains the existing attempt lock, proof validation, incompleteness checks and immutable idempotent result ID. Untouched unanswered items may remain unanswered; new text, revisions or snapshots cannot enter a closed attempt. Standalone attempts retain existing behavior, and retrieval/teacher assessment remain under their existing authorization contracts.
+
+Required `live_runs` hydration remains fail-closed. See `docs/PRODUCTION_OPERATIONS.md` for read-denial recovery; no client security-rule change grants Admin SDK access. IAM-policy inspection and actual deployed-identity read/write access are recorded separately in the R4.2 report.

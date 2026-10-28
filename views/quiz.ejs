@@ -612,7 +612,7 @@
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-</head>
+<link rel="stylesheet" href="/css/ui-redesign.css"></head>
 <body>
     <div class="quiz-wrapper">
         <div class="left-panel" id="left-panel">
@@ -1716,14 +1716,19 @@
             }
         }
 
-        function beginQuiz() {
+        async function beginQuiz() {
             try {
                 if (!Array.isArray(quizData.questions) || quizData.questions.length === 0) {
                     return alert('This quiz has no questions yet. Please ask the teacher to add at least one question.');
                 }
                 const n = document.getElementById('student-name').value.trim();
                 if(!n) return alert('Enter name!');
+                const admission=await fetch('/ping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({quiz_id:quizId,session_id:sessionId,student_name:n,status:'Started'})});
+                const admitted=await admission.json();
+                if(!admission.ok || !admitted.success) return alert(admitted.error || 'Unable to join the session. Try again.');
+                if(admitted.terminated) return alert('This session has ended. Wait for the teacher to start a new session.');
                 studentName = n;
+                applyPauseState(admitted.paused);
                 console.log('[QUIZ] Starting Quiz...');
                 quizStartTime = Date.now();
                 sendPing('Started');
@@ -3105,7 +3110,7 @@
             window.addEventListener('pointerup', () => { isDraggingText = false; isResizingText = false; });
         }
 
-        function redrawCanvas() { if (!ctx) return; ctx.clearRect(0, 0, canvas.width, canvas.height); renderToCanvas(questionPages[currentIndex][currentPageIndex], ctx); }
+        function redrawCanvas() { if (!ctx) return; ctx.clearRect(0, 0, canvas.width, canvas.height); renderToCanvas(questionPages[currentIndex]?.[currentPageIndex], ctx); }
         function renderToCanvas(p, tCtx) { if (!p) return; p.strokes.forEach(s => drawStroke(s, tCtx)); p.texts.forEach(t => { tCtx.fillStyle = t.color; tCtx.font = `${t.size} Inter`; const lines = t.content.split('\n'), fs = parseInt(t.size), lh = fs * 1.2; lines.forEach((l, i) => tCtx.fillText(l, t.x, t.y + (i * lh) + fs)); }); }
         function drawStroke(s, tCtx) {
             tCtx.lineCap = 'round'; tCtx.lineJoin = 'round';

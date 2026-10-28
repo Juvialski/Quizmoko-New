@@ -1,0 +1,29 @@
+import {spawn} from 'node:child_process';
+import {execFileSync} from 'node:child_process';
+import fs from 'node:fs/promises';
+import {chromium} from 'playwright';
+const stage=process.argv[2] || 'after',out='docs/ui-redesign-2026-10-25';
+await fs.mkdir(out,{recursive:true});
+const server=spawn(process.execPath,['--require','./test/tsx-bootstrap.cjs','--import','tsx','test/r4-browser-server.ts'],{env:{...process.env,FINAL_UI_FIXTURES:'1',UI_REDESIGN_CAPTURE:'1',UI_CAPTURE_BASELINE:stage==='before'?'1':'0'},stdio:['ignore','pipe','pipe']});
+let logs='';for(const stream of [server.stdout,server.stderr])stream.on('data',x=>logs+=x);
+let browser;
+try{
+ for(let i=0;i<600&&!logs.includes('R4 synthetic server ready');i++){if(server.exitCode!==null)throw Error(logs);await new Promise(r=>setTimeout(r,100));}
+ if(!logs.includes('R4 synthetic server ready'))throw Error(logs); browser=await chromium.launch();const context=await browser.newContext({viewport:{width:1366,height:960},extraHTTPHeaders:{authorization:'Bearer user_teacher_test'}});
+ await context.route('https://**/*',r=> /fonts.googleapis.com|fonts.gstatic.com|unpkg.com|cdn.jsdelivr.net|cdnjs.cloudflare.com/.test(r.request().url()) ? r.continue() : r.fulfill({status:200,contentType:'application/javascript',body:'/* optional auth isolated */'}));
+ if(stage==='before')await context.route('**/js/owned-tasks.js',r=>r.fulfill({contentType:'application/javascript',body:execFileSync('git',['show','494b656:public/js/owned-tasks.js'],{encoding:'utf8'})}));
+ await context.addInitScript(()=>{localStorage.setItem('gemini_api_key','synthetic-unused');localStorage.setItem('gemini_api_keys','["synthetic-unused"]');localStorage.setItem('tour_completed','true');if(!localStorage.getItem('theme'))localStorage.setItem('theme','light');});
+ const page=await context.newPage();page.on('dialog',d=>d.accept());
+ const shots=[['dashboard','/'],['generator','/'],[stage==='before'?'worksheet':'worksheet-only','/worksheet'],[stage==='before'?'worksheet-answers':'worksheet-answer-key','/worksheet_answers'],[stage==='before'?'rmxflash':'worksheet-rmxflash','/rmxflash'],['editor','/edit/reliable_diagrams'],['student','/quiz/r4_published'],['live','/live/r4_published'],['results','/results/r4_published'],['mobile','/worksheet']];
+ for(const [name,path] of shots){await page.setViewportSize({width:name==='mobile'?390:1366,height:960});await page.goto('http://127.0.0.1:3000'+path);if(name==='generator'){await page.getByRole('button',{name:'Generate with AI',exact:true}).click();await page.locator('#topic-input').fill('Fractions in everyday life');}if(name==='editor')await page.locator('.question-block').first().scrollIntoViewIfNeeded();if(name==='student'){await page.locator('#student-name').fill('Practice Student');await page.getByRole('button',{name:'Start Quiz',exact:true}).click();}await page.waitForTimeout(600);await page.waitForTimeout(200);await page.screenshot({path:`${out}/${stage}-${name}.png`});}
+ if(stage==='after'){
+ await page.setViewportSize({width:1366,height:960});await page.goto('http://127.0.0.1:3000/rmxflash');await page.getByText('Extraction options',{exact:true}).click();await page.getByText('Export details',{exact:true}).click();await page.locator('#year').fill('2026');await page.locator('#test_name').fill('Classroom practice');await page.locator('#contest').fill('Synthetic contest');await page.waitForTimeout(200);await page.screenshot({path:`${out}/after-rmx-expanded.png`});
+ await page.setViewportSize({width:1366,height:960});await page.goto('http://127.0.0.1:3000/');await page.getByRole('button',{name:'Generate with AI',exact:true}).click();await page.locator('#generator-advanced summary').click();await page.locator('#generator-advanced').scrollIntoViewIfNeeded();await page.waitForTimeout(200);await page.screenshot({path:`${out}/after-generator-expanded.png`});
+ await page.goto('http://127.0.0.1:3000/worksheet');await page.getByText('Extraction options',{exact:true}).click();await page.waitForTimeout(200);await page.screenshot({path:`${out}/after-worksheet-expanded.png`});await page.evaluate(()=>window.toggleTheme());await page.waitForTimeout(500);await page.waitForTimeout(200);await page.screenshot({path:`${out}/after-controls-dark.png`});await page.evaluate(()=>window.toggleTheme());
+ await page.setViewportSize({width:1920,height:1080});await page.goto('http://127.0.0.1:3000/');await page.waitForTimeout(200);await page.screenshot({path:`${out}/after-desktop-wide.png`});
+ await page.evaluate(()=>window.toggleTheme());await page.waitForTimeout(500);await page.waitForTimeout(200);await page.screenshot({path:`${out}/after-dashboard-dark.png`});
+ await page.goto('http://127.0.0.1:3000/worksheet');await page.waitForTimeout(500);await page.waitForTimeout(200);await page.screenshot({path:`${out}/after-worksheet-dark.png`});await page.evaluate(()=>window.toggleTheme());
+ await page.setViewportSize({width:1366,height:960});await page.goto('http://127.0.0.1:3000/worksheet');await page.locator('#file-input').setInputFiles({name:'classroom-practice.png',mimeType:'image/png',buffer:Buffer.from('synthetic mocked source')});await page.locator('#extract-btn').click();await page.locator('#extraction-preview').waitFor({state:'visible'});await page.waitForFunction(()=>!document.getElementById('extract-btn').disabled);await page.locator('#extraction-preview').scrollIntoViewIfNeeded();await page.waitForTimeout(200);await page.screenshot({path:`${out}/after-worksheet-review.png`});
+ await page.route('**/api/solve_worksheet',async r=>{await new Promise(resolve=>setTimeout(resolve,1600));await r.continue();});await page.locator('#solve-btn').click();await page.waitForTimeout(150);await page.waitForTimeout(200);await page.screenshot({path:`${out}/after-worksheet-processing.png`});
+ }
+}finally{await browser?.close();server.kill();}

@@ -1,0 +1,15 @@
+{
+  "mode": "Isolated synthetic app, mocked extraction/provider boundaries; no production writes or live AI accuracy claim",
+  "checks": [
+    "Expandable settings have full-width 48px headers and native keyboard open/close behavior",
+    "Three retained modes: image uploads, answer-key match, editable review, RMX metadata and real XLSX export; source 7b retained",
+    "Accessible tabs support arrows/Home/End and selected panel labels",
+    "All modes fit 390/768/1366/1920px in light and dark; retained iframe themes synchronize",
+    "Check answers creates private draft and opens editor, with immutable source label",
+    "Compatible URLs and dashboard/editor/student/live/results navigation",
+    "Finished task history is compact and collapsed; disclosure reveals preserved draft/quiz links; primary library begins above 500px on desktop"
+  ],
+  "errors": [],
+  "failedRequests": [],
+  "pass": true
+}

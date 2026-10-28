@@ -264,7 +264,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/teacher-workflow.js"></script>
     <script src="/js/owned-tasks.js"></script>
-</head>
+<link rel="stylesheet" href="/css/ui-redesign.css"></head>
 <body class="r4-teacher r4-dashboard">
 
     <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
@@ -285,14 +285,16 @@
     </div>
 
     <section class="r4-home" aria-labelledby="today-title">
-        <h2 id="today-title">What do you want to do today?</h2>
+        <h2 id="today-title">Teacher dashboard</h2>
         <div class="r4-actions">
-            <button class="btn btn-secondary" onclick="openCreateBlankModal()">Create Quiz</button>
             <button class="btn btn-primary" onclick="document.getElementById('ai-generator-card').hidden=false;document.getElementById('topic-input').focus()">Generate with AI</button>
-            <a class="btn btn-secondary" href="/worksheet">Upload Worksheet</a>
+            <a class="btn btn-secondary" href="/worksheet">Worksheet to Quiz</a>
             <a class="btn btn-secondary" href="#saved-quizzes-card">My Quizzes</a>
+            <button class="btn btn-secondary" onclick="document.getElementById('library-status').value='published';filterQuizzes();document.getElementById('saved-quizzes-card').scrollIntoView();document.getElementById('library-results-hint').hidden=false">Results</button>
         </div>
+        <p id="library-results-hint" class="r4-muted" hidden>Choose Results beside a published quiz in My Quizzes.</p>
         <div class="r4-library-overview">
+          <button class="btn btn-secondary" onclick="openCreateBlankModal()">Create Quiz</button>
           <button class="btn btn-secondary" onclick="document.getElementById('library-status').value='draft';filterQuizzes();document.getElementById('saved-quizzes-card').scrollIntoView()"><%= typeof draft_count !== 'undefined' ? draft_count : 0 %> drafts · Review and finish</button>
           <button class="btn btn-secondary" onclick="document.getElementById('library-status').value='published';filterQuizzes();document.getElementById('saved-quizzes-card').scrollIntoView()"><%= typeof published_count !== 'undefined' ? published_count : 0 %> published · Share and see results</button>
         </div>
@@ -1082,9 +1084,24 @@
         }
 
         let generationBusy = false;
+        let generationJobId = null;
+        window.addEventListener('qm-tasks-updated', event => {
+            if (!generationJobId || !Array.isArray(event.detail)) return;
+            const job = event.detail.find(item => item.id === generationJobId);
+            if (!job || job.status === 'running') return;
+            const feedback = document.getElementById('generator-feedback');
+            if (['completed', 'needs_attention'].includes(job.status)) {
+                feedback.textContent = job.status === 'needs_attention'
+                    ? 'Generation finished with items requiring review. Open the draft from Your AI tasks.'
+                    : 'Generation finished. Open the draft from Your AI tasks.';
+            } else if (['failed', 'interrupted'].includes(job.status)) {
+                feedback.textContent = 'Generation ' + job.status + '. Check Your AI tasks for details and any saved draft.';
+            }
+        });
         async function handleAILoading(event, form) {
             event.preventDefault();
             if (generationBusy) return false;
+            generationJobId = null;
             const feedback = document.getElementById('generator-feedback');
             feedback.textContent = '';
             if (!form.checkValidity()) { document.getElementById('generator-advanced').open=true; form.reportValidity(); return false; }
@@ -1246,8 +1263,9 @@
                     throw new Error(response.status === 429 ? `AI is busy. ${wait ? 'Try again in ' + wait + ' seconds.' : 'Wait a minute before trying again.'}` : (data?.error || 'Could not finish generation. Your settings are retained. Check My Quizzes before retrying.'));
                 }
                 if (data.job_id) {
-                    window.QuizMoKoTasks.accepted('generation');
+                    generationJobId = data.job_id;
                     document.getElementById('generator-feedback').textContent=data.job?.status==='running' ? 'Generating Quiz. You can continue working and open the draft from Your AI tasks.' : ['completed','needs_attention'].includes(data.job?.status) ? 'This task is already finished. Open its draft from Your AI tasks, or choose Start another.' : 'This task needs attention. Open any saved draft or choose Start another after correcting its inputs.';
+                    window.QuizMoKoTasks.accepted('generation', data.job);
                     document.getElementById('loading-overlay').style.display='none';
                     btn.disabled=false; form.style.opacity=''; form.style.pointerEvents='';
                     btn.textContent='Generate Quiz';

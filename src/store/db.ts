@@ -22,7 +22,7 @@ import {
   getFirestore as getAdminFirestore,
   type Firestore as AdminFirestore
 } from 'firebase-admin/firestore';
-import type { User, Quiz, QuizResult, LiveSessionState } from '../types.ts';
+import type { User, Quiz, QuizResult, LiveSessionState, ClassroomRun } from '../types.ts';
 import {
   getFirebaseAdminApp,
   getFirebaseAdminMode,
@@ -33,6 +33,7 @@ import {
 export const users = new Map<string, User>();
 export const quizzes = new Map<string, Quiz>();
 export const results = new Map<string, QuizResult>();
+export const classroomRuns = new Map<string, ClassroomRun>();
 export const aiJobs = new Map<string, any>();
 export const sessionProgress = new Map<string, any>();
 export const liveSessions = new Map<string, LiveSessionState>();
@@ -149,7 +150,7 @@ export class PersistenceUnavailableError extends Error {
   }
 }
 
-const VALID_COLLECTIONS = new Set(['quizzes', 'results', 'users', 'ai_jobs']);
+const VALID_COLLECTIONS = new Set(['quizzes', 'results', 'users', 'ai_jobs', 'live_runs']);
 const SENSITIVE_PERSISTENCE_KEYS = new Set([
   'apikey',
   'geminiapikey',
@@ -254,6 +255,7 @@ const configuredDataDirectory = process.env.QUIZMOKO_DATA_DIR?.trim();
 export const DATA_DIR = path.resolve(configuredDataDirectory || path.join(process.cwd(), 'data'));
 const QUIZZES_FILE = path.join(DATA_DIR, 'quizzes.json');
 const RESULTS_FILE = path.join(DATA_DIR, 'results.json');
+const RUNS_FILE = path.join(DATA_DIR, 'live-runs.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
 let localPersistenceAvailable = true;
@@ -463,7 +465,8 @@ function beginLocalSnapshot(): Promise<void> {
   const operation = Promise.all([
     atomicWriteJsonAsync(QUIZZES_FILE, quizSnapshot),
     atomicWriteJsonAsync(RESULTS_FILE, resultSnapshot),
-    atomicWriteJsonAsync(USERS_FILE, userSnapshot)
+    atomicWriteJsonAsync(USERS_FILE, userSnapshot),
+    atomicWriteJsonAsync(RUNS_FILE, mapToSafeObject(classroomRuns))
   ]).then(
     () => undefined,
     (error) => {
@@ -696,6 +699,7 @@ export function loadPersistentData() {
   loadStoreFile(QUIZZES_FILE, quizzes, 'quiz');
   loadStoreFile(RESULTS_FILE, results, 'result');
   loadStoreFile(USERS_FILE, users, 'user');
+  loadStoreFile(RUNS_FILE, classroomRuns, 'classroom run');
 }
 
 function validateFirestoreTarget(collectionName: string, documentId: string) {
@@ -1214,6 +1218,9 @@ export async function loadFromFirestore(generation = ++firestoreLoadGeneration):
 
   // Jobs contain metadata only. Fail closed if durable job history is unreadable.
   for (const backend of backends) {
+    const loadedRuns = await loadCollection(backend, 'live_runs');
+    if (!loadedRuns.success) throw new PersistenceUnavailableError('Classroom run history is unavailable');
+    for (const entry of loadedRuns.entries) classroomRuns.set(entry.id, entry.data as ClassroomRun);
     const loadedJobs = await loadCollection(backend, 'ai_jobs');
     if (!loadedJobs.success) throw new PersistenceUnavailableError('AI job history is unavailable');
     for (const entry of loadedJobs.entries) aiJobs.set(entry.id, entry.data);
@@ -1326,8 +1333,9 @@ export function getQuizTimestamp(q: any): number {
 export function getOrCreateLiveState(quizId: string) {
   if (!liveSessions.has(quizId)) {
     liveSessions.set(quizId, {
-      paused: false,
-      terminated: false,
+      paused: classroomRuns.get(quizId)?.paused || false,
+      terminated: Boolean(classroomRuns.get(quizId) && classroomRuns.get(quizId)!.status !== 'active'),
+      run: classroomRuns.get(quizId),
       sessions: {}
     });
   }

@@ -101,15 +101,17 @@
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
             <a href="/" class="back-link" style="margin-bottom: 0;"><i data-lucide="arrow-left" class="icon-sm"></i> Back to Dashboard</a>
-            <div style="display: flex; gap: 16px; align-items: center;">
-                <button id="pause-btn" onclick="togglePause()" class="score-badge" style="background-color: var(--warning); color: var(--canvas); border: none; cursor: pointer; padding: 8px 16px;">⏸️ Pause Timers</button>
-                <button id="terminate-btn" onclick="terminateQuiz()" class="score-badge" style="background-color: var(--m-red); color: white; border: none; cursor: pointer; padding: 8px 16px;"><i data-lucide="stop-circle" class="icon-sm"></i> Terminate Quiz</button>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <button id="start-run-btn" onclick="startNewSession()" class="btn btn-secondary">Start New Session</button>
+                <button id="pause-btn" onclick="togglePause()" class="score-badge" style="background-color: var(--warning); color: var(--canvas); border: none; cursor: pointer; padding: 8px 16px; min-height: 44px;">⏸️ Pause Timers</button>
+                <button id="terminate-btn" onclick="terminateQuiz()" class="score-badge" style="background-color: var(--m-red); color: white; border: none; cursor: pointer; padding: 8px 16px; min-height: 44px;"><i data-lucide="stop-circle" class="icon-sm"></i> End Session</button>
                 <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
             </div>
         </div>
         
         <div class="card live-results-card">
-            <h1><span class="pulse"></span> <i data-lucide="radio" class="icon-sm"></i> LIVE: <%= typeof title !== 'undefined' ? title : '' %></h1>
+            <h1><span class="pulse"></span> <i data-lucide="radio" class="icon-sm"></i> <%= typeof title !== 'undefined' ? title : '' %> — Live Session</h1>
+            <p id="run-label">Loading session…</p>
             
             <p style="color: var(--body); font-size: 12px; margin-top: -5px; text-transform: uppercase; letter-spacing: 1.5px;">TABLE UPDATES AUTOMATICALLY EVERY 2 SECONDS.</p>
             
@@ -126,7 +128,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan='7' style="text-align:center; color:var(--body); padding:40px; text-transform: uppercase; letter-spacing: 1.5px;">Waiting for students to join...</td></tr>
+                    <tr><td colspan='7' style="text-align:center; color:var(--body); padding:40px; text-transform: uppercase; letter-spacing: 1.5px;">No students in this session. Waiting for students to join...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -140,6 +142,8 @@
         const quizQuestions = <%- typeof quiz !== 'undefined' && quiz.questions ? JSON.stringify(quiz.questions).replace(/</g, "\\u003c") : '[]' %>;
         
         // WebSocket Initialization with Polling Fallback
+        let selectedRun;
+        let controlPending=false;
         let socket;
         let useWS = true;
 
@@ -161,6 +165,7 @@
                 useWS = false;
             });
 
+            socket.on('classroom_changed', () => initialFetch());
             socket.on('update_session', (payload) => {
 
                 initialFetch();
@@ -259,33 +264,26 @@
             else openDropdowns.delete(sid);
         }
         
-        function togglePause() {
-            fetch(`/api/live/${quizId}/toggle_pause`, { method: 'POST' })
-            .then(async res => {
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Unable to change pause state');
-                return data;
-            })
-            .then(data => {
-                if (data.success) {
-                    isPaused = data.paused;
-                    updatePauseBtn();
-                }
-            })
-            .catch(error => alert(error.message));
+        async function changeRun(action,confirmReplace=false) {
+            if(controlPending) return;
+            controlPending=true;
+            try {
+                const res=await fetch(`/api/live/${quizId}/${action}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({expected_run_id:selectedRun?.id,confirm_replace:confirmReplace})});
+                const data=await res.json();if(!res.ok) throw Error(data.error || 'Unable to change session');
+                initialFetch();
+            } catch(error) {alert(error.message);initialFetch();}
+            finally {controlPending=false;}
+        }
+        function togglePause() {return changeRun('toggle_pause');}
+        function terminateQuiz() {
+            if(confirm('End this session? Its students will stop answering and submit their saved work. Earlier results remain available.')) return changeRun('terminate');
+        }
+        function startNewSession() {
+            const replacing=selectedRun?.status==='active';
+            if((replacing || Object.keys(sessionsCache).length) && !confirm('Start a new session? The current classroom will end. Existing attempts stay in their original session and all results are preserved.')) return;
+            return changeRun('start',replacing);
         }
 
-        function terminateQuiz() {
-            if (!confirm('Are you sure you want to TERMINATE the quiz? All students will be sent to their results page immediately. This cannot be undone.')) return;
-            fetch(`/api/live/${quizId}/terminate`, { method: 'POST' })
-                .then(async res => {
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Unable to terminate quiz');
-                    document.getElementById('terminate-btn').disabled = true;
-                })
-                .catch(error => alert(error.message));
-        }
-        
         function updatePauseBtn() {
             const btn = document.getElementById('pause-btn');
             if (!btn) return;
@@ -460,12 +458,15 @@
                 return response;
             })
             .then(response => {
-                document.getElementById('live-sync-status').textContent=response.control_state_known === false ? 'Live controls could not be recovered after restart. Confirm pause or resume; student activity is unknown until the next ping.' : '';
+                document.getElementById('live-sync-status').textContent=response.control_state_known === false ? 'Live controls could not be recovered after restart. Reconfirm controls; presence and whiteboard state are unknown until reconfirmed.' : 'Presence requires a recent ping. Whiteboard access resets after restart; reconfirm it as needed.';
                 if(response.paused !== undefined) {
                     isPaused = response.paused;
                     updatePauseBtn();
                 }
+                selectedRun=response.run;
+                document.getElementById('run-label').textContent=selectedRun ? `Current run status: ${selectedRun.status === 'active' ? (response.paused ? 'Paused' : 'Active') : 'Ended'} · Session started: ${new Date(selectedRun.started_at).toLocaleString()}` : 'Standalone attempts · Select Start New Session for a fresh classroom.';
                 document.getElementById('terminate-btn').disabled = Boolean(response.terminated);
+                document.getElementById('pause-btn').disabled = Boolean(response.terminated);
                 sessionsCache = response.sessions || response;
                 renderTable();
             })

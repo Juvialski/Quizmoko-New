@@ -154,3 +154,11 @@ Hotfix release CI detected new body-parser/undici advisories. Updated only compa
 ## 2026-10-25 — Final UI reliability
 - Preview image lifecycle is transient and disposed per render; lazy waiting and slow loading never invalidate academic approval. Current decode failures warn and guard explicit approval/publication, without dirtying saved quizzes.
 - Existing task endpoints derive owner-checked current quiz publication for presentation; terminal history and idempotency remain intact. Removed placeholder usage totals/sync UI, compacted editor tools and added screen-only paper scaling with print reset.
+
+## 2026-10-21 — R4.2 live classroom sessions
+Added server-owned durable classroom runs and first-admission attempt binding, selected-run teacher transitions, exact roster isolation and authorized run control rooms. Retained historical/standalone results, revision/digest grading authority, existing providers and one writable process. Restarts restore durable controls and grades without inventing presence; whiteboard state requires reconfirmation. Added persistence fault injection, socket isolation/delayed-grade checks and required terminate/new-session browser acceptance. Architecture maps updated together. No production writes or manual deploy.
+
+## 2026-10-21 - R4.2 review: close server answer admission
+- Separate run binding from answer admission. Serialize canonical answer acceptance with teacher run transitions; record identities before releasing the short lifecycle lock, then permit accepted asynchronous grading to finish outside it.
+- Reject new old-run grade/progress/final identities; reuse accepted retries and allow saved-work finalization without new post-closure Gemini calls. Preserve original run IDs, historical results, standalone attempts and final immutability.
+- Add HTTP end/replacement/race/pending/finalization regressions and isolated live_runs read-denial/recovery coverage. Keep required hydration fail-closed; distinguish IAM policy evidence from verified deployed identity/access.

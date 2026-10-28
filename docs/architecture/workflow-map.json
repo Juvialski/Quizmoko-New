@@ -250,5 +250,20 @@
     "tasks": "Existing owned task endpoints derive response-only owner-checked quiz_state (draft/published/null); history, persistence and idempotency unchanged; terminal UI deduplication",
     "usage": "Unsupported totals and Sync History UI removed; quota unavailable; provider/key selection and limits unchanged",
     "paper": "Screen-only zoom with print reset preserves @page dimensions"
+  },
+  "r4_2_live_sessions": {
+    "service": "src/services/classroomRuns.ts",
+    "report": "docs/R4_2_LIVE_SESSION_REPORT.md",
+    "store": "live_runs/{quiz_id}; local data/live-runs.json; current pointer only, no startup seeding",
+    "attempts": "Existing result IDs with optional live_run_id/live_run_started_at; first admission acknowledged once; no heartbeat writes; no historical reassignment",
+    "controls": "Owner/admin start, pause/resume, end; expected_run_id stale-tab guard and explicit confirm_replace",
+    "monitoring": "Exact current run filtering; private monitor_* roster; classroom_* controls joined via server-bound attempt; standalone legacy compatibility",
+    "restart": "Durable run and canonical grades restored; presence unknown and whiteboard requires reconfirmation",
+    "answer_admission": "grade_individual/save_progressive_result/submit/submit_quiz: attempt lock then short lifecycle lock; record canonical revision/answer/snapshot/question identity before Gemini; reject new closed-run identities with HTTP 409",
+    "closed_retries": "Return accepted saved individual outcome; progressive retry read-only; no new Gemini after closure; accepted in-flight completion stays in original run; saved-work finalization retains proof/revision/idempotency guards",
+    "startup_recovery": "live_runs read denial fails hydration; preserve remote records and existing credential/secret, verify deployed principal and IAM then restart through authorized operations; isolated denial/recovery regression",
+
+    "validation": "R4.2 lifecycle/security/delayed-grade tests, isolated persistence fault injection and terminate -> new run -> new students Chromium regression",
+    "deployment": "No manual deployment or production writes; existing Render/Firebase production prerequisites evaluated separately"
   }
 }

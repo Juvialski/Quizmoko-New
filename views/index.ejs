@@ -1084,9 +1084,24 @@
         }
 
         let generationBusy = false;
+        let generationJobId = null;
+        window.addEventListener('qm-tasks-updated', event => {
+            if (!generationJobId || !Array.isArray(event.detail)) return;
+            const job = event.detail.find(item => item.id === generationJobId);
+            if (!job || job.status === 'running') return;
+            const feedback = document.getElementById('generator-feedback');
+            if (['completed', 'needs_attention'].includes(job.status)) {
+                feedback.textContent = job.status === 'needs_attention'
+                    ? 'Generation finished with items requiring review. Open the draft from Your AI tasks.'
+                    : 'Generation finished. Open the draft from Your AI tasks.';
+            } else if (['failed', 'interrupted'].includes(job.status)) {
+                feedback.textContent = 'Generation ' + job.status + '. Check Your AI tasks for details and any saved draft.';
+            }
+        });
         async function handleAILoading(event, form) {
             event.preventDefault();
             if (generationBusy) return false;
+            generationJobId = null;
             const feedback = document.getElementById('generator-feedback');
             feedback.textContent = '';
             if (!form.checkValidity()) { document.getElementById('generator-advanced').open=true; form.reportValidity(); return false; }
@@ -1248,8 +1263,9 @@
                     throw new Error(response.status === 429 ? `AI is busy. ${wait ? 'Try again in ' + wait + ' seconds.' : 'Wait a minute before trying again.'}` : (data?.error || 'Could not finish generation. Your settings are retained. Check My Quizzes before retrying.'));
                 }
                 if (data.job_id) {
-                    window.QuizMoKoTasks.accepted('generation');
+                    generationJobId = data.job_id;
                     document.getElementById('generator-feedback').textContent=data.job?.status==='running' ? 'Generating Quiz. You can continue working and open the draft from Your AI tasks.' : ['completed','needs_attention'].includes(data.job?.status) ? 'This task is already finished. Open its draft from Your AI tasks, or choose Start another.' : 'This task needs attention. Open any saved draft or choose Start another after correcting its inputs.';
+                    window.QuizMoKoTasks.accepted('generation', data.job);
                     document.getElementById('loading-overlay').style.display='none';
                     btn.disabled=false; form.style.opacity=''; form.style.pointerEvents='';
                     btn.textContent='Generate Quiz';

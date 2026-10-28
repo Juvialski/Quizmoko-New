@@ -166,7 +166,7 @@
                     <ol class="r4-steps" aria-label="Worksheet workflow"><li>Upload</li><li>Review extraction</li><li>Check answers</li><li>Create draft</li><li>Review and publish</li></ol>
                     <p class="r4-muted">PNG, JPEG, WebP, GIF or PDF. Default limits: 12 files, 20 MB each, 60 MB total and 40 pages per upload. Larger files may need splitting; server limits still apply.</p>
                     <div class="m-stripe"></div>
-                    <p style="color: var(--body); margin-bottom: 32px;">Extract questions and answers from your files. The AI will strictly follow the answers provided in your key.</p>
+                    <p style="color: var(--body); margin-bottom: 32px;">Extract questions and answers from your files. Your answer key is retained and checked independently; disagreements require your review.</p>
 
                     <form id="worksheet-form" onsubmit="handleExtract(event)">
                         <div class="upload-grid" style="grid-template-columns: 1fr;">
@@ -237,7 +237,7 @@
 
                     <div class="card worksheet-panel golden-key-card" id="golden-key-card" style="display: none;">
                         <h3 style="margin-bottom: 8px; color: var(--warning); display: flex; align-items: center; gap: 8px;"><i data-lucide="shield" class="icon-sm"></i>️ Golden Reference Key <span style="font-size: 10px; background: var(--warning); color: black; padding: 2px 6px; border-radius: 4px;">EXTRACTED</span></h3>
-                        <p style="font-size: 11px; color: var(--body);">This is the master answer key AI found in your files. Matched questions will strictly follow these.</p>
+                        <p style="font-size: 11px; color: var(--body);">This is the answer key extracted from your files. Check it for extraction errors; disagreements with independent solving require review.</p>
                         <div class="golden-key-grid" id="golden-key-grid"></div>
                     </div>
 

@@ -52,7 +52,7 @@ try {
   await page.evaluate(()=>{window.oldImage=document.querySelector('.live-preview img');renderQuestions();oldImage.dispatchEvent(new Event('error'));});
   await page.waitForTimeout(12000);await clean();assert.equal(await page.locator('.diagram-render-notice:visible').count(),0);
   console.log('Final UI scenario complete');evidence.checks.push('Detached/obsolete render callbacks cannot dirty or warn on replacement preview');
-  await go('/');await page.locator('.qm-owned-tasks').getByRole('link',{name:'Open quiz',exact:true}).waitFor();
+  await go('/');await page.locator('.qm-owned-tasks summary').click();await page.locator('.qm-owned-tasks').getByRole('link',{name:'Open quiz',exact:true}).waitFor();
   assert.equal(await page.locator('.qm-owned-tasks a[href="/edit/reliable_diagrams"]').count(),1);
   assert.match(await page.locator('.qm-owned-tasks').textContent(),/Saved quiz is Published/);
   assert.doesNotMatch(await page.locator('.qm-owned-tasks').textContent(),/needs attention/);

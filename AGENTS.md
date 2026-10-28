@@ -1,6 +1,8 @@
 # AGENTS TEAM COORDINATOR & ARCHITECTURE MANIFEST
 
 ## Workspace Overview: QuizMoKo
+- Worksheet Studio presentation: `public/js/worksheet-studio.js` retains the initial mode in place and lazily mounts other existing mode documents in same-origin frames. `public/css/ui-redesign.css` owns the shared full-width responsive presentation. Keep all three legacy URLs and provider/metadata/crop/export code intact; never reload a retained mode on tab selection. Browser tests must explicitly handle the workspace's unsaved-input leave warning.
+- Expandable settings/tools use native details/summary with consistent full-width headers and keyboard focus. Keep responsive button transitions limited to visual colors/shadows, not width or padding. Finished task history is collapsed by default; newly active work opens automatically.
 - Runtime: Node.js (ESM "type": "module") executed via tsx
 - Core Server: Modular Express.js server with clean entry point (server.ts) routing to modular controllers in /src/routes/, state & persistence in /src/store/db.ts, services in /src/services/, types in /src/types.ts, and auth middleware in /src/middleware/auth.ts
 - Frontend / Templating: EJS views under /views/, shared UI tokens in /public/css/quizmoko-ui.css, theme management in /public/js/quizmoko-theme.js, and guarded MathJax rendering through /public/js/math-display.js

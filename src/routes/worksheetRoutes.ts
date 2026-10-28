@@ -7,9 +7,7 @@ import { validateWorksheetUploads } from '../services/worksheetUploadSafety.ts';
 import { Router } from 'express';
 import multer from 'multer';
 import ExcelJS from 'exceljs';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const archiver = require('archiver');
+import { ZipArchive } from 'archiver';
 import { Type } from '@google/genai';
 import { tokenRequired } from '../middleware/auth.ts';
 import type { AuthRequest } from '../middleware/auth.ts';
@@ -1249,7 +1247,7 @@ router.post('/api/export_rmxflash_excel', tokenRequired, async (req, res) => {
     let baseFilename = `${safeYear}_${safeTest}_${safeContest}`.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').toLowerCase();
     if (!baseFilename || baseFilename === '_') baseFilename = 'rmxflash_export';
 
-    const archive = archiver('zip', { zlib: { level: 9 } });
+    const archive = new ZipArchive({ zlib: { level: 9 } });
 
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${baseFilename}.zip"`);

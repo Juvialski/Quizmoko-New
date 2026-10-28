@@ -14,7 +14,7 @@ export interface LatexIssue {
   index?: number;
 }
 
-const BARE_COMMAND_PATTERN = /\\(?:d?frac|sqrt|left|right|cdot|times|div|sum|prod|int|begin|end|boxed|overline|underline|vec|pi|theta|alpha|beta|gamma|neq|leq|geq|infty)\b/g;
+const BARE_COMMAND_PATTERN = /\\(?:d?frac|text|sqrt|left|right|cdot|times|div|sum|prod|int|begin|end|boxed|overline|underline|vec|pi|theta|alpha|beta|gamma|neq|leq|geq|infty)\b/g;
 
 function isEscaped(text: string, index: number): boolean {
   let slashCount = 0;
@@ -267,6 +267,13 @@ export function normalizeAiLatexText(value: unknown): string {
 const STANDALONE_NUMBER_PATTERN = /(^|[^A-Za-z0-9_#&\\])([-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+)(?:\s*\/\s*[-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+))?)(%?)(?![A-Za-z0-9_])/g;
 
 function formatPlainMathNumberSegment(segment: string): string {
+  // A complete numeric fraction/currency choice is already one expression.
+  // Add its missing outer delimiters before wrapping individual numbers;
+  // otherwise \dfrac{5}{6} becomes the broken \dfrac{$5$}{$6$}.
+  const expression = segment.trim();
+  if (/^(?:[-+]?\\(?:d?frac)\{[-+]?\d+(?:\.\d+)?\}\{[-+]?\d+(?:\.\d+)?\}|\\text\{\\\$[-+]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?\})$/.test(expression)) {
+    return segment.replace(expression, () => `$${expression}$`);
+  }
   return segment.replace(STANDALONE_NUMBER_PATTERN, (_match, prefix: string, numericValue: string, percent: string) => {
     const compact = numericValue.replace(/\s+/g, '');
     const fraction = compact.match(/^([-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+))\/([-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+))$/);

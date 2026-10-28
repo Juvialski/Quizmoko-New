@@ -908,6 +908,7 @@
         let progressiveSaveChain = Promise.resolve();
         let progressiveSaveDebounce = null;
         let lastSubmissionStatus = 'completed';
+        let finalizationAttempted = false;
         const gradingRequests = new Map();
         const pendingGradingTokens = new Set();
         const snapshotCaptureTimers = new Map();
@@ -2691,10 +2692,13 @@
             }
         }
 
-        async function submitQuiz(status = 'completed') {
-            if (isSubmitting) return;
+        async function submitQuiz(status = 'completed', explicitRetry = false) {
+            if (isSubmitting || (finalizationAttempted && !explicitRetry)) return;
 
             if (status === 'early' && !confirm('Are you sure you want to end the quiz early? Unanswered questions will be marked as incorrect.')) return;
+            // Repeated end/ping signals must not turn a failed save into a request loop.
+            // Keep the failure visible until an explicit retry or restored-page attempt.
+            finalizationAttempted = true;
             lastSubmissionStatus = status;
             isSubmitting = true;
             let submissionConfirmed = false;
@@ -2734,7 +2738,7 @@
                 const pct = Math.min(95, Math.max(15, Math.round((finishedCount / totalQuestionsCount) * 100)));
                 document.getElementById('score-text').innerText = `Finalizing Results (${pendingGradings} left)...`;
                 if (progBar) progBar.style.width = `${pct}%`;
-                if (progDetail) progDetail.innerText = `Authoritative AI grading: ${finishedCount} of ${totalQuestionsCount} complete. Pacing requests across Gemini models to adhere to API rate limits...`;
+                if (progDetail) progDetail.innerText = `Checking submitted answers: ${finishedCount} of ${totalQuestionsCount} complete. Waiting for confirmed server grades...`;
                 await new Promise(r => setTimeout(r, 1000));
             }
             if (progBar) progBar.style.width = '90%';
@@ -2901,7 +2905,7 @@
                         && err.name === 'TypeError'
                         && /fetch|network|load failed/i.test(failureMessage));
                 const retryMarkup = canRetry
-                    ? `<br><br><button class="btn-confirm" style="display:inline-flex; width:auto;" onclick="submitQuiz(lastSubmissionStatus)">
+                    ? `<br><br><button class="btn-confirm" style="display:inline-flex; width:auto;" onclick="submitQuiz(lastSubmissionStatus, true)">
                         <i data-lucide="refresh-cw" class="icon-sm"></i> RETRY FINALIZATION
                     </button>`
                     : '';

@@ -45,7 +45,9 @@ export async function cropImageBoundingBox(fileBuffer: Buffer, bbox: any): Promi
     const width = meta.width || 1000;
     const height = meta.height || 1000;
 
-    const padX = Math.min(80, Math.max(30, Math.round(boxW * 0.15 + 35)));
+    // Model boxes often follow the geometry outline, leaving dimension labels
+    // just outside it. Keep bounded lateral context rather than clipping them.
+    const padX = Math.min(160, Math.max(50, Math.round(boxW * 0.30 + 50)));
     const padY = Math.min(80, Math.max(30, Math.round(boxH * 0.15 + 35)));
 
     y1 = Math.max(0, y1 - padY);
@@ -206,8 +208,12 @@ export async function renderPdfPageRange(
         const textPage = await pdfDocument.getPage(pageNumber);
         try {
           const content = await textPage.getTextContent();
-          // Keep physical text-run boundaries: do not infer a sequential numbering scheme.
-          sourceText = content.items.slice(0,10_000).map((item: any) => typeof item.str === 'string' ? item.str : '').join('\n').slice(0,100_000);
+          // PDF.js may split one printed choice row into many text runs.
+          // Preserve its actual line endings so C/D choices are not mistaken
+          // for Roman question IDs and detached from their numeric context.
+          sourceText = content.items.slice(0,10_000).map((item: any) =>
+            typeof item.str === 'string' ? item.str + (item.hasEOL ? '\n' : ' ') : ''
+          ).join('').slice(0,100_000);
         } catch { sourceText = undefined; } // Scans/encrypted text layers remain vision-only.
         finally { textPage.cleanup(); }
       }

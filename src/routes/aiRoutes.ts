@@ -349,7 +349,7 @@ function normalizeQuestionTextForDisplay(value: unknown, formatMathNumbers: bool
   return normalizeQuestionLayoutText(displayText);
 }
 
-function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: string, formatMathNumbers = true) {
+export function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: string, formatMathNumbers = true) {
   if (!raw || typeof raw !== 'object') return null;
   const normalizeDisplayText = formatMathNumbers ? normalizeMathQuestionText : normalizeAiLatexText;
   const question = normalizeQuestionTextForDisplay(raw.question || raw.raw_text || '', formatMathNumbers).trim()
@@ -383,7 +383,9 @@ function normalizeGeneratedQuestion(raw: any, expectedType: string, difficulty: 
       .filter((letter, index, all) => all.indexOf(letter) === index);
     let answerLetter = answerLetters[0] || '';
     if (!answerLetter && expectedType === 'multiple_choice') {
-      const answerText = rawAnswer.replace(/^[A-D][).:\-]\s*/i, '').trim().toLowerCase();
+      // Compare the same display normalization on both sides. In particular,
+      // currency and bare numeric options acquire math delimiters above.
+      const answerText = normalizeDisplayText(rawAnswer.replace(/^[A-D][).:\-]\s*/i, '')).trim().toLowerCase();
       const matchIndex = normalized.options.findIndex((option: string) =>
         option.trim().toLowerCase() === answerText
       );
@@ -728,8 +730,7 @@ router.post(['/generate_ai', '/api/generate_ai'], tokenRequired, serializeJobReq
             contents: prompt,
             config: buildAiTaskConfig('question_drafting', {
               responseMimeType: 'application/json',
-              responseSchema: questionArraySchema,
-              maxOutputTokens: batchImages > 0 ? 12_288 : 8_192
+              responseSchema: questionArraySchema
             }) as any
           });
           parsed = safeParseJSON(response.text || '');

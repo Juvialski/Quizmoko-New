@@ -152,6 +152,7 @@ test('R4.1 detached generation is owned, idempotent, private and restart-honest'
   configureGeminiClientForTests(()=>({models:{generateContent:async(request:any)=>{
     calls++;await pause(40);const schema=request.config.responseSchema;
     if(schema.items?.properties?.confidence){const prompt=String(request.contents[0]);const payload=JSON.parse(prompt.slice(prompt.indexOf('QUESTIONS:')+'QUESTIONS:'.length).trim());return {text:JSON.stringify(payload.map((q:any)=>({id:q.id,answer:'A',solution:'Alpha is explicitly requested.',confidence:'high'})))};}
+    assert.equal(request.config.maxOutputTokens,16_384,'batch drafting must retain the central profile allowance');
     return {text:JSON.stringify([question('generated_1'),{...question('generated_2'),question:'Which option is the word Alpha?'}])};
   }}}));
   try {

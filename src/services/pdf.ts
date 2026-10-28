@@ -206,8 +206,12 @@ export async function renderPdfPageRange(
         const textPage = await pdfDocument.getPage(pageNumber);
         try {
           const content = await textPage.getTextContent();
-          // Keep physical text-run boundaries: do not infer a sequential numbering scheme.
-          sourceText = content.items.slice(0,10_000).map((item: any) => typeof item.str === 'string' ? item.str : '').join('\n').slice(0,100_000);
+          // PDF.js may split one printed choice row into many text runs.
+          // Preserve its actual line endings so C/D choices are not mistaken
+          // for Roman question IDs and detached from their numeric context.
+          sourceText = content.items.slice(0,10_000).map((item: any) =>
+            typeof item.str === 'string' ? item.str + (item.hasEOL ? '\n' : ' ') : ''
+          ).join('').slice(0,100_000);
         } catch { sourceText = undefined; } // Scans/encrypted text layers remain vision-only.
         finally { textPage.cleanup(); }
       }

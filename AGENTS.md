@@ -17,6 +17,7 @@
 - Data & Persistence: Firebase Firestore (firebase-admin, firebase/firestore), Firestore security rules (firestore.rules), in-memory Map stores, and JSON persistence in /src/store/db.ts with /data/*.json fallbacks
 - Document & Asset Processing: pdfjs-dist, exceljs, sharp, archiver, multer processed via /src/services/pdf.ts; worksheet validation/consensus rules are centralized in /src/services/worksheetPipeline.ts
 - Worksheet Source Identity: exact worksheet identifiers and natural source ordering are centralized in /src/services/worksheetSourceOrder.ts; do not derive source numbers from array positions.
+- R5 input reliability: normalize generated answer content and choices identically before matching; complete bare numeric fraction/currency choices receive outer math delimiters before numeric wrapping. PDF text coverage uses PDF.js `hasEOL` boundaries, not one line per text run, so same-row C/D choices cannot become Roman question IDs. Keep batch drafting on the central task profile allowance.
 - Canonical Architecture Map: `docs/architecture/APP_WORKFLOW_MAP.md` is the human-readable current-state map and `docs/architecture/workflow-map.json` is its machine-readable companion. Read them before broad cross-subsystem work and update both whenever routes, views, services, persistent stores, access boundaries, or major workflows change.
 
 ---

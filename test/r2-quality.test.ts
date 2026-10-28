@@ -133,7 +133,7 @@ test('teacher correction can revalidate without fabricated approval bypass',asyn
 });
 
 test('PDF text-layer coverage is collected locally alongside the existing rasterization',async () => {
-  const content='BT /F1 12 Tf 30 150 Td (21. Evaluate 2+3) Tj 0 -25 Td (23. Solve x=4) Tj ET';
+  const content='BT /F1 12 Tf 30 150 Td (21. Evaluate 2+3) Tj 0 -25 Td (A. 1          B. 2          C. 3          D. 5) Tj 0 -25 Td (23. Solve x=4) Tj ET';
   const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',`<< /Length ${content.length} >>\nstream\n${content}\nendstream`];
@@ -145,6 +145,7 @@ test('PDF text-layer coverage is collected locally alongside the existing raster
   await renderPdfPageRange(Buffer.from(pdf),{includeSourceText:true,maxPages:1},page=>{
     count++; assert.equal(page.pageNumber,1); assert.ok(page.image.length>0);
     assert.deepEqual(detectPrintedSourceIds(page.sourceText||''),['21','23']);
+    assert.match(page.sourceText!,/A\. 1[^\n]*B\. 2[^\n]*C\. 3[^\n]*D\. 5/,'same-line PDF runs remain one choice row');
   });
   assert.equal(count,1);
 });

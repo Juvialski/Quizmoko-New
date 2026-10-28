@@ -9,6 +9,7 @@ import {
   PEER_FLASH_LITE_MODEL
 } from '../src/services/aiTaskProfiles.ts';
 import { verifyQuestionBatch } from '../src/services/aiQuestionVerifier.ts';
+import { normalizeGeneratedQuestion } from '../src/routes/aiRoutes.ts';
 import { normalizeQuestionForStorage } from '../src/services/grading.ts';
 import { getRealModelName } from '../src/services/gemini.ts';
 import {
@@ -39,6 +40,31 @@ import {
   isSafeLatexReplacement,
   latexFieldHash
 } from '../src/services/latexPatches.ts';
+
+test('generated choice content receives the same math normalization as its options', () => {
+  for (const [answer, options, letter] of [
+    [String.raw`\text{\$16}`, [String.raw`\text{\$12}`,String.raw`\text{\$14}`,String.raw`\text{\$16}`,String.raw`\text{\$18}`], 'C'],
+    ['5', ['3','5','8','15'], 'B'],
+    ['-x + 15', ['-x + 15','11x + 15','-x + 3','-x - 1'], 'A'],
+    ['B', ['3','5','8','15'], 'B']
+  ] as const) {
+    const q=normalizeGeneratedQuestion({question:'Choose the result.',type:'multiple_choice',options,answer},'multiple_choice','easy');
+    assert.ok(q, String(answer));assert.equal(q.answer,letter);
+  }
+  assert.equal(normalizeGeneratedQuestion({question:'Choose the result.',options:['3','5','8','15'],answer:'999',correct_answer_letter:'B'},'multiple_choice','easy'),null,'An unrelated answer cannot inherit a proposed letter');
+});
+
+test('complete bare fraction and currency choices keep one intact math expression', () => {
+  for(const source of [String.raw`\dfrac{11}{12}`,String.raw`-\frac{5}{6}`,String.raw`\text{\$16}`,String.raw`\text{\$1,250.50}`]){
+    const formatted=normalizeMathQuestionText(source);
+    assert.equal(formatted,`$${source}$`);
+    assert.equal(normalizeMathQuestionText(formatted),formatted);
+    assert.deepEqual(validateLatexText(formatted),[]);
+  }
+  assert.ok(validateLatexText(String.raw`\text{\$$60$}`).some(issue=>issue.code==='bare_latex_command'));
+  assert.equal(normalizeMathQuestionText(String.raw`$\dfrac{5}{6}$`),String.raw`$\dfrac{5}{6}$`);
+  assert.equal(normalizeMathQuestionText('<img src="data:image/png;base64,1234">'),'<img src="data:image/png;base64,1234">');
+});
 
 function multipleChoice(overrides: Record<string, unknown> = {}) {
   return {

@@ -96,25 +96,18 @@
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-<link rel="stylesheet" href="/css/ui-redesign.css"></head>
-<body>
+<link rel="stylesheet" href="/css/ui-redesign.css"><script defer src="/js/workspace-ui.js"></script></head>
+<body class="r4-teacher r4-live">
+    <%- include('partials/workspace-header', {active:'live',quizId:quiz_id}) %>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-            <a href="/" class="back-link" style="margin-bottom: 0;"><i data-lucide="arrow-left" class="icon-sm"></i> Back to Dashboard</a>
-            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                <button id="start-run-btn" onclick="startNewSession()" class="btn btn-secondary">Start New Session</button>
-                <button id="pause-btn" onclick="togglePause()" class="score-badge" style="background-color: var(--warning); color: var(--canvas); border: none; cursor: pointer; padding: 8px 16px; min-height: 44px;">⏸️ Pause Timers</button>
-                <button id="terminate-btn" onclick="terminateQuiz()" class="score-badge" style="background-color: var(--m-red); color: white; border: none; cursor: pointer; padding: 8px 16px; min-height: 44px;"><i data-lucide="stop-circle" class="icon-sm"></i> End Session</button>
-                <button type="button" onclick="toggleTheme()" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme" class="btn btn-ghost btn-icon"><i data-lucide="moon"></i></button>
-            </div>
+        <div class="qm-page-heading"><div><p class="home-eyebrow">CLASSROOM</p><h1><%= typeof title !== 'undefined' ? title : '' %></h1><p>Follow student progress and open a question to see what they are working on.</p></div><a class="btn btn-secondary" href="/preview/<%= encodeURIComponent(quiz_id) %>" target="_blank">Preview questions</a></div>
+        <p id="run-label" class="qm-run-summary">Loading session…</p>
+        <div class="qm-session-controls" aria-label="Classroom controls">
+          <button id="start-run-btn" onclick="startNewSession()" class="btn btn-primary">Start New Session</button>
+          <button id="pause-btn" onclick="togglePause()" class="btn btn-secondary">Pause Timers</button>
+          <button id="terminate-btn" onclick="terminateQuiz()" class="btn btn-secondary" style="color:var(--danger)">End Session</button>
         </div>
-        
         <div class="card live-results-card">
-            <h1><span class="pulse"></span> <i data-lucide="radio" class="icon-sm"></i> <%= typeof title !== 'undefined' ? title : '' %> — Live Session</h1>
-            <p id="run-label">Loading session…</p>
-            
-            <p style="color: var(--body); font-size: 12px; margin-top: -5px; text-transform: uppercase; letter-spacing: 1.5px;">TABLE UPDATES AUTOMATICALLY EVERY 2 SECONDS.</p>
-            
             <table id="live-table">
                 <thead>
                     <tr>
@@ -128,13 +121,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan='7' style="text-align:center; color:var(--body); padding:40px; text-transform: uppercase; letter-spacing: 1.5px;">No students in this session. Waiting for students to join...</td></tr>
+                    <tr><td colspan='7' style="text-align:center; color:var(--body); padding:40px; text-transform: uppercase; letter-spacing: 1.5px;">Ready for your students. Start a session and share the quiz link.</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <p id="live-sync-status" role="status" style="margin:12px 0;color:var(--body)"></p>
+    <p class="qm-live-note">Updates automatically. Scores include confirmed grades; pending answers stay visible.</p>
+    <p id="live-sync-status" role="status" class="qm-live-note"></p>
     <!-- Original Preserved Javascript -->
     <script>
         const quizId = '<%= typeof quiz_id !== 'undefined' ? quiz_id : '' %>';
@@ -288,13 +282,13 @@
             const btn = document.getElementById('pause-btn');
             if (!btn) return;
             if (isPaused) {
-                btn.innerHTML = '▶️ Resume Timers';
-                btn.style.backgroundColor = 'var(--success)';
-                btn.style.color = 'white';
+                btn.textContent = 'Resume Timers';
+                btn.style.backgroundColor = 'var(--success-bg)';
+                btn.style.color = 'var(--success)';
             } else {
-                btn.innerHTML = '⏸️ Pause Timers';
-                btn.style.backgroundColor = 'var(--warning)';
-                btn.style.color = 'var(--canvas)';
+                btn.textContent = 'Pause Timers';
+                btn.style.backgroundColor = 'var(--surface-card)';
+                btn.style.color = 'var(--body-strong)';
             }
         }
 
@@ -318,7 +312,7 @@
             const data = sessionsCache;
 
             if (Object.keys(data).length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--body); padding:40px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;">No one is taking the quiz right now.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--body); padding:40px; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;">No students yet. Share the quiz link to begin.</td></tr>';
                 return;
             }
 

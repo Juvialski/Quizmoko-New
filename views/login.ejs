@@ -20,9 +20,9 @@
     </style>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body>
-    <div class="auth-card">
+<link rel="stylesheet" href="/css/ui-redesign.css"></head>
+<body class="qm-auth">
+    <div class="auth-card"><a href="/" class="qm-brand auth-brand"><span class="qm-brand-mark" aria-hidden="true">Q</span><span>QuizMoKo<small>Make room for learning.</small></span></a>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2 style="margin: 0; color: var(--body-strong); font-size: 24px;">Log in to QuizMoKo</h2>
             <button type="button" onclick="toggleTheme()" data-theme-toggle class="btn btn-ghost btn-icon" title="Toggle Theme" aria-label="Switch to light theme"><i data-lucide="moon"></i></button>
@@ -61,7 +61,7 @@
                 </label>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-block" id="submit-btn">LOG IN</button>
+            <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Log in</button>
 
             <div style="margin-top: 20px; text-align: center; border-top: 1px solid var(--hairline); padding-top: 20px;">
                 <p style="margin-top: 0; margin-bottom: 12px; font-weight: 600; font-size: 11px; letter-spacing: 1px;">OR CONTINUE WITH</p>
@@ -71,7 +71,7 @@
                 </button>
             </div>
         </form>
-        <p>Don't have an account? <a href="/register">REGISTER HERE</a></p>
+        <p>Don't have an account? <a href="/register">Create an account</a></p>
     </div>
 
     <script>

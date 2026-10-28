@@ -125,18 +125,14 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/teacher-workflow.js"></script>
-</head>
+<link rel="stylesheet" href="/css/ui-redesign.css"></head>
 <body class="r4-teacher r4-view-solutions">
-    <div class="height-control-panel">
-        <label>Workings Box Height</label>
-        <input type="range" min='100' max='800' value="350" class="height-slider" id="height-slider" oninput="updateWbHeight(this.value)">
-        <div class="height-value" id="height-val-label">350px</div>
-    </div>
-    <div class="floating-actions">
-        <button type="button" class="pdf-btn" id="main-pdf-btn" onclick="downloadThisPageAsPDF()"><i data-lucide="file-text" class="icon-sm"></i> Save as PDF</button>
-        <button type="button" class="theme-toggle" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to light theme" title="Toggle Theme"><i data-lucide="moon"></i></button>
-    </div>
-
+    <nav class="solution-toolbar" aria-label="Result tools">
+      <a class="btn btn-secondary" href="/results/<%= encodeURIComponent(result.id) %>">Back to results</a>
+      <details class="solution-display-options"><summary>Display options</summary><div class="height-control-panel"><label for="height-slider">Workings box height</label><input type="range" min="100" max="800" value="350" class="height-slider" id="height-slider" oninput="updateWbHeight(this.value)"><div class="height-value" id="height-val-label">350px</div></div></details>
+      <button type="button" class="btn btn-primary pdf-btn" id="main-pdf-btn" onclick="downloadThisPageAsPDF()">Save as PDF</button>
+      <button type="button" class="btn btn-secondary btn-icon" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to light theme" title="Change theme">◐</button>
+    </nav>
     <div class="container">
         <div class="header-card">
             <h1><%= typeof title !== 'undefined' ? title : '' %></h1>

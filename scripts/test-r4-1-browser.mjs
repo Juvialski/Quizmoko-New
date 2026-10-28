@@ -53,7 +53,7 @@ try {
   await dashboard.waitForFunction(()=>document.querySelector('.qm-owned-tasks')?.textContent.includes('Generating Quiz'));
   const same=await dashboard.evaluate(async id=>(await (await fetch('/api/tasks/'+id)).json()).job.id,job);assert.equal(same,job);
   await dashboard.waitForFunction(()=>document.querySelector('.qm-owned-tasks a')?.textContent==='Open draft');
-  await dashboard.getByRole('button',{name:'Generate with AI',exact:true}).click();await dashboard.locator('#topic-input').fill('Language tutorial');await dashboard.locator('[name=num_items]').fill('2');
+  await dashboard.getByRole('navigation',{name:'Create quiz method'}).getByRole('link',{name:'Generate with AI',exact:true}).click();await dashboard.locator('#topic-input').fill('Language tutorial');await dashboard.locator('[name=num_items]').fill('2');
   const [repeated]=await Promise.all([dashboard.waitForResponse(r=>r.url().endsWith('/api/generate_ai')&&r.request().method()==='POST'),dashboard.locator('#generate-btn').click()]);assert.equal((await repeated.json()).job_id,job);
   await dashboard.reload();assert.equal((await dashboard.evaluate(async()=> (await (await fetch('/api/tasks')).json()).jobs.length)),1);
   console.log('Browser scenario complete');evidence.scenarios.push({name:'Preview, Back and refresh recover the same completed generation job and draft link',pass:true});

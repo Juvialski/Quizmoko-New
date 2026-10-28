@@ -6,9 +6,9 @@
   <link rel="stylesheet" href="/css/quizmoko-ui.css">
   <script src="/js/quizmoko-theme.js"></script>
   <script src="/js/math-display.js"></script>
-  <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]}};</script>
+  <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']]},startup:{typeset:false}};</script>
   <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-</head>
+<link rel="stylesheet" href="/css/ui-redesign.css"></head>
 <body class="r4-teacher">
   <main class="r4-preview">
     <a class="btn btn-secondary" href="/edit/<%= encodeURIComponent(quiz.id) %>">Back to editor</a>

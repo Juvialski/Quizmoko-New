@@ -1,0 +1,13 @@
+{
+  "mode": "Isolated local synthetic records, mocked providers; actual frontend and app save routes",
+  "checks": [
+    "Create action opens and focuses the original generator in the dedicated workspace; library return restores focus; task-retry deep link opens generator",
+    "Duplicate assigns a unique canonical ID, retains immutable source metadata, requires review; reorder/points/solution persist through actual save and reload; delete acts on selected item",
+    "Mobile results actions fit without horizontal scrolling; feedback expands; submission search filters real rows",
+    "Retained answer-key document grows without nested scrolling; crop overlay remains within parent viewport after a 500px page scroll",
+    "Mobile student question uses full width; whiteboard follows vertically, hides/reopens, and returns to question through visible control",
+    "Existing saved classroom run appears on the dashboard with a direct link back to its monitor"
+  ],
+  "errors": [],
+  "pass": true
+}

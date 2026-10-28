@@ -1,0 +1,1032 @@
+{
+  "mode": "Isolated synthetic records, mocked generation/extraction; actual templates, scripts, save routes and RMX export. No production or live provider calls.",
+  "checks": [
+    "AI/manual/worksheet share a dedicated Create Quiz surface; library is hidden; returning to library/Back and switching all methods preserves form values and the same worksheet documents with separate files",
+    "All extraction controllers still work, source wording/7b survives method switches and quiz creation reaches the top-level editor; answer-key review and actual RMX XLSX ZIP export work",
+    "Nested retained crop modal stays within the visible top-level viewport after scrolling; RMX has Upload/Extract/Review/Export steps",
+    "Direct legacy worksheet URLs retain the shared Create header and active method; manual draft and AI success reach existing editor; retry deep links focus topic; rate limits retain input and unlock submission"
+  ],
+  "screens": [
+    "after/ai-1440-light.png",
+    "after/ai-1440-dark.png",
+    "after/ai-390-light.png",
+    "after/ai-390-dark.png",
+    "after/ai-options-1440-light.png",
+    "after/ai-options-1440-dark.png",
+    "after/ai-options-390-light.png",
+    "after/ai-options-390-dark.png",
+    "after/manual-1440-light.png",
+    "after/manual-1440-dark.png",
+    "after/manual-390-light.png",
+    "after/manual-390-dark.png",
+    "after/worksheet-1440-light.png",
+    "after/worksheet-1440-dark.png",
+    "after/worksheet-390-light.png",
+    "after/worksheet-390-dark.png",
+    "after/worksheet-options-1440-light.png",
+    "after/worksheet-options-1440-dark.png",
+    "after/worksheet-options-390-light.png",
+    "after/worksheet-options-390-dark.png",
+    "after/answer-key-1440-light.png",
+    "after/answer-key-1440-dark.png",
+    "after/answer-key-390-light.png",
+    "after/answer-key-390-dark.png",
+    "after/answer-key-files-1440-light.png",
+    "after/answer-key-files-1440-dark.png",
+    "after/answer-key-files-390-light.png",
+    "after/answer-key-files-390-dark.png",
+    "after/rmx-1440-light.png",
+    "after/rmx-1440-dark.png",
+    "after/rmx-390-light.png",
+    "after/rmx-390-dark.png",
+    "after/rmx-options-1440-light.png",
+    "after/rmx-options-1440-dark.png",
+    "after/rmx-options-390-light.png",
+    "after/rmx-options-390-dark.png",
+    "after/answer-key-review-1440-light.png",
+    "after/answer-key-review-1440-dark.png",
+    "after/answer-key-review-390-light.png",
+    "after/answer-key-review-390-dark.png",
+    "after/worksheet-review-1440-light.png",
+    "after/worksheet-review-1440-dark.png",
+    "after/worksheet-review-390-light.png",
+    "after/worksheet-review-390-dark.png",
+    "after/ai-error-1440-light.png",
+    "after/ai-error-1440-dark.png",
+    "after/ai-error-390-light.png",
+    "after/ai-error-390-dark.png",
+    "after/direct-worksheet-1440-light.png",
+    "after/direct-worksheet-1440-dark.png",
+    "after/direct-worksheet-390-light.png",
+    "after/direct-worksheet-390-dark.png",
+    "after/direct-worksheet_upload-1440-light.png",
+    "after/direct-worksheet_upload-1440-dark.png",
+    "after/direct-worksheet_upload-390-light.png",
+    "after/direct-worksheet_upload-390-dark.png",
+    "after/direct-worksheet_answers-1440-light.png",
+    "after/direct-worksheet_answers-1440-dark.png",
+    "after/direct-worksheet_answers-390-light.png",
+    "after/direct-worksheet_answers-390-dark.png",
+    "after/direct-rmxflash-1440-light.png",
+    "after/direct-rmxflash-1440-dark.png",
+    "after/direct-rmxflash-390-light.png",
+    "after/direct-rmxflash-390-dark.png"
+  ],
+  "layouts": [
+    {
+      "screen": "ai",
+      "theme": "light",
+      "url": "/#create/ai",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "ai",
+      "theme": "dark",
+      "url": "/#create/ai",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "ai",
+      "theme": "light",
+      "url": "/#create/ai",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "ai",
+      "theme": "dark",
+      "url": "/#create/ai",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "ai-options",
+      "theme": "light",
+      "url": "/#create/ai",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "ai-options",
+      "theme": "dark",
+      "url": "/#create/ai",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "ai-options",
+      "theme": "light",
+      "url": "/#create/ai",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "ai-options",
+      "theme": "dark",
+      "url": "/#create/ai",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "manual",
+      "theme": "light",
+      "url": "/#create/manual",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "manual",
+      "theme": "dark",
+      "url": "/#create/manual",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "manual",
+      "theme": "light",
+      "url": "/#create/manual",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "manual",
+      "theme": "dark",
+      "url": "/#create/manual",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "worksheet",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "worksheet",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "worksheet",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "worksheet-options",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "worksheet-options",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-options",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "worksheet-options",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-options",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet-options",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "worksheet-options",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet-options",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "answer-key",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "answer-key",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "answer-key",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "answer-key",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-files",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "rmx",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "rmx",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx",
+      "theme": "light",
+      "url": "/rmxflash",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "rmx",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "rmx",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "rmx",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx",
+      "theme": "dark",
+      "url": "/rmxflash",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "rmx",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "rmx",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx",
+      "theme": "light",
+      "url": "/rmxflash",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "rmx",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx",
+      "theme": "dark",
+      "url": "/rmxflash",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "light",
+      "url": "/rmxflash",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "dark",
+      "url": "/rmxflash",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "light",
+      "url": "/rmxflash",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "rmx-options",
+      "theme": "dark",
+      "url": "/rmxflash",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "light",
+      "url": "/rmxflash",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "dark",
+      "url": "/rmxflash",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "light",
+      "url": "/rmxflash",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "answer-key-review",
+      "theme": "dark",
+      "url": "/rmxflash",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "ai-error",
+      "theme": "light",
+      "url": "/#ai-generator-card",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "ai-error",
+      "theme": "dark",
+      "url": "/#ai-generator-card",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "ai-error",
+      "theme": "light",
+      "url": "/#ai-generator-card",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "ai-error",
+      "theme": "dark",
+      "url": "/#ai-generator-card",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "direct-worksheet",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "direct-worksheet",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "direct-worksheet",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "direct-worksheet",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "direct-worksheet_upload",
+      "theme": "light",
+      "url": "/worksheet_upload",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "direct-worksheet_upload",
+      "theme": "dark",
+      "url": "/worksheet_upload",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "direct-worksheet_upload",
+      "theme": "light",
+      "url": "/worksheet_upload",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "direct-worksheet_upload",
+      "theme": "dark",
+      "url": "/worksheet_upload",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "direct-worksheet_answers",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "direct-worksheet_answers",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "direct-worksheet_answers",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "direct-worksheet_answers",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "direct-rmxflash",
+      "theme": "light",
+      "url": "/rmxflash",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "direct-rmxflash",
+      "theme": "dark",
+      "url": "/rmxflash",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "direct-rmxflash",
+      "theme": "light",
+      "url": "/rmxflash",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "direct-rmxflash",
+      "theme": "dark",
+      "url": "/rmxflash",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "light",
+      "url": "/rmxflash",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "dark",
+      "url": "/rmxflash",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "light",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "light",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "light",
+      "url": "/worksheet_answers",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "light",
+      "url": "/rmxflash",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "dark",
+      "url": "/#create/worksheet",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "dark",
+      "url": "/worksheet",
+      "width": 358,
+      "scroll": 358
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "dark",
+      "url": "/worksheet_answers",
+      "width": 1376,
+      "scroll": 1376
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "dark",
+      "url": "/rmxflash",
+      "width": 1376,
+      "scroll": 1376
+    }
+  ],
+  "errors": [],
+  "assetFailures": [],
+  "pass": true
+}

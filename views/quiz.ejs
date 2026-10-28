@@ -613,7 +613,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 <link rel="stylesheet" href="/css/ui-redesign.css"></head>
-<body>
+<body class="qm-student">
     <div class="quiz-wrapper">
         <div class="left-panel" id="left-panel">
             <div class="quiz-container">
@@ -623,31 +623,18 @@
     <div class="quiz-brand-row">
         <div class="brand-left">
             <span class="quiz-brand-title">
-                <i data-lucide="rocket"></i> QUIZMOKO
+                <span class="qm-brand-mark" aria-hidden="true">Q</span> QuizMoKo
             </span>
             <div id="connection-dot" class="status-dot" title="Online"></div>
         </div>
 
         <div class="brand-right-tools">
-            <div class="expanded-toolbar">
-                <button onclick="toggleTheme()" class="tool-btn" data-theme-toggle title="Toggle Theme" aria-label="Switch to light theme">
-                    <i data-lucide="moon"></i>
-                    <span>Theme</span>
-                </button>
-                <div class="tool-separator"></div>
-                <button id="center-toggle" onclick="toggleQuestionCentering()" class="tool-btn" title="Toggle Alignment">
-                    <i data-lucide="align-center"></i>
-                    <span>Align</span>
-                </button>
-                <div class="tool-separator"></div>
-                <button class="tool-btn" onclick="adjustFontSize(-0.1)" title="Decrease Font">
-                    <span>A-</span>
-                </button>
-                <div class="tool-separator"></div>
-                <button class="tool-btn" onclick="adjustFontSize(0.1)" title="Increase Font">
-                    <span>A+</span>
-                </button>
-            </div>
+            <button onclick="toggleTheme()" class="tool-btn" data-theme-toggle title="Change theme" aria-label="Switch to light theme"><span aria-hidden="true">◐</span></button>
+            <details class="student-display-settings"><summary>Display</summary><div class="expanded-toolbar">
+                <button id="center-toggle" onclick="toggleQuestionCentering()" class="tool-btn" title="Toggle Alignment"><span>Align</span></button>
+                <button class="tool-btn" onclick="adjustFontSize(-0.1)" title="Decrease Font" aria-label="Decrease question font size">A−</button>
+                <button class="tool-btn" onclick="adjustFontSize(0.1)" title="Increase Font" aria-label="Increase question font size">A+</button>
+            </div></details>
         </div>
     </div>
     
@@ -681,8 +668,8 @@
                 <div id="start-screen">
                     <h1 style="margin:0; font-size: 40px; color: var(--on-dark); letter-spacing: -0.5px; font-weight: 700;"><i data-lucide="edit-3" class="icon-sm"></i> <%= typeof quiz.title !== 'undefined' ? quiz.title : '' %></h1>
                     <div style="height:4px; width:60px; background:var(--primary); margin:20px auto;"></div>
-                    <p style="color: var(--body); font-size: 16px;">Time limit: <strong><%= typeof quiz.time_limit !== 'undefined' ? quiz.time_limit : '' %> seconds</strong> per question.</p>
-                    <input type="text" id="student-name" name="student_full_name" autocomplete="name" placeholder="Enter your full name" required>
+                    <p class="student-instructions"><%= (quiz.questions || []).length %> questions · <%= quiz.quiz_mode === 'back_and_forth' ? 'Move between questions at your own pace.' : 'Answer each question in order.' %><br><strong><%= quiz.time_limit %> seconds <%= quiz.quiz_mode === 'back_and_forth' ? 'per question, combined into one timer' : 'for each question' %>.</strong></p>
+                    <input type="text" id="student-name" name="student_full_name" autocomplete="name" aria-label="Your full name" placeholder="Enter your full name" required>
                     <button class="btn-start" onclick="beginQuiz()"><i data-lucide="rocket" class="icon-md" style="margin-right:6px;"></i> Start Quiz</button>
                 </div>
                 <div id="quiz-screen" style="display:none;">
@@ -740,6 +727,7 @@
             </div>
         </div>
         <div class="right-panel" id="right-panel">
+            <div class="mobile-whiteboard-heading"><strong>Your working</strong><button type="button" class="btn btn-secondary" onclick="document.getElementById('question-text').scrollIntoView({block:'start'})">Back to question</button></div>
             <div class="wb-toolbar">
                 <button class="wb-btn active" data-tool='draw' onclick="setTool('draw')"><i data-lucide="edit-2" class="icon-sm"></i>️ Draw</button>
                 <button class="wb-btn" data-tool='erase' onclick="setTool('erase')"><i data-lucide="eraser" class="icon-sm"></i> Eraser</button>
@@ -1744,6 +1732,7 @@
             studentWhiteboardPreference = !studentWhiteboardPreference;
             updateWhiteboardLayout();
             saveQuizState();
+            if (studentWhiteboardPreference && matchMedia('(max-width:760px)').matches) document.getElementById('right-panel').scrollIntoView({block:'start'});
         }
 
         function updateWhiteboardLayout() {

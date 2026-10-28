@@ -96,9 +96,10 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/teacher-workflow.js"></script>
     <script src="/js/owned-tasks.js"></script>
-<link rel="stylesheet" href="/css/ui-redesign.css"><script src="/js/worksheet-studio.js" defer></script></head>
+<link rel="stylesheet" href="/css/ui-redesign.css"><script src="/js/worksheet-studio.js" defer></script><script defer src="/js/workspace-ui.js"></script></head>
 <body class="r4-teacher r4-worksheet-upload">
-    <div class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
+    <%- include('partials/workspace-header', {active:'create'}) %>
+    <div data-legacy-header class="top-header-bar" style="max-width: 1800px; margin: 0 auto 32px auto; display: flex; justify-content: space-between; align-items: flex-start; padding: 0;">
         <div>
             <h1 style="margin: 0; color: var(--body-strong); font-weight: 700; font-size: 36px; letter-spacing: -0.5px;" id="dashboard-header">
                 <i data-lucide="rocket" class="icon-md" style="margin-right:6px;"></i> QuizMoKo <span style="font-size:16px; color:var(--body); font-weight:400; letter-spacing: 0; vertical-align: middle;">Teacher</span>
@@ -113,6 +114,7 @@
         </div>
     </div>
 
+    <%- include('partials/create-heading') %>
     <div class="dashboard-container teacher-view">
         <div class="sticky-col">
             <div class="mode-tabs">
@@ -143,7 +145,8 @@
                     <p style="color: var(--body); margin-bottom: 32px;">Convert your existing worksheet images or PDFs into a live, interactive quiz with AI.</p>
 
                     <form id="worksheet-form" onsubmit="handleExtract(event)">
-                        <label for="file-input">Step 1: Upload Files (Images or PDF)</label>
+                      <div class="worksheet-source-files">
+                        <label for="file-input">Worksheet files</label>
                         <div class="dropzone" id="dropzone">
                             <div style="font-size: 40px; margin-bottom: 8px;"><i data-lucide="upload" class="icon-sm"></i></div>
                             <div style="font-weight: 700;">Click, Drag, or Paste Worksheet Files</div>
@@ -152,6 +155,9 @@
                         </div>
                         <div class="file-list" id="file-list"></div>
 
+                      </div>
+                      <div class="worksheet-extract-actions">
+                        <p class="worksheet-next">Images or PDF. Default limits: 12 files, 20 MB per file, 60 MB total and 40 pages. Split larger worksheets before uploading.</p>
 <details class="r4-details"><summary>Extraction options</summary>                        <div style="margin-top: 24px; display: grid; grid-template-columns: 1fr; gap: 16px;">
                             <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-elevated); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--hairline);">
                                 <input type="checkbox" id="use_screenshots" style="width: 18px; height: 18px; cursor: pointer;">
@@ -187,7 +193,8 @@
                             </div>
                         </div>
 
-</details>                        <button type="submit" class="btn btn-primary btn-block" id="extract-btn" style="margin-top: 16px;"><i data-lucide="search" class="icon-sm"></i> EXTRACT QUESTIONS</button>
+</details>                        <button type="submit" class="btn btn-primary btn-block" id="extract-btn" style="margin-top: 16px;"><i data-lucide="search" class="icon-sm"></i> Extract questions</button>
+                      </div>
                     </form>
                 </div>
             </div>

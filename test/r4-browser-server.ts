@@ -6,8 +6,24 @@ import ejs from 'ejs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { registerRoutes } from '../src/routes/index.ts';
-import { quizzes, results, users, aiJobs } from '../src/store/db.ts';
-const app = express(); app.set('view engine','ejs'); app.use(express.json()); app.use(express.urlencoded({extended:true})); app.use(express.static('public'));
+import { quizzes, results, users, aiJobs, classroomRuns } from '../src/store/db.ts';
+const app = express(); app.set('view engine','ejs'); app.use(express.json()); app.use(express.urlencoded({extended:true}));
+if (process.env.UI_FINAL_BASELINE === '1') {
+  app.use(['/css','/js'], (req,res,next) => {
+    try {
+      const file='public'+req.originalUrl.split('?')[0];
+      if (!/^public\/(css|js)\/[a-zA-Z0-9._-]+$/.test(file)) return next();
+      res.type(file.endsWith('.css')?'css':'js').send(execFileSync('git',['show',`e9775b4:${file}`],{encoding:'utf8'}));
+    } catch { next(); }
+  });
+  app.engine('ejs',(file,options,callback)=>{
+    try {
+      const relative=path.relative(process.cwd(),file).replaceAll('\\','/');
+      callback(null,ejs.render(execFileSync('git',['show',`e9775b4:${relative}`],{encoding:'utf8'}),options,{filename:file}));
+    } catch(error) { callback(error as Error); }
+  });
+}
+app.use(express.static('public'));
 // Same synthetic data, exact pre-redesign templates for reproducible visual review.
 if (process.env.UI_CAPTURE_BASELINE === '1') app.engine('ejs', (file, options, callback) => {
   try {
@@ -41,6 +57,22 @@ if (process.env.FINAL_UI_FIXTURES === '1') {
   aiJobs.set('failed',{...job,id:'failed',quiz_id:undefined,status:'failed',error:'Synthetic provider unavailable',started_at:now-2} as any);
 }
 results.set('r4_result',{id:'r4_result',quiz_id:'r4_published',student_name:'Synthetic Student',score:1,total:2,created_at:'2026-10-13T00:01:00Z',finalized:true,details:[{...fixtureQuestion(),question:'Choose the word Alpha. $1 + 1 = 2$.',user_answer:'Beta',correct_answer:'Alpha',score_fraction:0,is_correct:false,grade_status:'graded',ai_feedback:'Choose Alpha next time.'}]});
+if (process.env.UI_FINAL_CAPTURE === '1') {
+  // Fabricated mathematics class used only for visual comparisons, never providers.
+  const math = [
+    {...fixtureQuestion('1'),question:String.raw`Solve $\dfrac{x}{3}+5=9$ for $x$.`,options:['$4$','$8$','$12$','$27$'],answer:'C',solution:String.raw`Subtract $5$ from both sides: $\dfrac{x}{3}=4$. Multiply by $3$ to get $x=12$.`,points:2},
+    {...fixtureQuestion('2'),question:String.raw`A triangle has base $8\text{ cm}$ and height $5\text{ cm}$. Find its area in square centimetres.`,type:'identification',options:[],answer:'20',solution:String.raw`Use $A=\dfrac{1}{2}bh=\dfrac{1}{2}(8)(5)=20\text{ cm}^2$.`,points:2},
+    {...fixtureQuestion('3'),question:String.raw`Explain why $\dfrac{2}{3}$ is greater than $\dfrac{3}{5}$ using a common denominator.`,type:'open_ended',options:[],answer:String.raw`$\dfrac{2}{3}=\dfrac{10}{15}$ and $\dfrac{3}{5}=\dfrac{9}{15}$, so $\dfrac{2}{3}>\dfrac{3}{5}$.`,solution:'Compare the numerators after rewriting both fractions with the same denominator.',points:3}
+  ];
+  for (const id of ['r4_draft','r4_published']) {
+    const quiz=quizzes.get(id)!;quiz.title=id==='r4_draft'?'Fractions & linear equations':'Geometry · Area and reasoning';quiz.subject='Math';quiz.questions=structuredClone(math) as any;
+    if(id==='r4_draft')quiz.questions[0].verification.verification_status='review_required';
+  }
+  for (const [id,title] of [['ui_recent_1','Ratios & proportion'],['ui_recent_2','Integers · Mixed practice']]) {const q=fixture(id,title);q.subject='Math';q.questions=structuredClone(math) as any;}
+  classroomRuns.set('ui_recent_1',{id:'synthetic-active-class',quiz_id:'ui_recent_1',owner_uid:'teacher_test',started_at:'2026-10-28T02:00:00Z',status:'active',paused:false});
+  const r=results.get('r4_result')!;r.student_name='Student A';r.score=4;r.total=7;r.time_active_seconds=148;r.total_duration_seconds=163;
+  r.details=math.map((q,i)=>({...q,user_answer:i===0?'B':q.answer,correct_answer:q.answer,score_fraction:i===0?0:1,is_correct:i!==0,grade_status:'graded',ai_feedback:i===0?'Subtract before multiplying. Check the inverse operation at each step.':'Correct reasoning.'}));
+}
 app.get('/__baseline',(_req,res)=>res.send(ejs.render(execFileSync('git',['show','045765a:views/index.ejs'],{encoding:'utf8'}),{grouped_quizzes:{English:[quizzes.get('r4_published')]},all_subjects:['General','English'],all_folders:['Unit 1'],is_admin:false,is_rmx_authorized:true,user:users.get('teacher_test')})));
 app.get('/api/ai/config',(_req,res)=>res.json({gemini_configured:true,ollama_configured:false}));
 app.post('/api/generate_ai',async (req,res)=>{

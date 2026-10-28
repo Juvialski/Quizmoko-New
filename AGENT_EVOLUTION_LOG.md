@@ -169,3 +169,7 @@ Shared accessible mode tabs retain files and edits in existing independent mode 
 Owner feedback requires using the PC screen width and a compact top section. Finished tasks default to a collapsed disclosure; running tasks open automatically and retain terminal links/errors. RMX ZIP export uses Archiver 8's named `ZipArchive` constructor, preserving the existing workbook format.
 
 Expandable settings/tools now share native keyboard-accessible disclosure panels. Avoid geometry transitions on responsive buttons: padding animation caused temporary mobile overflow during breakpoint changes. Screenshot captures must wait for theme color transitions before evaluating dark mode. CI runs the isolated Studio browser journey.
+
+## 2026-10-28 — Cohesive tutoring workspace
+
+Shared teacher navigation and light/dark design tokens connect creation, continuous editing, classroom monitoring and results. Direct duplicate/reorder actions retain immutable source metadata and canonical validation; points/solutions edit inline. Retained worksheet documents size to content and progress follows current work. Mobile roster/results use labelled rows; the whiteboard follows the full-width student question. No backend, provider, auth, grading, schema or persistence changes. Exact PR #15/synthetic-class visual comparisons and focused browser evidence live in `docs/ui-final/`. Editorial acceptance and deployment remain separate; deliver an unmerged PR for owner screenshot review.

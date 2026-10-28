@@ -1,0 +1,37 @@
+{
+  "commands": [
+    {
+      "command": "npm test",
+      "passed": 194,
+      "failed": 0
+    },
+    {
+      "command": "node --require ./test/tsx-bootstrap.cjs --import tsx --test test/ui-consistency.test.ts test/r4-workflow.test.ts test/quiz-flows.test.ts",
+      "passed": 82,
+      "failed": 0
+    },
+    {
+      "command": "npm run build",
+      "result": "passed"
+    },
+    {
+      "command": "npm run test:ui",
+      "result": "passed; includes test:ui-final",
+      "evidence": [
+        "r4-browser.json",
+        "r4-1-browser.json",
+        "r4-2-browser.json",
+        "worksheet-editor.json",
+        "ui-audit.json",
+        "diagram-print.json",
+        "../workflow-evidence.json"
+      ]
+    },
+    {
+      "command": "npm run test:studio",
+      "result": "passed",
+      "evidence": "studio.json"
+    }
+  ],
+  "limits": "Synthetic records and mocked providers. No live Gemini accuracy or production durability claim."
+}

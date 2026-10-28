@@ -1,0 +1,773 @@
+{
+  "phase": "before",
+  "base": "e9775b4",
+  "mode": "Synthetic mathematics class; real application routes and browser scripts; real CDN MathJax/fonts/icons; mocked Firebase browser module and extraction only",
+  "screens": [
+    "dashboard-1440-light.png",
+    "dashboard-1440-dark.png",
+    "dashboard-390-light.png",
+    "dashboard-390-dark.png",
+    "editor-1440-light.png",
+    "editor-1440-dark.png",
+    "editor-390-light.png",
+    "editor-390-dark.png",
+    "question-editor-1440-light.png",
+    "question-editor-1440-dark.png",
+    "question-editor-390-light.png",
+    "question-editor-390-dark.png",
+    "worksheet-1440-light.png",
+    "worksheet-1440-dark.png",
+    "worksheet-390-light.png",
+    "worksheet-390-dark.png",
+    "answer-key-1440-light.png",
+    "answer-key-1440-dark.png",
+    "answer-key-390-light.png",
+    "answer-key-390-dark.png",
+    "rmx-1440-light.png",
+    "rmx-1440-dark.png",
+    "rmx-390-light.png",
+    "rmx-390-dark.png",
+    "preview-1440-light.png",
+    "preview-1440-dark.png",
+    "preview-390-light.png",
+    "preview-390-dark.png",
+    "results-1440-light.png",
+    "results-1440-dark.png",
+    "results-390-light.png",
+    "results-390-dark.png",
+    "solutions-1440-light.png",
+    "solutions-1440-dark.png",
+    "solutions-390-light.png",
+    "solutions-390-dark.png",
+    "print-1440-light.png",
+    "print-1440-dark.png",
+    "print-390-light.png",
+    "print-390-dark.png",
+    "admin-1440-light.png",
+    "admin-1440-dark.png",
+    "admin-390-light.png",
+    "admin-390-dark.png",
+    "generator-1440-light.png",
+    "generator-1440-dark.png",
+    "generator-390-light.png",
+    "generator-390-dark.png",
+    "generator-settings-1440-light.png",
+    "generator-settings-1440-dark.png",
+    "generator-settings-390-light.png",
+    "generator-settings-390-dark.png",
+    "manual-dialog-1440-light.png",
+    "manual-dialog-1440-dark.png",
+    "manual-dialog-390-light.png",
+    "manual-dialog-390-dark.png",
+    "ai-settings-1440-light.png",
+    "ai-settings-1440-dark.png",
+    "ai-settings-390-light.png",
+    "ai-settings-390-dark.png",
+    "worksheet-review-1440-light.png",
+    "worksheet-review-1440-dark.png",
+    "worksheet-review-390-light.png",
+    "worksheet-review-390-dark.png",
+    "live-1440-light.png",
+    "live-1440-dark.png",
+    "live-390-light.png",
+    "live-390-dark.png",
+    "live-question-1440-light.png",
+    "live-question-1440-dark.png",
+    "live-question-390-light.png",
+    "live-question-390-dark.png",
+    "student-1440-light.png",
+    "student-1440-dark.png",
+    "student-390-light.png",
+    "student-390-dark.png",
+    "student-question-1440-light.png",
+    "student-question-1440-dark.png",
+    "student-question-390-light.png",
+    "student-question-390-dark.png",
+    "login-1440-light.png",
+    "login-1440-dark.png",
+    "login-390-light.png",
+    "login-390-dark.png",
+    "register-1440-light.png",
+    "register-1440-dark.png",
+    "register-390-light.png",
+    "register-390-dark.png",
+    "quiz-settings-1440-light.png",
+    "quiz-settings-1440-dark.png",
+    "quiz-settings-390-light.png",
+    "quiz-settings-390-dark.png",
+    "question-tools-1440-light.png",
+    "question-tools-1440-dark.png",
+    "question-tools-390-light.png",
+    "question-tools-390-dark.png",
+    "import-dialog-1440-light.png",
+    "import-dialog-1440-dark.png",
+    "import-dialog-390-light.png",
+    "import-dialog-390-dark.png",
+    "results-feedback-1440-light.png",
+    "results-feedback-1440-dark.png",
+    "results-feedback-390-light.png",
+    "results-feedback-390-dark.png",
+    "generation-error-1440-light.png",
+    "generation-error-1440-dark.png",
+    "generation-error-390-light.png",
+    "generation-error-390-dark.png"
+  ],
+  "layouts": [
+    {
+      "screen": "dashboard",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "dashboard",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "dashboard",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "dashboard",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "editor",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "editor",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "editor",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "editor",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "question-editor",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "question-editor",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "question-editor",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "question-editor",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "worksheet",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "worksheet",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "answer-key",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "answer-key",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "answer-key",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "answer-key",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "rmx",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "rmx",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "rmx",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "rmx",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "preview",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "preview",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "preview",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "preview",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "results",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "results",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "results",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "results",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "solutions",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "solutions",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "solutions",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "solutions",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "print",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "print",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "print",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "print",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "admin",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "admin",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "admin",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "admin",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "generator",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "generator",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "generator",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "generator",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "generator-settings",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "generator-settings",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "generator-settings",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "generator-settings",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "manual-dialog",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "manual-dialog",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "manual-dialog",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "manual-dialog",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "ai-settings",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "ai-settings",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "ai-settings",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "ai-settings",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "worksheet-review",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "live",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "live",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "live",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "live",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "live-question",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "live-question",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "live-question",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "live-question",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "student",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1472
+    },
+    {
+      "screen": "student",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1472
+    },
+    {
+      "screen": "student",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "student",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "student-question",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1472
+    },
+    {
+      "screen": "student-question",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1472
+    },
+    {
+      "screen": "student-question",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "student-question",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "login",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "login",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "login",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "login",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "register",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "register",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "register",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "register",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "quiz-settings",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "quiz-settings",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "quiz-settings",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "quiz-settings",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "question-tools",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "question-tools",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "question-tools",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "question-tools",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "import-dialog",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "import-dialog",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "import-dialog",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "import-dialog",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "results-feedback",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "results-feedback",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "results-feedback",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "results-feedback",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "generation-error",
+      "theme": "light",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "generation-error",
+      "theme": "dark",
+      "width": 1440,
+      "scroll": 1440
+    },
+    {
+      "screen": "generation-error",
+      "theme": "light",
+      "width": 390,
+      "scroll": 390
+    },
+    {
+      "screen": "generation-error",
+      "theme": "dark",
+      "width": 390,
+      "scroll": 390
+    }
+  ],
+  "errors": [],
+  "assetFailures": [],
+  "checks": [
+    "Every captured page loads from real app templates with actual local scripts",
+    "Real MathJax startup completed on editor/preview/feedback/print/student",
+    "Desktop/mobile light/dark captures include creation dialogs, advanced settings, review and populated classroom"
+  ],
+  "pass": true
+}

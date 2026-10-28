@@ -26,10 +26,11 @@ try {
   await page.waitForFunction(()=>document.getElementById('api-counter-badge').textContent.trim()==='Quota unavailable');
   evidence.checks.push('Dashboard quota stays unknown for both hosted models without browser keys');
   await page.evaluate(()=>localStorage.setItem('gemini_api_keys',JSON.stringify(['synthetic-a','synthetic-b'])));
-  await page.reload();await page.getByRole('button',{name:'Generate with AI',exact:true}).click();
+  await page.reload();await page.locator('#topic-input').waitFor({state:'visible'});
   await page.locator('#generator-advanced').evaluate(e=>e.open=true);
   assert.equal(await page.locator('#api-counter-badge').textContent(),'Quota unavailable');
   evidence.checks.push('Two synthetic keys and a denied usage endpoint never fabricate provider quota');
+  await page.getByRole('navigation',{name:'Workspace',exact:true}).getByRole('link',{name:'Quizzes',exact:true}).click();
   await page.locator('#searchInput').fill('no such synthetic quiz');assert.equal(await page.locator('.quiz-item:visible').count(),0);
   await page.locator('#searchInput').fill('');await page.locator('#library-status').selectOption('draft');
   evidence.checks.push('Search empty state and draft filter exercised');

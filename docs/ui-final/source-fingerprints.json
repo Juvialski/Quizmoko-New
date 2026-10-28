@@ -1,0 +1,60 @@
+{
+  "files": [
+    {
+      "path": "src/routes/quizRoutes.ts",
+      "sha256": "f7872eec018dd98401c63b3660549b310ec0e0591a51d9fce0d570a89ea63733"
+    },
+    {
+      "path": "src/routes/resultsRoutes.ts",
+      "sha256": "f862342a1daa03d2fe00e37e84964ccd3264a4eaeef2b2b3878f3f7415ee770a"
+    },
+    {
+      "path": "views/partials/workspace-header.ejs",
+      "sha256": "34a575637b570ef8ff563839124af6977aa0228d9b6baf0a84f06d391867f0ec"
+    },
+    {
+      "path": "public/css/ui-redesign.css",
+      "sha256": "49c8ecc94a8dacc26864dc8a46f391c2a9207879b36f70bfdaeee70961699160"
+    },
+    {
+      "path": "public/js/workspace-ui.js",
+      "sha256": "347550b035ca81272d124b0da03a9bb06751e34c8c98ce3bba833d93cdb2e848"
+    },
+    {
+      "path": "public/js/teacher-workflow.js",
+      "sha256": "0088fee5dfae4ffcf88cae4ff503e459c85e00fb77af8191fa523237340e6e44"
+    },
+    {
+      "path": "public/js/worksheet-studio.js",
+      "sha256": "9dbdfb382e45fa877aacf4b11b35306a1f1ce50939aef703daa50260d513abdd"
+    },
+    {
+      "path": "views/index.ejs",
+      "sha256": "4f82ac623454175fb8ac9d662f38afcab73a9ad65737f973c117f20139841559"
+    },
+    {
+      "path": "views/edit_quiz.ejs",
+      "sha256": "1c95ae64175212bca47e47d62f4ad5a018ebe2620cefeeeb3dea9bdc782f8cd4"
+    },
+    {
+      "path": "views/live.ejs",
+      "sha256": "362e5a23cd9e98c48107a22902db89b693717266fc0c962354c7707cbfd07cab"
+    },
+    {
+      "path": "views/results.ejs",
+      "sha256": "c996032816318a25e866b09458a7be7842a9128b069f9bf2e2d0d20debf550ff"
+    },
+    {
+      "path": "views/quiz.ejs",
+      "sha256": "4084d07222ad9d5e6030232c5bcd43f095b38ed4854c6978eb53c5f4d09ef163"
+    },
+    {
+      "path": "views/preview_quiz.ejs",
+      "sha256": "e554c6a299964c2b0a36637681b287dd5e305f6fed046be41d4c17171183b00b"
+    },
+    {
+      "path": "views/view_solutions.ejs",
+      "sha256": "98d0d7d50afd25a7aac3351fd506d6d486f51da9c24a8fe171b154a1c585f848"
+    }
+  ]
+}

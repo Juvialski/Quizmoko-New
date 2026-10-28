@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-28",
+  "timezone": "Asia/Manila",
+  "baseline": "209fcdbc18a8d8d834c55d6b48d77e8474b6d6bf",
+  "scope": "Presentation, creation and affected authoring/recovery regression only; full backend/model evaluations not rerun locally",
+  "checks": [
+    {"command": "node --require ./test/tsx-bootstrap.cjs --import tsx --test test/ui-consistency.test.ts test/r4-workflow.test.ts", "passed": 21, "failed": 0},
+    {"command": "npm run check", "pass": true},
+    {"command": "npm run test:ui-final", "pass": true, "evidence": ["workflow.json", "create-workspace.json"]},
+    {"command": "node scripts/test-r4-browser.mjs", "pass": true, "evidence": "r4-browser.json"},
+    {"command": "node scripts/test-r4-1-browser.mjs", "pass": true, "evidence": "r4-1-browser.json"},
+    {"command": "node scripts/test-worksheet-studio-browser.mjs", "pass": true, "evidence": "studio.json"},
+    {"command": "node scripts/test-ui-audit-browser.mjs", "pass": true, "evidence": "ui-audit.json"},
+    {"command": "node scripts/test-create-workspace-browser.mjs --capture", "pass": true, "screenshots": 64, "browser_errors": 0, "asset_failures": 0, "evidence": "../evidence.json"}
+  ],
+  "backend_changes_since_baseline": []
+}

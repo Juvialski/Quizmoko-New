@@ -19,3 +19,7 @@ References: [gRPC auth-context](https://github.com/advisories/GHSA-m9gg-hp2v-232
 The worksheet/editor PR's exact-head CI detected newly published advisories in locked `body-parser` 1.20.8 and development-only `undici` 7.30.0. Targeted compatible updates lock 1.20.9 and 7.30.1 respectively; only these two package records changed. Direct dependency ranges, Firebase, Gemini SDK and the advisory classifier are unchanged. The updated local audit passes the existing classifier; retained findings remain the previously reviewed Firebase/gRPC and ExcelJS/UUID chains.
 
 Patched version evidence: [body-parser advisory](https://github.com/advisories/GHSA-27r3-jxmh-p828), [undici advisory](https://github.com/advisories/GHSA-xjj6-f33q-929c). Full regression/browser/build and exact-head CI are rerun for this lockfile.
+
+## 2026-10-28 qs advisory
+
+`qs` 6.16.0 is affected by [GHSA-6pq8-jhm2-2vcw](https://github.com/advisories/GHSA-6pq8-jhm2-2vcw) in `stringify` with comma arrays and non-callable `toString`. The application does not call `qs.stringify`; installed Express and body-parser use `qs.parse`. Their current 4.22.3 / 1.20.9 dependency ranges are `~6.16.0`, while the patched version is 6.17.0. This specific advisory is classified for the current usage; it remains a vulnerable dependency and should be updated when upstream permits the patch. New advisory IDs continue to fail classification.

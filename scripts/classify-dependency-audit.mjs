@@ -12,13 +12,15 @@ const classified = {
   globby: 'Development-only EJS lint glob tooling.',
   'ejs-lint': 'Development-only EJS lint glob tooling.',
   uuid: 'ExcelJS transitive UUID advisory; no caller-supplied output buffers in application.',
-  exceljs: 'Transitive UUID advisory; retain workbook compatibility.'
+  exceljs: 'Transitive UUID advisory; retain workbook compatibility.',
+  qs: 'Express/body-parser use qs for parsing; the reviewed comma-stringify advisory is not invoked by application code.'
 };
 const reviewedAdvisories = new Set([
   'https://github.com/advisories/GHSA-m9gg-hp2v-232j',
   'https://github.com/advisories/GHSA-f596-whhp-79r4',
   'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm',
-  'https://github.com/advisories/GHSA-w5hq-g745-h8pq'
+  'https://github.com/advisories/GHSA-w5hq-g745-h8pq',
+  'https://github.com/advisories/GHSA-6pq8-jhm2-2vcw'
 ]);
 let unclassified = false;
 for (const [name, vulnerability] of Object.entries(report.vulnerabilities)) {
